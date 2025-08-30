@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 
 export default function FormCanvas({
   fields,
@@ -9,12 +9,17 @@ export default function FormCanvas({
   onMoveField,
   draggingIndex,
   setDraggingIndex,
-  toggleFieldWidth
+  toggleFieldWidth,
+  updateFieldSize
 }) {
   const dragOverIndex = useRef(null);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [resizing, setResizing] = useState(null); // Track which field is being resized
+  const startSizeRef = useRef(null);
+  const startPosRef = useRef(null);
 
+  // Drag-and-drop field handling
   const handleDragStart = (idx) => {
+    if (resizing !== null) return; // Don't allow drag when resizing
     setDraggingIndex(idx);
   };
 
@@ -45,6 +50,85 @@ export default function FormCanvas({
     }
   };
 
+  // Field resizing functionality
+  const startResize = (e, idx) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizing(idx);
+    startPosRef.current = { x: e.clientX, y: e.clientY };
+
+    // Get current width percentage
+    const fieldWidth = fields[idx].width === 'half' ? 50 : 100;
+    const fieldHeight = fields[idx].height || 'auto';
+    startSizeRef.current = { width: fieldWidth, height: fieldHeight };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', stopResize);
+  };
+
+  const handleMouseMove = (e) => {
+    if (resizing === null) return;
+
+    // Calculate horizontal resize
+    const deltaX = e.clientX - startPosRef.current.x;
+    const containerWidth = document.querySelector('.flex-wrap').clientWidth;
+    const percentageDelta = (deltaX / containerWidth) * 100;
+
+    // Calculate vertical resize
+    const deltaY = e.clientY - startPosRef.current.y;
+
+    // Calculate new width as percentage (clamped between 25% and 100%)
+    let newWidthPercent = Math.min(100, Math.max(25, startSizeRef.current.width + percentageDelta));
+
+    // Snap to 50% or 100%
+    if (newWidthPercent > 75) {
+      newWidthPercent = 100;
+    } else if (newWidthPercent > 35 && newWidthPercent < 65) {
+      newWidthPercent = 50;
+    } else if (newWidthPercent <= 35) {
+      newWidthPercent = 33;
+    }
+
+    // Calculate new height in pixels
+    let newHeight = startSizeRef.current.height;
+    if (typeof newHeight === 'number') {
+      newHeight = Math.max(60, newHeight + deltaY);
+    } else if (deltaY > 20) {
+      // Convert from 'auto' to pixels once we've dragged enough
+      newHeight = 60 + deltaY;
+    }
+
+    // Update field size
+    updateFieldSize(resizing, newWidthPercent, newHeight);
+  };
+
+  const stopResize = () => {
+    setResizing(null);
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', stopResize);
+  };
+
+  // Clean up event listeners
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', stopResize);
+    };
+  }, [resizing]);
+
+  // Calculate width style based on percentage
+  const getWidthStyle = (field) => {
+    if (field.widthPercent) {
+      return `${field.widthPercent}%`;
+    }
+    return field.width === 'half' ? '50%' : '100%';
+  };
+
+  // Calculate height style
+  const getHeightStyle = (field) => {
+    return typeof field.height === 'number' ? `${field.height}px` : 'auto';
+  };
+
   return (
     <div
       className="h-full flex flex-col p-4 bg-gray-50"
@@ -64,16 +148,23 @@ export default function FormCanvas({
             <div
               key={idx}
               className="px-2 mb-3"
-              style={{ width: field.width === 'half' ? '50%' : '100%' }}
+              style={{
+                width: getWidthStyle(field),
+                transition: resizing === idx ? 'none' : 'width 0.2s ease'
+              }}
               onDragOver={(e) => {
                 e.preventDefault();
                 handleDragEnter(idx);
               }}
             >
               <div
-                className={`p-3 border rounded bg-white shadow-sm text-xs ${draggingIndex === idx ? 'opacity-50' : ''
+                className={`relative p-3 border rounded bg-white shadow-sm text-xs ${draggingIndex === idx ? 'opacity-50' : ''
                   }`}
-                draggable
+                style={{
+                  height: getHeightStyle(field),
+                  transition: resizing === idx ? 'none' : 'height 0.2s ease'
+                }}
+                draggable={resizing === null}
                 onDragStart={() => handleDragStart(idx)}
                 onDragEnd={handleDragEnd}
                 onDrop={(e) => handleDrop(e, idx)}
@@ -124,6 +215,17 @@ export default function FormCanvas({
                     </label>
                   )}
                 </div>
+
+                {/* Resize handle - bottom right corner */}
+                <div
+                  className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-10"
+                  onMouseDown={(e) => startResize(e, idx)}
+                  style={{
+                    background: 'linear-gradient(135deg, transparent 50%, rgba(59, 130, 246, 0.4) 50%)',
+                    borderBottomRightRadius: '0.25rem'
+                  }}
+                  title="Resize field"
+                />
               </div>
             </div>
           ))}
