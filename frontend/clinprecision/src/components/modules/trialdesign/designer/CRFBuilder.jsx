@@ -38,7 +38,9 @@ const CRFBuilder = ({ onSave, onCancel }) => {
       setFields(prev => [...prev, {
         ...draggedField,
         label: draggedField.label,
-        width: 'half' // Default to half-width for side-by-side
+        width: 'half', // Default to half-width for side-by-side
+        widthPercent: 50, // Store explicit percentage for resizing
+        height: 'auto' // Default height is auto
       }]);
       setDraggedField(null);
     }
@@ -69,13 +71,35 @@ const CRFBuilder = ({ onSave, onCancel }) => {
     setFields(fields.map((field, i) => {
       if (i === idx) {
         const newWidth = field.width === 'full' ? 'half' : 'full';
-        return { ...field, width: newWidth };
+        const newWidthPercent = newWidth === 'half' ? 50 : 100;
+        return { ...field, width: newWidth, widthPercent: newWidthPercent };
       }
       return field;
     }));
   };
 
-  // Resize functionality
+  // Update field size with specific dimensions
+  const updateFieldSize = (idx, widthPercent, height) => {
+    setFields(fields.map((field, i) => {
+      if (i === idx) {
+        // Update width classification based on percentage
+        let width = 'custom';
+        if (widthPercent === 100) width = 'full';
+        else if (widthPercent === 50) width = 'half';
+        else if (widthPercent === 33) width = 'third';
+
+        return {
+          ...field,
+          width,
+          widthPercent,
+          height
+        };
+      }
+      return field;
+    }));
+  };
+
+  // Resize functionality for the canvas
   const startResize = (e) => {
     e.preventDefault();
     setResizing(true);
@@ -105,7 +129,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', stopResize);
     };
-  }, []);
+  }, [resizing]);
 
   // Save form
   const handleSaveForm = () => {
@@ -134,61 +158,77 @@ const CRFBuilder = ({ onSave, onCancel }) => {
             </div>
           ) : (
             <div className="flex flex-wrap -mx-2">
-              {fields.map((field, idx) => (
-                <div
-                  key={idx}
-                  className="px-2 mb-4"
-                  style={{ width: field.width === 'half' ? '50%' : '100%' }}
-                >
-                  <div className="mb-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {field.label}
-                    </label>
+              {fields.map((field, idx) => {
+                // Get field width style for preview
+                const widthStyle = field.widthPercent ?
+                  `${field.widthPercent}%` :
+                  (field.width === 'half' ? '50%' : '100%');
 
-                    {field.type === 'text' && (
-                      <input
-                        type="text"
-                        className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    )}
+                // Get field height style for preview
+                const heightStyle = typeof field.height === 'number' ?
+                  `${field.height}px` : 'auto';
 
-                    {field.type === 'number' && (
-                      <input
-                        type="number"
-                        className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    )}
+                return (
+                  <div
+                    key={idx}
+                    className="px-2 mb-4"
+                    style={{ width: widthStyle }}
+                  >
+                    <div
+                      className="mb-2"
+                      style={{
+                        minHeight: heightStyle !== 'auto' ? heightStyle : 'auto'
+                      }}
+                    >
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {field.label}
+                      </label>
 
-                    {field.type === 'date' && (
-                      <input
-                        type="date"
-                        className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    )}
-
-                    {field.type === 'checkbox' && (
-                      <div className="flex items-center">
+                      {field.type === 'text' && (
                         <input
-                          type="checkbox"
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          type="text"
+                          className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
-                        <span className="ml-2 text-sm text-gray-700">Option</span>
-                      </div>
-                    )}
+                      )}
 
-                    {field.type === 'radio' && (
-                      <div className="flex items-center">
+                      {field.type === 'number' && (
                         <input
-                          type="radio"
-                          name={`radio_${idx}`}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                          type="number"
+                          className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
-                        <span className="ml-2 text-sm text-gray-700">Option</span>
-                      </div>
-                    )}
+                      )}
+
+                      {field.type === 'date' && (
+                        <input
+                          type="date"
+                          className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      )}
+
+                      {field.type === 'checkbox' && (
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Option</span>
+                        </div>
+                      )}
+
+                      {field.type === 'radio' && (
+                        <div className="flex items-center">
+                          <input
+                            type="radio"
+                            name={`radio_${idx}`}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Option</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               <div className="w-full pt-4 border-t flex justify-end space-x-3">
                 <button type="button" className="px-4 py-2 bg-gray-200 text-gray-800 rounded">
@@ -277,6 +317,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 draggingIndex={draggingIndex}
                 setDraggingIndex={setDraggingIndex}
                 toggleFieldWidth={toggleFieldWidth}
+                updateFieldSize={updateFieldSize}
               />
             </div>
           </>
