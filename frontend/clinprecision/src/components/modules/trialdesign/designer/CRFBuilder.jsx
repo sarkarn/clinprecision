@@ -260,14 +260,6 @@ const CRFBuilder = ({ onSave, onCancel }) => {
           <h2 className="text-lg font-semibold">CRF Builder</h2>
           <div className="flex space-x-2">
             <button
-              onClick={() => setShowPreview(false)}
-              className={`px-3 py-1 text-sm rounded ${!showPreview
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700'}`}
-            >
-              Builder
-            </button>
-            <button
               onClick={() => setShowPreview(true)}
               className={`px-3 py-1 text-sm rounded ${showPreview
                 ? 'bg-blue-600 text-white'
