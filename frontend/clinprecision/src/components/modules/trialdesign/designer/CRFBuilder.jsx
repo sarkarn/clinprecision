@@ -28,14 +28,16 @@ const Icon = ({ type }) => {
 const MIN_WIDTH = 700;  // Change to 910 (30% increase)
 const MIN_CANVAS_HEIGHT = 400;
 
-const CRFBuilder = ({ onSave, onCancel }) => {
-  const [fields, setFields] = useState([]);
-  const [crfName, setCrfName] = useState('');
+const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) => {
+  const [fields, setFields] = useState(initialData?.fields || []);
+  const [crfName, setCrfName] = useState(initialData?.name || '');
   const [draggedField, setDraggedField] = useState(null);
   const [selectedFieldIndex, setSelectedFieldIndex] = useState(null);
   const [showMetadataPanel, setShowMetadataPanel] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  // Add state for preview mode
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   // Use the templates from the imported file
   const DOMAIN_TEMPLATES = [
@@ -272,6 +274,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
               onChange={(e) => updateFieldMetadata('variableName', e.target.value)}
               className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
               placeholder="e.g., AETERM, CMTRT"
+              disabled={readOnly}
             />
           </div>
 
@@ -285,6 +288,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
               onChange={(e) => updateFieldMetadata('sdtmMapping', e.target.value)}
               className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
               placeholder="e.g., AE.AETERM"
+              disabled={readOnly}
             />
           </div>
 
@@ -296,6 +300,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
               value={metadata.required ? 'true' : 'false'}
               onChange={(e) => updateFieldMetadata('required', e.target.value === 'true')}
               className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+              disabled={readOnly}
             >
               <option value="false">No</option>
               <option value="true">Yes</option>
@@ -310,6 +315,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
               value={metadata.source || 'clinician'}
               onChange={(e) => updateFieldMetadata('source', e.target.value)}
               className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+              disabled={readOnly}
             >
               <option value="clinician">Clinician</option>
               <option value="patient">Patient</option>
@@ -332,6 +338,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.maxLength || ''}
                 onChange={(e) => updateFieldMetadata('maxLength', parseInt(e.target.value) || '')}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               />
             </div>
 
@@ -343,6 +350,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.codingRequired ? 'true' : 'false'}
                 onChange={(e) => updateFieldMetadata('codingRequired', e.target.value === 'true')}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               >
                 <option value="false">No</option>
                 <option value="true">Yes</option>
@@ -358,6 +366,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                   value={metadata.codingDictionary || ''}
                   onChange={(e) => updateFieldMetadata('codingDictionary', e.target.value)}
                   className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                  disabled={readOnly}
                 >
                   <option value="">Select Dictionary</option>
                   <option value="MedDRA">MedDRA</option>
@@ -382,6 +391,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 onChange={(e) => updateFieldMetadata('units', e.target.value)}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
                 placeholder="e.g., kg, mmHg"
+                disabled={readOnly}
               />
             </div>
 
@@ -393,6 +403,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.format || '#.##'}
                 onChange={(e) => updateFieldMetadata('format', e.target.value)}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               >
                 <option value="#.##">2 Decimal Places</option>
                 <option value="#.#">1 Decimal Place</option>
@@ -410,6 +421,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.minValue !== null ? metadata.minValue : ''}
                 onChange={(e) => updateFieldMetadata('minValue', e.target.value === '' ? null : parseFloat(e.target.value))}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               />
             </div>
 
@@ -422,6 +434,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.maxValue !== null ? metadata.maxValue : ''}
                 onChange={(e) => updateFieldMetadata('maxValue', e.target.value === '' ? null : parseFloat(e.target.value))}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               />
             </div>
           </div>
@@ -437,6 +450,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.format || 'YYYY-MM-DD'}
                 onChange={(e) => updateFieldMetadata('format', e.target.value)}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               >
                 <option value="YYYY-MM-DD">YYYY-MM-DD</option>
                 <option value="DD-MMM-YYYY">DD-MMM-YYYY</option>
@@ -452,6 +466,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.allowPartialDate ? 'true' : 'false'}
                 onChange={(e) => updateFieldMetadata('allowPartialDate', e.target.value === 'true')}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               >
                 <option value="false">No</option>
                 <option value="true">Yes</option>
@@ -469,6 +484,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                   onChange={(e) => updateFieldMetadata('qualifierField', e.target.value)}
                   className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
                   placeholder="e.g., AESTDTC_QUAL"
+                  disabled={readOnly}
                 />
               </div>
             )}
@@ -485,6 +501,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
             className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
             rows="2"
             placeholder="Instructions for data entry"
+            disabled={readOnly}
           ></textarea>
         </div>
 
@@ -496,6 +513,129 @@ const CRFBuilder = ({ onSave, onCancel }) => {
             Close
           </button>
         </div>
+      </div>
+    );
+  };
+
+  // Render preview panel
+  const renderPreviewPanel = () => {
+    return (
+      <div className="bg-white p-6 border rounded-md">
+        <div className="mb-6 border-b pb-4">
+          <h2 className="text-xl font-bold text-gray-800">{crfName || "Form Preview"}</h2>
+        </div>
+
+        <div className="space-y-6">
+          {fields.map((field, index) => (
+            <div
+              key={index}
+              className={`${field.width === 'full' ? 'w-full' : `w-${field.widthPercent}%`} inline-block align-top px-2`}
+              style={{ width: `${field.widthPercent}%` }}
+            >
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {field.label}
+                  {field.metadata?.required && <span className="text-red-500 ml-1">*</span>}
+                </label>
+
+                {field.type === 'text' && (
+                  <input
+                    type="text"
+                    className="border border-gray-300 rounded-md w-full p-2"
+                    placeholder={field.metadata?.description || "Enter text"}
+                    disabled
+                  />
+                )}
+
+                {field.type === 'number' && (
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      className="border border-gray-300 rounded-md w-full p-2"
+                      placeholder="0"
+                      disabled
+                    />
+                    {field.metadata?.units && (
+                      <span className="ml-2 text-gray-500">{field.metadata.units}</span>
+                    )}
+                  </div>
+                )}
+
+                {field.type === 'date' && (
+                  <input
+                    type="text"
+                    className="border border-gray-300 rounded-md w-full p-2"
+                    placeholder={field.metadata?.format || "YYYY-MM-DD"}
+                    disabled
+                  />
+                )}
+
+                {field.type === 'checkbox' && (
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 border-gray-300 rounded text-blue-600"
+                      disabled
+                    />
+                    <span className="ml-2 text-gray-500">
+                      {field.metadata?.description || "Check this option"}
+                    </span>
+                  </div>
+                )}
+
+                {field.type === 'radio' && (
+                  <div className="space-y-2">
+                    {field.metadata?.options?.map((option, i) => (
+                      <div key={i} className="flex items-center">
+                        <input
+                          type="radio"
+                          name={`radio_${index}`}
+                          className="h-4 w-4 border-gray-300 text-blue-600"
+                          disabled
+                        />
+                        <span className="ml-2 text-gray-500">{option.label}</span>
+                      </div>
+                    )) || (
+                        <>
+                          <div className="flex items-center">
+                            <input type="radio" className="h-4 w-4" disabled />
+                            <span className="ml-2 text-gray-500">Option 1</span>
+                          </div>
+                          <div className="flex items-center">
+                            <input type="radio" className="h-4 w-4" disabled />
+                            <span className="ml-2 text-gray-500">Option 2</span>
+                          </div>
+                        </>
+                      )}
+                  </div>
+                )}
+
+                {field.type === 'select' && (
+                  <select
+                    className="border border-gray-300 rounded-md w-full p-2 text-gray-500"
+                    disabled
+                  >
+                    <option>Select an option...</option>
+                    {field.metadata?.options?.map((option, i) => (
+                      <option key={i}>{option.label}</option>
+                    ))}
+                  </select>
+                )}
+
+                {field.metadata?.description && field.type !== 'checkbox' && (
+                  <p className="mt-1 text-xs text-gray-500">{field.metadata.description}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {fields.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <p>No fields added to this form yet.</p>
+            <p className="text-sm mt-2">Switch to Design mode to add fields.</p>
+          </div>
+        )}
       </div>
     );
   };
@@ -515,12 +655,14 @@ const CRFBuilder = ({ onSave, onCancel }) => {
               onChange={(e) => setCrfName(e.target.value)}
               className="border border-gray-300 rounded-md w-full px-3 py-2"
               placeholder="Enter CRF name"
+              disabled={readOnly}
             />
           </div>
           <div>
             <button
               onClick={openTemplateModal}
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              disabled={readOnly}
             >
               Use Template
             </button>
@@ -548,65 +690,88 @@ const CRFBuilder = ({ onSave, onCancel }) => {
           </div>
         )}
 
-        <div className="flex flex-col md:flex-row gap-4" style={{ height: MIN_CANVAS_HEIGHT }}>
-          {/* Field Type Palette - Keep same width */}
-          <div
-            className="bg-gray-50 p-4 rounded-md flex flex-col overflow-y-auto"
-            style={{ width: "300px", minWidth: "300px" }}
+        {/* Add mode toggle buttons */}
+        <div className="mb-4 flex space-x-2 border-b pb-3">
+          <button
+            onClick={() => setIsPreviewMode(false)}
+            className={`px-4 py-2 rounded-t ${!isPreviewMode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
           >
-            <h4 className="font-medium mb-3 text-sm">Field Types</h4>
-            <div className="space-y-2">
-              {fieldTypes.map((fieldType, index) => (
-                <div
-                  key={index}
-                  className="bg-white p-3 rounded shadow-sm cursor-move flex items-center gap-2 text-sm"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, fieldType)}
-                >
-                  <Icon type={fieldType.type} />
-                  <span>{fieldType.label}</span>
-                </div>
-              ))}
-            </div>
-
-            <h4 className="font-medium mb-3 mt-6 text-sm">Domain Templates</h4>
-            <div className="space-y-2">
-              {DOMAIN_TEMPLATES.map((template) => (
-                <div
-                  key={template.id}
-                  className="bg-white p-3 rounded shadow-sm cursor-pointer flex items-center gap-2 text-sm hover:bg-blue-50"
-                  onClick={() => applyTemplate(template.id)}
-                >
-                  <Icon type="template" />
-                  <span>{template.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Form Canvas - Increase width */}
-          <div
-            className="flex-1 overflow-hidden"
-            style={{ minWidth: "900px" }} // Increased width
+            Design
+          </button>
+          <button
+            onClick={() => setIsPreviewMode(true)}
+            className={`px-4 py-2 rounded-t ${isPreviewMode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
           >
-            <FormCanvas
-              fields={fields}
-              onDropField={handleDrop}
-              onDragOverField={handleDragOver}
-              onLabelChange={handleLabelChange}
-              onRemoveField={handleRemoveField}
-              onMoveField={handleMoveField}
-              draggingIndex={selectedFieldIndex}
-              setDraggingIndex={setSelectedFieldIndex}
-              toggleFieldWidth={toggleFieldWidth}
-              updateFieldSize={updateFieldSize}
-              onSelectField={handleSelectField}
-            />
-          </div>
+            Preview
+          </button>
         </div>
 
-        {/* Metadata Panel */}
-        {showMetadataPanel && renderMetadataPanel()}
+        {/* Show either form canvas or preview based on mode */}
+        {isPreviewMode ? (
+          renderPreviewPanel()
+        ) : (
+          <>
+            <div className="flex flex-col md:flex-row gap-4" style={{ height: MIN_CANVAS_HEIGHT }}>
+              {/* Field Type Palette - Keep same width */}
+              <div
+                className="bg-gray-50 p-4 rounded-md flex flex-col overflow-y-auto"
+                style={{ width: "300px", minWidth: "300px" }}
+              >
+                <h4 className="font-medium mb-3 text-sm">Field Types</h4>
+                <div className="space-y-2">
+                  {fieldTypes.map((fieldType, index) => (
+                    <div
+                      key={index}
+                      className="bg-white p-3 rounded shadow-sm cursor-move flex items-center gap-2 text-sm"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, fieldType)}
+                    >
+                      <Icon type={fieldType.type} />
+                      <span>{fieldType.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <h4 className="font-medium mb-3 mt-6 text-sm">Domain Templates</h4>
+                <div className="space-y-2">
+                  {DOMAIN_TEMPLATES.map((template) => (
+                    <div
+                      key={template.id}
+                      className="bg-white p-3 rounded shadow-sm cursor-pointer flex items-center gap-2 text-sm hover:bg-blue-50"
+                      onClick={() => applyTemplate(template.id)}
+                    >
+                      <Icon type="template" />
+                      <span>{template.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Form Canvas - Increase width */}
+              <div
+                className="flex-1 overflow-hidden"
+                style={{ minWidth: "900px" }} // Increased width
+              >
+                <FormCanvas
+                  fields={fields}
+                  onDropField={handleDrop}
+                  onDragOverField={handleDragOver}
+                  onLabelChange={handleLabelChange}
+                  onRemoveField={handleRemoveField}
+                  onMoveField={handleMoveField}
+                  draggingIndex={selectedFieldIndex}
+                  setDraggingIndex={setSelectedFieldIndex}
+                  toggleFieldWidth={toggleFieldWidth}
+                  updateFieldSize={updateFieldSize}
+                  onSelectField={handleSelectField}
+                />
+              </div>
+            </div>
+
+            {/* Metadata Panel */}
+            {showMetadataPanel && renderMetadataPanel()}
+          </>
+        )}
 
         {/* Template Modal */}
         {renderTemplateModal()}
@@ -616,14 +781,16 @@ const CRFBuilder = ({ onSave, onCancel }) => {
             onClick={onCancel}
             className="bg-gray-300 text-gray-800 px-4 py-2 rounded"
           >
-            Cancel
+            {readOnly ? 'Close' : 'Cancel'}
           </button>
-          <button
-            onClick={handleSave}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Save CRF
-          </button>
+          {!readOnly && (
+            <button
+              onClick={handleSave}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Save CRF
+            </button>
+          )}
         </div>
       </div>
     </div>

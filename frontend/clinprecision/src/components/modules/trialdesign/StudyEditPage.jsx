@@ -109,11 +109,22 @@ const StudyEditPage = () => {
 
     const handleCRFSave = (newCRF) => {
         const updatedArms = [...arms];
-        const { armIndex, visitIndex } = currentVisit;
-        if (!updatedArms[armIndex].visits[visitIndex].crfs) {
-            updatedArms[armIndex].visits[visitIndex].crfs = [];
+        const { armIndex, visitIndex, crfIndex, mode } = currentVisit;
+
+        if (mode === 'edit' && crfIndex !== undefined) {
+            // Update existing CRF
+            updatedArms[armIndex].visits[visitIndex].crfs[crfIndex] = {
+                ...updatedArms[armIndex].visits[visitIndex].crfs[crfIndex],
+                ...newCRF
+            };
+        } else {
+            // Add new CRF
+            if (!updatedArms[armIndex].visits[visitIndex].crfs) {
+                updatedArms[armIndex].visits[visitIndex].crfs = [];
+            }
+            updatedArms[armIndex].visits[visitIndex].crfs.push(newCRF);
         }
-        updatedArms[armIndex].visits[visitIndex].crfs.push(newCRF);
+
         setArms(updatedArms);
         setIsCRFBuilderOpen(false);
     };
@@ -465,12 +476,39 @@ const StudyEditPage = () => {
                                                                                         />
                                                                                     </td>
                                                                                     <td className="px-4 py-2">
-                                                                                        <button
-                                                                                            onClick={() => deleteCRF(armIndex, visitIndex, crfIndex)}
-                                                                                            className="text-red-600 hover:text-red-800"
-                                                                                        >
-                                                                                            Delete
-                                                                                        </button>
+                                                                                        <div className="flex space-x-2">
+                                                                                            <button
+                                                                                                onClick={() => {
+                                                                                                    // Set the current CRF for editing
+                                                                                                    const crf = visit.crfs[crfIndex];
+                                                                                                    setCurrentVisit({ armIndex, visitIndex, crfIndex, crf, mode: 'edit' });
+                                                                                                    setIsCRFBuilderOpen(true);
+                                                                                                }}
+                                                                                                className="text-yellow-600 hover:text-yellow-800"
+                                                                                                title="Edit CRF"
+                                                                                            >
+                                                                                                Edit
+                                                                                            </button>
+                                                                                            <button
+                                                                                                onClick={() => {
+                                                                                                    // View the CRF in read-only mode
+                                                                                                    const crf = visit.crfs[crfIndex];
+                                                                                                    setCurrentVisit({ armIndex, visitIndex, crfIndex, crf, mode: 'view' });
+                                                                                                    setIsCRFBuilderOpen(true);
+                                                                                                }}
+                                                                                                className="text-blue-600 hover:text-blue-800"
+                                                                                                title="View CRF"
+                                                                                            >
+                                                                                                View
+                                                                                            </button>
+                                                                                            <button
+                                                                                                onClick={() => deleteCRF(armIndex, visitIndex, crfIndex)}
+                                                                                                className="text-red-600 hover:text-red-800"
+                                                                                                title="Delete CRF"
+                                                                                            >
+                                                                                                Delete
+                                                                                            </button>
+                                                                                        </div>
                                                                                     </td>
                                                                                 </tr>
                                                                             ))}
@@ -505,7 +543,12 @@ const StudyEditPage = () => {
                 <div className="fixed inset-0 flex items-center justify-center z-50">
                     <div className="absolute inset-0 bg-black opacity-30"></div>
                     <div className="bg-white rounded-lg shadow-lg p-6 z-10 max-w-5xl w-full">
-                        <CRFBuilder onSave={handleCRFSave} onCancel={() => setIsCRFBuilderOpen(false)} />
+                        <CRFBuilder
+                            onSave={handleCRFSave}
+                            onCancel={() => setIsCRFBuilderOpen(false)}
+                            initialData={currentVisit?.crf}
+                            readOnly={currentVisit?.mode === 'view'}
+                        />
                     </div>
                 </div>
             )}
