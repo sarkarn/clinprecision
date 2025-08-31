@@ -14,8 +14,12 @@ export default function FormCanvas({
 }) {
   const dragOverIndex = useRef(null);
   const [resizing, setResizing] = useState(null); // Track which field is being resized
+  const [resizeMode, setResizeMode] = useState(null); // 'width', 'height', or 'both'
   const startSizeRef = useRef(null);
   const startPosRef = useRef(null);
+  const [showSizeIndicator, setShowSizeIndicator] = useState(false);
+  const [indicatorValue, setIndicatorValue] = useState("");
+  const indicatorTimeoutRef = useRef(null);
 
   // Drag-and-drop field handling
   const handleDragStart = (idx) => {
@@ -50,20 +54,40 @@ export default function FormCanvas({
     }
   };
 
+  // Show size indicator with value
+  const displaySizeIndicator = (value) => {
+    setIndicatorValue(value);
+    setShowSizeIndicator(true);
+
+    // Clear any existing timeout
+    if (indicatorTimeoutRef.current) {
+      clearTimeout(indicatorTimeoutRef.current);
+    }
+
+    // Hide indicator after 1.5 seconds
+    indicatorTimeoutRef.current = setTimeout(() => {
+      setShowSizeIndicator(false);
+    }, 1500);
+  };
+
   // Field resizing functionality
-  const startResize = (e, idx) => {
+  const startResize = (e, idx, mode = 'both') => {
     e.preventDefault();
     e.stopPropagation();
     setResizing(idx);
+    setResizeMode(mode);
     startPosRef.current = { x: e.clientX, y: e.clientY };
 
     // Get current width percentage
-    const fieldWidth = fields[idx].width === 'half' ? 50 : 100;
+    const fieldWidth = fields[idx].widthPercent || (fields[idx].width === 'half' ? 50 : 100);
     const fieldHeight = fields[idx].height || 'auto';
     startSizeRef.current = { width: fieldWidth, height: fieldHeight };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', stopResize);
+
+    // Show initial size indicator
+    displaySizeIndicator(`${fieldWidth}%`);
   };
 
   const handleMouseMove = (e) => {
@@ -71,39 +95,56 @@ export default function FormCanvas({
 
     // Calculate horizontal resize
     const deltaX = e.clientX - startPosRef.current.x;
-    const containerWidth = document.querySelector('.flex-wrap').clientWidth;
-    const percentageDelta = (deltaX / containerWidth) * 100;
-
-    // Calculate vertical resize
     const deltaY = e.clientY - startPosRef.current.y;
 
-    // Calculate new width as percentage (clamped between 25% and 100%)
-    let newWidthPercent = Math.min(100, Math.max(25, startSizeRef.current.width + percentageDelta));
+    // Handle horizontal resizing
+    if (resizeMode === 'width' || resizeMode === 'both') {
+      // Get container width - fall back to a reasonable default if element not found
+      const containerEl = document.querySelector('.flex-wrap');
+      const containerWidth = containerEl ? containerEl.clientWidth : 800;
 
-    // Snap to 50% or 100%
-    if (newWidthPercent > 75) {
-      newWidthPercent = 100;
-    } else if (newWidthPercent > 35 && newWidthPercent < 65) {
-      newWidthPercent = 50;
-    } else if (newWidthPercent <= 35) {
-      newWidthPercent = 33;
+      // Use a multiplier to make small movements more precise (0.75 = more gradual changes)
+      const horizontalSensitivity = 0.75;
+      const percentageDelta = (deltaX / containerWidth) * 100 * horizontalSensitivity;
+
+      // Calculate new width percentage (clamped between 25% and 100%)
+      let newWidthPercent = Math.min(100, Math.max(25, startSizeRef.current.width + percentageDelta));
+
+      // Snap to 50% or 100%
+      if (newWidthPercent > 75) {
+        newWidthPercent = 100;
+      } else if (newWidthPercent > 35 && newWidthPercent < 65) {
+        newWidthPercent = 50;
+      } else if (newWidthPercent <= 35) {
+        newWidthPercent = 33;
+      }
+
+      // Update field size
+      updateFieldSize(resizing, newWidthPercent, fields[resizing].height);
+
+      // Update size indicator
+      displaySizeIndicator(`${Math.round(newWidthPercent)}%`);
     }
 
-    // Calculate new height in pixels
-    let newHeight = startSizeRef.current.height;
-    if (typeof newHeight === 'number') {
-      newHeight = Math.max(60, newHeight + deltaY);
-    } else if (deltaY > 20) {
-      // Convert from 'auto' to pixels once we've dragged enough
-      newHeight = 60 + deltaY;
-    }
+    // Handle vertical resizing
+    if (resizeMode === 'height' || resizeMode === 'both') {
+      // Calculate new height in pixels
+      let newHeight = startSizeRef.current.height;
+      if (typeof newHeight === 'number') {
+        newHeight = Math.max(60, newHeight + deltaY);
+      } else if (deltaY > 20) {
+        // Convert from 'auto' to pixels once we've dragged enough
+        newHeight = 60 + deltaY;
+      }
 
-    // Update field size
-    updateFieldSize(resizing, newWidthPercent, newHeight);
+      // Update field size
+      updateFieldSize(resizing, fields[resizing].widthPercent, newHeight);
+    }
   };
 
   const stopResize = () => {
     setResizing(null);
+    setResizeMode(null);
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', stopResize);
   };
@@ -113,6 +154,9 @@ export default function FormCanvas({
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', stopResize);
+      if (indicatorTimeoutRef.current) {
+        clearTimeout(indicatorTimeoutRef.current);
+      }
     };
   }, [resizing]);
 
@@ -144,6 +188,13 @@ export default function FormCanvas({
         )}
 
         <div className="flex flex-wrap -mx-2">
+          {/* Size indicator overlay */}
+          {showSizeIndicator && (
+            <div className="absolute top-1 right-1 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium z-20 shadow-md">
+              {indicatorValue}
+            </div>
+          )}
+
           {fields.map((field, idx) => (
             <div
               key={idx}
@@ -216,16 +267,41 @@ export default function FormCanvas({
                   )}
                 </div>
 
-                {/* Resize handle - bottom right corner */}
+                {/* Right edge resize handle - horizontal only */}
                 <div
-                  className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-10"
-                  onMouseDown={(e) => startResize(e, idx)}
+                  className="absolute top-0 right-0 w-3 h-full cursor-ew-resize z-10 group"
+                  onMouseDown={(e) => startResize(e, idx, 'width')}
+                  title="Resize width"
+                >
+                  <div className="invisible group-hover:visible absolute right-0 top-1/2 -translate-y-1/2 w-2 h-10 bg-blue-400 opacity-50 rounded" />
+                </div>
+
+                {/* Bottom edge resize handle - vertical only */}
+                <div
+                  className="absolute bottom-0 left-0 w-full h-3 cursor-ns-resize z-10 group"
+                  onMouseDown={(e) => startResize(e, idx, 'height')}
+                  title="Resize height"
+                >
+                  <div className="invisible group-hover:visible absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-2 bg-blue-400 opacity-50 rounded" />
+                </div>
+
+                {/* Corner resize handle - both directions */}
+                <div
+                  className="absolute bottom-0 right-0 w-10 h-10 cursor-nwse-resize z-10"
+                  onMouseDown={(e) => startResize(e, idx, 'both')}
                   style={{
-                    background: 'linear-gradient(135deg, transparent 50%, rgba(59, 130, 246, 0.4) 50%)',
+                    background: 'linear-gradient(135deg, transparent 70%, rgba(59, 130, 246, 0.4) 70%)',
                     borderBottomRightRadius: '0.25rem'
                   }}
                   title="Resize field"
                 />
+
+                {/* Width percentage indicator */}
+                {resizing === idx && resizeMode.includes('width') && (
+                  <div className="absolute top-0 left-0 bg-blue-600 text-white px-1 text-xs rounded-bl rounded-tr">
+                    {Math.round(field.widthPercent || (field.width === 'half' ? 50 : 100))}%
+                  </div>
+                )}
               </div>
             </div>
           ))}
