@@ -10,11 +10,12 @@ export default function FormCanvas({
   draggingIndex,
   setDraggingIndex,
   toggleFieldWidth,
-  updateFieldSize
+  updateFieldSize,
+  onSelectField
 }) {
   const dragOverIndex = useRef(null);
-  const [resizing, setResizing] = useState(null); // Track which field is being resized
-  const [resizeMode, setResizeMode] = useState(null); // 'width', 'height', or 'both'
+  const [resizing, setResizing] = useState(null);
+  const [resizeMode, setResizeMode] = useState(null);
   const startSizeRef = useRef(null);
   const startPosRef = useRef(null);
   const [showSizeIndicator, setShowSizeIndicator] = useState(false);
@@ -23,7 +24,7 @@ export default function FormCanvas({
 
   // Drag-and-drop field handling
   const handleDragStart = (idx) => {
-    if (resizing !== null) return; // Don't allow drag when resizing
+    if (resizing !== null) return;
     setDraggingIndex(idx);
   };
 
@@ -46,7 +47,7 @@ export default function FormCanvas({
   // Field drop for reordering
   const handleDrop = (e, index) => {
     e.preventDefault();
-    e.stopPropagation(); // Prevent bubbling to parent drop handlers
+    e.stopPropagation();
 
     if (draggingIndex !== null) {
       onMoveField(draggingIndex, index);
@@ -59,12 +60,10 @@ export default function FormCanvas({
     setIndicatorValue(value);
     setShowSizeIndicator(true);
 
-    // Clear any existing timeout
     if (indicatorTimeoutRef.current) {
       clearTimeout(indicatorTimeoutRef.current);
     }
 
-    // Hide indicator after 1.5 seconds
     indicatorTimeoutRef.current = setTimeout(() => {
       setShowSizeIndicator(false);
     }, 1500);
@@ -78,7 +77,6 @@ export default function FormCanvas({
     setResizeMode(mode);
     startPosRef.current = { x: e.clientX, y: e.clientY };
 
-    // Get current width percentage
     const fieldWidth = fields[idx].widthPercent || (fields[idx].width === 'half' ? 50 : 100);
     const fieldHeight = fields[idx].height || 'auto';
     startSizeRef.current = { width: fieldWidth, height: fieldHeight };
@@ -86,31 +84,24 @@ export default function FormCanvas({
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', stopResize);
 
-    // Show initial size indicator
     displaySizeIndicator(`${fieldWidth}%`);
   };
 
   const handleMouseMove = (e) => {
     if (resizing === null) return;
 
-    // Calculate horizontal resize
     const deltaX = e.clientX - startPosRef.current.x;
     const deltaY = e.clientY - startPosRef.current.y;
 
-    // Handle horizontal resizing
     if (resizeMode === 'width' || resizeMode === 'both') {
-      // Get container width - fall back to a reasonable default if element not found
       const containerEl = document.querySelector('.flex-wrap');
       const containerWidth = containerEl ? containerEl.clientWidth : 800;
 
-      // Use a multiplier to make small movements more precise (0.75 = more gradual changes)
       const horizontalSensitivity = 0.75;
       const percentageDelta = (deltaX / containerWidth) * 100 * horizontalSensitivity;
 
-      // Calculate new width percentage (clamped between 25% and 100%)
       let newWidthPercent = Math.min(100, Math.max(25, startSizeRef.current.width + percentageDelta));
 
-      // Snap to 50% or 100%
       if (newWidthPercent > 75) {
         newWidthPercent = 100;
       } else if (newWidthPercent > 35 && newWidthPercent < 65) {
@@ -119,25 +110,19 @@ export default function FormCanvas({
         newWidthPercent = 33;
       }
 
-      // Update field size
       updateFieldSize(resizing, newWidthPercent, fields[resizing].height);
 
-      // Update size indicator
       displaySizeIndicator(`${Math.round(newWidthPercent)}%`);
     }
 
-    // Handle vertical resizing
     if (resizeMode === 'height' || resizeMode === 'both') {
-      // Calculate new height in pixels
       let newHeight = startSizeRef.current.height;
       if (typeof newHeight === 'number') {
         newHeight = Math.max(60, newHeight + deltaY);
       } else if (deltaY > 20) {
-        // Convert from 'auto' to pixels once we've dragged enough
         newHeight = 60 + deltaY;
       }
 
-      // Update field size
       updateFieldSize(resizing, fields[resizing].widthPercent, newHeight);
     }
   };
@@ -149,7 +134,6 @@ export default function FormCanvas({
     document.removeEventListener('mouseup', stopResize);
   };
 
-  // Clean up event listeners
   useEffect(() => {
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
@@ -160,7 +144,6 @@ export default function FormCanvas({
     };
   }, [resizing]);
 
-  // Calculate width style based on percentage
   const getWidthStyle = (field) => {
     if (field.widthPercent) {
       return `${field.widthPercent}%`;
@@ -168,9 +151,101 @@ export default function FormCanvas({
     return field.width === 'half' ? '50%' : '100%';
   };
 
-  // Calculate height style
   const getHeightStyle = (field) => {
     return typeof field.height === 'number' ? `${field.height}px` : 'auto';
+  };
+
+  // Render the field with its metadata badge if applicable
+  const renderFieldContent = (field) => {
+    const hasMetadata = field.metadata && (
+      field.metadata.variableName ||
+      field.metadata.sdtmMapping ||
+      field.metadata.required
+    );
+
+    return (
+      <>
+        <div className="flex justify-between items-start gap-2 mb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-gray-500 lowercase">{field.type}:</span>
+            <input
+              type="text"
+              value={field.label}
+              onChange={(e) => onLabelChange(field.index, e.target.value)}
+              className="border-b border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-0.5"
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            {toggleFieldWidth && (
+              <button
+                onClick={() => toggleFieldWidth(field.index)}
+                className="text-blue-500 hover:text-blue-700 text-xs px-1"
+                title={`Toggle to ${field.width === 'half' ? 'full' : 'half'} width`}
+              >
+                {field.width === 'half' ? '½' : 'Full'}
+              </button>
+            )}
+            <button
+              onClick={() => onRemoveField(field.index)}
+              className="text-red-500 hover:text-red-700"
+              title="Remove"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div className="pl-1">
+          {field.type === 'text' && <input disabled placeholder="Text input" className="border p-1 rounded w-full opacity-50" />}
+          {field.type === 'number' && (
+            <div className="flex items-center">
+              <input disabled type="number" placeholder="0" className="border p-1 rounded w-full opacity-50" />
+              {field.metadata?.units && (
+                <span className="ml-1 text-gray-500">{field.metadata.units}</span>
+              )}
+            </div>
+          )}
+          {field.type === 'date' && <input disabled type="date" className="border p-1 rounded w-full opacity-50" />}
+          {field.type === 'checkbox' && (
+            <label className="flex items-center gap-1 text-gray-500">
+              <input disabled type="checkbox" className="opacity-50" />
+              Checkbox
+            </label>
+          )}
+          {field.type === 'radio' && (
+            <label className="flex items-center gap-1 text-gray-500">
+              <input disabled type="radio" className="opacity-50" />
+              Option
+            </label>
+          )}
+        </div>
+
+        {/* Metadata badges */}
+        {hasMetadata && (
+          <div className="absolute top-0 right-0 flex -mt-2 -mr-2 z-10">
+            {field.metadata.required && (
+              <span className="bg-red-100 text-red-800 text-xs px-1.5 py-0.5 rounded-full mr-1">
+                Required
+              </span>
+            )}
+            {field.metadata.variableName && (
+              <span className="bg-blue-100 text-blue-800 text-xs px-1.5 py-0.5 rounded-full">
+                {field.metadata.variableName}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Description tooltip */}
+        {field.metadata?.description && (
+          <div className="absolute bottom-0 left-0 ml-1 mb-1">
+            <span className="text-gray-400 text-xs hover:text-blue-500 cursor-help" title={field.metadata.description}>
+              ℹ️
+            </span>
+          </div>
+        )}
+      </>
+    );
   };
 
   return (
@@ -180,7 +255,8 @@ export default function FormCanvas({
       onDragOver={onDragOverField}
     >
       <h4 className="font-medium mb-3 text-sm">Form Canvas</h4>
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      {/* Make the content area scrollable */}
+      <div className="flex-1 overflow-y-auto">
         {fields.length === 0 && (
           <div className="text-center text-gray-500 text-xs py-8 border border-dashed border-gray-300 rounded">
             Drag fields here
@@ -190,7 +266,7 @@ export default function FormCanvas({
         <div className="flex flex-wrap -mx-2">
           {/* Size indicator overlay */}
           {showSizeIndicator && (
-            <div className="absolute top-1 right-1 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium z-20 shadow-md">
+            <div className="fixed top-4 right-4 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium z-20 shadow-md">
               {indicatorValue}
             </div>
           )}
@@ -210,7 +286,7 @@ export default function FormCanvas({
             >
               <div
                 className={`relative p-3 border rounded bg-white shadow-sm text-xs ${draggingIndex === idx ? 'opacity-50' : ''
-                  }`}
+                  } ${draggingIndex === idx ? 'border-blue-500' : ''}`}
                 style={{
                   height: getHeightStyle(field),
                   transition: resizing === idx ? 'none' : 'height 0.2s ease'
@@ -219,55 +295,11 @@ export default function FormCanvas({
                 onDragStart={() => handleDragStart(idx)}
                 onDragEnd={handleDragEnd}
                 onDrop={(e) => handleDrop(e, idx)}
+                onClick={() => onSelectField(idx)} // Select field for metadata editing
               >
-                <div className="flex justify-between items-start gap-2 mb-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-gray-500 lowercase">{field.type}:</span>
-                    <input
-                      type="text"
-                      value={field.label}
-                      onChange={(e) => onLabelChange(idx, e.target.value)}
-                      className="border-b border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-0.5"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {toggleFieldWidth && (
-                      <button
-                        onClick={() => toggleFieldWidth(idx)}
-                        className="text-blue-500 hover:text-blue-700 text-xs px-1"
-                        title={`Toggle to ${field.width === 'half' ? 'full' : 'half'} width`}
-                      >
-                        {field.width === 'half' ? '½' : 'Full'}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => onRemoveField(idx)}
-                      className="text-red-500 hover:text-red-700"
-                      title="Remove"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-                <div className="pl-1">
-                  {field.type === 'text' && <input disabled placeholder="Text input" className="border p-1 rounded w-full opacity-50" />}
-                  {field.type === 'number' && <input disabled type="number" placeholder="0" className="border p-1 rounded w-full opacity-50" />}
-                  {field.type === 'date' && <input disabled type="date" className="border p-1 rounded w-full opacity-50" />}
-                  {field.type === 'checkbox' && (
-                    <label className="flex items-center gap-1 text-gray-500">
-                      <input disabled type="checkbox" className="opacity-50" />
-                      Checkbox
-                    </label>
-                  )}
-                  {field.type === 'radio' && (
-                    <label className="flex items-center gap-1 text-gray-500">
-                      <input disabled type="radio" className="opacity-50" />
-                      Option
-                    </label>
-                  )}
-                </div>
+                {renderFieldContent({ ...field, index: idx })}
 
-                {/* Right edge resize handle - horizontal only */}
+                {/* Right edge resize handle */}
                 <div
                   className="absolute top-0 right-0 w-3 h-full cursor-ew-resize z-10 group"
                   onMouseDown={(e) => startResize(e, idx, 'width')}
@@ -276,7 +308,7 @@ export default function FormCanvas({
                   <div className="invisible group-hover:visible absolute right-0 top-1/2 -translate-y-1/2 w-2 h-10 bg-blue-400 opacity-50 rounded" />
                 </div>
 
-                {/* Bottom edge resize handle - vertical only */}
+                {/* Bottom edge resize handle */}
                 <div
                   className="absolute bottom-0 left-0 w-full h-3 cursor-ns-resize z-10 group"
                   onMouseDown={(e) => startResize(e, idx, 'height')}
@@ -285,7 +317,7 @@ export default function FormCanvas({
                   <div className="invisible group-hover:visible absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-2 bg-blue-400 opacity-50 rounded" />
                 </div>
 
-                {/* Corner resize handle - both directions */}
+                {/* Corner resize handle */}
                 <div
                   className="absolute bottom-0 right-0 w-10 h-10 cursor-nwse-resize z-10"
                   onMouseDown={(e) => startResize(e, idx, 'both')}
