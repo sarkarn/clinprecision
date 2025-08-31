@@ -24,8 +24,8 @@ const Icon = ({ type }) => {
   );
 };
 
-// Original constants - don't increase these yet
-const MIN_WIDTH = 700;
+// Original constants - update these
+const MIN_WIDTH = 700;  // Change to 910 (30% increase)
 const MIN_CANVAS_HEIGHT = 400;
 
 const CRFBuilder = ({ onSave, onCancel }) => {
@@ -549,10 +549,10 @@ const CRFBuilder = ({ onSave, onCancel }) => {
         )}
 
         <div className="flex flex-col md:flex-row gap-4" style={{ height: MIN_CANVAS_HEIGHT }}>
-          {/* Field Type Palette - Wider */}
+          {/* Field Type Palette - Keep same width */}
           <div
             className="bg-gray-50 p-4 rounded-md flex flex-col overflow-y-auto"
-            style={{ width: "300px", minWidth: "300px" }} // Fixed width instead of percentage
+            style={{ width: "300px", minWidth: "300px" }}
           >
             <h4 className="font-medium mb-3 text-sm">Field Types</h4>
             <div className="space-y-2">
@@ -584,7 +584,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
             </div>
           </div>
 
-          {/* Form Canvas - Wider */}
+          {/* Form Canvas - Increase width */}
           <div
             className="flex-1 overflow-hidden"
             style={{ minWidth: "900px" }} // Increased width

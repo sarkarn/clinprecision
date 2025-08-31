@@ -504,7 +504,7 @@ const StudyEditPage = () => {
             {isCRFBuilderOpen && (
                 <div className="fixed inset-0 flex items-center justify-center z-50">
                     <div className="absolute inset-0 bg-black opacity-30"></div>
-                    <div className="bg-white rounded-lg shadow-lg p-6 z-10 max-w-3xl w-full">
+                    <div className="bg-white rounded-lg shadow-lg p-6 z-10 max-w-5xl w-full">
                         <CRFBuilder onSave={handleCRFSave} onCancel={() => setIsCRFBuilderOpen(false)} />
                     </div>
                 </div>
