@@ -1,10 +1,10 @@
-package com.clinprecision.datacaptureservice;
+package com.clinprecision.studydesignservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class StudydesignserviceApplicationTests {
+class StudyDesignServiceApplicationTests {
 
 	@Test
 	void contextLoads() {

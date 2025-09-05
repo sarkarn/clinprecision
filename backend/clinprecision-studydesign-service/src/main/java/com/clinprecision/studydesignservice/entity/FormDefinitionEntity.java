@@ -1,13 +1,12 @@
 package com.clinprecision.studydesignservice.entity;
 
-import com.vladmihalcea.hibernate.type.json.JsonStringType;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -17,8 +16,7 @@ import java.util.UUID;
 @Table(name = "form_definitions")
 @NoArgsConstructor
 @AllArgsConstructor
-@TypeDef(name = "json", typeClass = JsonStringType.class)
-public class FormDefinition {
+public class FormDefinitionEntity {
 
     @Id
     @Column(name = "id")
@@ -43,9 +41,9 @@ public class FormDefinition {
     @Column(name = "template_id")
     private String templateId;
 
-    @Type(type = "json")
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "fields", columnDefinition = "json", nullable = false)
-    private List<FormField> fields;
+    private List<FormFieldEntity> fields;
 
     @Column(name = "created_by")
     private String createdBy;
@@ -59,4 +57,6 @@ public class FormDefinition {
     public enum FormStatus {
         DRAFT, APPROVED, RETIRED
     }
+
+
 }

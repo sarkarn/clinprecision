@@ -24,6 +24,28 @@ const Icon = ({ type }) => {
   );
 };
 
+const QualityIcon = ({ type }) => {
+  const getIcon = () => {
+    switch (type) {
+      case 'sdv': return '🔍'; // Magnifying glass for SDV
+      case 'medical': return '👨‍⚕️'; // Medical personnel for Medical Review
+      case 'data': return '📊'; // Chart for Data Review
+      default: return '⬦';
+    }
+  };
+
+  return (
+    <span className="inline-flex items-center justify-center w-5 h-5 bg-gray-100 text-gray-700 rounded-full" title={
+      type === 'sdv' ? 'Source Data Verification Required' :
+        type === 'medical' ? 'Medical Review Required' :
+          type === 'data' ? 'Data Review Required' : ''
+    }>
+      {getIcon()}
+    </span>
+  );
+};
+
+
 // Original constants - update these
 const MIN_WIDTH = 700;  // Change to 910 (30% increase)
 const MIN_CANVAS_HEIGHT = 400;
@@ -78,7 +100,11 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
           variableName: '',
           dataType: draggedField.type === 'number' ? 'numeric' : draggedField.type,
           required: false,
-          validationRules: []
+          validationRules: [],
+          sdvRequired: false,
+          medicalReview: false,
+          dataReview: false,
+          criticalDataPoint: false
         }
       };
 
@@ -198,6 +224,17 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
     const template = DOMAIN_TEMPLATES.find(t => t.id === templateId);
     if (template) {
       setCrfName(template.name);
+      // Ensure each field has the quality control properties
+      const fieldsWithQC = template.fields.map(field => ({
+        ...field,
+        metadata: {
+          ...field.metadata,
+          sdvRequired: field.metadata?.sdvRequired || false,
+          medicalReview: field.metadata?.medicalReview || false,
+          dataReview: field.metadata?.dataReview || false,
+          criticalDataPoint: field.metadata?.criticalDataPoint || false
+        }
+      }));
       setFields([...template.fields]);
       setShowTemplateModal(false);
       setSelectedTemplate(template);
@@ -505,6 +542,72 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
           ></textarea>
         </div>
 
+        {/* Quality Control Flags - New Section */}
+        <div className="mt-4 border-t pt-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Quality Control Flags</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="flex items-center text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={metadata.sdvRequired || false}
+                  onChange={(e) => updateFieldMetadata('sdvRequired', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded mr-2"
+                  disabled={readOnly}
+                />
+                Source Data Verification
+              </label>
+              <p className="text-xs text-gray-500 ml-6 mt-1">Field requires verification against source documents</p>
+            </div>
+
+            <div>
+              <label className="flex items-center text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={metadata.medicalReview || false}
+                  onChange={(e) => updateFieldMetadata('medicalReview', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded mr-2"
+                  disabled={readOnly}
+                />
+                Medical Review
+              </label>
+              <p className="text-xs text-gray-500 ml-6 mt-1">Requires review by medical personnel</p>
+            </div>
+
+            <div>
+              <label className="flex items-center text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={metadata.dataReview || false}
+                  onChange={(e) => updateFieldMetadata('dataReview', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded mr-2"
+                  disabled={readOnly}
+                />
+                Data Review
+              </label>
+              <p className="text-xs text-gray-500 ml-6 mt-1">Requires data management review</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Critical Data Point
+              </label>
+              <select
+                value={metadata.criticalDataPoint ? 'true' : 'false'}
+                onChange={(e) => updateFieldMetadata('criticalDataPoint', e.target.value === 'true')}
+                className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
+              >
+                <option value="false">No</option>
+                <option value="true">Yes</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Designate as critical for study outcomes</p>
+            </div>
+          </div>
+        </div>
+
         <div className="flex justify-end">
           <button
             onClick={() => setShowMetadataPanel(false)}
@@ -536,6 +639,16 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {field.label}
                   {field.metadata?.required && <span className="text-red-500 ml-1">*</span>}
+                  <div className="ml-auto flex items-center gap-1">
+                    {field.metadata?.sdvRequired && <QualityIcon type="sdv" />}
+                    {field.metadata?.medicalReview && <QualityIcon type="medical" />}
+                    {field.metadata?.dataReview && <QualityIcon type="data" />}
+                    {field.metadata?.criticalDataPoint && (
+                      <span className="inline-flex items-center justify-center w-5 h-5 bg-red-100 text-red-700 rounded-full" title="Critical Data Point">
+                        ⚠️
+                      </span>
+                    )}
+                  </div>
                 </label>
 
                 {field.type === 'text' && (

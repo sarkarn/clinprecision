@@ -13,8 +13,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 import com.clinprecision.userservice.service.UsersService;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @EnableMethodSecurity(prePostEnabled=true)
 @Configuration
@@ -48,7 +46,8 @@ public class WebSecurity {
     			new AuthenticationFilter(usersService, environment, authenticationManager);
     	authenticationFilter.setFilterProcessesUrl(environment.getProperty("login.url.path"));
     	
-        http.csrf((csrf) -> csrf.disable());
+        http.cors(cors -> cors.disable())
+                .csrf((csrf) -> csrf.disable());
   
         http.authorizeHttpRequests((authz) -> authz
         .requestMatchers("/users/**").permitAll()

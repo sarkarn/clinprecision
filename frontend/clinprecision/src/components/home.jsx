@@ -1,8 +1,8 @@
 import { Link, Routes, Route } from "react-router-dom";
 import Logout from "./login/Logout";
 import StudyDesignModule from "./modules/trialdesign/StudyDesignModule";
-import SubjectManagement from "./modules/subjectmgmt/SubjectManagement";
-import QueryManagement from "./modules/querymgmt/QueryManagement";
+import DataCaptureModule from "./modules/datacapture/DataCaptureModule";
+import DQManagement from "./modules/dqmgmt/DQManagement";
 import { useAuth } from "./login/AuthContext";
 
 export default function Home() {
@@ -11,14 +11,15 @@ export default function Home() {
     // Get user initial safely
     const getUserInitial = () => {
         if (!user) return "?";
-        const identifier = user.username || user.email || "";
-        return identifier.length > 0 ? identifier.charAt(0).toUpperCase() : "?";
+        // Email will always be available from the login process
+        return user.email ? user.email.charAt(0).toUpperCase() : "?";
     };
 
     // Get display name safely
     const getDisplayName = () => {
         if (!user) return "";
-        return user.username || user.email || "User";
+        // Use email directly since that's what we store in AuthContext
+        return user.email || "User";
     };
 
     return (
@@ -65,13 +66,13 @@ export default function Home() {
                                 </svg>
                                 Study Setup & Design
                             </Link>
-                            <Link to="/subject-management" className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-4 py-2 rounded-md transition-colors">
+                            <Link to="/datacapture-management" className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-4 py-2 rounded-md transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
                                 Data Capture & Entry
                             </Link>
-                            <Link to="/query-management" className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-4 py-2 rounded-md transition-colors">
+                            <Link to="/dq-management" className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-4 py-2 rounded-md transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
@@ -118,6 +119,7 @@ export default function Home() {
                     <Routes>
                         <Route index element={
                             <div className="max-w-4xl mx-auto">
+                                {/* Keep existing dashboard content */}
                                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Welcome to ClinicalConnect</h2>
 
                                 <div className="bg-white shadow-sm rounded-lg p-6 mb-8 border border-gray-200">
@@ -162,9 +164,28 @@ export default function Home() {
                                 </div>
                             </div>
                         } />
+
+                        {/* Main modules routes */}
                         <Route path="study-design/*" element={<StudyDesignModule />} />
-                        <Route path="subject-management/*" element={<SubjectManagement />} />
-                        <Route path="query-management/*" element={<QueryManagement />} />
+                        <Route path="datacapture-management/*" element={<DataCaptureModule />} />
+                        <Route path="dq-management/*" element={<DQManagement />} />
+
+                        {/* Additional tools routes - you'll need to import these components */}
+                        <Route path="medical-coding/*" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Medical Coding Module</h2><p>Medical coding functionality will be implemented here.</p></div>} />
+                        <Route path="data-integration/*" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Data Integration Module</h2><p>Data integration functionality will be implemented here.</p></div>} />
+                        <Route path="reports/*" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Reports & Exports</h2><p>Reporting functionality will be implemented here.</p></div>} />
+                        <Route path="archival/*" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Database Lock & Archival</h2><p>Archival functionality will be implemented here.</p></div>} />
+
+                        {/* Static content pages */}
+                        <Route path="help" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Documentation</h2><p>Help and documentation will be provided here.</p></div>} />
+                        <Route path="about" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">About ClinicalConnect</h2><p>Information about the platform will be displayed here.</p></div>} />
+                        <Route path="contact" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Contact Us</h2><p>Contact information and form will be available here.</p></div>} />
+
+                        {/* Admin route - conditionally rendered in the sidebar based on user role */}
+                        <Route path="admin/*" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Administration</h2><p>Administrative functions will be accessible here.</p></div>} />
+
+                        {/* Fallback for undefined routes */}
+                        <Route path="*" element={<div className="p-6 text-center"><h2 className="text-2xl font-bold mb-4">Page Not Found</h2><p>The page you're looking for doesn't exist.</p></div>} />
                     </Routes>
                 </main>
             </div>

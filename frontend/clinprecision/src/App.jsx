@@ -4,8 +4,7 @@ import Login from './components/login/Login';
 import ProtectedRoute from './components/login/ProtectedRoute';
 import Home from './components/home';
 import StudyDesignModule from './components/modules/trialdesign/StudyDesignModule';
-import SubjectManagement from './components/modules/subjectmgmt/SubjectManagement';
-import QueryManagement from './components/modules/querymgmt/QueryManagement';
+
 
 function AppContent() {
     return (
@@ -14,24 +13,9 @@ function AppContent() {
                 <Routes>
                     <Route path="/login" element={
                         <Login />} />
-                    <Route path="/" element={
+                    <Route path="/*" element={
                         <ProtectedRoute>
                             <Home />
-                        </ProtectedRoute>
-                    } />
-                    <Route path="/study-design/*" element={
-                        <ProtectedRoute>
-                            <StudyDesignModule />
-                        </ProtectedRoute>
-                    } />
-                    <Route path="/subject-management/*" element={
-                        <ProtectedRoute>
-                            <SubjectManagement />
-                        </ProtectedRoute>
-                    } />
-                    <Route path="/query-management/*" element={
-                        <ProtectedRoute>
-                            <QueryManagement />
                         </ProtectedRoute>
                     } />
                 </Routes>

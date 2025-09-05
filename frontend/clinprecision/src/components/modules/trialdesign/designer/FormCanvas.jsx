@@ -236,6 +236,32 @@ export default function FormCanvas({
           </div>
         )}
 
+        {/* Add quality control icons */}
+        {hasMetadata && (field.metadata.sdvRequired || field.metadata.medicalReview || field.metadata.dataReview || field.metadata.criticalDataPoint) && (
+          <div className="absolute top-6 right-0 flex -mr-2 z-10">
+            {field.metadata.sdvRequired && (
+              <span className="bg-purple-100 text-purple-800 text-xs px-1.5 py-0.5 rounded-full mr-1" title="Source Data Verification Required">
+                SDV
+              </span>
+            )}
+            {field.metadata.medicalReview && (
+              <span className="bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded-full mr-1" title="Medical Review Required">
+                MRev
+              </span>
+            )}
+            {field.metadata.dataReview && (
+              <span className="bg-yellow-100 text-yellow-800 text-xs px-1.5 py-0.5 rounded-full mr-1" title="Data Review Required">
+                DRev
+              </span>
+            )}
+            {field.metadata.criticalDataPoint && (
+              <span className="bg-red-100 text-red-800 text-xs px-1.5 py-0.5 rounded-full" title="Critical Data Point">
+                Critical
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Description tooltip */}
         {field.metadata?.description && (
           <div className="absolute bottom-0 left-0 ml-1 mb-1">

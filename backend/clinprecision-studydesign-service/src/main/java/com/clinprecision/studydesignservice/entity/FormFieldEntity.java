@@ -1,52 +1,42 @@
 package com.clinprecision.studydesignservice.entity;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
+import java.io.Serializable;
 
+/**
+ * Entity class representing a field in a CRF form definition.
+ * This class is serialized as part of the JSON structure in the form_definitions table.
+ */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FormField {
+public class FormFieldEntity implements Serializable {
 
     private String type;
     private String label;
     private String width;
     private int widthPercent;
     private String height;
-    private FieldMetadata metadata;
+    private FormFieldMetadataEntity metadata;
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class FieldMetadata {
-        private String variableName;
-        private String dataType;
-        private boolean required;
-        private String sdtmMapping;
-        private String source;
-        private String description;
+    /**
+     * Validates that the field has the required properties
+     */
+    public boolean isValid() {
+        if (type == null || label == null) {
+            return false;
+        }
 
-        // Quality control flags from CRFBuilder
-        private boolean sdvRequired;
-        private boolean medicalReview;
-        private boolean dataReview;
-        private boolean criticalDataPoint;
+        // Field type specific validations
+        if (type.equals("select") || type.equals("radio") || type.equals("checkbox")) {
+            return metadata != null && metadata.getOptions() != null && !metadata.getOptions().isEmpty();
+        }
 
-        // Type-specific metadata
-        private Integer maxLength;
-        private Boolean codingRequired;
-        private String codingDictionary;
-        private String units;
-        private String format;
-        private Double minValue;
-        private Double maxValue;
-        private Boolean allowPartialDate;
-        private String qualifierField;
-
-        // For select/radio fields
-        private Map<String, String>[] options;
+        return true;
     }
 }
