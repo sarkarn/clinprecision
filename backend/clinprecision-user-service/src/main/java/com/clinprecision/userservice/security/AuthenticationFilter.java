@@ -3,29 +3,26 @@ package com.clinprecision.userservice.security;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 
-import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SecureDigestAlgorithm;
 import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.clinprecision.userservice.service.UsersService;
-import com.clinprecision.userservice.shared.UserDto;
 import com.clinprecision.userservice.ui.model.LoginRequestModel;
+import com.clinprecision.userservice.ui.model.UserDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SecureDigestAlgorithm;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

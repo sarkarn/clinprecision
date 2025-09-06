@@ -1,6 +1,7 @@
 package com.clinprecision.userservice.data;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 
 import jakarta.persistence.Column;
@@ -24,7 +25,7 @@ public class AuthorityEntity implements Serializable {
 	private String name;
 	
 	@ManyToMany(mappedBy="authorities")
-	private Collection<RoleEntity> roles;
+	private Collection<RoleEntity> roles = new ArrayList<>();
 	
 	public AuthorityEntity() {
 		

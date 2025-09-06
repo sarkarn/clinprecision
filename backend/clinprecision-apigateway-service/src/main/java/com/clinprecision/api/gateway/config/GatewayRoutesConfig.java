@@ -1,11 +1,12 @@
 package com.clinprecision.api.gateway.config;
 
 
-import com.clinprecision.api.gateway.AuthorizationHeaderFilter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.clinprecision.api.gateway.AuthorizationHeaderFilter;
 
 @Configuration
 public class GatewayRoutesConfig {

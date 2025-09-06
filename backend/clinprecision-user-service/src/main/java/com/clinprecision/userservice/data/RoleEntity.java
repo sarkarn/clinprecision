@@ -1,6 +1,7 @@
 package com.clinprecision.userservice.data;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 
 import jakarta.persistence.CascadeType;
@@ -24,16 +25,16 @@ public class RoleEntity implements Serializable {
 	@GeneratedValue
 	private long id;
 	
-	@Column(nullable=false, length=20)
+	@Column(nullable=false, length=200)
 	private String name;
 	
 	@ManyToMany(mappedBy="roles")
-	private Collection<UserEntity> users;
+	private Collection<UserEntity> users = new ArrayList<>();
 	
 	@ManyToMany(cascade=CascadeType.PERSIST, fetch=FetchType.EAGER)
 	@JoinTable(name="roles_authorities", joinColumns=@JoinColumn(name="roles_id", referencedColumnName="id"), 
 			inverseJoinColumns=@JoinColumn(name="authorities_id", referencedColumnName="id"))
-	private Collection<AuthorityEntity> authorities;
+	private Collection<AuthorityEntity> authorities = new ArrayList<>();
 	
 	public RoleEntity() {
 		
@@ -41,7 +42,7 @@ public class RoleEntity implements Serializable {
 
 	public RoleEntity(String name, Collection<AuthorityEntity> authorities) {
 		this.name = name;
-		this.authorities = authorities;
+		this.authorities = new ArrayList<>(authorities);
 	}
 
 	public long getId() {
@@ -73,7 +74,10 @@ public class RoleEntity implements Serializable {
 	}
 
 	public void setAuthorities(Collection<AuthorityEntity> authorities) {
-		this.authorities = authorities;
+		this.authorities.clear();
+		if (authorities != null) {
+			this.authorities.addAll(authorities);
+		}
 	}
 
 	

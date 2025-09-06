@@ -81,12 +81,12 @@ public class VersionIntegrityService {
         
         newStudyVersion.setLatestVersion(true);
         newStudyVersion.setVersionNotes(versionNotes);
-        newStudyVersion.setCreatedBy(userId);
+        newStudyVersion.setCreatedBy(Long.parseLong(userId));
         newStudyVersion.setCreatedAt(LocalDateTime.now());
         newStudyVersion.setUpdatedAt(LocalDateTime.now());
         
         // Save new study version
-        StudyEntity savedStudy = studyRepository.save(newStudyVersion);
+        studyRepository.save(newStudyVersion);
         
         // Create copies of all associated entities with updated references
         // First, get all visit definitions for this study
@@ -207,7 +207,7 @@ public class VersionIntegrityService {
         newForm.setCreatedAt(LocalDateTime.now());
         newForm.setUpdatedAt(LocalDateTime.now());
         
-        FormDefinitionEntity savedForm = formDefinitionRepository.save(newForm);
+        formDefinitionRepository.save(newForm);
         
         // If requested, update study references to this form
         if (updateStudyReferences) {
@@ -223,7 +223,7 @@ public class VersionIntegrityService {
                     StudyEntity study = studyRepository.findById(visit.getStudyId())
                             .orElse(null);
                     
-                    if (study != null && study.getStatus() == StudyEntity.StudyStatus.ACTIVE) {
+                    if (study != null && study.getStatus() == StudyEntity.Status.active) {
                         VisitFormEntity newVisitForm = new VisitFormEntity();
                         BeanUtils.copyProperties(visitForm, newVisitForm, "id", "formDefinitionId", "createdAt");
                         

@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.UUID;
 
 import com.clinprecision.userservice.data.*;
-import org.modelmapper.ModelMapper;
-import org.modelmapper.convention.MatchingStrategies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +18,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 
-import com.clinprecision.userservice.shared.UserDto;
-import com.clinprecision.userservice.ui.model.AlbumResponseModel;
+
+import com.clinprecision.userservice.ui.model.UserDto;
 
 
 
@@ -50,19 +48,28 @@ public class UsersServiceImpl implements UsersService {
  
 	@Override
 	public UserDto createUser(UserDto userDetails) {
-		// TODO Auto-generated method stub
-		
 		userDetails.setUserId(UUID.randomUUID().toString());
 		userDetails.setEncryptedPassword(bCryptPasswordEncoder.encode(userDetails.getPassword()));
 		
-		ModelMapper modelMapper = new ModelMapper(); 
-		modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+		// Create entity and manually map fields
+		UserEntity userEntity = new UserEntity();
+		userEntity.setFirstName(userDetails.getFirstName());
+		userEntity.setLastName(userDetails.getLastName());
+		userEntity.setEmail(userDetails.getEmail());
+		userEntity.setUserId(userDetails.getUserId());
+		userEntity.setEncryptedPassword(userDetails.getEncryptedPassword());
 		
-		UserEntity userEntity = modelMapper.map(userDetails, UserEntity.class);
-
-		usersRepository.save(userEntity);
+		// Save the entity
+		userEntity = usersRepository.save(userEntity);
 		
-		UserDto returnValue = modelMapper.map(userEntity, UserDto.class);
+		// Map back to DTO
+		UserDto returnValue = new UserDto();
+		returnValue.setId(userEntity.getId());
+		returnValue.setUserId(userEntity.getUserId());
+		returnValue.setFirstName(userEntity.getFirstName());
+		returnValue.setLastName(userEntity.getLastName());
+		returnValue.setEmail(userEntity.getEmail());
+		returnValue.setEncryptedPassword(userEntity.getEncryptedPassword());
  
 		return returnValue;
 	}
@@ -97,8 +104,35 @@ public class UsersServiceImpl implements UsersService {
 		
 		if(userEntity == null) throw new UsernameNotFoundException(email);
 		
+		// Create DTO and manually map the fields to avoid collection mapping issues
+		UserDto userDto = new UserDto();
+		userDto.setId(userEntity.getId());
+		userDto.setUserId(userEntity.getUserId());
+		userDto.setFirstName(userEntity.getFirstName());
+		userDto.setMiddleName(userEntity.getMiddleName());
+		userDto.setLastName(userEntity.getLastName());
+		userDto.setEmail(userEntity.getEmail());
+		userDto.setTitle(userEntity.getTitle());
+		userDto.setProfession(userEntity.getProfession());
+		userDto.setPhone(userEntity.getPhone());
+		userDto.setMobilePhone(userEntity.getMobilePhone());
+		userDto.setAddressLine1(userEntity.getAddressLine1());
+		userDto.setAddressLine2(userEntity.getAddressLine2());
+		userDto.setCity(userEntity.getCity());
+		userDto.setState(userEntity.getState());
+		userDto.setPostalCode(userEntity.getPostalCode());
+		userDto.setCountry(userEntity.getCountry());
+		userDto.setStatus(userEntity.getStatus());
+		userDto.setLastLoginAt(userEntity.getLastLoginAt());
+		userDto.setPasswordResetRequired(userEntity.isPasswordResetRequired());
+		userDto.setNotes(userEntity.getNotes());
+		userDto.setCreatedAt(userEntity.getCreatedAt());
+		userDto.setUpdatedAt(userEntity.getUpdatedAt());
+		userDto.setEncryptedPassword(userEntity.getEncryptedPassword());
 		
-		return new ModelMapper().map(userEntity, UserDto.class);
+		// Don't try to map userTypes collection - leave it as an empty set
+		
+		return userDto;
 	}
 
 	@Override
@@ -107,22 +141,34 @@ public class UsersServiceImpl implements UsersService {
         UserEntity userEntity = usersRepository.findByUserId(userId);     
         if(userEntity == null) throw new UsernameNotFoundException("User not found");
         
-        UserDto userDto = new ModelMapper().map(userEntity, UserDto.class);
-        
-        /*
-        String albumsUrl = String.format(environment.getProperty("albums.url"), userId);
-        
-        ResponseEntity<List<AlbumResponseModel>> albumsListResponse = restTemplate.exchange(albumsUrl, HttpMethod.GET, null, new ParameterizedTypeReference<List<AlbumResponseModel>>() {
-        });
-        List<AlbumResponseModel> albumsList = albumsListResponse.getBody(); 
-        */
-        
-        logger.info("Before calling albums Microservice");
-        List<AlbumResponseModel> albumsList = albumsServiceClient.getAlbums(userId, authorization);
-        logger.info("After calling albums Microservice");
-        
-		userDto.setAlbums(albumsList);
+        // Create DTO and manually map the fields to avoid collection mapping issues
+		UserDto userDto = new UserDto();
+		userDto.setId(userEntity.getId());
+		userDto.setUserId(userEntity.getUserId());
+		userDto.setFirstName(userEntity.getFirstName());
+		userDto.setMiddleName(userEntity.getMiddleName());
+		userDto.setLastName(userEntity.getLastName());
+		userDto.setEmail(userEntity.getEmail());
+		userDto.setTitle(userEntity.getTitle());
+		userDto.setProfession(userEntity.getProfession());
+		userDto.setPhone(userEntity.getPhone());
+		userDto.setMobilePhone(userEntity.getMobilePhone());
+		userDto.setAddressLine1(userEntity.getAddressLine1());
+		userDto.setAddressLine2(userEntity.getAddressLine2());
+		userDto.setCity(userEntity.getCity());
+		userDto.setState(userEntity.getState());
+		userDto.setPostalCode(userEntity.getPostalCode());
+		userDto.setCountry(userEntity.getCountry());
+		userDto.setStatus(userEntity.getStatus());
+		userDto.setLastLoginAt(userEntity.getLastLoginAt());
+		userDto.setPasswordResetRequired(userEntity.isPasswordResetRequired());
+		userDto.setNotes(userEntity.getNotes());
+		userDto.setCreatedAt(userEntity.getCreatedAt());
+		userDto.setUpdatedAt(userEntity.getUpdatedAt());
+		userDto.setEncryptedPassword(userEntity.getEncryptedPassword());
 		
+		// Don't try to map userTypes collection - leave it as an empty set
+       
 		return userDto;
 	}
 	

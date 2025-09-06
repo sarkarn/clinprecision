@@ -1,9 +1,6 @@
 package com.clinprecision.userservice.ui.controllers;
 
  import com.clinprecision.userservice.service.UsersService;
- import com.clinprecision.userservice.shared.UserDto;
- import org.modelmapper.ModelMapper;
-import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.core.env.Environment;
@@ -22,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.clinprecision.userservice.ui.model.CreateUserRequestModel;
 import com.clinprecision.userservice.ui.model.CreateUserResponseModel;
+import com.clinprecision.userservice.ui.model.UserDto;
 import com.clinprecision.userservice.ui.model.UserResponseModel;
 
 @RestController
@@ -46,32 +44,43 @@ public class UsersController {
 			)
 	public ResponseEntity<CreateUserResponseModel> createUser(@RequestBody CreateUserRequestModel userDetails)
 	{
-		ModelMapper modelMapper = new ModelMapper(); 
-		modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
-		
-		UserDto userDto = modelMapper.map(userDetails, UserDto.class);
+		// Manually map from CreateUserRequestModel to UserDto
+		UserDto userDto = new UserDto();
+		userDto.setFirstName(userDetails.getFirstName());
+		userDto.setLastName(userDetails.getLastName());
+		userDto.setEmail(userDetails.getEmail());
+		userDto.setPassword(userDetails.getPassword());
 		
 		UserDto createdUser = usersService.createUser(userDto);
 		
-		CreateUserResponseModel returnValue = modelMapper.map(createdUser, CreateUserResponseModel.class);
+		// Manually map from UserDto to CreateUserResponseModel
+		CreateUserResponseModel returnValue = new CreateUserResponseModel();
+		returnValue.setFirstName(createdUser.getFirstName());
+		returnValue.setLastName(createdUser.getLastName());
+		returnValue.setEmail(createdUser.getEmail());
+		returnValue.setUserId(createdUser.getUserId());
 		
 		return ResponseEntity.status(HttpStatus.CREATED).body(returnValue);
 	}
 	
     @GetMapping(value="/{userId}", produces = { MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })
-    @PreAuthorize("hasRole('ADMIN') or principal == #userId")
-    //@PreAuthorize("principal == #userId")
-    //@PostAuthorize("principal == returnObject.body.userId")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('DB_ADMIN') or principal == #userId")
     public ResponseEntity<UserResponseModel> getUser(@PathVariable("userId") String userId, 
     		@RequestHeader("Authorization") String authorization) {
        
         UserDto userDto = usersService.getUserByUserId(userId, authorization); 
-        UserResponseModel returnValue = new ModelMapper().map(userDto, UserResponseModel.class);
+        
+        // Manually map from UserDto to UserResponseModel
+        UserResponseModel returnValue = new UserResponseModel();
+        returnValue.setFirstName(userDto.getFirstName());
+        returnValue.setLastName(userDto.getLastName());
+        returnValue.setEmail(userDto.getEmail());
+        returnValue.setUserId(userDto.getUserId());
         
         return ResponseEntity.status(HttpStatus.OK).body(returnValue);
     }
     
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('PROFILE_DELETE') or principal == #userId")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SYSTEM_ADMIN') or hasAuthority('MANAGE_USER') or principal == #userId")
     @DeleteMapping("/{userId}")
     public String deleteUser(@PathVariable("userId") String userId) {
     	
