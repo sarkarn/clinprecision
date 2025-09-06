@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import FormCanvas from './FormCanvas';
 import ClinicalTemplates from './ClinicalTemplates';
+import { TableConfigDialog, TableComponent } from './TableFieldComponent';
+import { createFieldGroup, createTableGroup, createField } from './models/CRFModels';
 
 // Create a simple icon component instead of using Font Awesome
 const Icon = ({ type }) => {
@@ -13,6 +15,7 @@ const Icon = ({ type }) => {
       case 'radio': return '◉';
       case 'select': return '▼';
       case 'template': return '📋';
+      case 'table': return '🧾';
       default: return '⬦';
     }
   };
@@ -24,18 +27,49 @@ const Icon = ({ type }) => {
   );
 };
 
-// Original constants - don't increase these yet
-const MIN_WIDTH = 700;
+const QualityIcon = ({ type }) => {
+  const getIcon = () => {
+    switch (type) {
+      case 'sdv': return '🔍'; // Magnifying glass for SDV
+      case 'medical': return '👨‍⚕️'; // Medical personnel for Medical Review
+      case 'data': return '📊'; // Chart for Data Review
+      default: return '⬦';
+    }
+  };
+
+  return (
+    <span className="inline-flex items-center justify-center w-5 h-5 bg-gray-100 text-gray-700 rounded-full" title={
+      type === 'sdv' ? 'Source Data Verification Required' :
+        type === 'medical' ? 'Medical Review Required' :
+          type === 'data' ? 'Data Review Required' : ''
+    }>
+      {getIcon()}
+    </span>
+  );
+};
+
+
+// Original constants - update these
+const MIN_WIDTH = 700;  // Change to 910 (30% increase)
 const MIN_CANVAS_HEIGHT = 400;
 
-const CRFBuilder = ({ onSave, onCancel }) => {
-  const [fields, setFields] = useState([]);
-  const [crfName, setCrfName] = useState('');
+const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) => {
+  const [fields, setFields] = useState(initialData?.fields || []);
+  const [fieldGroups, setFieldGroups] = useState(initialData?.fieldGroups || []);
+  const [crfName, setCrfName] = useState(initialData?.name || '');
   const [draggedField, setDraggedField] = useState(null);
   const [selectedFieldIndex, setSelectedFieldIndex] = useState(null);
   const [showMetadataPanel, setShowMetadataPanel] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  // Add state for preview mode
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+  // Table-specific states
+  const [showTableDialog, setShowTableDialog] = useState(false);
+  const [dropTarget, setDropTarget] = useState(null);
+  const [selectedTableCell, setSelectedTableCell] = useState(null);
+  const [defaultGroupId, setDefaultGroupId] = useState(null);
 
   // Use the templates from the imported file
   const DOMAIN_TEMPLATES = [
@@ -54,7 +88,8 @@ const CRFBuilder = ({ onSave, onCancel }) => {
     { type: 'date', label: 'Date Field' },
     { type: 'checkbox', label: 'Checkbox' },
     { type: 'radio', label: 'Radio Button' },
-    { type: 'select', label: 'Select Dropdown' }
+    { type: 'select', label: 'Select Dropdown' },
+    { type: 'table', label: 'Table' }
   ];
 
   // Handle field drag start
@@ -66,19 +101,29 @@ const CRFBuilder = ({ onSave, onCancel }) => {
   const handleDrop = (e) => {
     e.preventDefault();
     if (draggedField) {
-      const newField = {
-        type: draggedField.type,
+      if (draggedField.type === 'table') {
+        // For table fields, open the configuration dialog
+        setShowTableDialog(true);
+        setDropTarget('canvas');
+        return;
+      }
+
+      // For normal fields, create a new field
+      const newField = createField({
         label: `New ${draggedField.label}`,
-        width: 'full',
-        widthPercent: 100,
-        height: 'auto',
-        metadata: {
-          variableName: '',
-          dataType: draggedField.type === 'number' ? 'numeric' : draggedField.type,
-          required: false,
-          validationRules: []
-        }
-      };
+        type: draggedField.type,
+        groupId: defaultGroupId
+      });
+
+      // Create default group if none exists
+      if (!defaultGroupId) {
+        const newGroup = createFieldGroup({
+          name: "Default Group"
+        });
+        setFieldGroups([...fieldGroups, newGroup]);
+        newField.groupId = newGroup.id;
+        setDefaultGroupId(newGroup.id);
+      }
 
       setFields([...fields, newField]);
       setDraggedField(null);
@@ -86,6 +131,144 @@ const CRFBuilder = ({ onSave, onCancel }) => {
       // Select the newly added field to edit its metadata
       setSelectedFieldIndex(fields.length);
       setShowMetadataPanel(true);
+    }
+  };
+
+  // Handle field drop onto a table cell
+  const handleTableCellDrop = (groupId, rowIndex, colIndex) => {
+    if (!draggedField || draggedField.type === 'table') return;
+
+    // Create a field for the table cell
+    const newField = createField({
+      label: `${draggedField.label}`,
+      type: draggedField.type,
+      groupId: groupId,
+      tablePosition: {
+        row: rowIndex,
+        column: colIndex
+      }
+    });
+
+    setFields([...fields, newField]);
+    setDraggedField(null);
+
+    // Select the newly added field to edit its metadata
+    setSelectedFieldIndex(fields.length);
+    setShowMetadataPanel(true);
+  };
+
+  // Handle creating a new table
+  const handleTableCreate = (tableGroup) => {
+    // First, add the table group to field groups
+    setFieldGroups([...fieldGroups, tableGroup]);
+
+    // Then create a field that references this table group
+    const newField = createField({
+      label: tableGroup.name,
+      type: 'table',
+      groupId: tableGroup.id // Link the field to the table group
+    });
+
+    setFields([...fields, newField]);
+    setDraggedField(null);
+    setShowTableDialog(false);
+
+    // Select the newly added field for editing
+    setSelectedFieldIndex(fields.length);
+    setShowMetadataPanel(true);
+  };
+
+  // Handle editing a table header
+  const handleEditTableHeader = (groupId, columnIndex, newValue) => {
+    const updatedGroups = fieldGroups.map(group => {
+      if (group.id === groupId && group.type === 'table') {
+        const updatedHeaders = [...group.tableConfig.headers];
+        updatedHeaders[columnIndex] = newValue;
+        return {
+          ...group,
+          tableConfig: {
+            ...group.tableConfig,
+            headers: updatedHeaders
+          }
+        };
+      }
+      return group;
+    });
+    setFieldGroups(updatedGroups);
+  };
+
+  // Handle removing a row from a table
+  const handleRemoveTableRow = (groupId, rowIndex) => {
+    const updatedGroups = fieldGroups.map(group => {
+      if (group.id === groupId && group.type === 'table' && group.tableConfig.rows > 2) {
+        return {
+          ...group,
+          tableConfig: {
+            ...group.tableConfig,
+            rows: group.tableConfig.rows - 1
+          }
+        };
+      }
+      return group;
+    });
+
+    // Remove any fields in the deleted row
+    const updatedFields = fields.filter(field => {
+      return !(field.groupId === groupId &&
+        field.tablePosition &&
+        field.tablePosition.row === rowIndex);
+    });
+
+    setFieldGroups(updatedGroups);
+    setFields(updatedFields);
+  };
+
+  // Handle removing a column from a table
+  const handleRemoveTableColumn = (groupId) => {
+    const updatedGroups = fieldGroups.map(group => {
+      if (group.id === groupId && group.type === 'table' && group.tableConfig.columns > 1) {
+        const lastColumnIndex = group.tableConfig.columns - 1;
+        return {
+          ...group,
+          tableConfig: {
+            ...group.tableConfig,
+            columns: lastColumnIndex,
+            headers: group.tableConfig.headers.slice(0, lastColumnIndex)
+          }
+        };
+      }
+      return group;
+    });
+
+    // Remove any fields in the deleted column
+    const updatedFields = fields.filter(field => {
+      return !(field.groupId === groupId &&
+        field.tablePosition &&
+        field.tablePosition.column === updatedGroups.find(g => g.id === groupId)?.tableConfig.columns);
+    });
+
+    setFieldGroups(updatedGroups);
+    setFields(updatedFields);
+  };
+
+  // Handle selecting a table cell
+  const handleSelectTableCell = (groupId, rowIndex, columnIndex) => {
+    setSelectedTableCell({ groupId, row: rowIndex, column: columnIndex });
+
+    // Find if there's a field in this cell
+    const fieldIndex = fields.findIndex(field =>
+      field.groupId === groupId &&
+      field.tablePosition &&
+      field.tablePosition.row === rowIndex &&
+      field.tablePosition.column === columnIndex
+    );
+
+    if (fieldIndex !== -1) {
+      setSelectedFieldIndex(fieldIndex);
+      setShowMetadataPanel(true);
+    } else {
+      setSelectedFieldIndex(null);
+      setShowMetadataPanel(false);
     }
   };
 
@@ -171,6 +354,117 @@ const CRFBuilder = ({ onSave, onCancel }) => {
     setFields(updatedFields);
   };
 
+  // Handle editing a table header or cell
+  const handleTableEdit = (tableGroupId, row, col, value, isHeader = false) => {
+    if (!tableGroupId) return;
+
+    setFieldGroups(prevGroups => {
+      return prevGroups.map(group => {
+        if (group.id !== tableGroupId) return group;
+
+        // Create a copy of the table group
+        const updatedGroup = { ...group };
+
+        if (isHeader) {
+          // Update column header
+          if (row === -1 && col >= 0) {
+            // Column header
+            updatedGroup.columnHeaders = [...updatedGroup.columnHeaders];
+            updatedGroup.columnHeaders[col] = value;
+          } else if (col === -1 && row >= 0) {
+            // Row header
+            updatedGroup.rowHeaders = [...updatedGroup.rowHeaders];
+            updatedGroup.rowHeaders[row] = value;
+          }
+        } else {
+          // Update cell value
+          if (!updatedGroup.data) {
+            updatedGroup.data = Array(updatedGroup.rows).fill().map(() => Array(updatedGroup.columns).fill(''));
+          }
+
+          // Create a deep copy of the data
+          updatedGroup.data = updatedGroup.data.map(r => [...r]);
+
+          // Update the cell
+          if (updatedGroup.data[row] && updatedGroup.data[row][col] !== undefined) {
+            updatedGroup.data[row][col] = value;
+          }
+        }
+
+        return updatedGroup;
+      });
+    });
+  };
+
+  // Handle adding a row to a table
+  const handleAddTableRow = (tableGroupId, position = 'end') => {
+    if (!tableGroupId) return;
+
+    setFieldGroups(prevGroups => {
+      return prevGroups.map(group => {
+        if (group.id !== tableGroupId || group.type !== 'table' || !group.tableConfig) return group;
+
+        // Create a copy of the table group
+        const updatedGroup = {
+          ...group,
+          tableConfig: {
+            ...group.tableConfig,
+            rows: group.tableConfig.rows + 1
+          }
+        };
+
+        return updatedGroup;
+      });
+    });
+  };  // Handle adding a column to a table
+  const handleAddTableColumn = (tableGroupId, position = 'end') => {
+    if (!tableGroupId) return;
+
+    setFieldGroups(prevGroups => {
+      return prevGroups.map(group => {
+        if (group.id !== tableGroupId || group.type !== 'table' || !group.tableConfig) return group;
+
+        // Create a copy of the table group with updated tableConfig
+        const updatedColumns = group.tableConfig.columns + 1;
+        const updatedHeaders = [...group.tableConfig.headers, `Column ${updatedColumns}`];
+
+        return {
+          ...group,
+          tableConfig: {
+            ...group.tableConfig,
+            columns: updatedColumns,
+            headers: updatedHeaders
+          }
+        };
+      });
+    });
+  };
+
+  // Handle showing the table creation dialog
+  const handleShowTableDialog = () => {
+    setShowTableDialog(true);
+  };
+
+  // Handle clicking on a table cell
+  const handleTableCellClick = (fieldIndex, row, col) => {
+    // Find the field and its associated table group
+    const field = fields[fieldIndex];
+    if (!field || field.type !== 'table') return;
+
+    const tableGroup = fieldGroups.find(group =>
+      group.type === 'table' && group.id === field.groupId
+    );
+
+    if (!tableGroup) return;
+
+    // For now, just select the field
+    setSelectedFieldIndex(fieldIndex);
+    setShowMetadataPanel(true);
+
+    // In the future, you could implement cell-specific actions here
+    console.log(`Clicked on cell [${row}, ${col}] in table ${field.label}`);
+  };
+
   // Handle selecting a field for editing metadata
   const handleSelectField = (index) => {
     setSelectedFieldIndex(index);
@@ -196,6 +490,17 @@ const CRFBuilder = ({ onSave, onCancel }) => {
     const template = DOMAIN_TEMPLATES.find(t => t.id === templateId);
     if (template) {
       setCrfName(template.name);
+      // Ensure each field has the quality control properties
+      const fieldsWithQC = template.fields.map(field => ({
+        ...field,
+        metadata: {
+          ...field.metadata,
+          sdvRequired: field.metadata?.sdvRequired || false,
+          medicalReview: field.metadata?.medicalReview || false,
+          dataReview: field.metadata?.dataReview || false,
+          criticalDataPoint: field.metadata?.criticalDataPoint || false
+        }
+      }));
       setFields([...template.fields]);
       setShowTemplateModal(false);
       setSelectedTemplate(template);
@@ -212,8 +517,20 @@ const CRFBuilder = ({ onSave, onCancel }) => {
     onSave({
       name: crfName,
       fields: fields,
+      fieldGroups: fieldGroups,
       templateId: selectedTemplate?.id
     });
+  };
+
+  // Render table configuration dialog
+  const renderTableConfigDialog = () => {
+    return (
+      <TableConfigDialog
+        isOpen={showTableDialog}
+        onClose={() => setShowTableDialog(false)}
+        onConfirm={handleTableCreate}
+      />
+    );
   };
 
   // Render template selection modal
@@ -272,6 +589,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
               onChange={(e) => updateFieldMetadata('variableName', e.target.value)}
               className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
               placeholder="e.g., AETERM, CMTRT"
+              disabled={readOnly}
             />
           </div>
 
@@ -285,6 +603,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
               onChange={(e) => updateFieldMetadata('sdtmMapping', e.target.value)}
               className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
               placeholder="e.g., AE.AETERM"
+              disabled={readOnly}
             />
           </div>
 
@@ -296,6 +615,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
               value={metadata.required ? 'true' : 'false'}
               onChange={(e) => updateFieldMetadata('required', e.target.value === 'true')}
               className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+              disabled={readOnly}
             >
               <option value="false">No</option>
               <option value="true">Yes</option>
@@ -310,6 +630,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
               value={metadata.source || 'clinician'}
               onChange={(e) => updateFieldMetadata('source', e.target.value)}
               className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+              disabled={readOnly}
             >
               <option value="clinician">Clinician</option>
               <option value="patient">Patient</option>
@@ -332,6 +653,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.maxLength || ''}
                 onChange={(e) => updateFieldMetadata('maxLength', parseInt(e.target.value) || '')}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               />
             </div>
 
@@ -343,6 +665,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.codingRequired ? 'true' : 'false'}
                 onChange={(e) => updateFieldMetadata('codingRequired', e.target.value === 'true')}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               >
                 <option value="false">No</option>
                 <option value="true">Yes</option>
@@ -358,6 +681,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                   value={metadata.codingDictionary || ''}
                   onChange={(e) => updateFieldMetadata('codingDictionary', e.target.value)}
                   className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                  disabled={readOnly}
                 >
                   <option value="">Select Dictionary</option>
                   <option value="MedDRA">MedDRA</option>
@@ -382,6 +706,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 onChange={(e) => updateFieldMetadata('units', e.target.value)}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
                 placeholder="e.g., kg, mmHg"
+                disabled={readOnly}
               />
             </div>
 
@@ -393,6 +718,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.format || '#.##'}
                 onChange={(e) => updateFieldMetadata('format', e.target.value)}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               >
                 <option value="#.##">2 Decimal Places</option>
                 <option value="#.#">1 Decimal Place</option>
@@ -410,6 +736,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.minValue !== null ? metadata.minValue : ''}
                 onChange={(e) => updateFieldMetadata('minValue', e.target.value === '' ? null : parseFloat(e.target.value))}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               />
             </div>
 
@@ -422,6 +749,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.maxValue !== null ? metadata.maxValue : ''}
                 onChange={(e) => updateFieldMetadata('maxValue', e.target.value === '' ? null : parseFloat(e.target.value))}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               />
             </div>
           </div>
@@ -437,6 +765,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.format || 'YYYY-MM-DD'}
                 onChange={(e) => updateFieldMetadata('format', e.target.value)}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               >
                 <option value="YYYY-MM-DD">YYYY-MM-DD</option>
                 <option value="DD-MMM-YYYY">DD-MMM-YYYY</option>
@@ -452,6 +781,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                 value={metadata.allowPartialDate ? 'true' : 'false'}
                 onChange={(e) => updateFieldMetadata('allowPartialDate', e.target.value === 'true')}
                 className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
               >
                 <option value="false">No</option>
                 <option value="true">Yes</option>
@@ -469,6 +799,7 @@ const CRFBuilder = ({ onSave, onCancel }) => {
                   onChange={(e) => updateFieldMetadata('qualifierField', e.target.value)}
                   className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
                   placeholder="e.g., AESTDTC_QUAL"
+                  disabled={readOnly}
                 />
               </div>
             )}
@@ -485,7 +816,74 @@ const CRFBuilder = ({ onSave, onCancel }) => {
             className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
             rows="2"
             placeholder="Instructions for data entry"
+            disabled={readOnly}
           ></textarea>
+        </div>
+
+        {/* Quality Control Flags - New Section */}
+        <div className="mt-4 border-t pt-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Quality Control Flags</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="flex items-center text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={metadata.sdvRequired || false}
+                  onChange={(e) => updateFieldMetadata('sdvRequired', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded mr-2"
+                  disabled={readOnly}
+                />
+                Source Data Verification
+              </label>
+              <p className="text-xs text-gray-500 ml-6 mt-1">Field requires verification against source documents</p>
+            </div>
+
+            <div>
+              <label className="flex items-center text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={metadata.medicalReview || false}
+                  onChange={(e) => updateFieldMetadata('medicalReview', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded mr-2"
+                  disabled={readOnly}
+                />
+                Medical Review
+              </label>
+              <p className="text-xs text-gray-500 ml-6 mt-1">Requires review by medical personnel</p>
+            </div>
+
+            <div>
+              <label className="flex items-center text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={metadata.dataReview || false}
+                  onChange={(e) => updateFieldMetadata('dataReview', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded mr-2"
+                  disabled={readOnly}
+                />
+                Data Review
+              </label>
+              <p className="text-xs text-gray-500 ml-6 mt-1">Requires data management review</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Critical Data Point
+              </label>
+              <select
+                value={metadata.criticalDataPoint ? 'true' : 'false'}
+                onChange={(e) => updateFieldMetadata('criticalDataPoint', e.target.value === 'true')}
+                className="border border-gray-300 rounded-md w-full px-3 py-2 text-sm"
+                disabled={readOnly}
+              >
+                <option value="false">No</option>
+                <option value="true">Yes</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Designate as critical for study outcomes</p>
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end">
@@ -496,6 +894,161 @@ const CRFBuilder = ({ onSave, onCancel }) => {
             Close
           </button>
         </div>
+      </div>
+    );
+  };
+
+  // Render preview panel
+  const renderPreviewPanel = () => {
+    return (
+      <div className="bg-white p-6 border rounded-md">
+        <div className="mb-6 border-b pb-4">
+          <h2 className="text-xl font-bold text-gray-800">{crfName || "Form Preview"}</h2>
+        </div>
+
+        <div className="space-y-6">
+          {fields.map((field, index) => (
+            <div
+              key={index}
+              className={`${field.width === 'full' ? 'w-full' : `w-${field.widthPercent}%`} inline-block align-top px-2`}
+              style={{ width: `${field.widthPercent}%` }}
+            >
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {field.label}
+                  {field.metadata?.required && <span className="text-red-500 ml-1">*</span>}
+                  <div className="ml-auto flex items-center gap-1">
+                    {field.metadata?.sdvRequired && <QualityIcon type="sdv" />}
+                    {field.metadata?.medicalReview && <QualityIcon type="medical" />}
+                    {field.metadata?.dataReview && <QualityIcon type="data" />}
+                    {field.metadata?.criticalDataPoint && (
+                      <span className="inline-flex items-center justify-center w-5 h-5 bg-red-100 text-red-700 rounded-full" title="Critical Data Point">
+                        ⚠️
+                      </span>
+                    )}
+                  </div>
+                </label>
+
+                {field.type === 'table' && (
+                  <div className="border border-gray-300 rounded-md p-2">
+                    {(() => {
+                      const tableGroup = fieldGroups?.find(
+                        group => group.type === 'table' && group.id === field.groupId
+                      );
+
+                      if (tableGroup) {
+                        return (
+                          <TableComponent
+                            tableGroup={tableGroup}
+                            fields={fields.filter(f => f.groupId === tableGroup.id)}
+                            readOnly={true}
+                          />
+                        );
+                      }
+
+                      return <div className="text-gray-500">Table preview not available</div>;
+                    })()}
+                  </div>
+                )}
+
+                {field.type === 'text' && (
+                  <input
+                    type="text"
+                    className="border border-gray-300 rounded-md w-full p-2"
+                    placeholder={field.metadata?.description || "Enter text"}
+                    disabled
+                  />
+                )}
+
+                {field.type === 'number' && (
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      className="border border-gray-300 rounded-md w-full p-2"
+                      placeholder="0"
+                      disabled
+                    />
+                    {field.metadata?.units && (
+                      <span className="ml-2 text-gray-500">{field.metadata.units}</span>
+                    )}
+                  </div>
+                )}
+
+                {field.type === 'date' && (
+                  <input
+                    type="text"
+                    className="border border-gray-300 rounded-md w-full p-2"
+                    placeholder={field.metadata?.format || "YYYY-MM-DD"}
+                    disabled
+                  />
+                )}
+
+                {field.type === 'checkbox' && (
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 border-gray-300 rounded text-blue-600"
+                      disabled
+                    />
+                    <span className="ml-2 text-gray-500">
+                      {field.metadata?.description || "Check this option"}
+                    </span>
+                  </div>
+                )}
+
+                {field.type === 'radio' && (
+                  <div className="space-y-2">
+                    {field.metadata?.options?.map((option, i) => (
+                      <div key={i} className="flex items-center">
+                        <input
+                          type="radio"
+                          name={`radio_${index}`}
+                          className="h-4 w-4 border-gray-300 text-blue-600"
+                          disabled
+                        />
+                        <span className="ml-2 text-gray-500">{option.label}</span>
+                      </div>
+                    )) || (
+                        <>
+                          <div className="flex items-center">
+                            <input type="radio" className="h-4 w-4" disabled />
+                            <span className="ml-2 text-gray-500">Option 1</span>
+                          </div>
+                          <div className="flex items-center">
+                            <input type="radio" className="h-4 w-4" disabled />
+                            <span className="ml-2 text-gray-500">Option 2</span>
+                          </div>
+                        </>
+                      )}
+                  </div>
+                )}
+
+                {field.type === 'select' && (
+                  <select
+                    className="border border-gray-300 rounded-md w-full p-2 text-gray-500"
+                    disabled
+                  >
+                    <option>Select an option...</option>
+                    {field.metadata?.options?.map((option, i) => (
+                      <option key={i}>{option.label}</option>
+                    ))}
+                  </select>
+                )}
+
+                {field.metadata?.description && field.type !== 'checkbox' && (
+                  <p className="mt-1 text-xs text-gray-500">{field.metadata.description}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {fields.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <p>No fields added to this form yet.</p>
+            <p className="text-sm mt-2">Switch to Design mode to add fields.</p>
+          </div>
+        )}
       </div>
     );
   };
@@ -515,12 +1068,14 @@ const CRFBuilder = ({ onSave, onCancel }) => {
               onChange={(e) => setCrfName(e.target.value)}
               className="border border-gray-300 rounded-md w-full px-3 py-2"
               placeholder="Enter CRF name"
+              disabled={readOnly}
             />
           </div>
           <div>
             <button
               onClick={openTemplateModal}
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              disabled={readOnly}
             >
               Use Template
             </button>
@@ -548,82 +1103,117 @@ const CRFBuilder = ({ onSave, onCancel }) => {
           </div>
         )}
 
-        <div className="flex flex-col md:flex-row gap-4" style={{ height: MIN_CANVAS_HEIGHT }}>
-          {/* Field Type Palette - Wider */}
-          <div
-            className="bg-gray-50 p-4 rounded-md flex flex-col overflow-y-auto"
-            style={{ width: "300px", minWidth: "300px" }} // Fixed width instead of percentage
+        {/* Add mode toggle buttons */}
+        <div className="mb-4 flex space-x-2 border-b pb-3">
+          <button
+            onClick={() => setIsPreviewMode(false)}
+            className={`px-4 py-2 rounded-t ${!isPreviewMode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
           >
-            <h4 className="font-medium mb-3 text-sm">Field Types</h4>
-            <div className="space-y-2">
-              {fieldTypes.map((fieldType, index) => (
-                <div
-                  key={index}
-                  className="bg-white p-3 rounded shadow-sm cursor-move flex items-center gap-2 text-sm"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, fieldType)}
-                >
-                  <Icon type={fieldType.type} />
-                  <span>{fieldType.label}</span>
-                </div>
-              ))}
-            </div>
-
-            <h4 className="font-medium mb-3 mt-6 text-sm">Domain Templates</h4>
-            <div className="space-y-2">
-              {DOMAIN_TEMPLATES.map((template) => (
-                <div
-                  key={template.id}
-                  className="bg-white p-3 rounded shadow-sm cursor-pointer flex items-center gap-2 text-sm hover:bg-blue-50"
-                  onClick={() => applyTemplate(template.id)}
-                >
-                  <Icon type="template" />
-                  <span>{template.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Form Canvas - Wider */}
-          <div
-            className="flex-1 overflow-hidden"
-            style={{ minWidth: "900px" }} // Increased width
+            Design
+          </button>
+          <button
+            onClick={() => setIsPreviewMode(true)}
+            className={`px-4 py-2 rounded-t ${isPreviewMode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
           >
-            <FormCanvas
-              fields={fields}
-              onDropField={handleDrop}
-              onDragOverField={handleDragOver}
-              onLabelChange={handleLabelChange}
-              onRemoveField={handleRemoveField}
-              onMoveField={handleMoveField}
-              draggingIndex={selectedFieldIndex}
-              setDraggingIndex={setSelectedFieldIndex}
-              toggleFieldWidth={toggleFieldWidth}
-              updateFieldSize={updateFieldSize}
-              onSelectField={handleSelectField}
-            />
-          </div>
+            Preview
+          </button>
         </div>
 
-        {/* Metadata Panel */}
-        {showMetadataPanel && renderMetadataPanel()}
+        {/* Show either form canvas or preview based on mode */}
+        {isPreviewMode ? (
+          renderPreviewPanel()
+        ) : (
+          <>
+            <div className="flex flex-col md:flex-row gap-4" style={{ height: MIN_CANVAS_HEIGHT }}>
+              {/* Field Type Palette - Keep same width */}
+              <div
+                className="bg-gray-50 p-4 rounded-md flex flex-col overflow-y-auto"
+                style={{ width: "300px", minWidth: "300px" }}
+              >
+                <h4 className="font-medium mb-3 text-sm">Field Types</h4>
+                <div className="space-y-2">
+                  {fieldTypes.map((fieldType, index) => (
+                    <div
+                      key={index}
+                      className="bg-white p-3 rounded shadow-sm cursor-move flex items-center gap-2 text-sm"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, fieldType)}
+                    >
+                      <Icon type={fieldType.type} />
+                      <span>{fieldType.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <h4 className="font-medium mb-3 mt-6 text-sm">Domain Templates</h4>
+                <div className="space-y-2">
+                  {DOMAIN_TEMPLATES.map((template) => (
+                    <div
+                      key={template.id}
+                      className="bg-white p-3 rounded shadow-sm cursor-pointer flex items-center gap-2 text-sm hover:bg-blue-50"
+                      onClick={() => applyTemplate(template.id)}
+                    >
+                      <Icon type="template" />
+                      <span>{template.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Form Canvas - Increase width */}
+              <div
+                className="flex-1 overflow-hidden"
+                style={{ minWidth: "900px" }} // Increased width
+              >
+                <FormCanvas
+                  fields={fields}
+                  fieldGroups={fieldGroups}
+                  onDropField={handleDrop}
+                  onDragOverField={handleDragOver}
+                  onLabelChange={handleLabelChange}
+                  onRemoveField={handleRemoveField}
+                  onMoveField={handleMoveField}
+                  draggingIndex={selectedFieldIndex}
+                  setDraggingIndex={setSelectedFieldIndex}
+                  toggleFieldWidth={toggleFieldWidth}
+                  updateFieldSize={updateFieldSize}
+                  onSelectField={handleSelectField}
+                  onTableCellClick={handleTableCellClick}
+                  onTableAddRow={handleAddTableRow}
+                  onTableAddColumn={handleAddTableColumn}
+                  onTableRemoveRow={handleRemoveTableRow}
+                  onTableRemoveColumn={handleRemoveTableColumn}
+                  onTableEditHeader={handleEditTableHeader}
+                />
+              </div>
+            </div>
+
+            {/* Metadata Panel */}
+            {showMetadataPanel && renderMetadataPanel()}
+          </>
+        )}
 
         {/* Template Modal */}
         {renderTemplateModal()}
+
+        {/* Table Configuration Dialog */}
+        {renderTableConfigDialog()}
 
         <div className="flex justify-end mt-6 space-x-2">
           <button
             onClick={onCancel}
             className="bg-gray-300 text-gray-800 px-4 py-2 rounded"
           >
-            Cancel
+            {readOnly ? 'Close' : 'Cancel'}
           </button>
-          <button
-            onClick={handleSave}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Save CRF
-          </button>
+          {!readOnly && (
+            <button
+              onClick={handleSave}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Save CRF
+            </button>
+          )}
         </div>
       </div>
     </div>

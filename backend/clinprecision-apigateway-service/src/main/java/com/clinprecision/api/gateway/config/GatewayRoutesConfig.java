@@ -10,6 +10,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class GatewayRoutesConfig {
 
+
+    private final AuthorizationHeaderFilter authFilter;
+
+    public GatewayRoutesConfig(AuthorizationHeaderFilter authFilter) {
+        this.authFilter = authFilter;
+    }
+
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
@@ -23,7 +30,7 @@ public class GatewayRoutesConfig {
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
                                 .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
-                                .filter(new AuthorizationHeaderFilter())
+                                .filter(authFilter)
                         )
                         .uri("lb://users-ws")
                 )
@@ -46,6 +53,8 @@ public class GatewayRoutesConfig {
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
                                 .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                                // Expose headers but don't set CORS headers
+                                .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                         )
                         .uri("lb://users-ws")
                 )
@@ -53,17 +62,17 @@ public class GatewayRoutesConfig {
                 .route("users-ws-get-update-delete", r -> r
                         .path("/users-ws/users/**")
                         .and()
-                        .method("GET", "PUT", "DELETE")
+                        .method("GET", "PUT", "DELETE", "OPTIONS")
                         .and()
                         .header("Authorization", "Bearer (.*)")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
-                                .filter(new AuthorizationHeaderFilter())
-                        )
-                        .uri("lb://users-ws")
-                )
-                // users-ws-h2-console
-                .route("users-ws-h2-console", r -> r
+                                .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                                // Expose headers but don't set CORS headers
+                                .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
+                                .filter(authFilter)
+                        ).uri("lb://users-ws")
+                ).route("users-ws-h2-console", r -> r
                         .path("/users-ws/h2-console")
                         .and()
                         .method("GET")

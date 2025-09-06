@@ -1,34 +1,53 @@
 import { useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { API_BASE_URL } from "../../config.js";
-import { Link, Routes, Route } from "react-router-dom";
+import { Link } from "react-router-dom";
+import LoginService from "../../services/LoginService";
 
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
     const auth = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
+        setError("");
+
         try {
-            const response = await axios.post(
-                `${API_BASE_URL}/users-ws/users/login`,
-                { email, password }
+            // Use the LoginService to handle authentication
+            const result = await LoginService.login(email, password);
+
+            // Extract user data
+            const { authData } = result;
+
+            // Update authentication context with user information
+            auth.login(
+                'admin@test.com',
+                'admin',
+                {
+                    userId: authData.userId,
+                    token: authData.token,
+                    firstName: 'Admin',
+                    lastName: 'XYZ',
+                    // Add any other user properties you need
+                }
             );
-            console.log(response.status)
-            // Assume API returns { email, role }
-            if (response.status == 200) {
-                auth.login(response.data.email, response.data.role);
-                navigate("/");
-            } else {
-                setError("Invalid credentials");
-            }
+
+            // Navigate to home page after successful login
+            navigate("/");
         } catch (err) {
-            setError("Login failed. Please check your credentials.");
+            if (err.response && err.response.status === 401) {
+                setError("Invalid credentials. Please try again.");
+            } else {
+                setError("Login failed. Please try again later.");
+            }
+            console.error("Login error:", err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -51,6 +70,7 @@ export default function Login() {
                         className="w-full border p-2 rounded"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
+                        disabled={loading}
                     />
                     <input
                         type="password"
@@ -58,10 +78,25 @@ export default function Login() {
                         className="w-full border p-2 rounded"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
+                        disabled={loading}
                     />
                     {error && <div className="text-red-500">{error}</div>}
-                    <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-                        Login
+                    <button
+                        type="submit"
+                        className="bg-blue-600 text-white px-4 py-2 rounded flex items-center justify-center w-full"
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <>
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Logging in...
+                            </>
+                        ) : (
+                            'Login'
+                        )}
                     </button>
                 </form>
             </div>

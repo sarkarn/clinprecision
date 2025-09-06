@@ -8,13 +8,12 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 import com.clinprecision.userservice.service.UsersService;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @EnableMethodSecurity(prePostEnabled=true)
 @Configuration
@@ -43,14 +42,14 @@ public class WebSecurity {
     	
     	AuthenticationManager authenticationManager = authenticationManagerBuilder.build();
     	
-    	// Create AuthenticationFilter
+        // Create AuthenticationFilter
     	AuthenticationFilter authenticationFilter = 
     			new AuthenticationFilter(usersService, environment, authenticationManager);
     	authenticationFilter.setFilterProcessesUrl(environment.getProperty("login.url.path"));
-    	
-        http.csrf((csrf) -> csrf.disable());
-  
-        http.authorizeHttpRequests((authz) -> authz
+
+        // Explicitly disable CORS in the User Service - let API Gateway handle CORS
+        http.cors(AbstractHttpConfigurer::disable);
+        http.csrf(AbstractHttpConfigurer::disable);        http.authorizeHttpRequests((authz) -> authz
         .requestMatchers("/users/**").permitAll()
 		.requestMatchers("/h2-console/**").permitAll())
         .addFilter(new AuthorizationFilter(authenticationManager, environment))

@@ -1,13 +1,13 @@
-package com.clinprecision.studydesignservice;
+package com.clinprecision.datacaptureservice;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class StudydesignserviceApplication {
+public class StudyDataCaptureServiceApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(StudydesignserviceApplication.class, args);
+		SpringApplication.run(StudyDataCaptureServiceApplication.class, args);
 	}
 
 }

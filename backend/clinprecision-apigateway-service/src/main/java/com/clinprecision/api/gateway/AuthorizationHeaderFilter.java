@@ -4,6 +4,7 @@ import java.util.Base64;
 
 import javax.crypto.SecretKey;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.core.env.Environment;
@@ -21,6 +22,7 @@ import io.jsonwebtoken.security.Keys;
 import reactor.core.publisher.Mono;
 
 @Component
+@Slf4j
 public class AuthorizationHeaderFilter implements GatewayFilter {
 
     @Autowired
@@ -31,6 +33,7 @@ public class AuthorizationHeaderFilter implements GatewayFilter {
         ServerHttpRequest request = exchange.getRequest();
 
         if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+            log.error("Authorization header is missing");
             return onError(exchange, "No authorization header", HttpStatus.UNAUTHORIZED);
         }
 
@@ -38,6 +41,7 @@ public class AuthorizationHeaderFilter implements GatewayFilter {
         String jwt = authorizationHeader.replace("Bearer", "").trim();
 
         if (!isJwtValid(jwt)) {
+            log.error("Invalid JWT token");
             return onError(exchange, "JWT token is not valid", HttpStatus.UNAUTHORIZED);
         }
 
@@ -57,12 +61,12 @@ public class AuthorizationHeaderFilter implements GatewayFilter {
         String subject = null;
 
         try {
-            byte[] secretKeyBytes = Base64.getEncoder().encode(env.getProperty("token.secret").getBytes());
-            SecretKey key = Keys.hmacShaKeyFor(secretKeyBytes);
+            SecretKey key = Keys.hmacShaKeyFor(env.getProperty("token.secret").getBytes());
             JwtParser parser = Jwts.parser()
                     .verifyWith(key)
                     .build();
             subject = parser.parseSignedClaims(jwt).getPayload().getSubject();
+            return subject != null && !subject.isBlank();
         } catch (Exception ex) {
             returnValue = false;
         }

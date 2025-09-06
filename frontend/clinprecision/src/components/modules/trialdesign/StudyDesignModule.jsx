@@ -73,31 +73,37 @@ const Breadcrumb = () => {
 const StudyDesignModule = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const location = useLocation();
+
+  // Check if we're being rendered directly or within Home component
+  const isDirectNavigation = location.pathname.split('/').length <= 2;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Fixed Top Menu Bar */}
-      <header className="fixed top-0 left-0 right-0 bg-white shadow flex justify-between items-center px-8 py-4 z-10">
-        <div className="flex items-center space-x-6">
-          <h1 className="text-xl font-bold text-blue-600">ClinicalConnect</h1>
-          <Link to="/reports" className="text-gray-700 hover:text-blue-600">Reports</Link>
-          <Link to="/help" className="text-gray-700 hover:text-blue-600">Documentation</Link>
-          {user?.role === 'admin' && (
-            <Link to="/admin" className="text-gray-700 hover:text-blue-600">Administration</Link>
-          )}
-        </div>
-        <div className="flex items-center space-x-4">
-          {user && (
-            <>
-              <span className="text-gray-600">{user.username || user.email}</span>
-              <Logout />
-            </>
-          )}
-        </div>
-      </header>
+    <div className={isDirectNavigation ? "min-h-screen flex flex-col" : ""}>
+      {/* Only show header when navigated to directly, not when inside Home */}
+      {isDirectNavigation && (
+        <header className="fixed top-0 left-0 right-0 bg-white shadow flex justify-between items-center px-8 py-4 z-10">
+          <div className="flex items-center space-x-6">
+            <h1 className="text-xl font-bold text-blue-600">ClinicalConnect</h1>
+            <Link to="/reports" className="text-gray-700 hover:text-blue-600">Reports</Link>
+            <Link to="/help" className="text-gray-700 hover:text-blue-600">Documentation</Link>
+            {user?.role === 'admin' && (
+              <Link to="/admin" className="text-gray-700 hover:text-blue-600">Administration</Link>
+            )}
+          </div>
+          <div className="flex items-center space-x-4">
+            {user && (
+              <>
+                <span className="text-gray-600">{user.username || user.email}</span>
+                <Logout />
+              </>
+            )}
+          </div>
+        </header>
+      )}
 
-      {/* Main Content Area - Add top padding to prevent content from being hidden under the fixed header */}
-      <div className="container mx-auto p-4 flex-1 mt-16">
+      {/* Main Content Area - conditionally add margin-top */}
+      <div className={`container mx-auto px-4 pb-4 flex-1 ${isDirectNavigation ? "mt-16" : "pt-0"}`}>
         {/* Breadcrumb navigation */}
         <Breadcrumb />
 
