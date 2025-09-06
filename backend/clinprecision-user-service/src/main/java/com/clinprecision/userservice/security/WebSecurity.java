@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -41,15 +42,14 @@ public class WebSecurity {
     	
     	AuthenticationManager authenticationManager = authenticationManagerBuilder.build();
     	
-    	// Create AuthenticationFilter
+        // Create AuthenticationFilter
     	AuthenticationFilter authenticationFilter = 
     			new AuthenticationFilter(usersService, environment, authenticationManager);
     	authenticationFilter.setFilterProcessesUrl(environment.getProperty("login.url.path"));
-    	
-        http.cors(cors -> cors.disable())
-                .csrf((csrf) -> csrf.disable());
-  
-        http.authorizeHttpRequests((authz) -> authz
+
+        // Explicitly disable CORS in the User Service - let API Gateway handle CORS
+        http.cors(AbstractHttpConfigurer::disable);
+        http.csrf(AbstractHttpConfigurer::disable);        http.authorizeHttpRequests((authz) -> authz
         .requestMatchers("/users/**").permitAll()
 		.requestMatchers("/h2-console/**").permitAll())
         .addFilter(new AuthorizationFilter(authenticationManager, environment))

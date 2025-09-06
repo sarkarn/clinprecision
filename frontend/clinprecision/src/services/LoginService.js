@@ -2,8 +2,14 @@
 import axios from "axios";
 import { API_BASE_URL } from "../config.js";
 
-// Configure axios defaults
-axios.defaults.withCredentials = true;
+// Create axios instance with default configuration
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true, // Important for CORS with credentials
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 
 export const LoginService = {
   /**
@@ -14,8 +20,8 @@ export const LoginService = {
    */
   login: async (email, password) => {
     try {
-      const loginResponse = await axios.post(
-        `${API_BASE_URL}/users-ws/users/login`,
+      const loginResponse = await axiosInstance.post(
+        `/users-ws/users/login`,
         { email, password }
       );
       
@@ -27,8 +33,7 @@ export const LoginService = {
       const token = loginResponse.headers.token;
       const userId = loginResponse.headers.userid;
 
-      console.log(loginResponse.headers);
-      console.log('token'+token);
+      console.log("Response headers:", loginResponse.headers);
       
       if (!token || !userId) {
         throw new Error("Authentication successful but token or userId is missing");
@@ -43,10 +48,9 @@ export const LoginService = {
       const expirationTime = new Date().getTime() + expiresIn;
       localStorage.setItem('tokenExpiration', expirationTime.toString());
       
-      axios.defaults.withCredentials = true;
-      // Get complete user information
-      const userResponse = await axios.get(
-        `${API_BASE_URL}/users-ws/users/${userId}`,
+      // Get complete user information with the token
+      const userResponse = await axiosInstance.get(
+        `/users-ws/users/${userId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -85,7 +89,7 @@ export const LoginService = {
       localStorage.removeItem('userData');
       
       // Optional: API call for server-side logout
-      // await axios.post(`${API_BASE_URL}/users-ws/users/logout`);
+      // await axiosInstance.post(`/users-ws/users/logout`);
       
       return { success: true };
     } catch (error) {
@@ -123,7 +127,5 @@ export const LoginService = {
     return userData ? JSON.parse(userData) : null;
   }
 };
-
-
 
 export default LoginService;

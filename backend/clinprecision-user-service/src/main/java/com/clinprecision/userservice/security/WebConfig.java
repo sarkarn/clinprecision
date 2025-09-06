@@ -1,24 +1,26 @@
 package com.clinprecision.userservice.security;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-@Configuration
+// WebConfig class has been disabled to avoid CORS conflicts with API Gateway
+// The API Gateway is now solely responsible for CORS configuration
+//@Configuration
 public class WebConfig {
 
+    /*
     @Bean
     public WebMvcConfigurer webMvcConfigurer() {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("*")
+                        .allowedOrigins("http://localhost:3000")
                         .allowedMethods("*")
                         .allowedHeaders("*")
-                        .exposedHeaders("Authorization", "token","userId");
+                        .exposedHeaders("Authorization", "token","userId")
+                        .allowCredentials(true);
             }
         };
     }
+    */
 }

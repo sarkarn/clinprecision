@@ -49,10 +49,11 @@ public class GatewayRoutesConfig {
                 .route("users-ws-login", r -> r
                         .path("/users-ws/users/login")
                         .and()
-                        .method("POST","OPTIONS")
+                        .method("POST")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
                                 .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                                // Expose headers but don't set CORS headers
                                 .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                         )
                         .uri("lb://users-ws")
@@ -67,6 +68,7 @@ public class GatewayRoutesConfig {
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
                                 .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                                // Expose headers but don't set CORS headers
                                 .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                                 .filter(authFilter)
                         ).uri("lb://users-ws")
