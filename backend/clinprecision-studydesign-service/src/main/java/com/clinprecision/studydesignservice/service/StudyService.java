@@ -1,6 +1,7 @@
 package com.clinprecision.studydesignservice.service;
 
 import com.clinprecision.studydesignservice.entity.StudyEntity;
+import com.clinprecision.studydesignservice.exception.EntityLockedException;
 import com.clinprecision.studydesignservice.model.Study;
 import com.clinprecision.studydesignservice.repository.StudyRepository;
 import org.modelmapper.ModelMapper;
@@ -14,10 +15,12 @@ import java.util.stream.Collectors;
 public class StudyService {
     private final StudyRepository studyRepository;
     private final ModelMapper modelMapper;
+    private final LockingService lockingService;
 
-    public StudyService(StudyRepository studyRepository) {
+    public StudyService(StudyRepository studyRepository, LockingService lockingService) {
         this.studyRepository = studyRepository;
         this.modelMapper = new ModelMapper();
+        this.lockingService = lockingService;
     }
 
     public List<Study> getAllStudies() {
@@ -39,6 +42,9 @@ public class StudyService {
     }
 
     public Study updateStudy(String id, Study study) {
+        // Check if study is locked
+        lockingService.ensureStudyNotLocked(id);
+        
         study.setId(id);
         StudyEntity entity = modelMapper.map(study, StudyEntity.class);
         StudyEntity saved = studyRepository.save(entity);
@@ -46,6 +52,9 @@ public class StudyService {
     }
 
     public void deleteStudy(String id) {
+        // Check if study is locked
+        lockingService.ensureStudyNotLocked(id);
+        
         studyRepository.deleteById(id);
     }
 }

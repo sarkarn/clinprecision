@@ -22,6 +22,10 @@ public class FormFieldEntity implements Serializable {
     private String width;
     private int widthPercent;
     private String height;
+    
+    /**
+     * Each FormFieldEntity has exactly ONE FormFieldMetadataEntity (ONE-TO-ONE relationship).
+     */
     private FormFieldMetadataEntity metadata;
 
     /**

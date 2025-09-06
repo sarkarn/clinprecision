@@ -36,6 +36,10 @@ public class FormField {
 
     private String height;
 
+    /**
+     * Each FormField has exactly ONE FormFieldMetadata object (ONE-TO-ONE relationship).
+     * The metadata contains all the additional properties specific to this field.
+     */
     @Valid
     @NotNull(message = "Field metadata is required")
     private FormFieldMetadata metadata;

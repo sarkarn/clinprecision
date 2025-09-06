@@ -34,6 +34,15 @@ public class FormDefinitionEntity {
     @Column(name = "version", nullable = false)
     private String version = "1.0";
 
+    @Column(name = "is_latest_version")
+    private boolean isLatestVersion = true;
+    
+    @Column(name = "parent_version_id")
+    private String parentVersionId;
+    
+    @Column(name = "version_notes")
+    private String versionNotes;
+
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private FormStatus status = FormStatus.DRAFT;
@@ -53,6 +62,9 @@ public class FormDefinitionEntity {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
+    
+    @Column(name = "is_locked")
+    private boolean isLocked = false;
 
     public enum FormStatus {
         DRAFT, APPROVED, RETIRED

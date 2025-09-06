@@ -19,6 +19,13 @@ public class StudyEntity {
     private String description;
     private String sponsor;
     private String protocolNumber;
+    
+    // Version-related fields
+    private String version = "1.0";
+    private boolean isLatestVersion = true;
+    private String parentVersionId;
+    private String versionNotes;
+    
     private String phase;
 
     @Enumerated(EnumType.STRING)
@@ -34,6 +41,9 @@ public class StudyEntity {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    // Versioning lock status - prevents further changes when locked
+    private boolean isLocked = false;
 
     public enum Status {
         draft, active, completed, terminated

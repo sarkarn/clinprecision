@@ -66,8 +66,9 @@ export const createField = ({
   required,
   description,
   tablePosition,
+  // Each field has exactly ONE metadata object (ONE-TO-ONE relationship)
   metadata: {
-    variableName: "",
+    variableName: label ? label.toUpperCase().replace(/\s+/g, '_') : "",
     dataType: type === "number" ? "numeric" : type,
     required: required,
     validationRules: [],
