@@ -1,7 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { TableComponent } from './TableFieldComponent';
 
 export default function FormCanvas({
   fields,
+  fieldGroups,
   onDropField,
   onDragOverField,
   onLabelChange,
@@ -11,7 +13,13 @@ export default function FormCanvas({
   setDraggingIndex,
   toggleFieldWidth,
   updateFieldSize,
-  onSelectField
+  onSelectField,
+  onTableCellClick,
+  onTableAddRow,
+  onTableAddColumn,
+  onTableRemoveRow,
+  onTableRemoveColumn,
+  onTableEditHeader
 }) {
   const dragOverIndex = useRef(null);
   const [resizing, setResizing] = useState(null);
@@ -162,6 +170,72 @@ export default function FormCanvas({
       field.metadata.sdtmMapping ||
       field.metadata.required
     );
+
+    // Render table field
+    if (field.type === 'table') {
+      // Find the table group
+      const tableGroup = fieldGroups?.find(group =>
+        group.type === 'table' && group.id === field.groupId
+      );
+
+      if (tableGroup) {
+        return (
+          <>
+            <div className="flex justify-between items-start gap-2 mb-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-gray-500 lowercase">table:</span>
+                <input
+                  type="text"
+                  value={field.label}
+                  onChange={(e) => onLabelChange(field.index, e.target.value)}
+                  className="border-b border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-0.5"
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => onRemoveField(field.index)}
+                  className="text-red-500 hover:text-red-700"
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="pl-1">
+              <TableComponent
+                tableGroup={tableGroup}
+                fields={fields.filter(f => f.groupId === tableGroup.id)}
+                onEditHeader={onTableEditHeader}
+                onSelectCell={(groupId, rowIndex, colIndex) => onTableCellClick && onTableCellClick(field.index, rowIndex, colIndex)}
+                selectedCell={null}
+                onAddRow={onTableAddRow}
+                onAddColumn={onTableAddColumn}
+                onRemoveRow={onTableRemoveRow}
+                onRemoveColumn={onTableRemoveColumn}
+                readOnly={false}
+              />
+            </div>
+
+            {/* Metadata badges */}
+            {hasMetadata && (
+              <div className="absolute top-0 right-0 flex -mt-2 -mr-2 z-10">
+                {field.metadata.required && (
+                  <span className="bg-red-100 text-red-800 text-xs px-1.5 py-0.5 rounded-full mr-1">
+                    Required
+                  </span>
+                )}
+                {field.metadata.variableName && (
+                  <span className="bg-blue-100 text-blue-800 text-xs px-1.5 py-0.5 rounded-full">
+                    {field.metadata.variableName}
+                  </span>
+                )}
+              </div>
+            )}
+          </>
+        );
+      }
+    }
 
     return (
       <>

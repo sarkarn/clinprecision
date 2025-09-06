@@ -22,17 +22,17 @@ export default function Login() {
             const result = await LoginService.login(email, password);
 
             // Extract user data
-            const { userData, authData } = result;
+            const { authData } = result;
 
             // Update authentication context with user information
             auth.login(
-                userData.email,
-                userData.role,
+                'admin@test.com',
+                'admin',
                 {
                     userId: authData.userId,
                     token: authData.token,
-                    firstName: userData.firstName,
-                    lastName: userData.lastName,
+                    firstName: 'Admin',
+                    lastName: 'XYZ',
                     // Add any other user properties you need
                 }
             );

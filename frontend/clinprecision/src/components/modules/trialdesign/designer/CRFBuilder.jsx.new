@@ -64,7 +64,7 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   // Add state for preview mode
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-
+  
   // Table-specific states
   const [showTableDialog, setShowTableDialog] = useState(false);
   const [dropTarget, setDropTarget] = useState(null);
@@ -137,7 +137,7 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
   // Handle field drop onto a table cell
   const handleTableCellDrop = (groupId, rowIndex, colIndex) => {
     if (!draggedField || draggedField.type === 'table') return;
-
+    
     // Create a field for the table cell
     const newField = createField({
       label: `${draggedField.label}`,
@@ -148,10 +148,10 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
         column: colIndex
       }
     });
-
+    
     setFields([...fields, newField]);
     setDraggedField(null);
-
+    
     // Select the newly added field to edit its metadata
     setSelectedFieldIndex(fields.length);
     setShowMetadataPanel(true);
@@ -159,23 +159,8 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
 
   // Handle creating a new table
   const handleTableCreate = (tableGroup) => {
-    // First, add the table group to field groups
     setFieldGroups([...fieldGroups, tableGroup]);
-
-    // Then create a field that references this table group
-    const newField = createField({
-      label: tableGroup.name,
-      type: 'table',
-      groupId: tableGroup.id // Link the field to the table group
-    });
-
-    setFields([...fields, newField]);
-    setDraggedField(null);
     setShowTableDialog(false);
-
-    // Select the newly added field for editing
-    setSelectedFieldIndex(fields.length);
-    setShowMetadataPanel(true);
   };
 
   // Handle editing a table header
@@ -211,14 +196,14 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
       }
       return group;
     });
-
+    
     // Remove any fields in the deleted row
     const updatedFields = fields.filter(field => {
-      return !(field.groupId === groupId &&
-        field.tablePosition &&
-        field.tablePosition.row === rowIndex);
+      return !(field.groupId === groupId && 
+               field.tablePosition && 
+               field.tablePosition.row === rowIndex);
     });
-
+    
     setFieldGroups(updatedGroups);
     setFields(updatedFields);
   };
@@ -239,14 +224,14 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
       }
       return group;
     });
-
+    
     // Remove any fields in the deleted column
     const updatedFields = fields.filter(field => {
-      return !(field.groupId === groupId &&
-        field.tablePosition &&
-        field.tablePosition.column === updatedGroups.find(g => g.id === groupId)?.tableConfig.columns);
+      return !(field.groupId === groupId && 
+               field.tablePosition && 
+               field.tablePosition.column === updatedGroups.find(g => g.id === groupId)?.tableConfig.columns);
     });
-
+    
     setFieldGroups(updatedGroups);
     setFields(updatedFields);
   };
@@ -254,15 +239,15 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
   // Handle selecting a table cell
   const handleSelectTableCell = (groupId, rowIndex, columnIndex) => {
     setSelectedTableCell({ groupId, row: rowIndex, column: columnIndex });
-
+    
     // Find if there's a field in this cell
-    const fieldIndex = fields.findIndex(field =>
-      field.groupId === groupId &&
-      field.tablePosition &&
-      field.tablePosition.row === rowIndex &&
+    const fieldIndex = fields.findIndex(field => 
+      field.groupId === groupId && 
+      field.tablePosition && 
+      field.tablePosition.row === rowIndex && 
       field.tablePosition.column === columnIndex
     );
-
+    
     if (fieldIndex !== -1) {
       setSelectedFieldIndex(fieldIndex);
       setShowMetadataPanel(true);
@@ -357,14 +342,14 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
   // Handle editing a table header or cell
   const handleTableEdit = (tableGroupId, row, col, value, isHeader = false) => {
     if (!tableGroupId) return;
-
+    
     setFieldGroups(prevGroups => {
       return prevGroups.map(group => {
         if (group.id !== tableGroupId) return group;
-
+        
         // Create a copy of the table group
         const updatedGroup = { ...group };
-
+        
         if (isHeader) {
           // Update column header
           if (row === -1 && col >= 0) {
@@ -381,16 +366,16 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
           if (!updatedGroup.data) {
             updatedGroup.data = Array(updatedGroup.rows).fill().map(() => Array(updatedGroup.columns).fill(''));
           }
-
+          
           // Create a deep copy of the data
           updatedGroup.data = updatedGroup.data.map(r => [...r]);
-
+          
           // Update the cell
           if (updatedGroup.data[row] && updatedGroup.data[row][col] !== undefined) {
             updatedGroup.data[row][col] = value;
           }
         }
-
+        
         return updatedGroup;
       });
     });
@@ -399,43 +384,63 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
   // Handle adding a row to a table
   const handleAddTableRow = (tableGroupId, position = 'end') => {
     if (!tableGroupId) return;
-
+    
     setFieldGroups(prevGroups => {
       return prevGroups.map(group => {
-        if (group.id !== tableGroupId || group.type !== 'table' || !group.tableConfig) return group;
-
+        if (group.id !== tableGroupId) return group;
+        
         // Create a copy of the table group
-        const updatedGroup = {
-          ...group,
-          tableConfig: {
-            ...group.tableConfig,
-            rows: group.tableConfig.rows + 1
+        const updatedGroup = { ...group };
+        
+        // Increase row count
+        updatedGroup.rows = updatedGroup.rows + 1;
+        
+        // Add a new row header
+        updatedGroup.rowHeaders = [...updatedGroup.rowHeaders, `Row ${updatedGroup.rows}`];
+        
+        // Add a new row to data if it exists
+        if (updatedGroup.data) {
+          const newRow = Array(updatedGroup.columns).fill('');
+          
+          if (position === 'start') {
+            updatedGroup.data = [newRow, ...updatedGroup.data];
+          } else {
+            updatedGroup.data = [...updatedGroup.data, newRow];
           }
-        };
-
+        }
+        
         return updatedGroup;
       });
     });
-  };  // Handle adding a column to a table
+  };
+
+  // Handle adding a column to a table
   const handleAddTableColumn = (tableGroupId, position = 'end') => {
     if (!tableGroupId) return;
-
+    
     setFieldGroups(prevGroups => {
       return prevGroups.map(group => {
-        if (group.id !== tableGroupId || group.type !== 'table' || !group.tableConfig) return group;
-
-        // Create a copy of the table group with updated tableConfig
-        const updatedColumns = group.tableConfig.columns + 1;
-        const updatedHeaders = [...group.tableConfig.headers, `Column ${updatedColumns}`];
-
-        return {
-          ...group,
-          tableConfig: {
-            ...group.tableConfig,
-            columns: updatedColumns,
-            headers: updatedHeaders
+        if (group.id !== tableGroupId) return group;
+        
+        // Create a copy of the table group
+        const updatedGroup = { ...group };
+        
+        // Increase column count
+        updatedGroup.columns = updatedGroup.columns + 1;
+        
+        // Add a new column header
+        updatedGroup.columnHeaders = [...updatedGroup.columnHeaders, `Column ${updatedGroup.columns}`];
+        
+        // Add a new column to each row in data if it exists
+        if (updatedGroup.data) {
+          if (position === 'start') {
+            updatedGroup.data = updatedGroup.data.map(row => ['', ...row]);
+          } else {
+            updatedGroup.data = updatedGroup.data.map(row => [...row, '']);
           }
-        };
+        }
+        
+        return updatedGroup;
       });
     });
   };
@@ -449,18 +454,18 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
   const handleTableCellClick = (fieldIndex, row, col) => {
     // Find the field and its associated table group
     const field = fields[fieldIndex];
-    if (!field || field.type !== 'table') return;
-
-    const tableGroup = fieldGroups.find(group =>
-      group.type === 'table' && group.id === field.groupId
+    if (!field || field.type !== 'table' || !field.tableGroupId) return;
+    
+    const tableGroup = fieldGroups.find(group => 
+      group.type === 'table' && group.id === field.tableGroupId
     );
-
+    
     if (!tableGroup) return;
-
+    
     // For now, just select the field
     setSelectedFieldIndex(fieldIndex);
     setShowMetadataPanel(true);
-
+    
     // In the future, you could implement cell-specific actions here
     console.log(`Clicked on cell [${row}, ${col}] in table ${field.label}`);
   };
@@ -521,7 +526,7 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
       templateId: selectedTemplate?.id
     });
   };
-
+  
   // Render table configuration dialog
   const renderTableConfigDialog = () => {
     return (
@@ -929,23 +934,22 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
                   </div>
                 </label>
 
-                {field.type === 'table' && (
+                {field.type === 'table' && field.tableGroupId && (
                   <div className="border border-gray-300 rounded-md p-2">
                     {(() => {
                       const tableGroup = fieldGroups?.find(
-                        group => group.type === 'table' && group.id === field.groupId
+                        group => group.type === 'table' && group.id === field.tableGroupId
                       );
-
+                      
                       if (tableGroup) {
                         return (
-                          <TableComponent
-                            tableGroup={tableGroup}
-                            fields={fields.filter(f => f.groupId === tableGroup.id)}
+                          <TableComponent 
+                            table={tableGroup}
                             readOnly={true}
                           />
                         );
                       }
-
+                      
                       return <div className="text-gray-500">Table preview not available</div>;
                     })()}
                   </div>
@@ -1179,11 +1183,6 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
                   updateFieldSize={updateFieldSize}
                   onSelectField={handleSelectField}
                   onTableCellClick={handleTableCellClick}
-                  onTableAddRow={handleAddTableRow}
-                  onTableAddColumn={handleAddTableColumn}
-                  onTableRemoveRow={handleRemoveTableRow}
-                  onTableRemoveColumn={handleRemoveTableColumn}
-                  onTableEditHeader={handleEditTableHeader}
                 />
               </div>
             </div>
@@ -1195,7 +1194,7 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
 
         {/* Template Modal */}
         {renderTemplateModal()}
-
+        
         {/* Table Configuration Dialog */}
         {renderTableConfigDialog()}
 

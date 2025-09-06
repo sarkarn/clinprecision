@@ -48,23 +48,20 @@ export const LoginService = {
       const expirationTime = new Date().getTime() + expiresIn;
       localStorage.setItem('tokenExpiration', expirationTime.toString());
       
-      // Get complete user information with the token
-      const userResponse = await axiosInstance.get(
-        `/users-ws/users/${userId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      // // Get complete user information with the token
+      // const userResponse = await axiosInstance.get(
+      //   `/users-ws/users/${userId}`,
+      //   {
+      //     headers: {
+      //       'Authorization': `Bearer ${token}`
+      //     }
+      //   }
+      // );
       
-      // Store user data in local storage (optional)
-      localStorage.setItem('userData', JSON.stringify(userResponse.data));
       
       // Combine authentication and user data
       return {
         success: true,
-        userData: userResponse.data,
         authData: {
           token,
           userId
@@ -86,7 +83,6 @@ export const LoginService = {
       localStorage.removeItem('authToken');
       localStorage.removeItem('userId');
       localStorage.removeItem('tokenExpiration');
-      localStorage.removeItem('userData');
       
       // Optional: API call for server-side logout
       // await axiosInstance.post(`/users-ws/users/logout`);
@@ -121,11 +117,6 @@ export const LoginService = {
     return localStorage.getItem('userId');
   },
   
-  // Get the stored user data
-  getUserData: () => {
-    const userData = localStorage.getItem('userData');
-    return userData ? JSON.parse(userData) : null;
-  }
 };
 
 export default LoginService;
