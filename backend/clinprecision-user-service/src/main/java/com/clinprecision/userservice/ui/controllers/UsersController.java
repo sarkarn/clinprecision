@@ -47,23 +47,29 @@ public class UsersController {
 			)
 	public ResponseEntity<CreateUserResponseModel> createUser(@RequestBody CreateUserRequestModel userDetails)
 	{
-		// Manually map from CreateUserRequestModel to UserDto
-		UserDto userDto = new UserDto();
-		userDto.setFirstName(userDetails.getFirstName());
-		userDto.setLastName(userDetails.getLastName());
-		userDto.setEmail(userDetails.getEmail());
-		userDto.setPassword(userDetails.getPassword());
-		
-		UserDto createdUser = usersService.createUser(userDto);
-		
-		// Manually map from UserDto to CreateUserResponseModel
-		CreateUserResponseModel returnValue = new CreateUserResponseModel();
-		returnValue.setFirstName(createdUser.getFirstName());
-		returnValue.setLastName(createdUser.getLastName());
-		returnValue.setEmail(createdUser.getEmail());
-		returnValue.setUserId(createdUser.getUserId());
-		
-		return ResponseEntity.status(HttpStatus.CREATED).body(returnValue);
+        // Manually map from CreateUserRequestModel to UserDto
+        UserDto userDto = new UserDto();
+        userDto.setFirstName(userDetails.getFirstName());
+        userDto.setLastName(userDetails.getLastName());
+        userDto.setEmail(userDetails.getEmail());
+        userDto.setPassword(userDetails.getPassword());
+        // Set organizationId if provided
+        userDto.setOrganizationId(userDetails.getOrganizationId());
+        // Set roleIds if provided
+        if (userDetails.getRoleIds() != null) {
+            userDto.setRoleIds(new java.util.HashSet<>(userDetails.getRoleIds()));
+        }
+
+        UserDto createdUser = usersService.createUser(userDto);
+
+        // Manually map from UserDto to CreateUserResponseModel
+        CreateUserResponseModel returnValue = new CreateUserResponseModel();
+        returnValue.setFirstName(createdUser.getFirstName());
+        returnValue.setLastName(createdUser.getLastName());
+        returnValue.setEmail(createdUser.getEmail());
+        returnValue.setUserId(createdUser.getUserId());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(returnValue);
 	}
 	
     @GetMapping(value="/{userId}", produces = { MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })

@@ -20,6 +20,7 @@ public class UserDto {
     private String email;
     private String title;
     private OrganizationDto organization;
+    private Long organizationId; // For assignment
     private String profession;
     private String phone;
     private String mobilePhone;
@@ -36,20 +37,29 @@ public class UserDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Set<UserTypeDto> userTypes = new HashSet<>();
+    private Set<Long> roleIds = new HashSet<>(); // For role assignment
     private String password;
     private String encryptedPassword;
-    
+
     public UserDto() {
         this.userTypes = new HashSet<>();
+        this.roleIds = new HashSet<>();
     }
-    
+
     // Other constructors, if needed
-    
+
     // Clear and add pattern for userTypes to avoid issues with modifying collections
     public void setUserTypes(Set<UserTypeDto> userTypes) {
         this.userTypes = new HashSet<>();
         if (userTypes != null) {
             this.userTypes.addAll(userTypes);
+        }
+    }
+
+    public void setRoleIds(Set<Long> roleIds) {
+        this.roleIds = new HashSet<>();
+        if (roleIds != null) {
+            this.roleIds.addAll(roleIds);
         }
     }
 }

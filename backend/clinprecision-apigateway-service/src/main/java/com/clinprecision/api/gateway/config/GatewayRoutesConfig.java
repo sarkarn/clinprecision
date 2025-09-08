@@ -161,12 +161,26 @@ public class GatewayRoutesConfig {
                 // Organization types endpoint
                 .route("users-ws-organization-types", r -> r
                         .path("/users-ws/organization-types/**")
+                        .and()
+                        .method("GET","POST","PUT","DELETE")
+                        .and()
+                        .header("Authorization", "Bearer (.*)")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
                                 .rewritePath("/users-ws/organization-types/(?<segment>.*)", "/organizations/organization-types/${segment}")
                                 .rewritePath("/users-ws/organization-types", "/organizations/organization-types")
                         )
                         .uri("lb://users-ws")
+                )
+                .route("users-ws-roles-get", r -> r
+                    .path("/users-ws/roles/**")
+                    .and()
+                    .header("Authorization", "Bearer (.*)")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                    )
+                    .uri("lb://users-ws")
                 )
                 .build();
     }

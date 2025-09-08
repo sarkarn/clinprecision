@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.HashSet;
 
+import com.clinprecision.userservice.repository.OrganizationRepository;
+import java.util.Set;
+
 import com.clinprecision.userservice.data.*;
 import com.clinprecision.userservice.repository.UserTypeRepository;
 import com.clinprecision.userservice.ui.model.UserTypeDto;
@@ -29,28 +32,34 @@ import com.clinprecision.userservice.ui.model.UserDto;
 @Service
 public class UsersServiceImpl implements UsersService {
 	
-	UsersRepository usersRepository;
-	BCryptPasswordEncoder bCryptPasswordEncoder;
-	//RestTemplate restTemplate;
-	Environment environment;
-	AlbumsServiceClient albumsServiceClient;
-	UserTypeRepository userTypeRepository;
+
+    UsersRepository usersRepository;
+    BCryptPasswordEncoder bCryptPasswordEncoder;
+    //RestTemplate restTemplate;
+    Environment environment;
+    AlbumsServiceClient albumsServiceClient;
+    UserTypeRepository userTypeRepository;
+    OrganizationRepository organizationRepository;
+    com.clinprecision.userservice.data.RoleRepository roleRepository;
 	
 	Logger logger = LoggerFactory.getLogger(this.getClass());
 	
 	@Autowired
-	public UsersServiceImpl(UsersRepository usersRepository, 
-			BCryptPasswordEncoder bCryptPasswordEncoder,
-			AlbumsServiceClient albumsServiceClient,
-			Environment environment,
-			UserTypeRepository userTypeRepository)
-	{
-		this.usersRepository = usersRepository;
-		this.bCryptPasswordEncoder = bCryptPasswordEncoder;
-		this.albumsServiceClient = albumsServiceClient;
-		this.environment = environment;
-		this.userTypeRepository = userTypeRepository;
-	}
+    public UsersServiceImpl(UsersRepository usersRepository, 
+            BCryptPasswordEncoder bCryptPasswordEncoder,
+            AlbumsServiceClient albumsServiceClient,
+            Environment environment,
+            UserTypeRepository userTypeRepository,
+            OrganizationRepository organizationRepository,
+            com.clinprecision.userservice.data.RoleRepository roleRepository) {
+        this.usersRepository = usersRepository;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+        this.albumsServiceClient = albumsServiceClient;
+        this.environment = environment;
+        this.userTypeRepository = userTypeRepository;
+        this.organizationRepository = organizationRepository;
+        this.roleRepository = roleRepository;
+    }
  
 	@Override
 	public UserDto createUser(UserDto userDetails) {
@@ -65,19 +74,43 @@ public class UsersServiceImpl implements UsersService {
 		userEntity.setUserId(userDetails.getUserId());
 		userEntity.setEncryptedPassword(userDetails.getEncryptedPassword());
 		
-		// Save the entity
-		userEntity = usersRepository.save(userEntity);
-		
-		// Map back to DTO
-		UserDto returnValue = new UserDto();
-		returnValue.setId(userEntity.getId());
-		returnValue.setUserId(userEntity.getUserId());
-		returnValue.setFirstName(userEntity.getFirstName());
-		returnValue.setLastName(userEntity.getLastName());
-		returnValue.setEmail(userEntity.getEmail());
-		returnValue.setEncryptedPassword(userEntity.getEncryptedPassword());
- 
-		return returnValue;
+        // Set organization if provided
+        if (userDetails.getOrganizationId() != null) {
+            organizationRepository.findById(userDetails.getOrganizationId()).ifPresent(userEntity::setOrganization);
+        }
+
+        // Set roles if provided
+        if (userDetails.getRoleIds() != null && !userDetails.getRoleIds().isEmpty()) {
+            Collection<RoleEntity> roles = new ArrayList<>();
+            for (Long roleId : userDetails.getRoleIds()) {
+                roleRepository.findById(roleId).ifPresent(roles::add);
+            }
+            userEntity.setRoles(roles);
+        }
+
+        // Save the entity
+        userEntity = usersRepository.save(userEntity);
+
+        // Map back to DTO (use mapper if available)
+        UserDto returnValue = new UserDto();
+        returnValue.setId(userEntity.getId());
+        returnValue.setUserId(userEntity.getUserId());
+        returnValue.setFirstName(userEntity.getFirstName());
+        returnValue.setLastName(userEntity.getLastName());
+        returnValue.setEmail(userEntity.getEmail());
+        returnValue.setEncryptedPassword(userEntity.getEncryptedPassword());
+        // Set organizationId and roleIds in return DTO
+        if (userEntity.getOrganization() != null) {
+            returnValue.setOrganizationId(userEntity.getOrganization().getId());
+        }
+        if (userEntity.getRoles() != null) {
+            Set<Long> roleIds = new HashSet<>();
+            for (RoleEntity role : userEntity.getRoles()) {
+                roleIds.add(role.getId());
+            }
+            returnValue.setRoleIds(roleIds);
+        }
+        return returnValue;
 	}
 
 	@Override

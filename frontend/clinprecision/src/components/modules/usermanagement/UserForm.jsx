@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserService } from '../../../services/UserService';
 import { UserTypeService } from '../../../services/UserTypeService';
+import { OrganizationService } from '../../../services/OrganizationService';
+import { RoleService } from '../../../services/RoleService';
 import { useAuth } from '../../login/AuthContext';
 
 export default function UserForm() {
@@ -22,10 +24,14 @@ export default function UserForm() {
         lastName: '',
         email: '',
         password: '',
-        selectedUserTypes: []
+        selectedUserTypes: [],
+        organizationId: '',
+        selectedRoles: [],
     });
 
     const [availableUserTypes, setAvailableUserTypes] = useState([]);
+    const [availableOrganizations, setAvailableOrganizations] = useState([]);
+    const [availableRoles, setAvailableRoles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
@@ -34,21 +40,29 @@ export default function UserForm() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                // Fetch all user types
-                const userTypesData = await UserTypeService.getAllUserTypes();
-                setAvailableUserTypes(userTypesData);
+                // Fetch all user types, organizations, and roles in parallel
+                const [userTypesData, orgsData, rolesData] = await Promise.all([
+                    UserTypeService.getAllUserTypes(),
+                    OrganizationService.getAllOrganizations(),
+                    RoleService.getAllRoles(),
+                ]);
+                setAvailableUserTypes(Array.isArray(userTypesData) ? userTypesData : []);
+                setAvailableOrganizations(Array.isArray(orgsData) ? orgsData : []);
+                setAvailableRoles(Array.isArray(rolesData) ? rolesData : []);
 
                 // If in edit mode, fetch user data
                 if (isEditMode) {
                     const userData = await UserService.getUserById(userId);
                     const userTypeIds = await UserService.getUserTypes(userId);
-
+                    // TODO: Fetch user's organization and roles if available
                     setFormData({
                         firstName: userData.firstName || '',
                         lastName: userData.lastName || '',
                         email: userData.email || '',
                         password: '', // Don't populate password in edit mode
-                        selectedUserTypes: userTypeIds || []
+                        selectedUserTypes: userTypeIds || [],
+                        organizationId: userData.organizationId || '',
+                        selectedRoles: userData.roleIds || [],
                     });
                 }
 
@@ -88,6 +102,29 @@ export default function UserForm() {
         }
     };
 
+    const handleOrganizationChange = (e) => {
+        setFormData(prev => ({
+            ...prev,
+            organizationId: e.target.value
+        }));
+    };
+
+    const handleRoleChange = (e) => {
+        const roleId = parseInt(e.target.value);
+        const isChecked = e.target.checked;
+        if (isChecked) {
+            setFormData(prev => ({
+                ...prev,
+                selectedRoles: [...prev.selectedRoles, roleId]
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                selectedRoles: prev.selectedRoles.filter(id => id !== roleId)
+            }));
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -97,7 +134,9 @@ export default function UserForm() {
             const userData = {
                 firstName: formData.firstName,
                 lastName: formData.lastName,
-                email: formData.email
+                email: formData.email,
+                organizationId: formData.organizationId || null,
+                roleIds: formData.selectedRoles,
             };
 
             // Only include password for new users or if changed
@@ -114,18 +153,13 @@ export default function UserForm() {
                 userIdValue = result.userId;
             }
 
-            // Update user types
-            // First, remove all current types and then add the selected ones
+            // Update user types (existing logic)
             const currentTypes = await UserService.getUserTypes(userIdValue);
-
-            // Remove types that were unselected
             for (const typeId of currentTypes) {
                 if (!formData.selectedUserTypes.includes(typeId)) {
                     await UserService.removeUserType(userIdValue, typeId);
                 }
             }
-
-            // Add new types
             for (const typeId of formData.selectedUserTypes) {
                 if (!currentTypes.includes(typeId)) {
                     await UserService.assignUserType(userIdValue, typeId);
@@ -133,8 +167,6 @@ export default function UserForm() {
             }
 
             setSuccess(true);
-
-            // Navigate back to the list after a short delay
             setTimeout(() => {
                 navigate("/user-management/users");
             }, 1500);
@@ -260,6 +292,46 @@ export default function UserForm() {
                                     />
                                     <label htmlFor={`type-${type.id}`} className="text-gray-700">
                                         {type.name}
+                                    </label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Organization
+                        </label>
+                        <select
+                            name="organizationId"
+                            value={formData.organizationId}
+                            onChange={handleOrganizationChange}
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="">Select organization</option>
+                            {availableOrganizations.map(org => (
+                                <option key={org.id} value={org.id}>{org.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Roles
+                        </label>
+                        <div className="space-y-2 max-h-60 overflow-y-auto p-2 border border-gray-300 rounded-md">
+                            {availableRoles.map(role => (
+                                <div key={role.id} className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        id={`role-${role.id}`}
+                                        value={role.id}
+                                        checked={formData.selectedRoles.includes(role.id)}
+                                        onChange={handleRoleChange}
+                                        className="mr-2"
+                                    />
+                                    <label htmlFor={`role-${role.id}`} className="text-gray-700">
+                                        {role.name}
                                     </label>
                                 </div>
                             ))}
