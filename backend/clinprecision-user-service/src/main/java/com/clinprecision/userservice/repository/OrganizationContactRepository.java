@@ -38,20 +38,4 @@ public interface OrganizationContactRepository extends JpaRepository<Organizatio
      */
     Optional<OrganizationContactEntity> findByEmail(String email);
     
-    /**
-     * Find all contacts of a specific type.
-     *
-     * @param contactType the type of contact
-     * @return list of contacts of the specified type
-     */
-    List<OrganizationContactEntity> findByContactType(OrganizationContactEntity.ContactType contactType);
-    
-    /**
-     * Find all contacts by first name and last name.
-     *
-     * @param firstName the first name of the contact
-     * @param lastName the last name of the contact
-     * @return list of contacts with the specified name
-     */
-    List<OrganizationContactEntity> findByFirstNameAndLastName(String firstName, String lastName);
 }

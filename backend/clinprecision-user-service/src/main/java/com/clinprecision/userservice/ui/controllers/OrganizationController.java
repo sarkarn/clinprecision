@@ -3,8 +3,10 @@ package com.clinprecision.userservice.ui.controllers;
 import com.clinprecision.userservice.data.OrganizationContactEntity;
 import com.clinprecision.userservice.data.OrganizationEntity;
 import com.clinprecision.userservice.data.OrganizationTypeEntity;
-import com.clinprecision.userservice.dto.OrganizationDTO;
-import com.clinprecision.userservice.dto.OrganizationTypeDTO;
+import com.clinprecision.userservice.ui.model.OrganizationDto;
+import com.clinprecision.userservice.ui.model.OrganizationTypeDto;
+import com.clinprecision.userservice.mapper.OrganizationMapper;
+import com.clinprecision.userservice.mapper.OrganizationTypeMapper;
 import com.clinprecision.userservice.repository.OrganizationTypeRepository;
 import com.clinprecision.userservice.service.OrganizationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,12 +29,18 @@ public class OrganizationController {
 
     private final OrganizationService organizationService;
     private final OrganizationTypeRepository organizationTypeRepository;
+    private final OrganizationMapper organizationMapper;
+    private final OrganizationTypeMapper organizationTypeMapper;
 
     @Autowired
     public OrganizationController(OrganizationService organizationService,
-                                 OrganizationTypeRepository organizationTypeRepository) {
+                                 OrganizationTypeRepository organizationTypeRepository,
+                                 OrganizationMapper organizationMapper,
+                                 OrganizationTypeMapper organizationTypeMapper) {
         this.organizationService = organizationService;
         this.organizationTypeRepository = organizationTypeRepository;
+        this.organizationMapper = organizationMapper;
+        this.organizationTypeMapper = organizationTypeMapper;
     }
 
     /**
@@ -41,12 +49,12 @@ public class OrganizationController {
      * @return the ResponseEntity with status 200 (OK) and the list of organizations in body
      */
     @GetMapping
-    public ResponseEntity<List<OrganizationDTO>> getAllOrganizations() {
+    public ResponseEntity<List<OrganizationDto>> getAllOrganizations() {
         List<OrganizationEntity> organizations = organizationService.getAllOrganizations();
-        List<OrganizationDTO> organizationDTOs = organizations.stream()
-                .map(OrganizationDTO::new)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(organizationDTOs);
+    List<OrganizationDto> organizationDtos = organizations.stream()
+        .map(organizationMapper::toDto)
+        .collect(Collectors.toList());
+    return ResponseEntity.ok(organizationDtos);
     }
 
     /**
@@ -56,10 +64,10 @@ public class OrganizationController {
      * @return the ResponseEntity with status 200 (OK) and the organization in body, or with status 404 (Not Found)
      */
     @GetMapping("/{id}")
-    public ResponseEntity<OrganizationDTO> getOrganization(@PathVariable Long id) {
-        return organizationService.getOrganizationById(id)
-                .map(organization -> ResponseEntity.ok(new OrganizationDTO(organization)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<OrganizationDto> getOrganization(@PathVariable Long id) {
+    return organizationService.getOrganizationById(id)
+        .map(organization -> ResponseEntity.ok(organizationMapper.toDto(organization)))
+        .orElse(ResponseEntity.notFound().build());
     }
 
     /**
@@ -69,42 +77,19 @@ public class OrganizationController {
      * @return the ResponseEntity with status 201 (Created) and the new organization in body
      */
     @PostMapping
-    public ResponseEntity<OrganizationDTO> createOrganization(@RequestBody OrganizationDTO organizationDTO) {
+    public ResponseEntity<OrganizationDto> createOrganization(@RequestBody OrganizationDto organizationDto) {
         // Convert DTO to entity
-        OrganizationEntity organization = new OrganizationEntity();
-        organization.setName(organizationDTO.getName());
-        organization.setExternalId(organizationDTO.getExternalId());
-        organization.setAddressLine1(organizationDTO.getAddressLine1());
-        organization.setAddressLine2(organizationDTO.getAddressLine2());
-        organization.setCity(organizationDTO.getCity());
-        organization.setState(organizationDTO.getState());
-        organization.setPostalCode(organizationDTO.getPostalCode());
-        organization.setCountry(organizationDTO.getCountry());
-        organization.setPhone(organizationDTO.getPhone());
-        organization.setEmail(organizationDTO.getEmail());
-        organization.setWebsite(organizationDTO.getWebsite());
-        
-        if (organizationDTO.getStatus() != null) {
-            try {
-                organization.setStatus(OrganizationEntity.OrganizationStatus.valueOf(organizationDTO.getStatus().toLowerCase()));
-            } catch (IllegalArgumentException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid organization status");
-            }
-        }
-        
-        // Set organization type
-        if (organizationDTO.getOrganizationTypeId() != null) {
-            OrganizationTypeEntity organizationType = organizationTypeRepository.findById(organizationDTO.getOrganizationTypeId())
+    OrganizationEntity organization = organizationMapper.toEntity(organizationDto);
+        if (organizationDto.getOrganizationType() != null && organizationDto.getOrganizationType().getId() != null) {
+            OrganizationTypeEntity organizationType = organizationTypeRepository.findById(organizationDto.getOrganizationType().getId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization type not found"));
             organization.setOrganizationType(organizationType);
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization type is required");
         }
-        
-        // Create the organization
         OrganizationEntity createdOrganization = organizationService.createOrganization(organization);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new OrganizationDTO(createdOrganization));
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(organizationMapper.toDto(createdOrganization));
     }
 
     /**
@@ -115,49 +100,22 @@ public class OrganizationController {
      * @return the ResponseEntity with status 200 (OK) and the updated organization in body
      */
     @PutMapping("/{id}")
-    public ResponseEntity<OrganizationDTO> updateOrganization(
+    public ResponseEntity<OrganizationDto> updateOrganization(
             @PathVariable Long id,
-            @RequestBody OrganizationDTO organizationDTO) {
-        
-        // Check if organization exists
+            @RequestBody OrganizationDto organizationDto) {
         if (!organizationService.getOrganizationById(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
-        
-        // Convert DTO to entity
-        OrganizationEntity organization = new OrganizationEntity();
-        organization.setName(organizationDTO.getName());
-        organization.setExternalId(organizationDTO.getExternalId());
-        organization.setAddressLine1(organizationDTO.getAddressLine1());
-        organization.setAddressLine2(organizationDTO.getAddressLine2());
-        organization.setCity(organizationDTO.getCity());
-        organization.setState(organizationDTO.getState());
-        organization.setPostalCode(organizationDTO.getPostalCode());
-        organization.setCountry(organizationDTO.getCountry());
-        organization.setPhone(organizationDTO.getPhone());
-        organization.setEmail(organizationDTO.getEmail());
-        organization.setWebsite(organizationDTO.getWebsite());
-        
-        if (organizationDTO.getStatus() != null) {
-            try {
-                organization.setStatus(OrganizationEntity.OrganizationStatus.valueOf(organizationDTO.getStatus().toLowerCase()));
-            } catch (IllegalArgumentException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid organization status");
-            }
-        }
-        
-        // Set organization type
-        if (organizationDTO.getOrganizationTypeId() != null) {
-            OrganizationTypeEntity organizationType = organizationTypeRepository.findById(organizationDTO.getOrganizationTypeId())
+    OrganizationEntity organization = organizationMapper.toEntity(organizationDto);
+        if (organizationDto.getOrganizationType() != null && organizationDto.getOrganizationType().getId() != null) {
+            OrganizationTypeEntity organizationType = organizationTypeRepository.findById(organizationDto.getOrganizationType().getId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization type not found"));
             organization.setOrganizationType(organizationType);
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization type is required");
         }
-        
-        // Update the organization
         OrganizationEntity updatedOrganization = organizationService.updateOrganization(id, organization);
-        return ResponseEntity.ok(new OrganizationDTO(updatedOrganization));
+    return ResponseEntity.ok(organizationMapper.toDto(updatedOrganization));
     }
 
     /**
@@ -287,34 +245,30 @@ public class OrganizationController {
      * @return the ResponseEntity with status 200 (OK) and the list of organization types in body
      */
     @GetMapping("/organization-types")
-    public ResponseEntity<List<OrganizationTypeDTO>> getAllOrganizationTypes() {
+    public ResponseEntity<List<OrganizationTypeDto>> getAllOrganizationTypes() {
         List<OrganizationTypeEntity> organizationTypes = organizationTypeRepository.findAll();
-        List<OrganizationTypeDTO> organizationTypeDTOs = organizationTypes.stream()
-                .map(OrganizationTypeDTO::new)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(organizationTypeDTOs);
+    List<OrganizationTypeDto> organizationTypeDtos = organizationTypes.stream()
+        .map(organizationTypeMapper::toDto)
+        .collect(Collectors.toList());
+    return ResponseEntity.ok(organizationTypeDtos);
     }
     
     /**
      * Helper method to convert an OrganizationContactEntity to a Map
      */
     private Map<String, Object> convertContactToMap(OrganizationContactEntity contact) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", contact.getId());
-        map.put("organizationId", contact.getOrganization() != null ? contact.getOrganization().getId() : null);
-        map.put("firstName", contact.getFirstName());
-        map.put("lastName", contact.getLastName());
-        map.put("title", contact.getTitle());
-        map.put("email", contact.getEmail());
-        map.put("phone", contact.getPhone());
-        map.put("mobile", contact.getMobile());
-        map.put("position", contact.getPosition());
-        map.put("department", contact.getDepartment());
-        map.put("contactType", contact.getContactType() != null ? contact.getContactType().name() : null);
-        map.put("isPrimary", contact.getIsPrimary());
-        map.put("createdAt", contact.getCreatedAt());
-        map.put("updatedAt", contact.getUpdatedAt());
-        return map;
+    Map<String, Object> map = new HashMap<>();
+    map.put("id", contact.getId());
+    map.put("organizationId", contact.getOrganization() != null ? contact.getOrganization().getId() : null);
+    map.put("contactName", contact.getContactName());
+    map.put("title", contact.getTitle());
+    map.put("department", contact.getDepartment());
+    map.put("email", contact.getEmail());
+    map.put("phone", contact.getPhone());
+    map.put("isPrimary", contact.getIsPrimary());
+    map.put("createdAt", contact.getCreatedAt());
+    map.put("updatedAt", contact.getUpdatedAt());
+    return map;
     }
     
     /**
@@ -322,53 +276,26 @@ public class OrganizationController {
      */
     private OrganizationContactEntity convertMapToContact(Map<String, Object> map) {
         OrganizationContactEntity contact = new OrganizationContactEntity();
-        
-        if (map.containsKey("firstName")) {
-            contact.setFirstName((String) map.get("firstName"));
+        if (map.containsKey("contactName")) {
+            contact.setContactName((String) map.get("contactName"));
         }
-        
-        if (map.containsKey("lastName")) {
-            contact.setLastName((String) map.get("lastName"));
-        }
-        
         if (map.containsKey("title")) {
             contact.setTitle((String) map.get("title"));
         }
-        
-        if (map.containsKey("email")) {
-            contact.setEmail((String) map.get("email"));
-        }
-        
-        if (map.containsKey("phone")) {
-            contact.setPhone((String) map.get("phone"));
-        }
-        
-        if (map.containsKey("mobile")) {
-            contact.setMobile((String) map.get("mobile"));
-        }
-        
-        if (map.containsKey("position")) {
-            contact.setPosition((String) map.get("position"));
-        }
-        
         if (map.containsKey("department")) {
             contact.setDepartment((String) map.get("department"));
         }
-        
+        if (map.containsKey("email")) {
+            contact.setEmail((String) map.get("email"));
+        }
+        if (map.containsKey("phone")) {
+            contact.setPhone((String) map.get("phone"));
+        }
         if (map.containsKey("isPrimary")) {
             contact.setIsPrimary((Boolean) map.get("isPrimary"));
         } else {
             contact.setIsPrimary(false);
         }
-        
-        if (map.containsKey("contactType") && map.get("contactType") != null) {
-            try {
-                contact.setContactType(OrganizationContactEntity.ContactType.valueOf((String) map.get("contactType")));
-            } catch (IllegalArgumentException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid contact type");
-            }
-        }
-        
         return contact;
     }
 }

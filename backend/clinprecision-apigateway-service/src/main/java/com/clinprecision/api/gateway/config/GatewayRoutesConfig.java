@@ -163,8 +163,8 @@ public class GatewayRoutesConfig {
                         .path("/users-ws/organization-types/**")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
-                                .rewritePath("/users-ws/organization-types/(?<segment>.*)", "/organization-types/${segment}")
-                                .rewritePath("/users-ws/organization-types", "/organization-types")
+                                .rewritePath("/users-ws/organization-types/(?<segment>.*)", "/organizations/organization-types/${segment}")
+                                .rewritePath("/users-ws/organization-types", "/organizations/organization-types")
                         )
                         .uri("lb://users-ws")
                 )

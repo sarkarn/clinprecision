@@ -35,13 +35,7 @@ export default function OrganizationForm() {
 
                 // Fetch organization types
                 const typesData = await OrganizationService.getAllOrganizationTypes();
-                console.log('Organization types data in form:', typesData);
-                if (Array.isArray(typesData)) {
-                    setOrganizationTypes(typesData);
-                } else {
-                    console.error('Organization types data is not an array:', typesData);
-                    setOrganizationTypes([]);
-                }
+                setOrganizationTypes(typesData);
 
                 // If in edit mode, fetch organization data
                 if (isEditMode) {
@@ -94,7 +88,6 @@ export default function OrganizationForm() {
                 ...formData,
                 organizationTypeId: formData.orgTypeId
             };
-            console.log("Sending organization data to backend:", organizationData);
             delete organizationData.orgTypeId;
 
             if (isEditMode) {

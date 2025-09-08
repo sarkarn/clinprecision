@@ -39,7 +39,7 @@ export default function OrganizationDetail() {
                 setOrganization(orgData);
 
                 // Find the organization type name
-                const type = typesData.find(t => t.id === orgData.orgTypeId);
+                const type = typesData.find(t => t.id === orgData.organizationTypeId);
                 setOrganizationType(type ? type.name : "Unknown Type");
 
                 setContacts(contactsData);

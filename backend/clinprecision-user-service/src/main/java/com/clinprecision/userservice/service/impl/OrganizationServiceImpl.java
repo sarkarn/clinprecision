@@ -133,16 +133,13 @@ public class OrganizationServiceImpl implements OrganizationService {
                                                        " for organization with id: " + organizationId));
 
         // Update contact details
-        contact.setFirstName(contactDetails.getFirstName());
-        contact.setLastName(contactDetails.getLastName());
+
         contact.setTitle(contactDetails.getTitle());
         contact.setPhone(contactDetails.getPhone());
         contact.setEmail(contactDetails.getEmail());
         contact.setIsPrimary(contactDetails.getIsPrimary());
-        contact.setMobile(contactDetails.getMobile());
-        contact.setPosition(contactDetails.getPosition());
         contact.setDepartment(contactDetails.getDepartment());
-        contact.setContactType(contactDetails.getContactType());
+
 
         return organizationContactRepository.save(contact);
     }

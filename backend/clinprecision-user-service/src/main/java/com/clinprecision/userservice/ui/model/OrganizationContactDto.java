@@ -1,6 +1,5 @@
 package com.clinprecision.userservice.ui.model;
 
-import com.clinprecision.userservice.data.OrganizationContactEntity;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -11,16 +10,12 @@ import java.time.LocalDateTime;
 @Data
 public class OrganizationContactDto {
     private Long id;
-    private Long organizationId; // Reference to organization ID only to avoid circular references
-    private String firstName;
-    private String lastName;
+    private Long organizationId;
+    private String contactName;
     private String title;
+    private String department;
     private String email;
     private String phone;
-    private String mobile;
-    private String position;
-    private String department;
-    private OrganizationContactEntity.ContactType contactType;
     private Boolean isPrimary;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

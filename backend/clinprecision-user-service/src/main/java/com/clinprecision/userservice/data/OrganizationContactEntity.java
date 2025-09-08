@@ -19,46 +19,29 @@ public class OrganizationContactEntity {
     @JoinColumn(name = "organization_id", nullable = false)
     private OrganizationEntity organization;
     
-    @Column(name = "first_name", nullable = false)
-    private String firstName;
-    
-    @Column(name = "last_name", nullable = false)
-    private String lastName;
-    
-    @Column(name = "title")
+    @Column(name = "contact_name", nullable = false)
+    private String contactName;
+
+    @Column(name = "title", length = 100)
     private String title;
-    
-    @Column(name = "email", nullable = false)
-    private String email;
-    
-    @Column(name = "phone")
-    private String phone;
-    
-    @Column(name = "mobile")
-    private String mobile;
-    
-    @Column(name = "position")
-    private String position;
-    
-    @Column(name = "department")
+
+    @Column(name = "department", length = 100)
     private String department;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "contact_type")
-    private ContactType contactType;
-    
+
+    @Column(name = "email", length = 120)
+    private String email;
+
+    @Column(name = "phone", length = 50)
+    private String phone;
+
     @Column(name = "is_primary")
     private Boolean isPrimary = false;
-    
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-    
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
-    public enum ContactType {
-        GENERAL, ADMINISTRATIVE, TECHNICAL, BILLING, CLINICAL, SCIENTIFIC, REGULATORY
-    }
     
     @PrePersist
     protected void onCreate() {
@@ -87,20 +70,12 @@ public class OrganizationContactEntity {
         this.organization = organization;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public String getContactName() {
+        return contactName;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setContactName(String contactName) {
+        this.contactName = contactName;
     }
 
     public String getTitle() {
@@ -109,6 +84,14 @@ public class OrganizationContactEntity {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
     }
 
     public String getEmail() {
@@ -125,38 +108,6 @@ public class OrganizationContactEntity {
 
     public void setPhone(String phone) {
         this.phone = phone;
-    }
-
-    public String getMobile() {
-        return mobile;
-    }
-
-    public void setMobile(String mobile) {
-        this.mobile = mobile;
-    }
-
-    public String getPosition() {
-        return position;
-    }
-
-    public void setPosition(String position) {
-        this.position = position;
-    }
-
-    public String getDepartment() {
-        return department;
-    }
-
-    public void setDepartment(String department) {
-        this.department = department;
-    }
-
-    public ContactType getContactType() {
-        return contactType;
-    }
-
-    public void setContactType(ContactType contactType) {
-        this.contactType = contactType;
     }
 
     public Boolean getIsPrimary() {

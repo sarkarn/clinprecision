@@ -19,24 +19,13 @@ export default function OrganizationList() {
                     OrganizationService.getAllOrganizationTypes()
                 ]);
 
-                console.log('Organizations data:', orgsData);
-                console.log('Organization types data:', typesData);
-
                 setOrganizations(orgsData);
 
                 // Convert organization types array to a lookup object
                 const typesMap = {};
-                if (Array.isArray(typesData)) {
-                    typesData.forEach(type => {
-                        if (type && type.id) {
-                            typesMap[type.id] = type.name;
-                        }
-                    });
-                    console.log('Organization types array successfully processed:', typesData.length, 'types found');
-                } else {
-                    console.error('Organization types data is not an array:', typesData);
-                }
-                console.log('Types map:', typesMap);
+                typesData.forEach(type => {
+                    typesMap[type.id] = type.name;
+                });
                 setOrganizationTypes(typesMap);
 
                 setError(null);
