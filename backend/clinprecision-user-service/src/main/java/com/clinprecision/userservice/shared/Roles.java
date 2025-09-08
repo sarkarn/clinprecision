@@ -5,9 +5,9 @@ package com.clinprecision.userservice.shared;
  * This ensures consistency when referencing roles throughout the application.
  */
 public enum Roles {
-	ROLE_USER, 
-	ROLE_ADMIN,
-	ROLE_SYSTEM_ADMIN,
-	ROLE_DB_ADMIN,
-	ROLE_SPONSOR_ADMIN
+	USER,
+	ADMIN,
+	SYSTEM_ADMIN,
+	DB_ADMIN,
+	SPONSOR_ADMIN
 }

@@ -118,6 +118,8 @@ CREATE TABLE user_types (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE COMMENT 'User type name (e.g., CRA, PI, CRC, DM)',
     description TEXT COMMENT 'Description of the user type',
+	code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Unique code for the user type',
+    category VARCHAR(50) NOT NULL COMMENT 'Category of the user type',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -580,43 +582,43 @@ INSERT INTO organization_types (name, description) VALUES
 ('Laboratory', 'Laboratory for processing trial samples');
 
 -- Insert default user types
-INSERT INTO user_types (name, description) VALUES
-('CRA', 'Clinical Research Associate responsible for monitoring trial sites'),
-('Data Manager', 'Responsible for managing clinical trial data'),
-('Principal Investigator', 'Lead investigator at a clinical site'),
-('Clinical Research Coordinator', 'Coordinates clinical trial activities at a site'),
-('Clinical Data Manager', 'Manages data at the site level'),
-('Database Administrator', 'Administers the clinical trial database'),
-('System Administrator', 'Manages the EDC system'),
-('Lab Technician', 'Laboratory staff processing trial samples'),
-('Lab Manager', 'Manages laboratory operations'),
-('Patient/Subject', 'Trial participant'),
-('Medical Monitor', 'Provides medical oversight for the trial'),
-('Sponsor Monitor', 'Monitors the trial on behalf of the sponsor'),
-('Statistician', 'Performs statistical analysis of trial data'),
-('Regulatory Affairs', 'Handles regulatory compliance'),
-('Quality Assurance', 'Ensures quality standards are met');
+INSERT INTO user_types (name, description, code,category) VALUES
+('CRA', 'Clinical Research Associate responsible for monitoring trial sites', 'CRA','CRO_USER'),
+('Data Manager', 'Responsible for managing clinical trial data','DM','CRO_USER'),
+('Principal Investigator', 'Lead investigator at a clinical site','PI','SITE_USER'),
+('Clinical Research Coordinator', 'Coordinates clinical trial activities at a site','CRC','CRO_USER'),
+('Clinical Data Manager', 'Manages data at the site level','CDM','CRO_USER'),
+('Database Administrator', 'Administers the clinical trial database','DBADMIN','SYSTEM_USER'),
+('System Administrator', 'Manages the EDC system','SYSADMIN','SYSTEM_USER'),
+('Lab Technician', 'Laboratory staff processing trial samples','LABTECH','SITE_USER'),
+('Lab Manager', 'Manages laboratory operations','LABMGR','SITE_USER'),
+('Patient/Subject', 'Trial participant','SUBJ','SUBJECT_USER'),
+('Medical Monitor', 'Provides medical oversight for the trial','MEDMON','CRO_USER'),
+('Sponsor Monitor', 'Monitors the trial on behalf of the sponsor','SPONMON','SPONSOR_USER'),
+('Statistician', 'Performs statistical analysis of trial data','STAT','CRO_USER'),
+('Regulatory Affairs', 'Handles regulatory compliance','REGAFFR','REG_USER'),
+('Quality Assurance', 'Ensures quality standards are met','QA','CRO_USER');
 
 -- Insert default roles aligned with BRIDG/CDISC
 INSERT INTO roles (name, description, is_system_role) VALUES
-('ROLE_SYSTEM_ADMIN', 'Full system administration rights', TRUE),
-('ROLE_DB_ADMIN', 'Database administration rights', TRUE),
-('ROLE_SPONSOR_ADMIN', 'Sponsor administrator with study oversight', TRUE),
-('ROLE_CRO_ADMIN', 'CRO administrator with delegated study oversight', TRUE),
-('ROLE_SITE_ADMIN', 'Site administrator with site management rights', TRUE),
-('ROLE_PI', 'Principal Investigator role', TRUE),
-('ROLE_SUB_I', 'Sub-investigator role', TRUE),
-('ROLE_CRC', 'Clinical Research Coordinator role', TRUE),
-('ROLE_CRA', 'Clinical Research Associate role', TRUE),
-('ROLE_DATA_MANAGER', 'Data management role', TRUE),
-('ROLE_MEDICAL_MONITOR', 'Medical monitoring role', TRUE),
-('ROLE_LAB_USER', 'Laboratory user role', TRUE),
-('ROLE_PATIENT', 'Patient/subject portal access', TRUE),
-('ROLE_DATA_ENTRY', 'Data entry capabilities', TRUE),
-('ROLE_DATA_REVIEW', 'Data review capabilities', TRUE),
-('ROLE_QUERY_MANAGEMENT', 'Query creation and resolution', TRUE),
-('ROLE_REPORT_VIEWER', 'Report viewing capabilities', TRUE),
-('ROLE_STUDY_BUILDER', 'Study and CRF design capabilities', TRUE);
+('SYSTEM_ADMIN', 'Full system administration rights', TRUE),
+('DB_ADMIN', 'Database administration rights', TRUE),
+('SPONSOR_ADMIN', 'Sponsor administrator with study oversight', TRUE),
+('CRO_ADMIN', 'CRO administrator with delegated study oversight', TRUE),
+('SITE_ADMIN', 'Site administrator with site management rights', TRUE),
+('PI', 'Principal Investigator role', TRUE),
+('SUB_I', 'Sub-investigator role', TRUE),
+('CRC', 'Clinical Research Coordinator role', TRUE),
+('CRA', 'Clinical Research Associate role', TRUE),
+('DATA_MANAGER', 'Data management role', TRUE),
+('MEDICAL_MONITOR', 'Medical monitoring role', TRUE),
+('LAB_USER', 'Laboratory user role', TRUE),
+('PATIENT', 'Patient/subject portal access', TRUE),
+('DATA_ENTRY', 'Data entry capabilities', TRUE),
+('DATA_REVIEW', 'Data review capabilities', TRUE),
+('QUERY_MANAGEMENT', 'Query creation and resolution', TRUE),
+('REPORT_VIEWER', 'Report viewing capabilities', TRUE),
+('STUDY_BUILDER', 'Study and CRF design capabilities', TRUE);
 
 -- Insert default authorities
 INSERT INTO authorities (name) VALUES
@@ -649,7 +651,7 @@ INSERT INTO authorities (name) VALUES
 
 -- Assign authorities to roles (system admin example)
 INSERT INTO roles_authorities (roles_id, authorities_id) 
-SELECT r.id, a.id FROM roles r, authorities a WHERE r.name = 'ROLE_SYSTEM_ADMIN' AND a.name IN (
+SELECT r.id, a.id FROM roles r, authorities a WHERE r.name = 'SYSTEM_ADMIN' AND a.name IN (
     'READ_STUDY', 'CREATE_STUDY', 'UPDATE_STUDY', 'DELETE_STUDY', 
     'READ_SUBJECT', 'CREATE_SUBJECT', 'UPDATE_SUBJECT', 'DELETE_SUBJECT',
     'READ_FORM', 'CREATE_FORM', 'UPDATE_FORM', 'DELETE_FORM',

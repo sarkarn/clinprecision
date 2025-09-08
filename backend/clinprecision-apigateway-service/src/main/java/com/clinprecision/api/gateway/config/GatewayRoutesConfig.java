@@ -1,6 +1,5 @@
 package com.clinprecision.api.gateway.config;
 
-
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
@@ -10,7 +9,6 @@ import com.clinprecision.api.gateway.AuthorizationHeaderFilter;
 
 @Configuration
 public class GatewayRoutesConfig {
-
 
     private final AuthorizationHeaderFilter authFilter;
 
@@ -35,11 +33,25 @@ public class GatewayRoutesConfig {
                         )
                         .uri("lb://users-ws")
                 )
-                // users-ws
-                .route("users-ws", r -> r
+                // users-ws (POST requires auth)
+                .route("users-ws-create", r -> r
                         .path("/users-ws/users")
                         .and()
                         .method("POST")
+                        .and()
+                        .header("Authorization", "Bearer (.*)")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                                .filter(authFilter)
+                        )
+                        .uri("lb://users-ws")
+                )
+                // users-ws-get-all (no auth required)
+                .route("users-ws-get-all", r -> r
+                        .path("/users-ws/users")
+                        .and()
+                        .method("GET")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
                                 .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
@@ -73,13 +85,86 @@ public class GatewayRoutesConfig {
                                 .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                                 .filter(authFilter)
                         ).uri("lb://users-ws")
-                ).route("users-ws-h2-console", r -> r
+                )
+                .route("users-ws-h2-console", r -> r
                         .path("/users-ws/h2-console")
                         .and()
                         .method("GET")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
                                 .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                        )
+                        .uri("lb://users-ws")
+                )
+                // User types - GET all and GET by ID (no auth required for read access)
+                .route("users-ws-usertypes-get", r -> r
+                        .path("/users-ws/usertypes/**")
+                        .and()
+                        .method("GET")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                        )
+                        .uri("lb://users-ws")
+                )
+                // User types - POST, PUT, DELETE (requires auth)
+                .route("users-ws-usertypes-write", r -> r
+                        .path("/users-ws/usertypes/**")
+                        .and()
+                        .method("POST", "PUT", "DELETE")
+                        .and()
+                        .header("Authorization", "Bearer (.*)")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                                .filter(authFilter)
+                        )
+                        .uri("lb://users-ws")
+                )
+                // User-UserType assignments (requires auth)
+                .route("users-ws-user-types", r -> r
+                        .path("/users-ws/users/*/types/**")
+                        .and()
+                        .header("Authorization", "Bearer (.*)")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                                .filter(authFilter)
+                        )
+                        .uri("lb://users-ws")
+                )
+                // Organizations - GET all and GET by ID (no auth required for read access)
+                .route("users-ws-organizations-get", r -> r
+                        .path("/users-ws/organizations/**")
+                        .and()
+                        .method("GET")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                        )
+                        .uri("lb://users-ws")
+                )
+                // Organizations - POST, PUT, DELETE (requires auth)
+                .route("users-ws-organizations-write", r -> r
+                        .path("/users-ws/organizations/**")
+                        .and()
+                        .method("POST", "PUT", "DELETE")
+                        .and()
+                        .header("Authorization", "Bearer (.*)")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                                .filter(authFilter)
+                        )
+                        .uri("lb://users-ws")
+                )
+                // Organization types endpoint
+                .route("users-ws-organization-types", r -> r
+                        .path("/users-ws/organization-types/**")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/users-ws/organization-types/(?<segment>.*)", "/organization-types/${segment}")
+                                .rewritePath("/users-ws/organization-types", "/organization-types")
                         )
                         .uri("lb://users-ws")
                 )

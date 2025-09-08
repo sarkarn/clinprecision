@@ -22,7 +22,7 @@ public class RoleEntity implements Serializable {
 	private static final long serialVersionUID = 6929482536229723029L;
 	
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
 	private long id;
 	
 	@Column(nullable=false, length=200)

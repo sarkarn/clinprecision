@@ -51,7 +51,6 @@ public class WebSecurity {
         http.cors(AbstractHttpConfigurer::disable);
         http.csrf(AbstractHttpConfigurer::disable);
         http.authorizeHttpRequests((authz) -> authz
-        .requestMatchers("/users/status/check").permitAll()
         .requestMatchers("/login").permitAll()
         .requestMatchers("/h2-console/**").permitAll()
         .anyRequest().authenticated())

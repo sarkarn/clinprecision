@@ -24,16 +24,19 @@ export default function Login() {
             // Extract user data
             const { authData } = result;
 
+            // Store token and userId in localStorage
+            localStorage.setItem('authToken', authData.token);
+            localStorage.setItem('userId', authData.userId);
+            localStorage.setItem('userEmail', authData.userEmail);
+            localStorage.setItem('userRole', authData.userRole);
+
             // Update authentication context with user information
             auth.login(
-                'admin@test.com',
-                'admin',
+                email,
+                authData.userRole,
                 {
                     userId: authData.userId,
-                    token: authData.token,
-                    firstName: 'Admin',
-                    lastName: 'XYZ',
-                    // Add any other user properties you need
+                    token: authData.token
                 }
             );
 
@@ -56,7 +59,8 @@ export default function Login() {
             <header className="bg-white shadow flex justify-between items-center px-8 py-4">
                 <div className="flex items-center space-x-6">
                     <h1 className="text-xl font-bold text-blue-600">ClinicalConnect</h1>
-                    <Link to="/" className="text-gray-700 hover:text-blue-600">XYZ</Link>
+                    <Link to="/" className="text-gray-700 hover:text-blue-600">Solutions</Link>
+                    <Link to="/" className="text-gray-700 hover:text-blue-600">Resources</Link>
                     <Link to="/about" className="text-gray-700 hover:text-blue-600">About</Link>
                     <Link to="/help" className="text-gray-700 hover:text-blue-600">Contact Us</Link>
                 </div>

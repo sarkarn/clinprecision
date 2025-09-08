@@ -1,29 +1,5 @@
 // src/services/UserTypeService.js
-import axios from "axios";
-import { API_BASE_URL } from "../config.js";
-
-// Create axios instance with default configuration
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// Add request interceptor to include auth token
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+import ApiService from './ApiService';
 
 export const UserTypeService = {
   /**
@@ -32,7 +8,7 @@ export const UserTypeService = {
    */
   getAllUserTypes: async () => {
     try {
-      const response = await axiosInstance.get('/users-ws/usertypes');
+      const response = await ApiService.get('/users-ws/usertypes');
       return response.data;
     } catch (error) {
       console.error("Error fetching user types:", error);
@@ -47,7 +23,7 @@ export const UserTypeService = {
    */
   getUserTypeById: async (id) => {
     try {
-      const response = await axiosInstance.get(`/users-ws/usertypes/${id}`);
+      const response = await ApiService.get(`/users-ws/usertypes/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching user type ${id}:`, error);
@@ -62,7 +38,7 @@ export const UserTypeService = {
    */
   createUserType: async (userTypeData) => {
     try {
-      const response = await axiosInstance.post('/users-ws/usertypes', userTypeData);
+      const response = await ApiService.post('/users-ws/usertypes', userTypeData);
       return response.data;
     } catch (error) {
       console.error("Error creating user type:", error);
@@ -78,7 +54,7 @@ export const UserTypeService = {
    */
   updateUserType: async (id, userTypeData) => {
     try {
-      const response = await axiosInstance.put(`/users-ws/usertypes/${id}`, userTypeData);
+      const response = await ApiService.put(`/users-ws/usertypes/${id}`, userTypeData);
       return response.data;
     } catch (error) {
       console.error(`Error updating user type ${id}:`, error);
@@ -93,7 +69,7 @@ export const UserTypeService = {
    */
   deleteUserType: async (id) => {
     try {
-      const response = await axiosInstance.delete(`/users-ws/usertypes/${id}`);
+      const response = await ApiService.delete(`/users-ws/usertypes/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting user type ${id}:`, error);

@@ -68,9 +68,16 @@ public class AuthorizationHeaderFilter implements GatewayFilter {
             JwtParser parser = Jwts.parser()
                     .verifyWith(key)
                     .build();
-            subject = parser.parseSignedClaims(jwt).getPayload().getSubject();
+            var claims = parser.parseSignedClaims(jwt).getPayload();
+            subject = claims.getSubject();
+            
+            // Extract additional claims if needed (email, role)
+            // String email = claims.get("email", String.class);
+            // String role = claims.get("role", String.class);
+            
             return subject != null && !subject.isBlank();
         } catch (Exception ex) {
+            logger.error("JWT validation error", ex);
             returnValue = false;
         }
 

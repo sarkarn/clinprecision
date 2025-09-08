@@ -13,5 +13,6 @@ public class UserResponseModel {
     private String firstName;
     private String lastName;
     private String email;
+    private List<Long> userTypes; // Added field for user types IDs
     private List<AlbumResponseModel> albums;
 }

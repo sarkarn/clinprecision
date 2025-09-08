@@ -6,6 +6,9 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 public class CreateUserRequestModel {
@@ -25,5 +28,8 @@ public class CreateUserRequestModel {
 	@NotNull(message="Email cannot be null")
 	@Email
 	private String email;
+	
+	// List of user type IDs to assign to this user
+	private List<Long> userTypeIds = new ArrayList<>();
 
 }

@@ -45,7 +45,8 @@ public class UserTypeEntity {
         SITE_USER,
         VENDOR_USER,
         SUBJECT_USER,
-        SYSTEM_USER
+        SYSTEM_USER,
+        REG_USER
     }
     
     @PrePersist

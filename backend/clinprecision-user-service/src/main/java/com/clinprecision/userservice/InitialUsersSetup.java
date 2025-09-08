@@ -46,6 +46,12 @@ public class InitialUsersSetup {
 	public void onApplicationEvent(ApplicationReadyEvent event) {
 		logger.info("Initializing default users and roles");
 
+		// Check if initialization is already complete
+		if (usersRepository.findByEmail("admin@test.com") != null) {
+			logger.info("User setup already initialized, skipping duplicate authority creation");
+			return;
+		}
+
 		// Create core authorities
 		AuthorityEntity readAuthority = createAuthority("READ_STUDY");
 		AuthorityEntity writeAuthority = createAuthority("WRITE");
@@ -74,13 +80,13 @@ public class InitialUsersSetup {
 		Collection<AuthorityEntity> userAuthorities = new ArrayList<>();
 		userAuthorities.add(readAuthority);
 		userAuthorities.add(writeAuthority);
-		createRole(Roles.ROLE_USER.name(), userAuthorities);
+		createRole(Roles.USER.name(), userAuthorities);
 		
 		Collection<AuthorityEntity> adminAuthorities = new ArrayList<>();
 		adminAuthorities.add(readAuthority);
 		adminAuthorities.add(writeAuthority);
 		adminAuthorities.add(deleteAuthority);
-		RoleEntity roleAdmin = createRole(Roles.ROLE_ADMIN.name(), adminAuthorities);
+		RoleEntity roleAdmin = createRole(Roles.ADMIN.name(), adminAuthorities);
 		
 		// Create roles based on the consolidated schema definitions
 		Collection<AuthorityEntity> systemAdminAuthorities = new ArrayList<>();
@@ -106,7 +112,7 @@ public class InitialUsersSetup {
 		systemAdminAuthorities.add(createQueryAuthority);
 		systemAdminAuthorities.add(exportDataAuthority);
 		systemAdminAuthorities.add(importDataAuthority);
-		RoleEntity roleSystemAdmin = createRole(Roles.ROLE_SYSTEM_ADMIN.name(), systemAdminAuthorities);
+		RoleEntity roleSystemAdmin = createRole(Roles.SYSTEM_ADMIN.name(), systemAdminAuthorities);
 		
 		Collection<AuthorityEntity> dbAdminAuthorities = new ArrayList<>();
 		dbAdminAuthorities.add(readAuthority);
@@ -115,7 +121,7 @@ public class InitialUsersSetup {
 		dbAdminAuthorities.add(exportDataAuthority);
 		dbAdminAuthorities.add(importDataAuthority);
 		dbAdminAuthorities.add(systemConfigAuthority);
-		RoleEntity roleDbAdmin = createRole(Roles.ROLE_DB_ADMIN.name(), dbAdminAuthorities);
+		RoleEntity roleDbAdmin = createRole(Roles.DB_ADMIN.name(), dbAdminAuthorities);
 		
 		Collection<AuthorityEntity> sponsorAdminAuthorities = new ArrayList<>();
 		sponsorAdminAuthorities.add(readAuthority);
@@ -131,7 +137,7 @@ public class InitialUsersSetup {
 		sponsorAdminAuthorities.add(createQueryAuthority);
 		sponsorAdminAuthorities.add(exportDataAuthority);
 		sponsorAdminAuthorities.add(assignUserAuthority);
-		RoleEntity roleSponsorAdmin = createRole(Roles.ROLE_SPONSOR_ADMIN.name(), sponsorAdminAuthorities);
+		RoleEntity roleSponsorAdmin = createRole(Roles.SPONSOR_ADMIN.name(), sponsorAdminAuthorities);
 		
 		UserEntity adminUser = new UserEntity();
 		adminUser.setFirstName("admin");
@@ -211,6 +217,9 @@ public class InitialUsersSetup {
 		if(authority == null) {
 			authority = new AuthorityEntity(name);
 			authority = authorityRepository.save(authority);
+		} else {
+			// Just return the existing authority without trying to save it again
+			logger.info("Authority already exists: " + name);
 		}
 		
 		return authority;
@@ -223,11 +232,39 @@ public class InitialUsersSetup {
 		if(role == null) {
 			role = new RoleEntity(name, authorities);
 			role = roleRepository.save(role);
+			logger.info("Created role: " + name);
 		} else {
-			// Update existing role with authorities if needed
-			// This ensures roles have the right authorities even if they already exist
-			role.setAuthorities(authorities);
-			role = roleRepository.save(role);
+			// Only update the authorities if they've changed
+			// This reduces unnecessary database operations
+			boolean authoritiesChanged = false;
+			
+			// Check if authorities need to be updated
+			if (role.getAuthorities().size() != authorities.size()) {
+				authoritiesChanged = true;
+			} else {
+				// Compare authorities by name - more robust than comparing object references
+				for (AuthorityEntity authority : authorities) {
+					boolean found = false;
+					for (AuthorityEntity existingAuth : role.getAuthorities()) {
+						if (existingAuth.getName().equals(authority.getName())) {
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						authoritiesChanged = true;
+						break;
+					}
+				}
+			}
+			
+			if (authoritiesChanged) {
+				role.setAuthorities(authorities);
+				role = roleRepository.save(role);
+				logger.info("Updated authorities for role: " + name);
+			} else {
+				logger.info("Role already exists with correct authorities: " + name);
+			}
 		}
 
 		return role;

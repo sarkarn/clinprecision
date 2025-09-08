@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import UserTypeService from "../../../services/UserTypeService";
+import { UserTypeService } from "../../../services/UserTypeService";
 
 export default function UserTypeForm() {
     const { id } = useParams();
@@ -9,25 +9,39 @@ export default function UserTypeForm() {
 
     const [formData, setFormData] = useState({
         name: "",
-        description: ""
+        description: "",
+        code: "",
+        category: ""
     });
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(isEditMode);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
+
+    // User type categories
+    const userTypeCategories = [
+        'SPONSOR_USER',
+        'CRO_USER',
+        'SITE_USER',
+        'VENDOR_USER',
+        'SUBJECT_USER',
+        'SYSTEM_USER'
+    ];
 
     useEffect(() => {
         if (isEditMode) {
             fetchUserType();
         }
-    }, [id]);
+    }, [id, isEditMode]);
 
     const fetchUserType = async () => {
         try {
             setLoading(true);
             const data = await UserTypeService.getUserTypeById(id);
             setFormData({
-                name: data.name,
-                description: data.description || ""
+                name: data.name || "",
+                description: data.description || "",
+                code: data.code || "",
+                category: data.category || ""
             });
             setError(null);
         } catch (err) {
@@ -74,7 +88,7 @@ export default function UserTypeForm() {
     };
 
     return (
-        <div>
+        <div className="max-w-2xl mx-auto">
             <div className="mb-6">
                 <h3 className="text-xl font-semibold">
                     {isEditMode ? "Edit User Type" : "Create User Type"}
@@ -98,8 +112,8 @@ export default function UserTypeForm() {
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
             ) : (
-                <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-                    <div className="mb-4">
+                <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 space-y-4">
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="name">
                             Name *
                         </label>
@@ -114,7 +128,25 @@ export default function UserTypeForm() {
                         />
                     </div>
 
-                    <div className="mb-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="code">
+                            Code *
+                        </label>
+                        <input
+                            type="text"
+                            id="code"
+                            name="code"
+                            value={formData.code}
+                            onChange={handleChange}
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            required
+                        />
+                        <p className="text-sm text-gray-500 mt-1">
+                            A unique code to identify this user type (e.g., PI, CRA, DM)
+                        </p>
+                    </div>
+
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="description">
                             Description
                         </label>
@@ -123,12 +155,35 @@ export default function UserTypeForm() {
                             name="description"
                             value={formData.description}
                             onChange={handleChange}
-                            rows="4"
+                            rows="3"
                             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>
 
-                    <div className="flex justify-end space-x-3">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="category">
+                            Category *
+                        </label>
+                        <select
+                            id="category"
+                            name="category"
+                            value={formData.category}
+                            onChange={handleChange}
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            required
+                        >
+                            <option value="">Select a category</option>
+                            {userTypeCategories.map((category) => (
+                                <option key={category} value={category}>
+                                    {category.split('_').map(word =>
+                                        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                                    ).join(' ')}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex justify-end space-x-3 pt-2">
                         <button
                             type="button"
                             onClick={() => navigate("/user-management/usertypes")}
@@ -151,7 +206,7 @@ export default function UserTypeForm() {
                                     Saving...
                                 </span>
                             ) : (
-                                'Save'
+                                isEditMode ? 'Update User Type' : 'Create User Type'
                             )}
                         </button>
                     </div>

@@ -4,7 +4,7 @@ export default function UserManagementDashboard() {
     return (
         <div>
             <div className="mb-6 flex justify-between items-center">
-                <h3 className="text-xl font-semibold">User Management Dashboard</h3>
+                <h3 className="text-xl font-semibold">Administration Dashboard</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
