@@ -32,6 +32,8 @@ export const LoginService = {
       // Extract authentication data from headers
       const token = loginResponse.headers.token;
       const userId = loginResponse.headers.userid;
+      const userEmail = loginResponse.headers.useremail;
+      const userRole = loginResponse.headers.userrole;
 
       console.log("Response headers:", loginResponse.headers);
       
@@ -42,29 +44,22 @@ export const LoginService = {
       // Save authentication data to local storage
       localStorage.setItem('authToken', token);
       localStorage.setItem('userId', userId);
+      localStorage.setItem('userEmail', userEmail || email);
+      localStorage.setItem('userRole', userRole || 'USER');
       
       // Optionally, store expiration time if needed
       const expiresIn = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
       const expirationTime = new Date().getTime() + expiresIn;
       localStorage.setItem('tokenExpiration', expirationTime.toString());
       
-      // // Get complete user information with the token
-      // const userResponse = await axiosInstance.get(
-      //   `/users-ws/users/${userId}`,
-      //   {
-      //     headers: {
-      //       'Authorization': `Bearer ${token}`
-      //     }
-      //   }
-      // );
-      
-      
       // Combine authentication and user data
       return {
         success: true,
         authData: {
           token,
-          userId
+          userId,
+          userEmail: userEmail || email,
+          userRole: userRole || 'USER'
         }
       };
     } catch (error) {
@@ -82,6 +77,8 @@ export const LoginService = {
       // Clear all authentication data from local storage
       localStorage.removeItem('authToken');
       localStorage.removeItem('userId');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userRole');
       localStorage.removeItem('tokenExpiration');
       
       // Optional: API call for server-side logout

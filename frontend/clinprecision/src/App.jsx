@@ -4,6 +4,7 @@ import Login from './components/login/Login';
 import ProtectedRoute from './components/login/ProtectedRoute';
 import Home from './components/home';
 import StudyDesignModule from './components/modules/trialdesign/StudyDesignModule';
+import UserManagementModule from './components/modules/usermanagement/UserManagementModule';
 
 
 function AppContent() {

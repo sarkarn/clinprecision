@@ -74,6 +74,4 @@ public class UsersApplication {
 		return "Development bean";
 	}
 	
-
-
 }

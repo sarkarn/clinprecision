@@ -3,6 +3,7 @@ import Logout from "./login/Logout";
 import StudyDesignModule from "./modules/trialdesign/StudyDesignModule";
 import DataCaptureModule from "./modules/datacapture/DataCaptureModule";
 import DQManagement from "./modules/dqmgmt/DQManagement";
+import UserManagementModule from "./modules/usermanagement/UserManagementModule";
 import { useAuth } from "./login/AuthContext";
 
 export default function Home() {
@@ -32,9 +33,6 @@ export default function Home() {
                         <Link to="/help" className="text-gray-700 hover:text-blue-600">Documentation</Link>
                         <Link to="/about" className="text-gray-700 hover:text-blue-600">About</Link>
                         <Link to="/contact" className="text-gray-700 hover:text-blue-600">Contact</Link>
-                        {user?.role === 'admin' && (
-                            <Link to="/admin" className="text-gray-700 hover:text-blue-600">Administration</Link>
-                        )}
                     </div>
                 </div>
                 <div className="flex items-center space-x-4">
@@ -77,6 +75,12 @@ export default function Home() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 Data Quality Management
+                            </Link>
+                            <Link to="/user-management" className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-4 py-2 rounded-md transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                Administration
                             </Link>
                         </div>
                     </div>
@@ -169,6 +173,7 @@ export default function Home() {
                         <Route path="study-design/*" element={<StudyDesignModule />} />
                         <Route path="datacapture-management/*" element={<DataCaptureModule />} />
                         <Route path="dq-management/*" element={<DQManagement />} />
+                        <Route path="user-management/*" element={<UserManagementModule />} />
 
                         {/* Additional tools routes - you'll need to import these components */}
                         <Route path="medical-coding/*" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Medical Coding Module</h2><p>Medical coding functionality will be implemented here.</p></div>} />

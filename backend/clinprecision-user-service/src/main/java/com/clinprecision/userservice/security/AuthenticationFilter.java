@@ -3,29 +3,27 @@ package com.clinprecision.userservice.security;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 
-import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SecureDigestAlgorithm;
 import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.clinprecision.userservice.service.UsersService;
-import com.clinprecision.userservice.shared.UserDto;
 import com.clinprecision.userservice.ui.model.LoginRequestModel;
+import com.clinprecision.userservice.ui.model.UserDto;
+import com.clinprecision.userservice.ui.model.UserTypeDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SecureDigestAlgorithm;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,9 +67,19 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
         SecureDigestAlgorithm<SecretKey, ?> algorithm = Jwts.SIG.HS512;
 
 		Instant now = Instant.now();
+		
+		// Determine user role - for now we'll use the first user type's code as the role
+		// In a proper RBAC system, this would be replaced with actual role information
+		String userRole = "USER"; // Default role
+		if (userDetails.getUserTypes() != null && !userDetails.getUserTypes().isEmpty()) {
+			UserTypeDto firstUserType = userDetails.getUserTypes().iterator().next();
+			userRole = firstUserType.getCode();
+		}
 
 		String token = Jwts.builder()
 				.claim("scope", auth.getAuthorities())
+				.claim("email", userName) // Add email to the token
+				.claim("role", userRole) // Add role to the token
 				.subject(userDetails.getUserId())
 				.expiration(
 						Date.from(now.plusMillis(Long.parseLong(environment.getProperty("token.expiration_time")))))
@@ -79,5 +87,10 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
 		res.addHeader("token", token);
 		res.addHeader("userId", userDetails.getUserId());
+		res.addHeader("userEmail", userName);
+		res.addHeader("userRole", userRole);
+		
+		// Add Access-Control-Expose-Headers to make custom headers available to the client
+		res.addHeader("Access-Control-Expose-Headers", "token, userId, userEmail, userRole");
 	}
 }

@@ -5,6 +5,9 @@ import java.util.Base64;
 import javax.crypto.SecretKey;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.core.env.Environment;
@@ -22,18 +25,18 @@ import io.jsonwebtoken.security.Keys;
 import reactor.core.publisher.Mono;
 
 @Component
-@Slf4j
 public class AuthorizationHeaderFilter implements GatewayFilter {
+	
+	final Logger logger = LoggerFactory.getLogger(AuthorizationHeaderFilter.class);
 
     @Autowired
     Environment env;
-
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, org.springframework.cloud.gateway.filter.GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
 
         if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-            log.error("Authorization header is missing");
+            logger.error("Authorization header is missing");
             return onError(exchange, "No authorization header", HttpStatus.UNAUTHORIZED);
         }
 
@@ -41,7 +44,7 @@ public class AuthorizationHeaderFilter implements GatewayFilter {
         String jwt = authorizationHeader.replace("Bearer", "").trim();
 
         if (!isJwtValid(jwt)) {
-            log.error("Invalid JWT token");
+            logger.error("Invalid JWT token");
             return onError(exchange, "JWT token is not valid", HttpStatus.UNAUTHORIZED);
         }
 
@@ -65,9 +68,16 @@ public class AuthorizationHeaderFilter implements GatewayFilter {
             JwtParser parser = Jwts.parser()
                     .verifyWith(key)
                     .build();
-            subject = parser.parseSignedClaims(jwt).getPayload().getSubject();
+            var claims = parser.parseSignedClaims(jwt).getPayload();
+            subject = claims.getSubject();
+            
+            // Extract additional claims if needed (email, role)
+            // String email = claims.get("email", String.class);
+            // String role = claims.get("role", String.class);
+            
             return subject != null && !subject.isBlank();
         } catch (Exception ex) {
+            logger.error("JWT validation error", ex);
             returnValue = false;
         }
 
