@@ -8,6 +8,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -23,11 +24,17 @@ import java.util.UUID;
 public class VisitDefinitionEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private String id = UUID.randomUUID().toString();
+    private Long id;
 
-    @Column(name = "study_id", nullable = false)
-    private String studyId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "study_id", nullable = false)
+    private StudyEntity study;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "arm_id")
+    private StudyArmEntity arm;
 
     @Column(name = "name", nullable = false)
     private String name;
@@ -59,7 +66,7 @@ public class VisitDefinitionEntity {
     private String metadata;
 
     @Column(name = "created_by")
-    private String createdBy;
+    private Long createdBy;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -69,6 +76,9 @@ public class VisitDefinitionEntity {
 
     @Column(name = "is_active")
     private boolean isActive = true;
+    
+    @OneToMany(mappedBy = "visitDefinition", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<VisitFormEntity> visitForms;
 
     public enum VisitType {
         SCHEDULED,     // Regular visit based on study timeline

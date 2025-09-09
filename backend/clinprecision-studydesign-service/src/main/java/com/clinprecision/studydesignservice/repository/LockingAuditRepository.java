@@ -10,7 +10,7 @@ import java.util.List;
  * Repository for managing locking audit records.
  */
 @Repository
-public interface LockingAuditRepository extends JpaRepository<LockingAuditEntity, String> {
+public interface LockingAuditRepository extends JpaRepository<LockingAuditEntity, Long> {
     
     /**
      * Find all audit records for a specific entity.

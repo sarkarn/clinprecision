@@ -1,10 +1,12 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.entity.FormDefinitionEntity;
+import com.clinprecision.studydesignservice.entity.FormEntity;
+import com.clinprecision.studydesignservice.entity.FormVersionEntity;
 import com.clinprecision.studydesignservice.entity.StudyEntity;
 import com.clinprecision.studydesignservice.entity.VisitDefinitionEntity;
 import com.clinprecision.studydesignservice.entity.VisitFormEntity;
-import com.clinprecision.studydesignservice.repository.FormDefinitionRepository;
+import com.clinprecision.studydesignservice.repository.FormRepository;
+import com.clinprecision.studydesignservice.repository.FormVersionRepository;
 import com.clinprecision.studydesignservice.repository.StudyRepository;
 import com.clinprecision.studydesignservice.repository.VisitDefinitionRepository;
 import com.clinprecision.studydesignservice.repository.VisitFormRepository;
@@ -17,12 +19,11 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
  * Service responsible for maintaining data integrity across versioned entities.
- * This ensures that when a study or CRF is versioned, all related entities are 
+ * This ensures that when a study or form is versioned, all related entities are 
  * properly handled to maintain referential integrity.
  */
 @Service
@@ -30,17 +31,20 @@ public class VersionIntegrityService {
 
     private final StudyRepository studyRepository;
     private final VisitDefinitionRepository visitDefinitionRepository;
-    private final FormDefinitionRepository formDefinitionRepository;
+    private final FormRepository formRepository;
+    private final FormVersionRepository formVersionRepository;
     private final VisitFormRepository visitFormRepository;
 
     public VersionIntegrityService(
             StudyRepository studyRepository,
             VisitDefinitionRepository visitDefinitionRepository,
-            FormDefinitionRepository formDefinitionRepository,
+            FormRepository formRepository,
+            FormVersionRepository formVersionRepository,
             VisitFormRepository visitFormRepository) {
         this.studyRepository = studyRepository;
         this.visitDefinitionRepository = visitDefinitionRepository;
-        this.formDefinitionRepository = formDefinitionRepository;
+        this.formRepository = formRepository;
+        this.formVersionRepository = formVersionRepository;
         this.visitFormRepository = visitFormRepository;
     }
 
@@ -55,7 +59,7 @@ public class VersionIntegrityService {
      * @return The ID of the newly created study version
      */
     @Transactional
-    public String createStudyVersionWithRelatedEntities(String studyId, String versionNotes, String userId) {
+    public Long createStudyVersionWithRelatedEntities(Long studyId, String versionNotes, Long userId) {
         // Get the current study
         StudyEntity currentStudy = studyRepository.findById(studyId)
                 .orElseThrow(() -> new EntityNotFoundException("Study not found with id: " + studyId));
@@ -66,11 +70,9 @@ public class VersionIntegrityService {
 
         // Create new version of the study
         StudyEntity newStudyVersion = new StudyEntity();
-        BeanUtils.copyProperties(currentStudy, newStudyVersion, "id", "createdAt", "isLatestVersion");
+        BeanUtils.copyProperties(currentStudy, newStudyVersion, "id", "createdAt", "isLatestVersion", "versions", "arms");
 
         // Set new version properties
-        String newStudyId = UUID.randomUUID().toString();
-        newStudyVersion.setId(newStudyId);
         newStudyVersion.setParentVersionId(currentStudy.getId());
         
         // Increment version number (e.g., 1.0 -> 1.1)
@@ -81,85 +83,97 @@ public class VersionIntegrityService {
         
         newStudyVersion.setLatestVersion(true);
         newStudyVersion.setVersionNotes(versionNotes);
-        newStudyVersion.setCreatedBy(Long.parseLong(userId));
+        newStudyVersion.setCreatedBy(userId);
         newStudyVersion.setCreatedAt(LocalDateTime.now());
         newStudyVersion.setUpdatedAt(LocalDateTime.now());
         
         // Save new study version
-        studyRepository.save(newStudyVersion);
+        StudyEntity savedStudyVersion = studyRepository.save(newStudyVersion);
+        Long newStudyId = savedStudyVersion.getId();
         
         // Create copies of all associated entities with updated references
         // First, get all visit definitions for this study
         List<VisitDefinitionEntity> currentVisits = visitDefinitionRepository.findByStudyId(studyId);
         
         // Map to store old visit IDs to new visit IDs for reference updating
-        Map<String, String> visitIdMap = new HashMap<>();
+        Map<Long, Long> visitIdMap = new HashMap<>();
         
         // Create new versions of all visits
         for (VisitDefinitionEntity currentVisit : currentVisits) {
             VisitDefinitionEntity newVisit = new VisitDefinitionEntity();
-            BeanUtils.copyProperties(currentVisit, newVisit, "id", "studyId", "createdAt");
+            BeanUtils.copyProperties(currentVisit, newVisit, "id", "study", "arm", "createdAt", "visitForms");
             
-            String newVisitId = UUID.randomUUID().toString();
-            newVisit.setId(newVisitId);
-            newVisit.setStudyId(newStudyId);
+            newVisit.setStudy(savedStudyVersion);
             newVisit.setCreatedAt(LocalDateTime.now());
             
-            visitIdMap.put(currentVisit.getId(), newVisitId);
-            visitDefinitionRepository.save(newVisit);
+            VisitDefinitionEntity savedVisit = visitDefinitionRepository.save(newVisit);
+            visitIdMap.put(currentVisit.getId(), savedVisit.getId());
         }
         
-        // Now handle all CRFs associated with these visits
+        // Now handle all forms associated with these visits
         List<VisitFormEntity> currentVisitForms = visitFormRepository.findByVisitDefinitionIdIn(
             currentVisits.stream().map(VisitDefinitionEntity::getId).collect(Collectors.toList())
         );
         
         // Map to store old form IDs to new form IDs
-        Map<String, String> formIdMap = new HashMap<>();
+        Map<Long, Long> formIdMap = new HashMap<>();
         
-        // For each visit form, create new versions of both the mapping and the CRF
+        // For each visit form, create new versions of both the mapping and the form
         for (VisitFormEntity currentVisitForm : currentVisitForms) {
-            // First, check if we need to create a new CRF version
-            String oldFormId = currentVisitForm.getFormDefinitionId();
-            String newFormId;
+            // First, check if we need to create a new form version
+            Long oldFormId = currentVisitForm.getForm().getId();
+            Long newFormId;
             
             if (!formIdMap.containsKey(oldFormId)) {
                 // Create new version of this form
-                FormDefinitionEntity currentForm = formDefinitionRepository.findById(oldFormId)
-                    .orElseThrow(() -> new EntityNotFoundException("Form definition not found: " + oldFormId));
+                FormEntity currentForm = formRepository.findById(oldFormId)
+                    .orElseThrow(() -> new EntityNotFoundException("Form not found: " + oldFormId));
                 
-                FormDefinitionEntity newForm = new FormDefinitionEntity();
-                BeanUtils.copyProperties(currentForm, newForm, "id", "createdAt", "isLatestVersion");
+                FormEntity newForm = new FormEntity();
+                BeanUtils.copyProperties(currentForm, newForm, "id", "study", "createdAt", "versions", "visitForms");
                 
-                newFormId = UUID.randomUUID().toString();
-                newForm.setId(newFormId);
-                newForm.setStudyId(newStudyId);
-                newForm.setParentVersionId(oldFormId);
-                
-                // Increment form version
-                String[] formVersionParts = currentForm.getVersion().split("\\.");
-                int formMajor = Integer.parseInt(formVersionParts[0]);
-                int formMinor = Integer.parseInt(formVersionParts[1]) + 1;
-                newForm.setVersion(formMajor + "." + formMinor);
-                
-                newForm.setLatestVersion(true);
+                // Set study relationship
+                newForm.setStudy(savedStudyVersion);
                 newForm.setCreatedAt(LocalDateTime.now());
                 newForm.setUpdatedAt(LocalDateTime.now());
                 
-                formDefinitionRepository.save(newForm);
+                FormEntity savedForm = formRepository.save(newForm);
+                newFormId = savedForm.getId();
                 formIdMap.put(oldFormId, newFormId);
+                
+                // Also create a new version of the current active form version if it exists
+                if (currentVisitForm.getActiveFormVersion() != null) {
+                    FormVersionEntity currentFormVersion = currentVisitForm.getActiveFormVersion();
+                    FormVersionEntity newFormVersion = new FormVersionEntity();
+                    
+                    BeanUtils.copyProperties(currentFormVersion, newFormVersion, "id", "form", "createdAt");
+                    
+                    newFormVersion.setForm(savedForm);
+                    newFormVersion.setCreatedAt(LocalDateTime.now());
+                    newFormVersion.setUpdatedAt(LocalDateTime.now());
+                    
+                    formVersionRepository.save(newFormVersion);
+                }
             } else {
                 newFormId = formIdMap.get(oldFormId);
             }
             
             // Now create new visit form mapping
             VisitFormEntity newVisitForm = new VisitFormEntity();
-            BeanUtils.copyProperties(currentVisitForm, newVisitForm, "id", "visitDefinitionId", "formDefinitionId", "createdAt");
+            BeanUtils.copyProperties(currentVisitForm, newVisitForm, "id", "visitDefinition", "form", "activeFormVersion", "createdAt");
             
-            newVisitForm.setId(UUID.randomUUID().toString());
-            newVisitForm.setVisitDefinitionId(visitIdMap.get(currentVisitForm.getVisitDefinitionId()));
-            newVisitForm.setFormDefinitionId(newFormId);
+            // Set the new relationships
+            VisitDefinitionEntity newVisitDefinition = visitDefinitionRepository.findById(visitIdMap.get(currentVisitForm.getVisitDefinition().getId()))
+                    .orElseThrow(() -> new EntityNotFoundException("Visit definition not found"));
+            
+            FormEntity newForm = formRepository.findById(newFormId)
+                    .orElseThrow(() -> new EntityNotFoundException("Form not found"));
+            
+            newVisitForm.setVisitDefinition(newVisitDefinition);
+            newVisitForm.setForm(newForm);
             newVisitForm.setCreatedAt(LocalDateTime.now());
+            
+            // The active form version will be set separately if needed
             
             visitFormRepository.save(newVisitForm);
         }
@@ -168,80 +182,77 @@ public class VersionIntegrityService {
     }
     
     /**
-     * Creates a new version of a form while maintaining integrity with studies
-     * that reference it. Optionally updates the study to use this new form version.
+     * Creates a new version of a form.
+     * This creates a new FormVersionEntity for the specified form.
      *
-     * @param formId The ID of the form to version
-     * @param versionNotes Notes describing the version
+     * @param formId The ID of the form
+     * @param versionNumber The version number to assign
+     * @param versionName The name for this version
      * @param userId ID of the user creating the version
-     * @param updateStudyReferences Whether to update study references to this form
      * @return The ID of the newly created form version
      */
     @Transactional
-    public String createFormVersionWithIntegrity(String formId, String versionNotes, String userId, boolean updateStudyReferences) {
+    public Long createFormVersion(Long formId, String versionNumber, String versionName, Long userId) {
         // Get the current form
-        FormDefinitionEntity currentForm = formDefinitionRepository.findById(formId)
-                .orElseThrow(() -> new EntityNotFoundException("Form definition not found: " + formId));
+        FormEntity form = formRepository.findById(formId)
+                .orElseThrow(() -> new EntityNotFoundException("Form not found: " + formId));
         
-        // Mark current version as not latest
-        currentForm.setLatestVersion(false);
-        formDefinitionRepository.save(currentForm);
+        // Create new form version
+        FormVersionEntity newVersion = new FormVersionEntity();
+        newVersion.setForm(form);
+        newVersion.setVersionNumber(versionNumber);
+        newVersion.setName(versionName);
+        newVersion.setDescription("Version " + versionNumber + " of " + form.getName());
+        newVersion.setActive(true);
+        newVersion.setPublished(false);  // New versions start unpublished
+        newVersion.setStatus("DRAFT");
+        newVersion.setCreatedBy(userId);
+        newVersion.setCreatedAt(LocalDateTime.now());
+        newVersion.setUpdatedAt(LocalDateTime.now());
         
-        // Create new version
-        FormDefinitionEntity newForm = new FormDefinitionEntity();
-        BeanUtils.copyProperties(currentForm, newForm, "id", "createdAt", "isLatestVersion");
+        // If this is the first version, we might copy form schema from the form itself
+        // or leave it blank for the user to fill in
         
-        // Set new version properties
-        String newFormId = UUID.randomUUID().toString();
-        newForm.setId(newFormId);
-        newForm.setParentVersionId(formId);
+        FormVersionEntity savedVersion = formVersionRepository.save(newVersion);
+        return savedVersion.getId();
+    }
+    
+    /**
+     * Updates all visit forms that reference a specific form version to use a new version.
+     * This is useful when a new form version is published and should be used by default.
+     *
+     * @param oldVersionId The ID of the old form version
+     * @param newVersionId The ID of the new form version
+     * @return Number of visit form mappings updated
+     */
+    @Transactional
+    public int updateVisitFormReferencesToNewVersion(Long oldVersionId, Long newVersionId) {
+        FormVersionEntity oldVersion = formVersionRepository.findById(oldVersionId)
+                .orElseThrow(() -> new EntityNotFoundException("Form version not found: " + oldVersionId));
         
-        // Increment version
-        String[] versionParts = currentForm.getVersion().split("\\.");
-        int major = Integer.parseInt(versionParts[0]);
-        int minor = Integer.parseInt(versionParts[1]) + 1;
-        newForm.setVersion(major + "." + minor);
+        FormVersionEntity newVersion = formVersionRepository.findById(newVersionId)
+                .orElseThrow(() -> new EntityNotFoundException("Form version not found: " + newVersionId));
         
-        newForm.setLatestVersion(true);
-        newForm.setVersionNotes(versionNotes);
-        newForm.setCreatedAt(LocalDateTime.now());
-        newForm.setUpdatedAt(LocalDateTime.now());
+        // Ensure both versions belong to the same form
+        if (!oldVersion.getForm().getId().equals(newVersion.getForm().getId())) {
+            throw new IllegalArgumentException("Form versions must belong to the same form");
+        }
         
-        formDefinitionRepository.save(newForm);
+        // Find all visit forms that reference the old version
+        List<VisitFormEntity> visitForms = visitFormRepository.findByFormId(oldVersion.getForm().getId());
+        int count = 0;
         
-        // If requested, update study references to this form
-        if (updateStudyReferences) {
-            // Find all visit forms that reference the old form
-            List<VisitFormEntity> visitForms = visitFormRepository.findByFormDefinitionId(formId);
-            
-            for (VisitFormEntity visitForm : visitForms) {
-                // Only update for active studies
-                VisitDefinitionEntity visit = visitDefinitionRepository.findById(visitForm.getVisitDefinitionId())
-                        .orElse(null);
+        for (VisitFormEntity visitForm : visitForms) {
+            if (visitForm.getActiveFormVersion() != null && 
+                visitForm.getActiveFormVersion().getId().equals(oldVersionId)) {
                 
-                if (visit != null) {
-                    StudyEntity study = studyRepository.findById(visit.getStudyId())
-                            .orElse(null);
-                    
-                    if (study != null && study.getStatus() == StudyEntity.Status.active) {
-                        VisitFormEntity newVisitForm = new VisitFormEntity();
-                        BeanUtils.copyProperties(visitForm, newVisitForm, "id", "formDefinitionId", "createdAt");
-                        
-                        newVisitForm.setId(UUID.randomUUID().toString());
-                        newVisitForm.setFormDefinitionId(newFormId);
-                        newVisitForm.setCreatedAt(LocalDateTime.now());
-                        
-                        // Save new mapping
-                        visitFormRepository.save(newVisitForm);
-                        
-                        // Deactivate old mapping
-                        visitForm.setActive(false);
-                        visitFormRepository.save(visitForm);
-                    }
-                }
+                visitForm.setActiveFormVersion(newVersion);
+                visitForm.setUpdatedAt(LocalDateTime.now());
+                visitFormRepository.save(visitForm);
+                count++;
             }
         }
         
-        return newFormId;
+        return count;
     }
 }

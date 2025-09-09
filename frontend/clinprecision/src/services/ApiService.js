@@ -67,6 +67,10 @@ const ApiService = {
     return await api.delete(url, config);
   },
   
+  patch: async (url, data, config = {}) => {
+    return await api.patch(url, data, config);
+  },
+  
   // Function to get authorization headers for other services
   getAuthHeaders: () => {
     const token = localStorage.getItem('authToken');

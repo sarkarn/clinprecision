@@ -1,27 +1,56 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerStudy } from '../../../services/StudyService';
+import StudyService from '../../../services/StudyService';
+import { OrganizationService } from '../../../services/OrganizationService';
 
 const StudyRegister = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         name: '',
         phase: '',
-        status: 'Planned',
+        status: 'draft',
         startDate: '',
         endDate: '',
         sponsor: '',
-        investigator: '',
-        description: ''
+        investigator: '',  // This will be handled in the API or stored in metadata
+        description: '',
+        protocolNumber: '',
+        organizations: [] // { organizationId, role }
     });
+    const [availableOrganizations, setAvailableOrganizations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    useEffect(() => {
+        // Fetch organizations for selection
+        const fetchOrgs = async () => {
+            try {
+                const orgs = await OrganizationService.getAllOrganizations();
+                setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
+            } catch (err) {
+                setAvailableOrganizations([]);
+            }
+        };
+        fetchOrgs();
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({
             ...formData,
             [name]: value
+        });
+    };
+
+    // Handle organization-role assignment
+    const handleOrgRoleChange = (orgId, role) => {
+        setFormData(prev => {
+            const orgs = prev.organizations.filter(o => o.organizationId !== orgId);
+            if (role) {
+                orgs.push({ organizationId: orgId, role });
+            }
+            return { ...prev, organizations: orgs };
         });
     };
 
@@ -36,12 +65,50 @@ const StudyRegister = () => {
                 throw new Error('Study name and phase are required');
             }
 
-            const response = await registerStudy(formData);
-            setLoading(false);
+            // Create a copy of formData to prepare for API
+            const apiFormData = { ...formData };
 
-            // Navigate to the study list or edit page after successful registration
-            navigate('/study-design/list');
+            // Handle investigator and other non-standard fields in metadata
+            if (apiFormData.investigator) {
+                const metadata = {
+                    investigator: apiFormData.investigator
+                };
+                apiFormData.metadata = JSON.stringify(metadata);
+                delete apiFormData.investigator;
+            }
+
+            // Format dates if needed
+            if (apiFormData.startDate) {
+                apiFormData.startDate = apiFormData.startDate; // Already in YYYY-MM-DD format
+            }
+            if (apiFormData.endDate) {
+                apiFormData.endDate = apiFormData.endDate; // Already in YYYY-MM-DD format
+            }
+
+            console.log('Attempting to register study with data:', apiFormData);
+            console.log('API_PATH being used:', '/study-design-ws/api/studies');
+
+            try {
+                const response = await StudyService.registerStudy(apiFormData);
+                console.log('Study registration successful:', response);
+                setLoading(false);
+
+                // Navigate to the study list or edit page after successful registration
+                navigate('/study-design/list');
+            } catch (apiError) {
+                console.error('API Error details:', apiError);
+                console.error('Error response:', apiError.response ? {
+                    status: apiError.response.status,
+                    statusText: apiError.response.statusText,
+                    data: apiError.response.data,
+                    headers: apiError.response.headers,
+                    url: apiError.response.config?.url
+                } : 'No response object');
+
+                throw new Error(`API Error: ${apiError.response?.status} ${apiError.response?.statusText || ''} - ${apiError.message}`);
+            }
         } catch (err) {
+            console.error('Study registration error details:', err);
             setError(err.message || 'Failed to register study');
             setLoading(false);
         }
@@ -102,12 +169,10 @@ const StudyRegister = () => {
                             onChange={handleChange}
                             className="border border-gray-300 rounded-md w-full px-3 py-2"
                         >
-                            <option value="Planned">Planned</option>
-                            <option value="Recruiting">Recruiting</option>
-                            <option value="Active">Active</option>
-                            <option value="On Hold">On Hold</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Terminated">Terminated</option>
+                            <option value="draft">Draft</option>
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                            <option value="terminated">Terminated</option>
                         </select>
                     </div>
 
@@ -152,6 +217,19 @@ const StudyRegister = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Protocol Number
+                        </label>
+                        <input
+                            type="text"
+                            name="protocolNumber"
+                            value={formData.protocolNumber}
+                            onChange={handleChange}
+                            className="border border-gray-300 rounded-md w-full px-3 py-2"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Principal Investigator
                         </label>
                         <input
@@ -175,6 +253,34 @@ const StudyRegister = () => {
                         rows="4"
                         className="border border-gray-300 rounded-md w-full px-3 py-2"
                     ></textarea>
+                </div>
+
+                <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Associated Organizations & Roles
+                    </label>
+                    <div className="space-y-2">
+                        {availableOrganizations.length === 0 && (
+                            <div className="text-gray-500">No organizations available.</div>
+                        )}
+                        {availableOrganizations.map(org => (
+                            <div key={org.id} className="flex items-center space-x-2">
+                                <span className="w-48 inline-block">{org.name}</span>
+                                <select
+                                    value={formData.organizations.find(o => o.organizationId === org.id)?.role || ''}
+                                    onChange={e => handleOrgRoleChange(org.id, e.target.value)}
+                                    className="border border-gray-300 rounded-md px-2 py-1"
+                                >
+                                    <option value="">Not Associated</option>
+                                    <option value="sponsor">Sponsor</option>
+                                    <option value="cro">CRO</option>
+                                    <option value="site">Site</option>
+                                    <option value="vendor">Vendor</option>
+                                    <option value="laboratory">Laboratory</option>
+                                </select>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="flex justify-end">

@@ -4,6 +4,11 @@ import StudyRegister from './StudyRegister';
 import StudyEditPage from './StudyEditPage';
 import StudyViewPage from './StudyViewPage';
 import StudyList from './StudyList';
+import FormList from './FormList';
+import FormDesigner from './FormDesigner';
+import FormVersionHistory from './FormVersionHistory';
+import FormVersionViewer from './FormVersionViewer';
+import CRFBuilderIntegration from './CRFBuilderIntegration';
 import { useAuth } from '../../login/AuthContext';
 import Logout from '../../login/Logout';
 
@@ -43,6 +48,10 @@ const Breadcrumb = () => {
         else if (name === 'register') displayName = 'Register Study';
         else if (name === 'edit') displayName = 'Edit Study';
         else if (name === 'view') displayName = 'View Study';
+        else if (name === 'forms') displayName = 'Forms';
+        else if (name === 'designer') displayName = 'Form Designer';
+        else if (name === 'versions') displayName = 'Form Versions';
+        else if (name === 'builder') displayName = 'CRF Builder';
         else if (index === relevantPathnames.length - 1 && !isNaN(name)) {
           // Skip numeric IDs in the display, but keep them in the path
           return null;
@@ -122,6 +131,12 @@ const StudyDesignModule = () => {
             >
               View Studies
             </button>
+            <button
+              onClick={() => navigate('/study-design/forms')}
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+            >
+              Manage Forms
+            </button>
           </div>
         </div>
 
@@ -130,6 +145,17 @@ const StudyDesignModule = () => {
           <Route path="list" element={<StudyList />} />
           <Route path="edit/:studyId" element={<StudyEditPage />} />
           <Route path="view/:studyId" element={<StudyViewPage />} />
+
+          {/* Form Management Routes */}
+          <Route path="forms" element={<FormList />} />
+          <Route path="forms/designer" element={<FormDesigner />} />
+          <Route path="forms/designer/:formId" element={<FormDesigner />} />
+          <Route path="forms/:formId/versions" element={<FormVersionHistory />} />
+          <Route path="forms/:formId/versions/:versionId/view" element={<FormVersionViewer />} />
+          <Route path="forms/builder" element={<CRFBuilderIntegration />} />
+          <Route path="forms/builder/:formId" element={<CRFBuilderIntegration />} />
+          <Route path="forms/builder/:formId/:versionId" element={<CRFBuilderIntegration />} />
+
           {/* Default to Study Register */}
           <Route index element={<StudyRegister />} />
         </Routes>

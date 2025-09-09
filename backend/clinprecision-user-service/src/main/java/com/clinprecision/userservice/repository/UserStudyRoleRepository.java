@@ -28,7 +28,7 @@ public interface UserStudyRoleRepository extends JpaRepository<UserStudyRoleEnti
      * @param studyId the ID of the study
      * @return list of user roles for the specified study
      */
-    List<UserStudyRoleEntity> findByStudyId(String studyId);
+    List<UserStudyRoleEntity> findByStudyId(Long studyId);
     
     /**
      * Find all active user roles for a specific study.
@@ -37,7 +37,7 @@ public interface UserStudyRoleRepository extends JpaRepository<UserStudyRoleEnti
      * @param status the status of the roles to find
      * @return list of active user roles for the specified study
      */
-    List<UserStudyRoleEntity> findByStudyIdAndStatus(String studyId, UserStudyRoleEntity.RoleStatus status);
+    List<UserStudyRoleEntity> findByStudyIdAndStatus(Long studyId, UserStudyRoleEntity.RoleStatus status);
     
     /**
      * Find a specific role for a user in a study.
@@ -47,7 +47,7 @@ public interface UserStudyRoleRepository extends JpaRepository<UserStudyRoleEnti
      * @param roleCode the role code
      * @return optional containing the user study role if found
      */
-    Optional<UserStudyRoleEntity> findByUser_IdAndStudyIdAndRoleCode(Long userId, String studyId, String roleCode);
+    Optional<UserStudyRoleEntity> findByUser_IdAndStudyIdAndRoleCode(Long userId, Long studyId, String roleCode);
     
     /**
      * Find all user roles with end dates before a specific date.

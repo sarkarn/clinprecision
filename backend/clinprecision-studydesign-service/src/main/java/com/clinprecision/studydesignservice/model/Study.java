@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class Study {
-    private String id;
+    private Long id;
 
     private String name;
     private String description;

@@ -19,8 +19,9 @@ import java.util.UUID;
 public class LockingAuditEntity {
     
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private String id = UUID.randomUUID().toString();
+    private Long id;
     
     @Column(name = "entity_id", nullable = false)
     private String entityId;

@@ -518,6 +518,7 @@ const CRFBuilder = ({ onSave, onCancel, initialData = null, readOnly = false }) 
       name: crfName,
       fields: fields,
       fieldGroups: fieldGroups,
+      formType: selectedTemplate?.id || 'custom', // Include formType
       templateId: selectedTemplate?.id
     });
   };

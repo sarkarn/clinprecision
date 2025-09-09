@@ -10,7 +10,7 @@ import java.util.List;
  * Repository for accessing visit-form mapping data.
  */
 @Repository
-public interface VisitFormRepository extends JpaRepository<VisitFormEntity, String> {
+public interface VisitFormRepository extends JpaRepository<VisitFormEntity, Long> {
     
     /**
      * Find all forms associated with a specific visit.
@@ -18,24 +18,23 @@ public interface VisitFormRepository extends JpaRepository<VisitFormEntity, Stri
      * @param visitDefinitionId The ID of the visit definition
      * @return List of visit-form mappings
      */
-    List<VisitFormEntity> findByVisitDefinitionId(String visitDefinitionId);
+    List<VisitFormEntity> findByVisitDefinitionId(Long visitDefinitionId);
     
     /**
      * Find all active forms associated with a specific visit.
      * 
      * @param visitDefinitionId The ID of the visit definition
-     * @param isActive Whether the mapping is active
      * @return List of active visit-form mappings
      */
-    List<VisitFormEntity> findByVisitDefinitionIdAndIsActive(String visitDefinitionId, boolean isActive);
+    List<VisitFormEntity> findByVisitDefinitionIdAndIsActiveTrue(Long visitDefinitionId);
     
     /**
      * Find all visit-form mappings for a specific form.
      * 
-     * @param formDefinitionId The ID of the form definition
+     * @param formId The ID of the form 
      * @return List of visit-form mappings
      */
-    List<VisitFormEntity> findByFormDefinitionId(String formDefinitionId);
+    List<VisitFormEntity> findByFormId(Long formId);
     
     /**
      * Find all visit-form mappings for a list of visits.
@@ -43,28 +42,28 @@ public interface VisitFormRepository extends JpaRepository<VisitFormEntity, Stri
      * @param visitDefinitionIds List of visit definition IDs
      * @return List of visit-form mappings
      */
-    List<VisitFormEntity> findByVisitDefinitionIdIn(List<String> visitDefinitionIds);
+    List<VisitFormEntity> findByVisitDefinitionIdIn(List<Long> visitDefinitionIds);
     
     /**
      * Find all visit-form mappings for a specific visit and form.
      * 
      * @param visitDefinitionId The ID of the visit definition
-     * @param formDefinitionId The ID of the form definition
+     * @param formId The ID of the form
      * @return List of visit-form mappings
      */
-    List<VisitFormEntity> findByVisitDefinitionIdAndFormDefinitionId(String visitDefinitionId, String formDefinitionId);
+    List<VisitFormEntity> findByVisitDefinitionIdAndFormId(Long visitDefinitionId, Long formId);
     
     /**
      * Delete all mappings for a specific visit.
      * 
      * @param visitDefinitionId The ID of the visit definition
      */
-    void deleteByVisitDefinitionId(String visitDefinitionId);
+    void deleteByVisitDefinitionId(Long visitDefinitionId);
     
     /**
      * Delete all mappings for a specific form.
      * 
-     * @param formDefinitionId The ID of the form definition
+     * @param formId The ID of the form
      */
-    void deleteByFormDefinitionId(String formDefinitionId);
+    void deleteByFormId(Long formId);
 }
