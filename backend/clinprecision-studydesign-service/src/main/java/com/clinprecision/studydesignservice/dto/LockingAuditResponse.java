@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
  * Response DTO for locking audit records.
  */
 public class LockingAuditResponse {
-    private String id;
+    private Long id;
     private String entityId;
     private String entityType;
     private String operation;
@@ -19,7 +19,7 @@ public class LockingAuditResponse {
     }
     
     public LockingAuditResponse(
-            String id,
+            Long id,
             String entityId,
             String entityType,
             String operation,
@@ -35,11 +35,11 @@ public class LockingAuditResponse {
         this.createdAt = createdAt;
     }
     
-    public String getId() {
+    public Long getId() {
         return id;
     }
     
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
     

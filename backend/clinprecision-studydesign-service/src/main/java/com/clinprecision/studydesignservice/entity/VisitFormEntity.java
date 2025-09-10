@@ -8,11 +8,10 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
- * Entity representing the association between a visit and a form.
- * This mapping allows forms to be assigned to specific visits in a study.
+ * Entity representing the association between a visit definition and a form.
+ * This defines which forms are used in each visit.
  */
 @Data
 @Entity
@@ -22,31 +21,50 @@ import java.util.UUID;
 public class VisitFormEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private String id = UUID.randomUUID().toString();
+    private Long id;
 
-    @Column(name = "visit_definition_id", nullable = false)
-    private String visitDefinitionId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "visit_definition_id", nullable = false)
+    private VisitDefinitionEntity visitDefinition;
 
-    @Column(name = "form_definition_id", nullable = false)
-    private String formDefinitionId;
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "form_id", nullable = false)
+    private FormEntity form;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "active_form_version_id")
+    private FormVersionEntity activeFormVersion;
+    
+    @Column(name = "display_name")
+    private String displayName;
+    
     @Column(name = "display_order")
     private Integer displayOrder;
-
+    
     @Column(name = "is_required")
     private boolean isRequired = true;
-
-    @Column(name = "conditional_display")
-    private String conditionalDisplay;
-
+    
+    @Column(name = "is_repeatable")
+    private boolean isRepeatable = false;
+    
+    @Column(name = "max_occurrences")
+    private Integer maxOccurrences;
+    
+    @Column(name = "conditional_logic")
+    private String conditionalLogic;
+    
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata", columnDefinition = "json")
     private String metadata;
 
+    @Column(name = "created_by")
+    private Long createdBy;
+    
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-
+    
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 

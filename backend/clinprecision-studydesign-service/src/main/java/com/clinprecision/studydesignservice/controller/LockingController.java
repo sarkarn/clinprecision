@@ -28,7 +28,7 @@ public class LockingController {
      */
     @PostMapping("/study/{studyId}/lock")
     public ResponseEntity<LockingResponse> lockStudy(
-            @PathVariable String studyId,
+            @PathVariable Long studyId,
             @RequestBody LockingRequest request) {
         try {
             lockingService.lockStudy(studyId, request.getReason(), request.getUserId());
@@ -50,7 +50,7 @@ public class LockingController {
      */
     @PostMapping("/study/{studyId}/unlock")
     public ResponseEntity<LockingResponse> unlockStudy(
-            @PathVariable String studyId,
+            @PathVariable Long studyId,
             @RequestBody LockingRequest request) {
         try {
             lockingService.unlockStudy(studyId, request.getReason(), request.getUserId());
@@ -72,7 +72,7 @@ public class LockingController {
      */
     @PostMapping("/form/{formId}/lock")
     public ResponseEntity<LockingResponse> lockForm(
-            @PathVariable String formId,
+            @PathVariable Long formId,
             @RequestBody LockingRequest request) {
         try {
             lockingService.lockForm(formId, request.getReason(), request.getUserId());
@@ -94,7 +94,7 @@ public class LockingController {
      */
     @PostMapping("/form/{formId}/unlock")
     public ResponseEntity<LockingResponse> unlockForm(
-            @PathVariable String formId,
+            @PathVariable Long formId,
             @RequestBody LockingRequest request) {
         try {
             lockingService.unlockForm(formId, request.getReason(), request.getUserId());
@@ -115,7 +115,7 @@ public class LockingController {
      * Checks if a study is locked.
      */
     @GetMapping("/study/{studyId}/status")
-    public ResponseEntity<?> checkStudyLockStatus(@PathVariable String studyId) {
+    public ResponseEntity<?> checkStudyLockStatus(@PathVariable Long studyId) {
         try {
             boolean isLocked = lockingService.isStudyLocked(studyId);
             return ResponseEntity.ok(new LockingResponse(true, isLocked ? "Study is locked" : "Study is unlocked"));
@@ -132,7 +132,7 @@ public class LockingController {
      * Checks if a form is locked.
      */
     @GetMapping("/form/{formId}/status")
-    public ResponseEntity<?> checkFormLockStatus(@PathVariable String formId) {
+    public ResponseEntity<?> checkFormLockStatus(@PathVariable Long formId) {
         try {
             boolean isLocked = lockingService.isFormLocked(formId);
             return ResponseEntity.ok(new LockingResponse(true, isLocked ? "Form is locked" : "Form is unlocked"));

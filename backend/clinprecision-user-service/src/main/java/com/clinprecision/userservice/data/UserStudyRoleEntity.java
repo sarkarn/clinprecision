@@ -21,7 +21,7 @@ public class UserStudyRoleEntity {
     private UserEntity user;
     
     @Column(name = "study_id", nullable = false, length = 36)
-    private String studyId;
+    private Long studyId;
     
     @Column(name = "role_code", nullable = false)
     private String roleCode;
@@ -82,11 +82,11 @@ public class UserStudyRoleEntity {
         this.user = user;
     }
 
-    public String getStudyId() {
+    public Long getStudyId() {
         return studyId;
     }
 
-    public void setStudyId(String studyId) {
+    public void setStudyId(Long studyId) {
         this.studyId = studyId;
     }
 

@@ -64,7 +64,7 @@ public class OrganizationController {
      * @return the ResponseEntity with status 200 (OK) and the organization in body, or with status 404 (Not Found)
      */
     @GetMapping("/{id}")
-    public ResponseEntity<OrganizationDto> getOrganization(@PathVariable Long id) {
+    public ResponseEntity<OrganizationDto> getOrganization(@PathVariable("id") Long id) {
     return organizationService.getOrganizationById(id)
         .map(organization -> ResponseEntity.ok(organizationMapper.toDto(organization)))
         .orElse(ResponseEntity.notFound().build());
@@ -101,18 +101,27 @@ public class OrganizationController {
      */
     @PutMapping("/{id}")
     public ResponseEntity<OrganizationDto> updateOrganization(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody OrganizationDto organizationDto) {
+        
+        System.out.println("=== PUT /organizations/" + id + " called ===");
+        System.out.println("Request Body: " + organizationDto);
+        
         if (!organizationService.getOrganizationById(id).isPresent()) {
+            System.out.println("Organization not found: " + id);
             return ResponseEntity.notFound().build();
         }
     OrganizationEntity organization = organizationMapper.toEntity(organizationDto);
+        
+        System.out.println("OrganizationDto.organizationType: " + organizationDto.getOrganizationType());
+        
         if (organizationDto.getOrganizationType() != null && organizationDto.getOrganizationType().getId() != null) {
             OrganizationTypeEntity organizationType = organizationTypeRepository.findById(organizationDto.getOrganizationType().getId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization type not found"));
             organization.setOrganizationType(organizationType);
         } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization type is required");
+            System.out.println("ERROR: Organization type is missing or ID is null");
+            return ResponseEntity.badRequest().build();
         }
         OrganizationEntity updatedOrganization = organizationService.updateOrganization(id, organization);
     return ResponseEntity.ok(organizationMapper.toDto(updatedOrganization));
@@ -125,7 +134,7 @@ public class OrganizationController {
      * @return the ResponseEntity with status 204 (NO_CONTENT)
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteOrganization(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteOrganization(@PathVariable("id") Long id) {
         // Check if organization exists
         if (!organizationService.getOrganizationById(id).isPresent()) {
             return ResponseEntity.notFound().build();

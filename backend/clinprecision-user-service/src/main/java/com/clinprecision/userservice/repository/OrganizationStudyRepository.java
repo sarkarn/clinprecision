@@ -28,7 +28,7 @@ public interface OrganizationStudyRepository extends JpaRepository<OrganizationS
      * @param studyId the ID of the study
      * @return list of organization relationships for the specified study
      */
-    List<OrganizationStudyEntity> findByStudyId(String studyId);
+    List<OrganizationStudyEntity> findByStudyId(Long studyId);
     
     /**
      * Find all active organization relationships for a specific study.
@@ -37,7 +37,7 @@ public interface OrganizationStudyRepository extends JpaRepository<OrganizationS
      * @param status the status of the relationships to find
      * @return list of active organization relationships for the specified study
      */
-    List<OrganizationStudyEntity> findByStudyIdAndStatus(String studyId, OrganizationStudyEntity.OrganizationStudyStatus status);
+    List<OrganizationStudyEntity> findByStudyIdAndStatus(Long studyId, OrganizationStudyEntity.OrganizationStudyStatus status);
     
     /**
      * Find a specific role relationship for an organization in a study.
@@ -47,7 +47,7 @@ public interface OrganizationStudyRepository extends JpaRepository<OrganizationS
      * @param roleCode the role code
      * @return optional containing the organization study relationship if found
      */
-    Optional<OrganizationStudyEntity> findByOrganization_IdAndStudyIdAndRoleCode(Long organizationId, String studyId, String roleCode);
+    Optional<OrganizationStudyEntity> findByOrganization_IdAndStudyIdAndRoleCode(Long organizationId, Long studyId, String roleCode);
     
     /**
      * Find all organization study relationships with end dates before a specific date.

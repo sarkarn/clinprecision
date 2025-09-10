@@ -70,6 +70,7 @@ CREATE TABLE users_roles (
 CREATE TABLE organization_types (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE COMMENT 'Organization type name (e.g., Sponsor, CRO, Site, Vendor, Laboratory)',
+	code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Organization type Code',
     description TEXT COMMENT 'Description of the organization type',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -134,7 +135,7 @@ CREATE TABLE users_user_types (
 
 -- Study related tables
 CREATE TABLE studies (
-    id VARCHAR(36) PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     sponsor VARCHAR(255),
@@ -156,8 +157,8 @@ CREATE TABLE studies (
 );
 
 CREATE TABLE study_versions (
-    id VARCHAR(36) PRIMARY KEY,
-    study_id VARCHAR(36) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
     version VARCHAR(20) NOT NULL,
     version_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by BIGINT,
@@ -169,7 +170,7 @@ CREATE TABLE study_versions (
 CREATE TABLE organization_studies (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     organization_id BIGINT NOT NULL,
-    study_id VARCHAR(36) NOT NULL,
+    study_id BIGINT NOT NULL,
     role ENUM('sponsor', 'cro', 'site', 'vendor', 'laboratory') NOT NULL COMMENT 'Role of the organization in the study',
     start_date DATE COMMENT 'Start date of organization involvement',
     end_date DATE COMMENT 'End date of organization involvement',
@@ -182,8 +183,8 @@ CREATE TABLE organization_studies (
 
 -- Study arms
 CREATE TABLE study_arms (
-    id VARCHAR(36) PRIMARY KEY,
-    study_id VARCHAR(36) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     randomization_ratio INT,
@@ -197,7 +198,7 @@ CREATE TABLE sites (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     organization_id BIGINT NOT NULL COMMENT 'Reference to the parent organization',
     site_number VARCHAR(50) NOT NULL COMMENT 'Site identifier within the study',
-    study_id VARCHAR(36) NOT NULL COMMENT 'Reference to the study',
+    study_id BIGINT NOT NULL COMMENT 'Reference to the study',
     principal_investigator_id BIGINT COMMENT 'Reference to the principal investigator user',
     status ENUM('pending', 'active', 'suspended', 'closed') DEFAULT 'pending',
     activation_date DATE COMMENT 'Date when site was activated',
@@ -211,9 +212,9 @@ CREATE TABLE sites (
 );
 
 CREATE TABLE visit_definitions (
-    id VARCHAR(36) PRIMARY KEY,
-    study_id VARCHAR(36) NOT NULL,
-    arm_id VARCHAR(36),
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    arm_id BIGINT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     timepoint INT NOT NULL,  -- Days from baseline (can be negative for screening)
@@ -230,10 +231,11 @@ CREATE TABLE visit_definitions (
 
 -- Form definitions
 CREATE TABLE form_definitions (
-    id VARCHAR(36) PRIMARY KEY,
-    study_id VARCHAR(36) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
+	form_type VARCHAR(100),
     version VARCHAR(20) DEFAULT '1.0',
     is_latest_version BOOLEAN DEFAULT TRUE,
     parent_version_id VARCHAR(36) DEFAULT NULL,
@@ -251,8 +253,8 @@ CREATE TABLE form_definitions (
 );
 
 CREATE TABLE form_versions (
-    id VARCHAR(36) PRIMARY KEY,
-    form_id VARCHAR(36) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    form_id BIGINT NOT NULL,
     version VARCHAR(20) NOT NULL,
     version_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by BIGINT,
@@ -262,9 +264,9 @@ CREATE TABLE form_versions (
 );
 
 CREATE TABLE visit_forms (
-    id VARCHAR(36) PRIMARY KEY,
-    visit_definition_id VARCHAR(36) NOT NULL,
-    form_definition_id VARCHAR(36) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    visit_definition_id BIGINT NOT NULL,
+    form_definition_id BIGINT NOT NULL,
     sequence_number INT NOT NULL,
     is_required BOOLEAN DEFAULT TRUE,
     is_active BOOLEAN DEFAULT TRUE,
@@ -280,10 +282,10 @@ CREATE TABLE visit_forms (
 
 -- Subjects and data entry
 CREATE TABLE subjects (
-    id VARCHAR(36) PRIMARY KEY,
-    subject_id VARCHAR(100) NOT NULL,
-    study_id VARCHAR(36) NOT NULL,
-    arm_id VARCHAR(36),
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    protocol_subject_id VARCHAR(100) NOT NULL,
+    study_id BIGINT NOT NULL,
+    arm_id BIGINT,
     enrollment_date DATE NOT NULL,
     status ENUM('screening', 'active', 'completed', 'withdrawn', 'screen_failed') DEFAULT 'screening',
     withdrawal_reason TEXT,
@@ -294,13 +296,13 @@ CREATE TABLE subjects (
     FOREIGN KEY (study_id) REFERENCES studies(id),
     FOREIGN KEY (arm_id) REFERENCES study_arms(id),
     FOREIGN KEY (created_by) REFERENCES users(id),
-    UNIQUE KEY (subject_id, study_id)
+    UNIQUE KEY (protocol_subject_id, study_id)
 );
 
 CREATE TABLE subject_visits (
-    id VARCHAR(36) PRIMARY KEY,
-    subject_id VARCHAR(36) NOT NULL,
-    visit_definition_id VARCHAR(36) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    subject_id BIGINT NOT NULL,
+    visit_definition_id BIGINT NOT NULL,
     scheduled_date DATE,
     actual_date DATE,
     status ENUM('scheduled', 'in_progress', 'completed', 'missed', 'not_applicable') DEFAULT 'scheduled',
@@ -314,11 +316,11 @@ CREATE TABLE subject_visits (
 );
 
 CREATE TABLE form_data (
-    id VARCHAR(36) PRIMARY KEY,
-    subject_id VARCHAR(36) NOT NULL,
-    subject_visit_id VARCHAR(36) NOT NULL,
-    form_definition_id VARCHAR(36) NOT NULL,
-    form_version VARCHAR(20) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    subject_id BIGINT NOT NULL,
+    subject_visit_id BIGINT NOT NULL,
+    form_definition_id BIGINT NOT NULL,
+    form_version BIGINT NOT NULL,
     uses_latest_form_version BOOLEAN DEFAULT TRUE,
     status ENUM('not_started', 'incomplete', 'complete', 'signed', 'locked', 'superseded') DEFAULT 'not_started',
     data JSON COMMENT 'The actual form data values keyed by field ID',
@@ -340,11 +342,11 @@ CREATE TABLE form_data (
 );
 
 CREATE TABLE form_data_history (
-    id VARCHAR(36) PRIMARY KEY,
-    form_data_id VARCHAR(36) NOT NULL,
-    subject_id VARCHAR(36) NOT NULL,
-    subject_visit_id VARCHAR(36) NOT NULL,
-    form_definition_id VARCHAR(36) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    form_data_id BIGINT NOT NULL,
+    subject_id BIGINT NOT NULL,
+    subject_visit_id BIGINT NOT NULL,
+    form_definition_id BIGINT NOT NULL,
     form_version VARCHAR(20) NOT NULL,
     status VARCHAR(20) NOT NULL,
     data JSON,
@@ -358,8 +360,8 @@ CREATE TABLE form_data_history (
 
 -- Quality control and verification
 CREATE TABLE field_verifications (
-    id VARCHAR(36) PRIMARY KEY,
-    form_data_id VARCHAR(36) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    form_data_id BIGINT NOT NULL,
     field_id VARCHAR(100) NOT NULL,
     verification_type ENUM('sdv', 'medical_review', 'data_review') NOT NULL,
     status ENUM('pending', 'verified', 'queried', 'resolved') DEFAULT 'pending',
@@ -375,8 +377,8 @@ CREATE TABLE field_verifications (
 
 -- Data queries
 CREATE TABLE data_queries (
-    id VARCHAR(36) PRIMARY KEY,
-    form_data_id VARCHAR(36) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    form_data_id BIGINT NOT NULL,
     field_id VARCHAR(100),
     query_text TEXT NOT NULL,
     status ENUM('open', 'answered', 'closed') DEFAULT 'open',
@@ -393,8 +395,8 @@ CREATE TABLE data_queries (
 );
 
 CREATE TABLE query_responses (
-    id VARCHAR(36) PRIMARY KEY,
-    query_id VARCHAR(36) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    query_id BIGINT NOT NULL,
     response_text TEXT NOT NULL,
     created_by BIGINT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -406,7 +408,7 @@ CREATE TABLE query_responses (
 CREATE TABLE user_study_roles (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
-    study_id VARCHAR(36) NOT NULL,
+    study_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
     site_id BIGINT COMMENT 'Optional site assignment',
     start_date DATE NOT NULL COMMENT 'Start date of role assignment',
@@ -439,7 +441,7 @@ CREATE TABLE user_site_assignments (
 CREATE TABLE patient_users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL COMMENT 'Reference to base user record',
-    subject_id VARCHAR(36) COMMENT 'Optional link to subject record',
+    subject_id BIGINT COMMENT 'Optional link to subject record',
     consent_status ENUM('pending', 'consented', 'withdrawn') DEFAULT 'pending',
     consent_date DATE COMMENT 'Date when consent was provided',
     device_id VARCHAR(255) COMMENT 'ID of patient device if applicable',
@@ -452,7 +454,7 @@ CREATE TABLE patient_users (
 -- Delegation and qualifications
 CREATE TABLE data_delegations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    study_id VARCHAR(36) NOT NULL,
+    study_id BIGINT NOT NULL,
     delegator_id BIGINT NOT NULL COMMENT 'User delegating the responsibility',
     delegatee_id BIGINT NOT NULL COMMENT 'User receiving the responsibility',
     delegation_type ENUM('data_entry', 'review', 'query_resolution', 'signature') NOT NULL,
@@ -488,7 +490,7 @@ CREATE TABLE user_qualifications (
 
 -- Audit and logging tables
 CREATE TABLE audit_trail (
-    id VARCHAR(36) PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     entity_type VARCHAR(50) NOT NULL,
     entity_id VARCHAR(36) NOT NULL,
     field_name VARCHAR(100),
@@ -528,7 +530,7 @@ CREATE TABLE organization_audit_trail (
 );
 
 CREATE TABLE locking_audit (
-    id VARCHAR(36) PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     entity_id VARCHAR(36) NOT NULL COMMENT 'ID of the entity (study or form) that was locked/unlocked',
     entity_type VARCHAR(50) NOT NULL COMMENT 'Type of entity (STUDY or FORM)',
     operation VARCHAR(20) NOT NULL COMMENT 'Operation performed (LOCK or UNLOCK)',
@@ -573,92 +575,10 @@ CREATE INDEX idx_user_site_assignments_user ON user_site_assignments(user_id);
 CREATE INDEX idx_user_site_assignments_site ON user_site_assignments(site_id);
 CREATE INDEX idx_patient_users_subject ON patient_users(subject_id);
 
--- Insert default organization types
-INSERT INTO organization_types (name, description) VALUES
-('Sponsor', 'Organization that initiates, manages and/or finances a clinical trial'),
-('CRO', 'Contract Research Organization that provides clinical trial services to sponsors'),
-('Site', 'Clinical site where the study is conducted'),
-('Vendor', 'Service provider for the clinical trial'),
-('Laboratory', 'Laboratory for processing trial samples');
+
 
 -- Insert default user types
-INSERT INTO user_types (name, description, code,category) VALUES
-('CRA', 'Clinical Research Associate responsible for monitoring trial sites', 'CRA','CRO_USER'),
-('Data Manager', 'Responsible for managing clinical trial data','DM','CRO_USER'),
-('Principal Investigator', 'Lead investigator at a clinical site','PI','SITE_USER'),
-('Clinical Research Coordinator', 'Coordinates clinical trial activities at a site','CRC','CRO_USER'),
-('Clinical Data Manager', 'Manages data at the site level','CDM','CRO_USER'),
-('Database Administrator', 'Administers the clinical trial database','DBADMIN','SYSTEM_USER'),
-('System Administrator', 'Manages the EDC system','SYSADMIN','SYSTEM_USER'),
-('Lab Technician', 'Laboratory staff processing trial samples','LABTECH','SITE_USER'),
-('Lab Manager', 'Manages laboratory operations','LABMGR','SITE_USER'),
-('Patient/Subject', 'Trial participant','SUBJ','SUBJECT_USER'),
-('Medical Monitor', 'Provides medical oversight for the trial','MEDMON','CRO_USER'),
-('Sponsor Monitor', 'Monitors the trial on behalf of the sponsor','SPONMON','SPONSOR_USER'),
-('Statistician', 'Performs statistical analysis of trial data','STAT','CRO_USER'),
-('Regulatory Affairs', 'Handles regulatory compliance','REGAFFR','REG_USER'),
-('Quality Assurance', 'Ensures quality standards are met','QA','CRO_USER');
 
--- Insert default roles aligned with BRIDG/CDISC
-INSERT INTO roles (name, description, is_system_role) VALUES
-('SYSTEM_ADMIN', 'Full system administration rights', TRUE),
-('DB_ADMIN', 'Database administration rights', TRUE),
-('SPONSOR_ADMIN', 'Sponsor administrator with study oversight', TRUE),
-('CRO_ADMIN', 'CRO administrator with delegated study oversight', TRUE),
-('SITE_ADMIN', 'Site administrator with site management rights', TRUE),
-('PI', 'Principal Investigator role', TRUE),
-('SUB_I', 'Sub-investigator role', TRUE),
-('CRC', 'Clinical Research Coordinator role', TRUE),
-('CRA', 'Clinical Research Associate role', TRUE),
-('DATA_MANAGER', 'Data management role', TRUE),
-('MEDICAL_MONITOR', 'Medical monitoring role', TRUE),
-('LAB_USER', 'Laboratory user role', TRUE),
-('PATIENT', 'Patient/subject portal access', TRUE),
-('DATA_ENTRY', 'Data entry capabilities', TRUE),
-('DATA_REVIEW', 'Data review capabilities', TRUE),
-('QUERY_MANAGEMENT', 'Query creation and resolution', TRUE),
-('REPORT_VIEWER', 'Report viewing capabilities', TRUE),
-('STUDY_BUILDER', 'Study and CRF design capabilities', TRUE);
-
--- Insert default authorities
-INSERT INTO authorities (name) VALUES
-('READ_STUDY'),
-('CREATE_STUDY'),
-('UPDATE_STUDY'),
-('DELETE_STUDY'),
-('READ_SUBJECT'),
-('CREATE_SUBJECT'),
-('UPDATE_SUBJECT'),
-('DELETE_SUBJECT'),
-('READ_FORM'),
-('CREATE_FORM'),
-('UPDATE_FORM'),
-('DELETE_FORM'),
-('ENTER_DATA'),
-('REVIEW_DATA'),
-('SIGN_DATA'),
-('LOCK_FORM'),
-('UNLOCK_FORM'),
-('CREATE_QUERY'),
-('ANSWER_QUERY'),
-('CLOSE_QUERY'),
-('EXPORT_DATA'),
-('IMPORT_DATA'),
-('ASSIGN_USER'),
-('MANAGE_SITE'),
-('MANAGE_USER'),
-('SYSTEM_CONFIGURATION');
-
--- Assign authorities to roles (system admin example)
-INSERT INTO roles_authorities (roles_id, authorities_id) 
-SELECT r.id, a.id FROM roles r, authorities a WHERE r.name = 'SYSTEM_ADMIN' AND a.name IN (
-    'READ_STUDY', 'CREATE_STUDY', 'UPDATE_STUDY', 'DELETE_STUDY', 
-    'READ_SUBJECT', 'CREATE_SUBJECT', 'UPDATE_SUBJECT', 'DELETE_SUBJECT',
-    'READ_FORM', 'CREATE_FORM', 'UPDATE_FORM', 'DELETE_FORM',
-    'ENTER_DATA', 'REVIEW_DATA', 'SIGN_DATA', 'LOCK_FORM', 'UNLOCK_FORM',
-    'CREATE_QUERY', 'ANSWER_QUERY', 'CLOSE_QUERY', 'EXPORT_DATA', 'IMPORT_DATA',
-    'ASSIGN_USER', 'MANAGE_SITE', 'MANAGE_USER', 'SYSTEM_CONFIGURATION'
-);
 
 -- Remaining role-authority assignments can be added as needed
 

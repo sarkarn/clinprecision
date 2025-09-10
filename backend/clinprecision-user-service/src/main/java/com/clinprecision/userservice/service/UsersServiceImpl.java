@@ -47,14 +47,12 @@ public class UsersServiceImpl implements UsersService {
 	@Autowired
     public UsersServiceImpl(UsersRepository usersRepository, 
             BCryptPasswordEncoder bCryptPasswordEncoder,
-            AlbumsServiceClient albumsServiceClient,
             Environment environment,
             UserTypeRepository userTypeRepository,
             OrganizationRepository organizationRepository,
             com.clinprecision.userservice.data.RoleRepository roleRepository) {
         this.usersRepository = usersRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
-        this.albumsServiceClient = albumsServiceClient;
         this.environment = environment;
         this.userTypeRepository = userTypeRepository;
         this.organizationRepository = organizationRepository;

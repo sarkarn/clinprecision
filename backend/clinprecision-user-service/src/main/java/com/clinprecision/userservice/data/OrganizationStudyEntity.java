@@ -21,7 +21,7 @@ public class OrganizationStudyEntity {
     private OrganizationEntity organization;
     
     @Column(name = "study_id", nullable = false, length = 36)
-    private String studyId;
+    private Long studyId;
     
     @Column(name = "role_code", nullable = false)
     private String roleCode;
@@ -79,11 +79,11 @@ public class OrganizationStudyEntity {
         this.organization = organization;
     }
 
-    public String getStudyId() {
+    public Long getStudyId() {
         return studyId;
     }
 
-    public void setStudyId(String studyId) {
+    public void setStudyId(Long studyId) {
         this.studyId = studyId;
     }
 
