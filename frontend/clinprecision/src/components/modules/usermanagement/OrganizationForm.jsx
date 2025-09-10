@@ -40,9 +40,10 @@ export default function OrganizationForm() {
                 // If in edit mode, fetch organization data
                 if (isEditMode) {
                     const orgData = await OrganizationService.getOrganizationById(id);
+                    console.log("Loaded organization data:", orgData); // Debug log
                     setFormData({
                         name: orgData.name || "",
-                        orgTypeId: orgData.organizationTypeId || "",
+                        orgTypeId: orgData.organizationType?.id || "",
                         externalId: orgData.externalId || "",
                         addressLine1: orgData.addressLine1 || "",
                         addressLine2: orgData.addressLine2 || "",
@@ -86,7 +87,7 @@ export default function OrganizationForm() {
             // Convert form data to match backend expected field names
             const organizationData = {
                 ...formData,
-                organizationTypeId: formData.orgTypeId
+                organizationType: formData.orgTypeId ? { id: parseInt(formData.orgTypeId) } : null
             };
             delete organizationData.orgTypeId;
 
