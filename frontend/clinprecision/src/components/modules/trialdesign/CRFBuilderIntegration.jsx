@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Plus, Trash2, Settings, Table, List, ChevronDown, ChevronUp, Eye, Edit3 } from 'lucide-react';
 import FormService from '../../../services/FormService';
 import FormVersionService from '../../../services/FormVersionService';
 
@@ -16,6 +17,8 @@ const CRFBuilderIntegration = () => {
     const [formVersion, setFormVersion] = useState(null);
     const [saving, setSaving] = useState(false);
     const [changes, setChanges] = useState(false);
+    const [expandedSections, setExpandedSections] = useState({});
+    const [showFieldMetadata, setShowFieldMetadata] = useState({});
 
     // CRF data would be loaded from or passed to the CRF Builder component
     const [crfData, setCrfData] = useState(null);
@@ -65,6 +68,118 @@ const CRFBuilderIntegration = () => {
     const handleCrfDataUpdate = (newData) => {
         setCrfData(newData);
         setChanges(true);
+    };
+
+    // Toggle section expansion
+    const toggleSectionExpansion = (sectionId) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [sectionId]: !prev[sectionId]
+        }));
+    };
+
+    // Toggle field metadata visibility
+    const toggleFieldMetadata = (fieldId) => {
+        setShowFieldMetadata(prev => ({
+            ...prev,
+            [fieldId]: !prev[fieldId]
+        }));
+    };
+
+    // Create new section
+    const createSection = (type = 'regular') => {
+        const newSection = {
+            id: `section_${Date.now()}`,
+            name: 'New Section',
+            type: type, // 'regular' or 'table'
+            description: '',
+            fields: [],
+            metadata: {
+                isRequired: false,
+                helpText: '',
+                displayOrder: (crfData?.sections?.length || 0) + 1
+            }
+        };
+        const updatedData = {
+            ...crfData,
+            sections: [...(crfData.sections || []), newSection]
+        };
+        handleCrfDataUpdate(updatedData);
+        setExpandedSections(prev => ({ ...prev, [newSection.id]: true }));
+    };
+
+    // Create new field
+    const createField = (sectionIndex, section) => {
+        const newField = {
+            id: `field_${Date.now()}`,
+            name: 'New Field',
+            label: 'New Field Label',
+            type: 'text',
+            required: false,
+            metadata: {
+                description: '',
+                helpText: '',
+                placeholder: '',
+                validation: {
+                    minLength: '',
+                    maxLength: '',
+                    pattern: '',
+                    min: '',
+                    max: '',
+                    errorMessage: ''
+                },
+                options: [], // For select, radio, checkbox fields
+                defaultValue: '',
+                displayOrder: (section.fields?.length || 0) + 1,
+                fieldWidth: 'full', // full, half, third, quarter
+                isReadOnly: false,
+                isCalculated: false,
+                calculationFormula: '',
+                conditionalLogic: {
+                    showIf: '',
+                    hideIf: '',
+                    requiredIf: ''
+                }
+            }
+        };
+
+        const updatedSections = [...crfData.sections];
+        updatedSections[sectionIndex] = {
+            ...section,
+            fields: [...(section.fields || []), newField]
+        };
+        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+        setShowFieldMetadata(prev => ({ ...prev, [newField.id]: false }));
+    };
+
+    // Update section
+    const updateSection = (sectionIndex, updates) => {
+        const updatedSections = [...crfData.sections];
+        updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], ...updates };
+        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+    };
+
+    // Update field
+    const updateField = (sectionIndex, fieldIndex, updates) => {
+        const updatedSections = [...crfData.sections];
+        const updatedFields = [...updatedSections[sectionIndex].fields];
+        updatedFields[fieldIndex] = { ...updatedFields[fieldIndex], ...updates };
+        updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], fields: updatedFields };
+        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+    };
+
+    // Remove section
+    const removeSection = (sectionIndex) => {
+        const updatedSections = crfData.sections.filter((_, i) => i !== sectionIndex);
+        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+    };
+
+    // Remove field
+    const removeField = (sectionIndex, fieldIndex) => {
+        const updatedSections = [...crfData.sections];
+        const updatedFields = updatedSections[sectionIndex].fields.filter((_, i) => i !== fieldIndex);
+        updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], fields: updatedFields };
+        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
     };
 
     // Save form changes
@@ -179,21 +294,18 @@ const CRFBuilderIntegration = () => {
                     <h3 className="text-lg font-semibold text-gray-900">Form Builder</h3>
                     <div className="flex space-x-2">
                         <button
-                            onClick={() => {
-                                const newSection = {
-                                    id: `section_${Date.now()}`,
-                                    name: 'New Section',
-                                    fields: []
-                                };
-                                const updatedData = {
-                                    ...crfData,
-                                    sections: [...(crfData.sections || []), newSection]
-                                };
-                                handleCrfDataUpdate(updatedData);
-                            }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-md"
+                            onClick={() => createSection('regular')}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-md flex items-center space-x-1"
                         >
-                            Add Section
+                            <List className="w-4 h-4" />
+                            <span>Add Section</span>
+                        </button>
+                        <button
+                            onClick={() => createSection('table')}
+                            className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-3 rounded-md flex items-center space-x-1"
+                        >
+                            <Table className="w-4 h-4" />
+                            <span>Add Table Section</span>
                         </button>
                     </div>
                 </div>
@@ -201,130 +313,387 @@ const CRFBuilderIntegration = () => {
                 {/* Form Sections */}
                 {crfData?.sections?.map((section, sectionIndex) => (
                     <div key={section.id} className="border border-gray-200 rounded-lg p-4 mb-4">
-                        <div className="flex justify-between items-center mb-4">
-                            <input
-                                type="text"
-                                value={section.name}
-                                onChange={(e) => {
-                                    const updatedSections = [...crfData.sections];
-                                    updatedSections[sectionIndex] = { ...section, name: e.target.value };
-                                    handleCrfDataUpdate({ ...crfData, sections: updatedSections });
-                                }}
-                                className="text-lg font-medium text-gray-900 border-none bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2"
-                                placeholder="Section name"
-                            />
+                        {/* Section Header */}
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="flex-1 mr-4">
+                                <div className="flex items-center space-x-2 mb-2">
+                                    <button
+                                        onClick={() => toggleSectionExpansion(section.id)}
+                                        className="text-gray-500 hover:text-gray-700"
+                                    >
+                                        {expandedSections[section.id] ?
+                                            <ChevronUp className="w-5 h-5" /> :
+                                            <ChevronDown className="w-5 h-5" />
+                                        }
+                                    </button>
+                                    <div className="flex items-center space-x-2">
+                                        {section.type === 'table' ?
+                                            <Table className="w-4 h-4 text-green-600" /> :
+                                            <List className="w-4 h-4 text-blue-600" />
+                                        }
+                                        <input
+                                            type="text"
+                                            value={section.name}
+                                            onChange={(e) => updateSection(sectionIndex, { name: e.target.value })}
+                                            className="text-lg font-medium text-gray-900 border-none bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2"
+                                            placeholder="Section name"
+                                        />
+                                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                            {section.type === 'table' ? 'Table' : 'Regular'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={section.description || ''}
+                                    onChange={(e) => updateSection(sectionIndex, { description: e.target.value })}
+                                    className="text-sm text-gray-600 border-none bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 w-full"
+                                    placeholder="Section description (optional)"
+                                />
+                            </div>
                             <div className="flex space-x-2">
                                 <button
-                                    onClick={() => {
-                                        const newField = {
-                                            id: `field_${Date.now()}`,
-                                            name: 'New Field',
-                                            type: 'text',
-                                            required: false
-                                        };
-                                        const updatedSections = [...crfData.sections];
-                                        updatedSections[sectionIndex] = {
-                                            ...section,
-                                            fields: [...(section.fields || []), newField]
-                                        };
-                                        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
-                                    }}
-                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium py-1 px-2 rounded"
+                                    onClick={() => createField(sectionIndex, section)}
+                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium py-1 px-2 rounded flex items-center space-x-1"
                                 >
-                                    Add Field
+                                    <Plus className="w-4 h-4" />
+                                    <span>{section.type === 'table' ? 'Add Column' : 'Add Field'}</span>
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        const updatedSections = crfData.sections.filter((_, i) => i !== sectionIndex);
-                                        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
-                                    }}
-                                    className="text-red-600 hover:text-red-800 text-sm font-medium py-1 px-2 rounded"
+                                    onClick={() => removeSection(sectionIndex)}
+                                    className="text-red-600 hover:text-red-800 text-sm font-medium py-1 px-2 rounded flex items-center space-x-1"
                                 >
-                                    Remove Section
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>Remove Section</span>
                                 </button>
                             </div>
                         </div>
 
-                        {/* Fields in this section */}
-                        {section.fields?.map((field, fieldIndex) => (
-                            <div key={field.id} className="bg-gray-50 rounded p-3 mb-3 last:mb-0">
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Field Name</label>
-                                        <input
-                                            type="text"
-                                            value={field.name}
-                                            onChange={(e) => {
-                                                const updatedSections = [...crfData.sections];
-                                                const updatedFields = [...section.fields];
-                                                updatedFields[fieldIndex] = { ...field, name: e.target.value };
-                                                updatedSections[sectionIndex] = { ...section, fields: updatedFields };
-                                                handleCrfDataUpdate({ ...crfData, sections: updatedSections });
-                                            }}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="Field name"
-                                        />
+                        {/* Section Content */}
+                        {expandedSections[section.id] !== false && (
+                            <>
+                                {/* Table Section Layout */}
+                                {section.type === 'table' && section.fields?.length > 0 && (
+                                    <div className="mb-4">
+                                        <div className="bg-gray-50 rounded-lg p-4">
+                                            <h4 className="text-sm font-medium text-gray-700 mb-3">Table Preview</h4>
+                                            <div className="overflow-x-auto">
+                                                <table className="min-w-full border border-gray-300">
+                                                    <thead>
+                                                        <tr className="bg-gray-100">
+                                                            {section.fields.map((field) => (
+                                                                <th key={field.id} className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-r border-gray-300 last:border-r-0">
+                                                                    {field.label || field.name}
+                                                                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                                                                </th>
+                                                            ))}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            {section.fields.map((field) => (
+                                                                <td key={field.id} className="px-3 py-2 text-xs text-gray-500 border-r border-gray-300 last:border-r-0">
+                                                                    {field.type}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                        <select
-                                            value={field.type}
-                                            onChange={(e) => {
-                                                const updatedSections = [...crfData.sections];
-                                                const updatedFields = [...section.fields];
-                                                updatedFields[fieldIndex] = { ...field, type: e.target.value };
-                                                updatedSections[sectionIndex] = { ...section, fields: updatedFields };
-                                                handleCrfDataUpdate({ ...crfData, sections: updatedSections });
-                                            }}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        >
-                                            <option value="text">Text</option>
-                                            <option value="number">Number</option>
-                                            <option value="date">Date</option>
-                                            <option value="select">Select</option>
-                                            <option value="textarea">Textarea</option>
-                                            <option value="checkbox">Checkbox</option>
-                                            <option value="radio">Radio</option>
-                                        </select>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <label className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={field.required}
-                                                onChange={(e) => {
-                                                    const updatedSections = [...crfData.sections];
-                                                    const updatedFields = [...section.fields];
-                                                    updatedFields[fieldIndex] = { ...field, required: e.target.checked };
-                                                    updatedSections[sectionIndex] = { ...section, fields: updatedFields };
-                                                    handleCrfDataUpdate({ ...crfData, sections: updatedSections });
-                                                }}
-                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                            />
-                                            <span className="ml-2 text-sm text-gray-700">Required</span>
-                                        </label>
-                                    </div>
-                                    <div>
-                                        <button
-                                            onClick={() => {
-                                                const updatedSections = [...crfData.sections];
-                                                const updatedFields = section.fields.filter((_, i) => i !== fieldIndex);
-                                                updatedSections[sectionIndex] = { ...section, fields: updatedFields };
-                                                handleCrfDataUpdate({ ...crfData, sections: updatedSections });
-                                            }}
-                                            className="text-red-600 hover:text-red-800 text-sm font-medium py-1 px-2 rounded"
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                                )}
 
-                        {section.fields?.length === 0 && (
-                            <div className="text-center py-4 text-gray-500">
-                                No fields in this section. Click "Add Field" to get started.
-                            </div>
+                                {/* Fields in this section */}
+                                {section.fields?.map((field, fieldIndex) => (
+                                    <div key={field.id} className="bg-gray-50 rounded p-3 mb-3 last:mb-0">
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-3">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    {section.type === 'table' ? 'Column Name' : 'Field Name'}
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={field.name}
+                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, { name: e.target.value })}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    placeholder="Field name"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                                                <input
+                                                    type="text"
+                                                    value={field.label || ''}
+                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, { label: e.target.value })}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    placeholder="Display label"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                                <select
+                                                    value={field.type}
+                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, { type: e.target.value })}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                >
+                                                    <option value="text">Text</option>
+                                                    <option value="number">Number</option>
+                                                    <option value="date">Date</option>
+                                                    <option value="datetime">Date & Time</option>
+                                                    <option value="time">Time</option>
+                                                    <option value="email">Email</option>
+                                                    <option value="tel">Phone</option>
+                                                    <option value="url">URL</option>
+                                                    <option value="select">Select</option>
+                                                    <option value="multiselect">Multi-Select</option>
+                                                    <option value="textarea">Textarea</option>
+                                                    <option value="checkbox">Checkbox</option>
+                                                    <option value="radio">Radio</option>
+                                                    <option value="file">File Upload</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex items-center space-x-4">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={field.required}
+                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, { required: e.target.checked })}
+                                                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                    />
+                                                    <span className="ml-2 text-sm text-gray-700">Required</span>
+                                                </label>
+                                                <button
+                                                    onClick={() => toggleFieldMetadata(field.id)}
+                                                    className="text-gray-600 hover:text-gray-800 flex items-center space-x-1"
+                                                    title="Field Settings"
+                                                >
+                                                    <Settings className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => removeField(sectionIndex, fieldIndex)}
+                                                    className="text-red-600 hover:text-red-800 flex items-center space-x-1"
+                                                    title="Remove Field"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Field Metadata Panel */}
+                                        {showFieldMetadata[field.id] && (
+                                            <div className="border-t border-gray-200 pt-4 mt-4">
+                                                <h4 className="text-sm font-medium text-gray-700 mb-3">Field Metadata & Settings</h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {/* Basic Metadata */}
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                                        <textarea
+                                                            value={field.metadata?.description || ''}
+                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                metadata: { ...field.metadata, description: e.target.value }
+                                                            })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                            rows="2"
+                                                            placeholder="Field description for documentation"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Help Text</label>
+                                                        <textarea
+                                                            value={field.metadata?.helpText || ''}
+                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                metadata: { ...field.metadata, helpText: e.target.value }
+                                                            })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                            rows="2"
+                                                            placeholder="Help text shown to users"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Placeholder</label>
+                                                        <input
+                                                            type="text"
+                                                            value={field.metadata?.placeholder || ''}
+                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                metadata: { ...field.metadata, placeholder: e.target.value }
+                                                            })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                            placeholder="Placeholder text"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Default Value</label>
+                                                        <input
+                                                            type="text"
+                                                            value={field.metadata?.defaultValue || ''}
+                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                metadata: { ...field.metadata, defaultValue: e.target.value }
+                                                            })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                            placeholder="Default value"
+                                                        />
+                                                    </div>
+
+                                                    {/* Validation Rules */}
+                                                    {(field.type === 'text' || field.type === 'textarea') && (
+                                                        <>
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-1">Min Length</label>
+                                                                <input
+                                                                    type="number"
+                                                                    value={field.metadata?.validation?.minLength || ''}
+                                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                        metadata: {
+                                                                            ...field.metadata,
+                                                                            validation: { ...field.metadata?.validation, minLength: e.target.value }
+                                                                        }
+                                                                    })}
+                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-1">Max Length</label>
+                                                                <input
+                                                                    type="number"
+                                                                    value={field.metadata?.validation?.maxLength || ''}
+                                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                        metadata: {
+                                                                            ...field.metadata,
+                                                                            validation: { ...field.metadata?.validation, maxLength: e.target.value }
+                                                                        }
+                                                                    })}
+                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    )}
+
+                                                    {field.type === 'number' && (
+                                                        <>
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-1">Min Value</label>
+                                                                <input
+                                                                    type="number"
+                                                                    value={field.metadata?.validation?.min || ''}
+                                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                        metadata: {
+                                                                            ...field.metadata,
+                                                                            validation: { ...field.metadata?.validation, min: e.target.value }
+                                                                        }
+                                                                    })}
+                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-1">Max Value</label>
+                                                                <input
+                                                                    type="number"
+                                                                    value={field.metadata?.validation?.max || ''}
+                                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                        metadata: {
+                                                                            ...field.metadata,
+                                                                            validation: { ...field.metadata?.validation, max: e.target.value }
+                                                                        }
+                                                                    })}
+                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    )}
+
+                                                    {/* Options for select/radio/checkbox fields */}
+                                                    {(field.type === 'select' || field.type === 'multiselect' || field.type === 'radio' || field.type === 'checkbox') && (
+                                                        <div className="col-span-2">
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">Options (one per line)</label>
+                                                            <textarea
+                                                                value={(field.metadata?.options || []).join('\n')}
+                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                    metadata: {
+                                                                        ...field.metadata,
+                                                                        options: e.target.value.split('\n').filter(option => option.trim())
+                                                                    }
+                                                                })}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                rows="4"
+                                                                placeholder="Option 1&#10;Option 2&#10;Option 3"
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {/* Field Display Settings */}
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Field Width</label>
+                                                        <select
+                                                            value={field.metadata?.fieldWidth || 'full'}
+                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                metadata: { ...field.metadata, fieldWidth: e.target.value }
+                                                            })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        >
+                                                            <option value="full">Full Width</option>
+                                                            <option value="half">Half Width</option>
+                                                            <option value="third">One Third</option>
+                                                            <option value="quarter">One Quarter</option>
+                                                        </select>
+                                                    </div>
+
+                                                    {/* Additional Field Settings */}
+                                                    <div className="col-span-2">
+                                                        <div className="flex flex-wrap gap-4">
+                                                            <label className="flex items-center">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={field.metadata?.isReadOnly || false}
+                                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                        metadata: { ...field.metadata, isReadOnly: e.target.checked }
+                                                                    })}
+                                                                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                />
+                                                                <span className="ml-2 text-sm text-gray-700">Read Only</span>
+                                                            </label>
+                                                            <label className="flex items-center">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={field.metadata?.isCalculated || false}
+                                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                        metadata: { ...field.metadata, isCalculated: e.target.checked }
+                                                                    })}
+                                                                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                />
+                                                                <span className="ml-2 text-sm text-gray-700">Calculated Field</span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Calculation Formula */}
+                                                    {field.metadata?.isCalculated && (
+                                                        <div className="col-span-2">
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">Calculation Formula</label>
+                                                            <input
+                                                                type="text"
+                                                                value={field.metadata?.calculationFormula || ''}
+                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                    metadata: { ...field.metadata, calculationFormula: e.target.value }
+                                                                })}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                placeholder="e.g., field1 + field2 * 0.1"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {section.fields?.length === 0 && (
+                                    <div className="text-center py-4 text-gray-500">
+                                        <p className="mb-2">No {section.type === 'table' ? 'columns' : 'fields'} in this section.</p>
+                                        <p className="text-sm">Click "Add {section.type === 'table' ? 'Column' : 'Field'}" to get started.</p>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 ))}
@@ -332,7 +701,7 @@ const CRFBuilderIntegration = () => {
                 {(!crfData?.sections || crfData.sections.length === 0) && (
                     <div className="text-center py-8 text-gray-500">
                         <p className="mb-4">No sections created yet.</p>
-                        <p className="text-sm">Click "Add Section" to start building your form.</p>
+                        <p className="text-sm">Click "Add Section" or "Add Table Section" to start building your form.</p>
                     </div>
                 )}
             </div>
