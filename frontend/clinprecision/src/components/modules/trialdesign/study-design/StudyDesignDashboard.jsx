@@ -1,0 +1,541 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { CheckCircle, AlertCircle, Clock, FileText, Users, Target, Calendar, Link as LinkIcon, GitBranch, Send } from 'lucide-react';
+import { Alert, Button } from '../components/UIComponents';
+
+// Import the designer components
+import StudyArmsDesigner from './StudyArmsDesigner';
+import VisitScheduleDesigner from './VisitScheduleDesigner';
+import FormBindingDesigner from './FormBindingDesigner';
+import StudyPublishWorkflow from './StudyPublishWorkflow';
+import ProtocolRevisionWorkflow from './ProtocolRevisionWorkflow';
+
+/**
+ * Study Design Dashboard Component
+ * Main orchestrator for the complete study design workflow
+ */
+const StudyDesignDashboard = () => {
+    const { studyId } = useParams();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // Extract current phase from URL path
+    const getCurrentPhaseFromUrl = () => {
+        const pathParts = location.pathname.split('/');
+        const designIndex = pathParts.findIndex(part => part === 'design');
+        if (designIndex !== -1 && pathParts[designIndex + 1]) {
+            return pathParts[designIndex + 1];
+        }
+        return 'basic-info';
+    };
+
+    // State management
+    const [study, setStudy] = useState(null);
+    const [designProgress, setDesignProgress] = useState({});
+    const [currentPhase, setCurrentPhase] = useState(getCurrentPhaseFromUrl());
+    const [completedPhases, setCompletedPhases] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [errors, setErrors] = useState([]);
+
+    // Design phases configuration
+    const designPhases = [
+        {
+            id: 'basic-info',
+            name: 'Basic Information',
+            description: 'Study registration and basic details',
+            icon: <FileText className="h-5 w-5" />,
+            path: '/study-design/basic-info',
+            status: 'COMPLETED' // Already implemented in StudyCreationWizard
+        },
+        {
+            id: 'arms',
+            name: 'Study Arms',
+            description: 'Configure treatment arms and interventions',
+            icon: <Target className="h-5 w-5" />,
+            path: '/study-design/arms',
+            status: 'AVAILABLE'
+        },
+        {
+            id: 'visits',
+            name: 'Visit Schedule',
+            description: 'Design visit timeline and procedures',
+            icon: <Calendar className="h-5 w-5" />,
+            path: '/study-design/visits',
+            status: 'AVAILABLE'
+        },
+        {
+            id: 'forms',
+            name: 'Form Binding',
+            description: 'Bind forms to visits and configure rules',
+            icon: <LinkIcon className="h-5 w-5" />,
+            path: '/study-design/forms',
+            status: 'AVAILABLE'
+        },
+        {
+            id: 'review',
+            name: 'Review & Validation',
+            description: 'Review design and validate configuration',
+            icon: <CheckCircle className="h-5 w-5" />,
+            path: '/study-design/review',
+            status: 'AVAILABLE'
+        },
+        {
+            id: 'publish',
+            name: 'Publish Study',
+            description: 'Publish study for data capture',
+            icon: <Send className="h-5 w-5" />,
+            path: '/study-design/publish',
+            status: 'AVAILABLE'
+        },
+        {
+            id: 'revisions',
+            name: 'Protocol Revisions',
+            description: 'Manage amendments and versioning',
+            icon: <GitBranch className="h-5 w-5" />,
+            path: '/study-design/revisions',
+            status: 'AVAILABLE'
+        }
+    ];
+
+    // Load study data and progress
+    useEffect(() => {
+        loadStudyData();
+    }, [studyId]);
+
+    // Update current phase when route changes
+    useEffect(() => {
+        const newPhase = getCurrentPhaseFromUrl();
+        if (newPhase !== currentPhase) {
+            setCurrentPhase(newPhase);
+        }
+    }, [location.pathname]);
+
+    // Redirect to basic-info if no phase is specified
+    useEffect(() => {
+        const currentPhaseFromUrl = getCurrentPhaseFromUrl();
+        if (!currentPhaseFromUrl || currentPhaseFromUrl === 'design') {
+            navigate(`/study-design/study/${studyId}/design/basic-info`, { replace: true });
+        }
+    }, [studyId, location.pathname]);
+
+    const loadStudyData = async () => {
+        try {
+            setLoading(true);
+
+            // Mock data - replace with actual API call
+            const mockData = {
+                study: {
+                    id: studyId,
+                    name: 'Phase III Oncology Trial - Advanced NSCLC',
+                    state: 'DESIGN',
+                    version: '1.0',
+                    lastModified: '2024-01-15T10:30:00Z',
+                    createdBy: 'Dr. Sarah Johnson',
+                    studyPhase: 'Phase III',
+                    indication: 'Advanced Non-Small Cell Lung Cancer'
+                },
+                designProgress: {
+                    'basic-info': { completed: true, percentage: 100, lastUpdated: '2024-01-10T09:00:00Z' },
+                    'arms': { completed: true, percentage: 85, lastUpdated: '2024-01-12T14:30:00Z' },
+                    'visits': { completed: true, percentage: 90, lastUpdated: '2024-01-13T11:15:00Z' },
+                    'forms': { completed: false, percentage: 60, lastUpdated: '2024-01-14T16:45:00Z' },
+                    'review': { completed: false, percentage: 0, lastUpdated: null },
+                    'publish': { completed: false, percentage: 0, lastUpdated: null },
+                    'revisions': { completed: false, percentage: 0, lastUpdated: null }
+                },
+                completedPhases: ['basic-info', 'arms', 'visits']
+            };
+
+            setStudy(mockData.study);
+            setDesignProgress(mockData.designProgress);
+            setCompletedPhases(mockData.completedPhases);
+            setLoading(false);
+        } catch (error) {
+            console.error('Error loading study design data:', error);
+            setErrors(['Failed to load study design data']);
+            setLoading(false);
+        }
+    };
+
+    // Navigate to phase
+    const handlePhaseChange = (phaseId) => {
+        navigate(`/study-design/study/${studyId}/design/${phaseId}`, { replace: true });
+    };
+
+    // Get phase status
+    const getPhaseStatus = (phaseId) => {
+        const progress = designProgress[phaseId];
+        if (!progress) return 'NOT_STARTED';
+
+        if (progress.completed) return 'COMPLETED';
+        if (progress.percentage > 0) return 'IN_PROGRESS';
+        return 'NOT_STARTED';
+    };
+
+    // Get overall completion percentage
+    const getOverallCompletion = () => {
+        const phases = Object.keys(designProgress);
+        if (phases.length === 0) return 0;
+
+        const totalPercentage = phases.reduce((sum, phaseId) => {
+            return sum + (designProgress[phaseId]?.percentage || 0);
+        }, 0);
+
+        return Math.round(totalPercentage / phases.length);
+    };
+
+    // Check if phase is accessible
+    const isPhaseAccessible = (phaseId) => {
+        const phaseIndex = designPhases.findIndex(p => p.id === phaseId);
+        if (phaseIndex === 0) return true; // First phase is always accessible
+
+        // Check if previous phases are completed
+        for (let i = 0; i < phaseIndex; i++) {
+            const prevPhase = designPhases[i];
+            if (!completedPhases.includes(prevPhase.id)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-gray-600">Loading study design...</span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <StudyDesignHeader
+                study={study}
+                currentPhase={currentPhase}
+                overallCompletion={getOverallCompletion()}
+                onBack={() => navigate('/study-design/studies')}
+            />
+
+            {/* Errors */}
+            {errors.length > 0 && (
+                <div className="max-w-7xl mx-auto px-6 py-4">
+                    <Alert
+                        type="error"
+                        title="Error"
+                        message={errors[0]}
+                        onClose={() => setErrors([])}
+                    />
+                </div>
+            )}
+
+            {/* Main Layout */}
+            <div className="max-w-7xl mx-auto px-6 py-6">
+                <div className="flex gap-6">
+                    {/* Sidebar Navigation */}
+                    <StudyDesignSidebar
+                        phases={designPhases}
+                        currentPhase={currentPhase}
+                        designProgress={designProgress}
+                        completedPhases={completedPhases}
+                        onPhaseChange={handlePhaseChange}
+                        isPhaseAccessible={isPhaseAccessible}
+                        getPhaseStatus={getPhaseStatus}
+                    />
+
+                    {/* Main Content */}
+                    <div className="flex-1">
+                        {currentPhase === 'basic-info' && <BasicInfoSummary study={study} />}
+                        {currentPhase === 'arms' && <StudyArmsDesigner />}
+                        {currentPhase === 'visits' && <VisitScheduleDesigner />}
+                        {currentPhase === 'forms' && <FormBindingDesigner />}
+                        {currentPhase === 'review' && <StudyReviewPanel study={study} designProgress={designProgress} />}
+                        {currentPhase === 'publish' && <StudyPublishWorkflow />}
+                        {currentPhase === 'revisions' && <ProtocolRevisionWorkflow />}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Study Design Header Component
+const StudyDesignHeader = ({ study, currentPhase, overallCompletion, onBack }) => {
+    const getCurrentPhaseName = () => {
+        const designPhases = [
+            { id: 'basic-info', name: 'Basic Information' },
+            { id: 'arms', name: 'Study Arms' },
+            { id: 'visits', name: 'Visit Schedule' },
+            { id: 'forms', name: 'Form Binding' },
+            { id: 'review', name: 'Review & Validation' },
+            { id: 'publish', name: 'Publish Study' },
+            { id: 'revisions', name: 'Protocol Revisions' }
+        ];
+
+        const phase = designPhases.find(p => p.id === currentPhase);
+        return phase ? phase.name : 'Study Design';
+    };
+
+    return (
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+            <div className="max-w-7xl mx-auto px-6 py-4">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-4">
+                        <Button variant="outline" onClick={onBack}>
+                            ← Back
+                        </Button>
+                        <div>
+                            <h1 className="text-xl font-semibold text-gray-900">{study?.name}</h1>
+                            <p className="text-sm text-gray-600">{getCurrentPhaseName()}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center space-x-6">
+                        {/* Progress Circle */}
+                        <div className="flex items-center space-x-3">
+                            <div className="relative w-12 h-12">
+                                <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 44 44">
+                                    <circle cx="22" cy="22" r="20" stroke="currentColor" strokeWidth="4" fill="none" className="text-gray-200" />
+                                    <circle
+                                        cx="22"
+                                        cy="22"
+                                        r="20"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                        fill="none"
+                                        strokeDasharray={`${overallCompletion * 1.257} 125.7`}
+                                        className="text-blue-600"
+                                    />
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-sm font-medium text-gray-900">{overallCompletion}%</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-sm font-medium text-gray-900">Overall Progress</div>
+                                <div className="text-xs text-gray-600">Study Design</div>
+                            </div>
+                        </div>
+
+                        {/* Study Info */}
+                        <div className="text-right">
+                            <div className="text-sm font-medium text-gray-900">Version {study?.version}</div>
+                            <div className="text-xs text-gray-600">{study?.state}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Study Design Sidebar Component
+const StudyDesignSidebar = ({
+    phases,
+    currentPhase,
+    designProgress,
+    completedPhases,
+    onPhaseChange,
+    isPhaseAccessible,
+    getPhaseStatus
+}) => {
+    const getStatusIcon = (phaseId) => {
+        const status = getPhaseStatus(phaseId);
+        switch (status) {
+            case 'COMPLETED':
+                return <CheckCircle className="h-5 w-5 text-green-500" />;
+            case 'IN_PROGRESS':
+                return <Clock className="h-5 w-5 text-blue-500" />;
+            default:
+                return <div className="h-5 w-5 rounded-full border-2 border-gray-300" />;
+        }
+    };
+
+    const getPhaseClasses = (phaseId) => {
+        const isAccessible = isPhaseAccessible(phaseId);
+        const isActive = currentPhase === phaseId;
+        const status = getPhaseStatus(phaseId);
+
+        let classes = 'flex items-center space-x-3 p-3 rounded-lg transition-colors ';
+
+        if (!isAccessible) {
+            classes += 'opacity-50 cursor-not-allowed ';
+        } else if (isActive) {
+            classes += 'bg-blue-50 border-2 border-blue-200 text-blue-900 ';
+        } else {
+            classes += 'hover:bg-gray-50 cursor-pointer ';
+        }
+
+        return classes;
+    };
+
+    return (
+        <div className="w-80 bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-6">Design Phases</h3>
+
+            <div className="space-y-2">
+                {phases.map((phase, index) => {
+                    const isAccessible = isPhaseAccessible(phase.id);
+                    const progress = designProgress[phase.id];
+
+                    return (
+                        <div key={phase.id}>
+                            <div
+                                className={getPhaseClasses(phase.id)}
+                                onClick={() => isAccessible && onPhaseChange(phase.id)}
+                            >
+                                <div className="flex-shrink-0">
+                                    {getStatusIcon(phase.id)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-sm font-medium text-gray-900 truncate">
+                                            {phase.name}
+                                        </h4>
+                                        {progress && progress.percentage > 0 && (
+                                            <span className="text-xs text-gray-500">
+                                                {progress.percentage}%
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-gray-600 mt-1">{phase.description}</p>
+                                    {progress && progress.lastUpdated && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Updated: {new Date(progress.lastUpdated).toLocaleDateString()}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Progress Bar */}
+                            {progress && progress.percentage > 0 && (
+                                <div className="ml-8 mt-2 mb-2">
+                                    <div className="w-full bg-gray-200 rounded-full h-1">
+                                        <div
+                                            className="bg-blue-600 h-1 rounded-full transition-all"
+                                            style={{ width: `${progress.percentage}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Connector Line */}
+                            {index < phases.length - 1 && (
+                                <div className="ml-[22px] h-4 w-px bg-gray-200" />
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+// Basic Info Summary Component (placeholder)
+const BasicInfoSummary = ({ study }) => {
+    return (
+        <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Study Information Summary</h3>
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Study Name</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.name}</div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Study Phase</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.studyPhase}</div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Indication</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.indication}</div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Principal Investigator</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.createdBy}</div>
+                    </div>
+                </div>
+
+                <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-center">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                        <span className="text-sm font-medium text-green-900">
+                            Basic study information is complete
+                        </span>
+                    </div>
+                    <p className="text-sm text-green-700 mt-1">
+                        You can now proceed to configure study arms and treatment design.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Study Review Panel Component (placeholder)
+const StudyReviewPanel = ({ study, designProgress }) => {
+    const completedPhases = Object.entries(designProgress).filter(
+        ([_, progress]) => progress.completed
+    );
+
+    const pendingPhases = Object.entries(designProgress).filter(
+        ([_, progress]) => !progress.completed
+    );
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Study Design Review</h3>
+
+                {/* Completion Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h4 className="font-medium text-gray-900 mb-3">Completed Sections</h4>
+                        <div className="space-y-2">
+                            {completedPhases.map(([phaseId, progress]) => (
+                                <div key={phaseId} className="flex items-center justify-between p-2 bg-green-50 rounded">
+                                    <span className="text-sm text-green-900 capitalize">{phaseId.replace('-', ' ')}</span>
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 className="font-medium text-gray-900 mb-3">Pending Sections</h4>
+                        <div className="space-y-2">
+                            {pendingPhases.map(([phaseId, progress]) => (
+                                <div key={phaseId} className="flex items-center justify-between p-2 bg-yellow-50 rounded">
+                                    <span className="text-sm text-yellow-900 capitalize">{phaseId.replace('-', ' ')}</span>
+                                    <span className="text-xs text-yellow-700">{progress.percentage}%</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Validation Results */}
+                <div className="border-t border-gray-200 pt-6">
+                    <h4 className="font-medium text-gray-900 mb-3">Validation Status</h4>
+                    <div className="space-y-2">
+                        <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                            <span className="text-sm text-green-900">Study arms configuration is valid</span>
+                        </div>
+                        <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                            <span className="text-sm text-green-900">Visit schedule is properly configured</span>
+                        </div>
+                        <div className="flex items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <AlertCircle className="h-5 w-5 text-yellow-500 mr-3" />
+                            <span className="text-sm text-yellow-900">Some forms are not bound to visits</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default StudyDesignDashboard;

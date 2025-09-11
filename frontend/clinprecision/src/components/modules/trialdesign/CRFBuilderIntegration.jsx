@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Plus, Trash2, Settings, Table, List, ChevronDown, ChevronUp, Eye, Edit3 } from 'lucide-react';
 import FormService from '../../../services/FormService';
 import FormVersionService from '../../../services/FormVersionService';
 
@@ -16,6 +17,11 @@ const CRFBuilderIntegration = () => {
     const [formVersion, setFormVersion] = useState(null);
     const [saving, setSaving] = useState(false);
     const [changes, setChanges] = useState(false);
+    const [expandedSections, setExpandedSections] = useState({});
+    const [showFieldMetadata, setShowFieldMetadata] = useState({});
+    const [previewMode, setPreviewMode] = useState(false);
+    const [previewData, setPreviewData] = useState({});
+    const [activeMetadataTab, setActiveMetadataTab] = useState({});
 
     // CRF data would be loaded from or passed to the CRF Builder component
     const [crfData, setCrfData] = useState(null);
@@ -24,6 +30,7 @@ const CRFBuilderIntegration = () => {
         const loadFormData = async () => {
             try {
                 setLoading(true);
+                setError(null);
 
                 if (formId) {
                     // Load existing form
@@ -64,6 +71,567 @@ const CRFBuilderIntegration = () => {
     const handleCrfDataUpdate = (newData) => {
         setCrfData(newData);
         setChanges(true);
+    };
+
+    // Toggle section expansion
+    const toggleSectionExpansion = (sectionId) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [sectionId]: !prev[sectionId]
+        }));
+    };
+
+    // Toggle field metadata visibility
+    const toggleFieldMetadata = (fieldId) => {
+        setShowFieldMetadata(prev => ({
+            ...prev,
+            [fieldId]: !prev[fieldId]
+        }));
+        // Set default active tab when opening metadata
+        if (!showFieldMetadata[fieldId]) {
+            setActiveMetadataTab(prev => ({
+                ...prev,
+                [fieldId]: 'basic'
+            }));
+        }
+    };
+
+    // Set active metadata tab
+    const setMetadataTab = (fieldId, tab) => {
+        setActiveMetadataTab(prev => ({
+            ...prev,
+            [fieldId]: tab
+        }));
+    };
+
+    // Create new section
+    const createSection = (type = 'regular') => {
+        const newSection = {
+            id: `section_${Date.now()}`,
+            name: 'New Section',
+            type: type, // 'regular' or 'table'
+            description: '',
+            fields: [],
+            metadata: {
+                isRequired: false,
+                helpText: '',
+                displayOrder: (crfData?.sections?.length || 0) + 1
+            }
+        };
+        const updatedData = {
+            ...crfData,
+            sections: [...(crfData.sections || []), newSection]
+        };
+        handleCrfDataUpdate(updatedData);
+        setExpandedSections(prev => ({ ...prev, [newSection.id]: true }));
+    };
+
+    // Create new field
+    const createField = (sectionIndex, section) => {
+        const newField = {
+            id: `field_${Date.now()}`,
+            name: 'New Field',
+            label: 'New Field Label',
+            type: 'text',
+            required: false,
+            metadata: {
+                // Basic Field Metadata
+                description: '',
+                helpText: '',
+                placeholder: '',
+                validation: {
+                    minLength: '',
+                    maxLength: '',
+                    pattern: '',
+                    min: '',
+                    max: '',
+                    errorMessage: ''
+                },
+                options: [], // For select, radio, checkbox fields
+                defaultValue: '',
+                displayOrder: (section.fields?.length || 0) + 1,
+                fieldWidth: 'full', // full, half, third, quarter
+                isReadOnly: false,
+                isCalculated: false,
+                calculationFormula: '',
+                conditionalLogic: {
+                    showIf: '',
+                    hideIf: '',
+                    requiredIf: ''
+                },
+
+                // Clinical Data Management Metadata
+                clinicalMetadata: {
+                    // Data Review Flags
+                    sdvFlag: false, // Source Data Verification required
+                    medicalReviewFlag: false, // Medical Review required
+                    dataReviewFlag: false, // Data Management Review required
+
+                    // Regulatory & Standards Mappings
+                    cdashMapping: {
+                        domain: '', // e.g., 'DM', 'AE', 'VS', 'LB'
+                        variable: '', // CDASH variable name
+                        implementation: '', // Implementation notes
+                        core: 'Permissible', // Required, Expected, Permissible
+                        dataType: 'text' // text, integer, float, date, datetime, time
+                    },
+
+                    sdtmMapping: {
+                        domain: '', // SDTM domain
+                        variable: '', // SDTM variable name
+                        dataType: 'Char', // Char, Num, Date, DateTime, Time
+                        length: '', // Variable length
+                        significance: '', // Significant digits for numeric
+                        format: '', // Display format
+                        codelist: '', // Controlled terminology codelist
+                        origin: 'CRF', // CRF, Derived, Assigned, Protocol, Predecessor
+                        role: '', // Identifier, Topic, Grouping, Timing, etc.
+                        comment: ''
+                    },
+
+                    // Medical Coding
+                    medicalCoding: {
+                        meddraRequired: false,
+                        meddraLevel: '', // LLT, PT, HLT, HLGT, SOC
+                        whodrugRequired: false,
+                        icd10Required: false,
+                        icd11Required: false,
+                        customDictionary: '',
+                        autoCodeFlag: false,
+                        manualReviewRequired: false
+                    },
+
+                    // Data Quality & Validation
+                    dataQuality: {
+                        criticalDataPoint: false, // CDP flag
+                        keyDataPoint: false, // KDP flag
+                        primaryEndpoint: false,
+                        secondaryEndpoint: false,
+                        safetyVariable: false,
+                        efficacyVariable: false,
+                        queryGeneration: 'Auto', // Auto, Manual, None
+                        rangeCheckType: 'Soft', // Hard, Soft, None
+                        missingDataAcceptable: false,
+                        nullFlavor: '', // Not Applicable, Unknown, etc.
+                        dataEntryMethod: 'Single', // Single, Double, Import
+
+                        // Edit Checks
+                        editChecks: [],
+
+                        // Reference Data
+                        referenceRange: {
+                            low: '',
+                            high: '',
+                            unit: '',
+                            ageGroup: '',
+                            gender: ''
+                        }
+                    },
+
+                    // Regulatory Requirements
+                    regulatoryMetadata: {
+                        fdaRequired: false,
+                        emaRequired: false,
+                        ich: false, // ICH compliance required
+                        gcp: false, // GCP compliance required
+                        part11: false, // 21 CFR Part 11 compliance
+                        auditTrail: true, // Audit trail required
+                        electronicSignature: false,
+                        reasonForChange: false, // Require reason for change
+
+                        // Submission Requirements
+                        submissionDataset: '', // Dataset for submission
+                        submissionVariable: '', // Variable name in submission
+                        derivationMethod: '', // How data is derived/calculated
+                        precedence: 1 // Order of operations for derived fields
+                    },
+
+                    // Business Rules
+                    businessRules: {
+                        dataEntryWindow: {
+                            enabled: false,
+                            windowDays: 0,
+                            baseDate: '' // Study start, subject enrollment, etc.
+                        },
+                        freezePoint: '', // Point at which data is frozen
+                        lockPoint: '', // Point at which data is locked
+                        archiveRequired: false,
+                        retentionPeriod: '', // Data retention period
+
+                        // Visit/Timepoint Association
+                        visitAssociation: '',
+                        timepointWindow: '',
+                        scheduledTimepoint: '',
+
+                        // Data Integration
+                        externalDataSource: '', // Lab, ECG, etc.
+                        integrationMethod: '', // API, File, Manual
+                        transformationRequired: false
+                    },
+
+                    // Study-Specific Metadata
+                    studyMetadata: {
+                        therapeutic: '', // Therapeutic area
+                        indication: '', // Medical indication
+                        phase: '', // Study phase
+                        blinding: '', // Open, Single, Double
+                        population: '', // Target population
+
+                        // Protocol References
+                        protocolSection: '', // Protocol section reference
+                        protocolPage: '', // Protocol page number
+                        protocolAmendment: '', // Amendment version
+
+                        // Statistical Considerations
+                        statisticalTest: '', // Planned statistical test
+                        analysisPopulation: '', // ITT, PP, Safety
+                        imputationMethod: '', // For missing data
+                        multiplicity: false // Multiple comparisons
+                    }
+                }
+            }
+        };
+
+        const updatedSections = [...crfData.sections];
+        updatedSections[sectionIndex] = {
+            ...section,
+            fields: [...(section.fields || []), newField]
+        };
+        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+        setShowFieldMetadata(prev => ({ ...prev, [newField.id]: false }));
+    };
+
+    // Update section
+    const updateSection = (sectionIndex, updates) => {
+        const updatedSections = [...crfData.sections];
+        updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], ...updates };
+        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+    };
+
+    // Update field
+    const updateField = (sectionIndex, fieldIndex, updates) => {
+        const updatedSections = [...crfData.sections];
+        const updatedFields = [...updatedSections[sectionIndex].fields];
+        updatedFields[fieldIndex] = { ...updatedFields[fieldIndex], ...updates };
+        updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], fields: updatedFields };
+        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+    };
+
+    // Remove section
+    const removeSection = (sectionIndex) => {
+        const updatedSections = crfData.sections.filter((_, i) => i !== sectionIndex);
+        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+    };
+
+    // Remove field
+    const removeField = (sectionIndex, fieldIndex) => {
+        const updatedSections = [...crfData.sections];
+        const updatedFields = updatedSections[sectionIndex].fields.filter((_, i) => i !== fieldIndex);
+        updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], fields: updatedFields };
+        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+    };
+
+    // Toggle preview mode
+    const togglePreviewMode = () => {
+        setPreviewMode(!previewMode);
+    };
+
+    // Handle preview form data changes
+    const handlePreviewDataChange = (fieldId, value) => {
+        setPreviewData(prev => ({
+            ...prev,
+            [fieldId]: value
+        }));
+    };
+
+    // Render field input based on type
+    const renderFieldInput = (field, value, onChange, disabled = false) => {
+        const fieldClasses = "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
+        const disabledClasses = disabled ? "bg-gray-100 cursor-not-allowed" : "";
+
+        switch (field.type) {
+            case 'text':
+            case 'email':
+            case 'tel':
+            case 'url':
+                return (
+                    <input
+                        type={field.type}
+                        value={value || ''}
+                        onChange={(e) => onChange(field.id, e.target.value)}
+                        placeholder={field.metadata?.placeholder || ''}
+                        className={`${fieldClasses} ${disabledClasses}`}
+                        disabled={disabled || field.metadata?.isReadOnly}
+                        minLength={field.metadata?.validation?.minLength}
+                        maxLength={field.metadata?.validation?.maxLength}
+                    />
+                );
+
+            case 'number':
+                return (
+                    <input
+                        type="number"
+                        value={value || ''}
+                        onChange={(e) => onChange(field.id, e.target.value)}
+                        placeholder={field.metadata?.placeholder || ''}
+                        className={`${fieldClasses} ${disabledClasses}`}
+                        disabled={disabled || field.metadata?.isReadOnly}
+                        min={field.metadata?.validation?.min}
+                        max={field.metadata?.validation?.max}
+                    />
+                );
+
+            case 'date':
+                return (
+                    <input
+                        type="date"
+                        value={value || ''}
+                        onChange={(e) => onChange(field.id, e.target.value)}
+                        className={`${fieldClasses} ${disabledClasses}`}
+                        disabled={disabled || field.metadata?.isReadOnly}
+                    />
+                );
+
+            case 'datetime':
+                return (
+                    <input
+                        type="datetime-local"
+                        value={value || ''}
+                        onChange={(e) => onChange(field.id, e.target.value)}
+                        className={`${fieldClasses} ${disabledClasses}`}
+                        disabled={disabled || field.metadata?.isReadOnly}
+                    />
+                );
+
+            case 'time':
+                return (
+                    <input
+                        type="time"
+                        value={value || ''}
+                        onChange={(e) => onChange(field.id, e.target.value)}
+                        className={`${fieldClasses} ${disabledClasses}`}
+                        disabled={disabled || field.metadata?.isReadOnly}
+                    />
+                );
+
+            case 'textarea':
+                return (
+                    <textarea
+                        value={value || ''}
+                        onChange={(e) => onChange(field.id, e.target.value)}
+                        placeholder={field.metadata?.placeholder || ''}
+                        className={`${fieldClasses} ${disabledClasses}`}
+                        disabled={disabled || field.metadata?.isReadOnly}
+                        rows={4}
+                        minLength={field.metadata?.validation?.minLength}
+                        maxLength={field.metadata?.validation?.maxLength}
+                    />
+                );
+
+            case 'select':
+                return (
+                    <select
+                        value={value || ''}
+                        onChange={(e) => onChange(field.id, e.target.value)}
+                        className={`${fieldClasses} ${disabledClasses}`}
+                        disabled={disabled || field.metadata?.isReadOnly}
+                    >
+                        <option value="">-- Select an option --</option>
+                        {field.metadata?.options?.map((option, index) => (
+                            <option key={index} value={option}>{option}</option>
+                        ))}
+                    </select>
+                );
+
+            case 'multiselect':
+                return (
+                    <select
+                        multiple
+                        value={Array.isArray(value) ? value : []}
+                        onChange={(e) => {
+                            const selectedValues = Array.from(e.target.selectedOptions, option => option.value);
+                            onChange(field.id, selectedValues);
+                        }}
+                        className={`${fieldClasses} ${disabledClasses}`}
+                        disabled={disabled || field.metadata?.isReadOnly}
+                        size={Math.min(field.metadata?.options?.length || 3, 5)}
+                    >
+                        {field.metadata?.options?.map((option, index) => (
+                            <option key={index} value={option}>{option}</option>
+                        ))}
+                    </select>
+                );
+
+            case 'radio':
+                return (
+                    <div className="space-y-2">
+                        {field.metadata?.options?.map((option, index) => (
+                            <label key={index} className="flex items-center">
+                                <input
+                                    type="radio"
+                                    name={field.id}
+                                    value={option}
+                                    checked={value === option}
+                                    onChange={(e) => onChange(field.id, e.target.value)}
+                                    className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                    disabled={disabled || field.metadata?.isReadOnly}
+                                />
+                                <span className="ml-2 text-sm text-gray-700">{option}</span>
+                            </label>
+                        ))}
+                    </div>
+                );
+
+            case 'checkbox':
+                if (field.metadata?.options?.length > 0) {
+                    // Multiple checkboxes
+                    return (
+                        <div className="space-y-2">
+                            {field.metadata.options.map((option, index) => (
+                                <label key={index} className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        value={option}
+                                        checked={Array.isArray(value) && value.includes(option)}
+                                        onChange={(e) => {
+                                            const currentValues = Array.isArray(value) ? value : [];
+                                            const newValues = e.target.checked
+                                                ? [...currentValues, option]
+                                                : currentValues.filter(v => v !== option);
+                                            onChange(field.id, newValues);
+                                        }}
+                                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        disabled={disabled || field.metadata?.isReadOnly}
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700">{option}</span>
+                                </label>
+                            ))}
+                        </div>
+                    );
+                } else {
+                    // Single checkbox
+                    return (
+                        <label className="flex items-center">
+                            <input
+                                type="checkbox"
+                                checked={!!value}
+                                onChange={(e) => onChange(field.id, e.target.checked)}
+                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                disabled={disabled || field.metadata?.isReadOnly}
+                            />
+                            <span className="ml-2 text-sm text-gray-700">{field.label || field.name}</span>
+                        </label>
+                    );
+                }
+
+            case 'file':
+                return (
+                    <input
+                        type="file"
+                        onChange={(e) => onChange(field.id, e.target.files[0]?.name || '')}
+                        className={`${fieldClasses} ${disabledClasses}`}
+                        disabled={disabled || field.metadata?.isReadOnly}
+                    />
+                );
+
+            default:
+                return (
+                    <input
+                        type="text"
+                        value={value || ''}
+                        onChange={(e) => onChange(field.id, e.target.value)}
+                        placeholder={field.metadata?.placeholder || ''}
+                        className={`${fieldClasses} ${disabledClasses}`}
+                        disabled={disabled || field.metadata?.isReadOnly}
+                    />
+                );
+        }
+    };
+
+    // Get field width class
+    const getFieldWidthClass = (width) => {
+        switch (width) {
+            case 'half': return 'col-span-6';
+            case 'third': return 'col-span-4';
+            case 'quarter': return 'col-span-3';
+            default: return 'col-span-12';
+        }
+    };
+
+    // Render preview section
+    const renderPreviewSection = (section) => {
+        if (section.type === 'table' && section.fields?.length > 0) {
+            return (
+                <div className="mb-8">
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">{section.name}</h3>
+                        {section.description && (
+                            <p className="text-sm text-gray-600 mt-1">{section.description}</p>
+                        )}
+                    </div>
+
+                    <div className="overflow-x-auto bg-white border border-gray-200 rounded-lg">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    {section.fields.map((field) => (
+                                        <th key={field.id} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            {field.label || field.name}
+                                            {field.required && <span className="text-red-500 ml-1">*</span>}
+                                            {field.metadata?.helpText && (
+                                                <div className="text-xs text-gray-400 mt-1 font-normal normal-case">
+                                                    {field.metadata.helpText}
+                                                </div>
+                                            )}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    {section.fields.map((field) => (
+                                        <td key={field.id} className="px-6 py-4 whitespace-nowrap">
+                                            {renderFieldInput(field, previewData[field.id], handlePreviewDataChange)}
+                                        </td>
+                                    ))}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        } else {
+            // Regular section
+            return (
+                <div className="mb-8">
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">{section.name}</h3>
+                        {section.description && (
+                            <p className="text-sm text-gray-600 mt-1">{section.description}</p>
+                        )}
+                    </div>
+
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                        <div className="grid grid-cols-12 gap-4">
+                            {section.fields?.map((field) => (
+                                <div key={field.id} className={getFieldWidthClass(field.metadata?.fieldWidth)}>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        {field.label || field.name}
+                                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                                    </label>
+
+                                    {renderFieldInput(field, previewData[field.id], handlePreviewDataChange)}
+
+                                    {field.metadata?.helpText && (
+                                        <p className="text-xs text-gray-500 mt-1">{field.metadata.helpText}</p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
     };
 
     // Save form changes
@@ -172,14 +740,1117 @@ const CRFBuilderIntegration = () => {
                 </div>
             )}
 
-            {/* This is where the actual CRF Builder component would be integrated */}
-            <div className="min-h-[400px] border border-dashed border-gray-300 rounded-lg p-4 mb-6">
-                <p className="text-gray-500 text-center">
-                    CRF Builder Component Would Be Integrated Here
-                </p>
-                <p className="text-sm text-gray-400 text-center mt-2">
-                    This placeholder will be replaced with the actual form builder interface
-                </p>
+            {/* Enhanced CRF Builder Interface */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center space-x-4">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            {previewMode ? 'Form Preview' : 'Form Builder'}
+                        </h3>
+                        <button
+                            onClick={togglePreviewMode}
+                            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${previewMode
+                                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                        >
+                            {previewMode ? (
+                                <>
+                                    <Edit3 className="w-4 h-4" />
+                                    <span>Edit Mode</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Eye className="w-4 h-4" />
+                                    <span>Preview</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                    {!previewMode && (
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => createSection('regular')}
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-md flex items-center space-x-1"
+                            >
+                                <List className="w-4 h-4" />
+                                <span>Add Section</span>
+                            </button>
+                            <button
+                                onClick={() => createSection('table')}
+                                className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-3 rounded-md flex items-center space-x-1"
+                            >
+                                <Table className="w-4 h-4" />
+                                <span>Add Table Section</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {previewMode ? (
+                    /* Form Preview */
+                    <div className="space-y-6">
+                        {/* Form Header in Preview */}
+                        <div className="border-b border-gray-200 pb-4">
+                            <h2 className="text-xl font-bold text-gray-900">
+                                {form?.name || 'Form Preview'}
+                            </h2>
+                            {form?.description && (
+                                <p className="text-gray-600 mt-2">{form.description}</p>
+                            )}
+                        </div>
+
+                        {/* Preview Sections */}
+                        {crfData?.sections?.map((section) => (
+                            <div key={section.id}>
+                                {renderPreviewSection(section)}
+                            </div>
+                        ))}
+
+                        {/* No sections message */}
+                        {(!crfData?.sections || crfData.sections.length === 0) && (
+                            <div className="text-center py-12 text-gray-500">
+                                <Eye className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                                <h3 className="text-lg font-medium mb-2">No content to preview</h3>
+                                <p className="text-sm">Switch to edit mode and add some sections to see the preview.</p>
+                            </div>
+                        )}
+
+                        {/* Preview Actions */}
+                        {crfData?.sections?.length > 0 && (
+                            <div className="border-t border-gray-200 pt-6">
+                                <div className="flex justify-end space-x-3">
+                                    <button
+                                        type="button"
+                                        className="px-6 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        onClick={() => setPreviewData({})}
+                                    >
+                                        Clear Form
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                        Submit Preview
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    /* Form Builder Mode */
+                    <div>
+                        {/* Form Sections */}
+                        {crfData?.sections?.map((section, sectionIndex) => (
+                            <div key={section.id} className="border border-gray-200 rounded-lg p-4 mb-4">
+                                {/* Section Header */}
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex-1 mr-4">
+                                        <div className="flex items-center space-x-2 mb-2">
+                                            <button
+                                                onClick={() => toggleSectionExpansion(section.id)}
+                                                className="text-gray-500 hover:text-gray-700"
+                                            >
+                                                {expandedSections[section.id] ?
+                                                    <ChevronUp className="w-5 h-5" /> :
+                                                    <ChevronDown className="w-5 h-5" />
+                                                }
+                                            </button>
+                                            <div className="flex items-center space-x-2">
+                                                {section.type === 'table' ?
+                                                    <Table className="w-4 h-4 text-green-600" /> :
+                                                    <List className="w-4 h-4 text-blue-600" />
+                                                }
+                                                <input
+                                                    type="text"
+                                                    value={section.name}
+                                                    onChange={(e) => updateSection(sectionIndex, { name: e.target.value })}
+                                                    className="text-lg font-medium text-gray-900 border-none bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2"
+                                                    placeholder="Section name"
+                                                />
+                                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                                    {section.type === 'table' ? 'Table' : 'Regular'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={section.description || ''}
+                                            onChange={(e) => updateSection(sectionIndex, { description: e.target.value })}
+                                            className="text-sm text-gray-600 border-none bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 w-full"
+                                            placeholder="Section description (optional)"
+                                        />
+                                    </div>
+                                    <div className="flex space-x-2">
+                                        <button
+                                            onClick={() => createField(sectionIndex, section)}
+                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium py-1 px-2 rounded flex items-center space-x-1"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            <span>{section.type === 'table' ? 'Add Column' : 'Add Field'}</span>
+                                        </button>
+                                        <button
+                                            onClick={() => removeSection(sectionIndex)}
+                                            className="text-red-600 hover:text-red-800 text-sm font-medium py-1 px-2 rounded flex items-center space-x-1"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            <span>Remove Section</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Section Content */}
+                                {expandedSections[section.id] !== false && (
+                                    <>
+                                        {/* Table Section Layout */}
+                                        {section.type === 'table' && section.fields?.length > 0 && (
+                                            <div className="mb-4">
+                                                <div className="bg-gray-50 rounded-lg p-4">
+                                                    <h4 className="text-sm font-medium text-gray-700 mb-3">Table Preview</h4>
+                                                    <div className="overflow-x-auto">
+                                                        <table className="min-w-full border border-gray-300">
+                                                            <thead>
+                                                                <tr className="bg-gray-100">
+                                                                    {section.fields.map((field) => (
+                                                                        <th key={field.id} className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-r border-gray-300 last:border-r-0">
+                                                                            {field.label || field.name}
+                                                                            {field.required && <span className="text-red-500 ml-1">*</span>}
+                                                                        </th>
+                                                                    ))}
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr>
+                                                                    {section.fields.map((field) => (
+                                                                        <td key={field.id} className="px-3 py-2 text-xs text-gray-500 border-r border-gray-300 last:border-r-0">
+                                                                            {field.type}
+                                                                        </td>
+                                                                    ))}
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Fields in this section */}
+                                        {section.fields?.map((field, fieldIndex) => (
+                                            <div key={field.id} className="bg-gray-50 rounded p-3 mb-3 last:mb-0">
+                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-3">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                            {section.type === 'table' ? 'Column Name' : 'Field Name'}
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={field.name}
+                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, { name: e.target.value })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                            placeholder="Field name"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                                                        <input
+                                                            type="text"
+                                                            value={field.label || ''}
+                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, { label: e.target.value })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                            placeholder="Display label"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                                        <select
+                                                            value={field.type}
+                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, { type: e.target.value })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        >
+                                                            <option value="text">Text</option>
+                                                            <option value="number">Number</option>
+                                                            <option value="date">Date</option>
+                                                            <option value="datetime">Date & Time</option>
+                                                            <option value="time">Time</option>
+                                                            <option value="email">Email</option>
+                                                            <option value="tel">Phone</option>
+                                                            <option value="url">URL</option>
+                                                            <option value="select">Select</option>
+                                                            <option value="multiselect">Multi-Select</option>
+                                                            <option value="textarea">Textarea</option>
+                                                            <option value="checkbox">Checkbox</option>
+                                                            <option value="radio">Radio</option>
+                                                            <option value="file">File Upload</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex items-center space-x-4">
+                                                        <label className="flex items-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={field.required}
+                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, { required: e.target.checked })}
+                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                            />
+                                                            <span className="ml-2 text-sm text-gray-700">Required</span>
+                                                        </label>
+                                                        <button
+                                                            onClick={() => toggleFieldMetadata(field.id)}
+                                                            className="text-gray-600 hover:text-gray-800 flex items-center space-x-1"
+                                                            title="Field Settings"
+                                                        >
+                                                            <Settings className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => removeField(sectionIndex, fieldIndex)}
+                                                            className="text-red-600 hover:text-red-800 flex items-center space-x-1"
+                                                            title="Remove Field"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Enhanced Clinical Metadata Panel */}
+                                                {showFieldMetadata[field.id] && (
+                                                    <div className="border-t border-gray-200 pt-4 mt-4">
+                                                        <div className="flex justify-between items-center mb-4">
+                                                            <h4 className="text-sm font-medium text-gray-700">Clinical Data Management Metadata</h4>
+                                                            <span className="text-xs text-gray-500">Industry Standards Compliant</span>
+                                                        </div>
+
+                                                        {/* Metadata Tabs */}
+                                                        <div className="border-b border-gray-200 mb-4">
+                                                            <nav className="-mb-px flex space-x-8">
+                                                                {[
+                                                                    { id: 'basic', label: 'Basic', icon: '📝' },
+                                                                    { id: 'clinical', label: 'Clinical Flags', icon: '🏥' },
+                                                                    { id: 'standards', label: 'CDASH/SDTM', icon: '📊' },
+                                                                    { id: 'coding', label: 'Medical Coding', icon: '🏷️' },
+                                                                    { id: 'quality', label: 'Data Quality', icon: '✅' },
+                                                                    { id: 'regulatory', label: 'Regulatory', icon: '📋' }
+                                                                ].map((tab) => (
+                                                                    <button
+                                                                        key={tab.id}
+                                                                        onClick={() => setMetadataTab(field.id, tab.id)}
+                                                                        className={`py-2 px-1 border-b-2 font-medium text-xs ${activeMetadataTab[field.id] === tab.id
+                                                                                ? 'border-blue-500 text-blue-600'
+                                                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                                                            }`}
+                                                                    >
+                                                                        <span className="mr-1">{tab.icon}</span>
+                                                                        {tab.label}
+                                                                    </button>
+                                                                ))}
+                                                            </nav>
+                                                        </div>
+
+                                                        {/* Basic Metadata Tab */}
+                                                        {activeMetadataTab[field.id] === 'basic' && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                                                    <textarea
+                                                                        value={field.metadata?.description || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: { ...field.metadata, description: e.target.value }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                        rows="2"
+                                                                        placeholder="Field description for documentation"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Help Text</label>
+                                                                    <textarea
+                                                                        value={field.metadata?.helpText || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: { ...field.metadata, helpText: e.target.value }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                        rows="2"
+                                                                        placeholder="Help text shown to users"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Placeholder</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={field.metadata?.placeholder || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: { ...field.metadata, placeholder: e.target.value }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                        placeholder="Placeholder text"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Default Value</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={field.metadata?.defaultValue || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: { ...field.metadata, defaultValue: e.target.value }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                        placeholder="Default value"
+                                                                    />
+                                                                </div>
+
+                                                                {/* Field Display Settings */}
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Field Width</label>
+                                                                    <select
+                                                                        value={field.metadata?.fieldWidth || 'full'}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: { ...field.metadata, fieldWidth: e.target.value }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                    >
+                                                                        <option value="full">Full Width</option>
+                                                                        <option value="half">Half Width</option>
+                                                                        <option value="third">One Third</option>
+                                                                        <option value="quarter">One Quarter</option>
+                                                                    </select>
+                                                                </div>
+
+                                                                {/* Basic Field Settings */}
+                                                                <div className="col-span-2">
+                                                                    <div className="flex flex-wrap gap-4">
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.isReadOnly || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: { ...field.metadata, isReadOnly: e.target.checked }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">Read Only</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.isCalculated || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: { ...field.metadata, isCalculated: e.target.checked }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">Calculated Field</span>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Calculation Formula */}
+                                                                {field.metadata?.isCalculated && (
+                                                                    <div className="col-span-2">
+                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Calculation Formula</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={field.metadata?.calculationFormula || ''}
+                                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                metadata: { ...field.metadata, calculationFormula: e.target.value }
+                                                                            })}
+                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                            placeholder="e.g., field1 + field2 * 0.1"
+                                                                        />
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Options for select/radio/checkbox fields */}
+                                                                {(field.type === 'select' || field.type === 'multiselect' || field.type === 'radio' || field.type === 'checkbox') && (
+                                                                    <div className="col-span-2">
+                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Options (one per line)</label>
+                                                                        <textarea
+                                                                            value={(field.metadata?.options || []).join('\n')}
+                                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                metadata: {
+                                                                                    ...field.metadata,
+                                                                                    options: e.target.value.split('\n').filter(option => option.trim())
+                                                                                }
+                                                                            })}
+                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                            rows="4"
+                                                                            placeholder="Option 1&#10;Option 2&#10;Option 3"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Clinical Flags Tab */}
+                                                        {activeMetadataTab[field.id] === 'clinical' && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="col-span-2">
+                                                                    <h5 className="text-sm font-medium text-gray-700 mb-3">Data Review Flags</h5>
+                                                                    <div className="flex flex-wrap gap-4">
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.sdvFlag || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            sdvFlag: e.target.checked
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">SDV Required</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.medicalReviewFlag || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            medicalReviewFlag: e.target.checked
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">Medical Review</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.dataReviewFlag || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            dataReviewFlag: e.target.checked
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">Data Review</span>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* CDASH/SDTM Standards Tab */}
+                                                        {activeMetadataTab[field.id] === 'standards' && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="col-span-2">
+                                                                    <h5 className="text-sm font-medium text-gray-700 mb-3">CDASH Mapping</h5>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">CDASH Domain</label>
+                                                                    <select
+                                                                        value={field.metadata?.clinicalMetadata?.cdashMapping?.domain || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    cdashMapping: {
+                                                                                        ...field.metadata?.clinicalMetadata?.cdashMapping,
+                                                                                        domain: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                    >
+                                                                        <option value="">Select Domain</option>
+                                                                        <option value="DM">Demographics (DM)</option>
+                                                                        <option value="AE">Adverse Events (AE)</option>
+                                                                        <option value="CM">Concomitant Medications (CM)</option>
+                                                                        <option value="VS">Vital Signs (VS)</option>
+                                                                        <option value="LB">Laboratory (LB)</option>
+                                                                        <option value="EG">ECG (EG)</option>
+                                                                        <option value="PE">Physical Examination (PE)</option>
+                                                                        <option value="MH">Medical History (MH)</option>
+                                                                        <option value="SU">Substance Use (SU)</option>
+                                                                        <option value="QS">Questionnaires (QS)</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">CDASH Variable</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={field.metadata?.clinicalMetadata?.cdashMapping?.variable || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    cdashMapping: {
+                                                                                        ...field.metadata?.clinicalMetadata?.cdashMapping,
+                                                                                        variable: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                        placeholder="e.g., AETERM, VSTEST"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Core Status</label>
+                                                                    <select
+                                                                        value={field.metadata?.clinicalMetadata?.cdashMapping?.core || 'Permissible'}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    cdashMapping: {
+                                                                                        ...field.metadata?.clinicalMetadata?.cdashMapping,
+                                                                                        core: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                    >
+                                                                        <option value="Required">Required</option>
+                                                                        <option value="Expected">Expected</option>
+                                                                        <option value="Permissible">Permissible</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Data Type</label>
+                                                                    <select
+                                                                        value={field.metadata?.clinicalMetadata?.cdashMapping?.dataType || 'text'}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    cdashMapping: {
+                                                                                        ...field.metadata?.clinicalMetadata?.cdashMapping,
+                                                                                        dataType: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                    >
+                                                                        <option value="text">Text</option>
+                                                                        <option value="integer">Integer</option>
+                                                                        <option value="float">Float</option>
+                                                                        <option value="date">Date</option>
+                                                                        <option value="datetime">DateTime</option>
+                                                                        <option value="time">Time</option>
+                                                                    </select>
+                                                                </div>
+
+                                                                <div className="col-span-2">
+                                                                    <h5 className="text-sm font-medium text-gray-700 mb-3 mt-4">SDTM Mapping</h5>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">SDTM Domain</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={field.metadata?.clinicalMetadata?.sdtmMapping?.domain || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    sdtmMapping: {
+                                                                                        ...field.metadata?.clinicalMetadata?.sdtmMapping,
+                                                                                        domain: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                        placeholder="e.g., AE, VS, LB"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">SDTM Variable</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={field.metadata?.clinicalMetadata?.sdtmMapping?.variable || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    sdtmMapping: {
+                                                                                        ...field.metadata?.clinicalMetadata?.sdtmMapping,
+                                                                                        variable: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                        placeholder="e.g., AETERM, VSTEST"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Origin</label>
+                                                                    <select
+                                                                        value={field.metadata?.clinicalMetadata?.sdtmMapping?.origin || 'CRF'}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    sdtmMapping: {
+                                                                                        ...field.metadata?.clinicalMetadata?.sdtmMapping,
+                                                                                        origin: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                    >
+                                                                        <option value="CRF">CRF</option>
+                                                                        <option value="Derived">Derived</option>
+                                                                        <option value="Assigned">Assigned</option>
+                                                                        <option value="Protocol">Protocol</option>
+                                                                        <option value="Predecessor">Predecessor</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Codelist</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={field.metadata?.clinicalMetadata?.sdtmMapping?.codelist || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    sdtmMapping: {
+                                                                                        ...field.metadata?.clinicalMetadata?.sdtmMapping,
+                                                                                        codelist: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                        placeholder="Controlled terminology"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Medical Coding Tab */}
+                                                        {activeMetadataTab[field.id] === 'coding' && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="col-span-2">
+                                                                    <div className="flex flex-wrap gap-4 mb-4">
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.medicalCoding?.meddraRequired || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            medicalCoding: {
+                                                                                                ...field.metadata?.clinicalMetadata?.medicalCoding,
+                                                                                                meddraRequired: e.target.checked
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">MedDRA Required</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.medicalCoding?.whodrugRequired || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            medicalCoding: {
+                                                                                                ...field.metadata?.clinicalMetadata?.medicalCoding,
+                                                                                                whodrugRequired: e.target.checked
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">WHODrug Required</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.medicalCoding?.autoCodeFlag || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            medicalCoding: {
+                                                                                                ...field.metadata?.clinicalMetadata?.medicalCoding,
+                                                                                                autoCodeFlag: e.target.checked
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">Auto-Code</span>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">MedDRA Level</label>
+                                                                    <select
+                                                                        value={field.metadata?.clinicalMetadata?.medicalCoding?.meddraLevel || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    medicalCoding: {
+                                                                                        ...field.metadata?.clinicalMetadata?.medicalCoding,
+                                                                                        meddraLevel: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                    >
+                                                                        <option value="">Select Level</option>
+                                                                        <option value="LLT">Lowest Level Term (LLT)</option>
+                                                                        <option value="PT">Preferred Term (PT)</option>
+                                                                        <option value="HLT">High Level Term (HLT)</option>
+                                                                        <option value="HLGT">High Level Group Term (HLGT)</option>
+                                                                        <option value="SOC">System Organ Class (SOC)</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Custom Dictionary</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={field.metadata?.clinicalMetadata?.medicalCoding?.customDictionary || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    medicalCoding: {
+                                                                                        ...field.metadata?.clinicalMetadata?.medicalCoding,
+                                                                                        customDictionary: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                        placeholder="Custom dictionary name"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Data Quality Tab */}
+                                                        {activeMetadataTab[field.id] === 'quality' && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="col-span-2">
+                                                                    <div className="flex flex-wrap gap-4 mb-4">
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.dataQuality?.criticalDataPoint || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            dataQuality: {
+                                                                                                ...field.metadata?.clinicalMetadata?.dataQuality,
+                                                                                                criticalDataPoint: e.target.checked
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">Critical Data Point</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.dataQuality?.keyDataPoint || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            dataQuality: {
+                                                                                                ...field.metadata?.clinicalMetadata?.dataQuality,
+                                                                                                keyDataPoint: e.target.checked
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">Key Data Point</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.dataQuality?.primaryEndpoint || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            dataQuality: {
+                                                                                                ...field.metadata?.clinicalMetadata?.dataQuality,
+                                                                                                primaryEndpoint: e.target.checked
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">Primary Endpoint</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.dataQuality?.safetyVariable || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            dataQuality: {
+                                                                                                ...field.metadata?.clinicalMetadata?.dataQuality,
+                                                                                                safetyVariable: e.target.checked
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">Safety Variable</span>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Query Generation</label>
+                                                                    <select
+                                                                        value={field.metadata?.clinicalMetadata?.dataQuality?.queryGeneration || 'Auto'}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    dataQuality: {
+                                                                                        ...field.metadata?.clinicalMetadata?.dataQuality,
+                                                                                        queryGeneration: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                    >
+                                                                        <option value="Auto">Auto</option>
+                                                                        <option value="Manual">Manual</option>
+                                                                        <option value="None">None</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Range Check</label>
+                                                                    <select
+                                                                        value={field.metadata?.clinicalMetadata?.dataQuality?.rangeCheckType || 'Soft'}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    dataQuality: {
+                                                                                        ...field.metadata?.clinicalMetadata?.dataQuality,
+                                                                                        rangeCheckType: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                    >
+                                                                        <option value="Hard">Hard</option>
+                                                                        <option value="Soft">Soft</option>
+                                                                        <option value="None">None</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Regulatory Tab */}
+                                                        {activeMetadataTab[field.id] === 'regulatory' && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="col-span-2">
+                                                                    <div className="flex flex-wrap gap-4 mb-4">
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.regulatoryMetadata?.fdaRequired || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            regulatoryMetadata: {
+                                                                                                ...field.metadata?.clinicalMetadata?.regulatoryMetadata,
+                                                                                                fdaRequired: e.target.checked
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">FDA Required</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.regulatoryMetadata?.emaRequired || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            regulatoryMetadata: {
+                                                                                                ...field.metadata?.clinicalMetadata?.regulatoryMetadata,
+                                                                                                emaRequired: e.target.checked
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">EMA Required</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.regulatoryMetadata?.part11 || false}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            regulatoryMetadata: {
+                                                                                                ...field.metadata?.clinicalMetadata?.regulatoryMetadata,
+                                                                                                part11: e.target.checked
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">21 CFR Part 11</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={field.metadata?.clinicalMetadata?.regulatoryMetadata?.auditTrail || true}
+                                                                                onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                    metadata: {
+                                                                                        ...field.metadata,
+                                                                                        clinicalMetadata: {
+                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            regulatoryMetadata: {
+                                                                                                ...field.metadata?.clinicalMetadata?.regulatoryMetadata,
+                                                                                                auditTrail: e.target.checked
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })}
+                                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            />
+                                                                            <span className="ml-2 text-sm text-gray-700">Audit Trail</span>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Submission Dataset</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={field.metadata?.clinicalMetadata?.regulatoryMetadata?.submissionDataset || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    regulatoryMetadata: {
+                                                                                        ...field.metadata?.clinicalMetadata?.regulatoryMetadata,
+                                                                                        submissionDataset: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                        placeholder="Dataset name for submission"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Comments</label>
+                                                                    <textarea
+                                                                        value={field.metadata?.clinicalMetadata?.sdtmMapping?.comment || ''}
+                                                                        onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                            metadata: {
+                                                                                ...field.metadata,
+                                                                                clinicalMetadata: {
+                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    sdtmMapping: {
+                                                                                        ...field.metadata?.clinicalMetadata?.sdtmMapping,
+                                                                                        comment: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                        rows="3"
+                                                                        placeholder="Regulatory and compliance notes"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+
+                                        {section.fields?.length === 0 && (
+                                            <div className="text-center py-4 text-gray-500">
+                                                <p className="mb-2">No {section.type === 'table' ? 'columns' : 'fields'} in this section.</p>
+                                                <p className="text-sm">Click "Add {section.type === 'table' ? 'Column' : 'Field'}" to get started.</p>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        ))}
+
+                        {(!crfData?.sections || crfData.sections.length === 0) && (
+                            <div className="text-center py-8 text-gray-500">
+                                <p className="mb-4">No sections created yet.</p>
+                                <p className="text-sm">Click "Add Section" or "Add Table Section" to start building your form.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="flex justify-between">
