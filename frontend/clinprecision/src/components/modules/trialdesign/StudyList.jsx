@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { getStudies } from '../../../services/StudyService'; // Commented out to use mock data
 
 const StudyList = () => {
     const [studies, setStudies] = useState([]);

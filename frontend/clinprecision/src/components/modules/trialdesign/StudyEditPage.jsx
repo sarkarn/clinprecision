@@ -3,7 +3,6 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import StudyService from '../../../services/StudyService';
 import FormService from '../../../services/FormService';
 import VisitService from '../../../services/VisitService';
-import CRFBuilder from './designer/CRFBuilder';
 
 const StudyEditPage = () => {
     const { studyId } = useParams();
@@ -944,13 +943,35 @@ const StudyEditPage = () => {
             {isCRFBuilderOpen && (
                 <div className="fixed inset-0 flex items-center justify-center z-50">
                     <div className="absolute inset-0 bg-black opacity-30"></div>
-                    <div className="bg-white rounded-lg shadow-lg p-6 z-10 max-w-5xl w-full">
-                        <CRFBuilder
-                            onSave={handleCRFSave}
-                            onCancel={() => setIsCRFBuilderOpen(false)}
-                            initialData={currentVisit?.crf}
-                            readOnly={currentVisit?.mode === 'view'}
-                        />
+                    <div className="bg-white rounded-lg shadow-lg p-6 z-10 max-w-md w-full mx-4">
+                        <div className="text-center">
+                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                                <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Form Builder Available</h3>
+                            <p className="text-sm text-gray-500 mb-6">
+                                The comprehensive Form Builder with clinical metadata is now available in the dedicated Forms section.
+                            </p>
+                            <div className="flex space-x-3 justify-center">
+                                <button
+                                    onClick={() => {
+                                        navigate('/study-design/forms/builder');
+                                        setIsCRFBuilderOpen(false);
+                                    }}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                                >
+                                    Go to Form Builder
+                                </button>
+                                <button
+                                    onClick={() => setIsCRFBuilderOpen(false)}
+                                    className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import StudyRegister from './StudyRegister';
 import StudyCreationWizard from './study-creation/StudyCreationWizard';
