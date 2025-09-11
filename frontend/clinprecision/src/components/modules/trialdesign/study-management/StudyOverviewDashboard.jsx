@@ -1,0 +1,628 @@
+import React, { useState, useEffect } from 'react';
+import {
+    ArrowLeft,
+    Edit,
+    GitBranch,
+    Users,
+    MapPin,
+    Calendar,
+    Clock,
+    Target,
+    Activity,
+    FileText,
+    AlertTriangle,
+    CheckCircle2,
+    XCircle,
+    TrendingUp,
+    Download,
+    Share2,
+    MoreHorizontal,
+    Plus,
+    Eye,
+    Archive
+} from 'lucide-react';
+
+/**
+ * Comprehensive study overview dashboard
+ */
+const StudyOverviewDashboard = ({
+    studyId,
+    onBack,
+    onEdit,
+    onCreateVersion
+}) => {
+    const [study, setStudy] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('overview');
+
+    useEffect(() => {
+        if (studyId) {
+            loadStudyDetails();
+        }
+    }, [studyId]);
+
+    const loadStudyDetails = async () => {
+        setLoading(true);
+        try {
+            // Mock data - replace with actual API call
+            const studyData = {
+                id: studyId,
+                title: 'Phase III Oncology Trial - Advanced NSCLC',
+                protocol: 'ONC-2024-001',
+                version: '2.1',
+                versionStatus: 'APPROVED',
+                status: 'ACTIVE',
+                phase: 'Phase III',
+                indication: 'Non-Small Cell Lung Cancer',
+                therapeuticArea: 'Oncology',
+                sponsor: 'Global Pharma Inc.',
+                principalInvestigator: 'Dr. Sarah Johnson',
+                studyCoordinator: 'Jennifer Martinez, RN',
+                sites: 25,
+                activeSites: 23,
+                plannedSubjects: 450,
+                enrolledSubjects: 287,
+                screenedSubjects: 324,
+                randomizedSubjects: 278,
+                completedSubjects: 156,
+                withdrawnSubjects: 31,
+                startDate: '2024-01-15',
+                estimatedCompletion: '2026-03-30',
+                lastModified: '2024-03-15T10:30:00Z',
+                modifiedBy: 'Dr. Sarah Johnson',
+                description: 'A randomized, double-blind, placebo-controlled Phase III study to evaluate the efficacy and safety of investigational drug XYZ-123 in patients with advanced non-small cell lung cancer who have progressed on prior systemic therapy.',
+                primaryEndpoint: 'Overall Survival (OS)',
+                secondaryEndpoints: [
+                    'Progression-Free Survival (PFS)',
+                    'Objective Response Rate (ORR)',
+                    'Duration of Response (DoR)',
+                    'Safety and Tolerability'
+                ],
+                inclusionCriteria: [
+                    'Age ≥ 18 years',
+                    'Histologically confirmed NSCLC',
+                    'Advanced or metastatic disease',
+                    'ECOG Performance Status 0-1',
+                    'Adequate organ function'
+                ],
+                exclusionCriteria: [
+                    'Prior treatment with similar agents',
+                    'Brain metastases (unless treated)',
+                    'Severe cardiovascular disease',
+                    'Active infection',
+                    'Pregnancy or nursing'
+                ],
+                timeline: {
+                    screening: '4 weeks',
+                    treatment: '24 cycles (approximately 2 years)',
+                    followUp: '2 years post-treatment'
+                },
+                amendments: [
+                    {
+                        version: '2.1',
+                        type: 'MINOR',
+                        date: '2024-03-15',
+                        reason: 'Updated exclusion criteria for cardiovascular conditions',
+                        status: 'APPROVED'
+                    },
+                    {
+                        version: '2.0',
+                        type: 'MAJOR',
+                        date: '2024-02-01',
+                        reason: 'Added new secondary endpoint and modified dosing schedule',
+                        status: 'APPROVED'
+                    },
+                    {
+                        version: '1.0',
+                        type: 'INITIAL',
+                        date: '2024-01-15',
+                        reason: 'Initial protocol version',
+                        status: 'APPROVED'
+                    }
+                ],
+                documents: [
+                    {
+                        name: 'Protocol v2.1',
+                        type: 'Protocol',
+                        size: '2.4 MB',
+                        lastModified: '2024-03-15',
+                        status: 'Current'
+                    },
+                    {
+                        name: 'Informed Consent v2.1',
+                        type: 'ICF',
+                        size: '485 KB',
+                        lastModified: '2024-03-15',
+                        status: 'Current'
+                    },
+                    {
+                        name: 'Investigator Brochure v3.0',
+                        type: 'IB',
+                        size: '1.8 MB',
+                        lastModified: '2024-02-28',
+                        status: 'Current'
+                    }
+                ],
+                metrics: {
+                    enrollmentRate: 75.2,
+                    screeningSuccessRate: 88.6,
+                    retentionRate: 89.2,
+                    complianceRate: 94.8,
+                    queryRate: 12.3
+                },
+                recentActivities: [
+                    {
+                        type: 'amendment',
+                        message: 'Protocol amendment v2.1 approved',
+                        date: '2024-03-15T10:30:00Z',
+                        user: 'Regulatory Affairs'
+                    },
+                    {
+                        type: 'enrollment',
+                        message: '5 new subjects enrolled at Site 003',
+                        date: '2024-03-14T16:45:00Z',
+                        user: 'Site Coordinator'
+                    },
+                    {
+                        type: 'milestone',
+                        message: '75% enrollment milestone reached',
+                        date: '2024-03-12T09:20:00Z',
+                        user: 'System'
+                    }
+                ]
+            };
+
+            setStudy(studyData);
+        } catch (error) {
+            console.error('Error loading study details:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getStatusIcon = (status) => {
+        switch (status) {
+            case 'ACTIVE': return <CheckCircle2 className="w-5 h-5 text-green-500" />;
+            case 'RECRUITING': return <Users className="w-5 h-5 text-blue-500" />;
+            case 'PAUSED': return <Clock className="w-5 h-5 text-yellow-500" />;
+            case 'COMPLETED': return <CheckCircle2 className="w-5 h-5 text-purple-500" />;
+            case 'CANCELLED': return <XCircle className="w-5 h-5 text-red-500" />;
+            default: return <FileText className="w-5 h-5 text-gray-500" />;
+        }
+    };
+
+    const StatCard = ({ icon: Icon, label, value, subValue, trend, color = 'blue' }) => (
+        <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+                <div className={`p-2 rounded-lg bg-${color}-50`}>
+                    <Icon className={`w-6 h-6 text-${color}-600`} />
+                </div>
+                {trend && (
+                    <div className="flex items-center text-green-600">
+                        <TrendingUp className="w-4 h-4 mr-1" />
+                        <span className="text-sm font-medium">{trend}</span>
+                    </div>
+                )}
+            </div>
+            <div className="mt-4">
+                <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
+                <p className="text-sm text-gray-600">{label}</p>
+                {subValue && <p className="text-xs text-gray-500 mt-1">{subValue}</p>}
+            </div>
+        </div>
+    );
+
+    const ProgressBar = ({ label, current, total, color = 'blue' }) => {
+        const percentage = total > 0 ? (current / total) * 100 : 0;
+
+        return (
+            <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">{label}</span>
+                    <span className="font-medium text-gray-900">{current}/{total} ({percentage.toFixed(1)}%)</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                        className={`bg-${color}-600 h-2 rounded-full transition-all duration-300`}
+                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                    ></div>
+                </div>
+            </div>
+        );
+    };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-gray-600">Loading study details...</span>
+            </div>
+        );
+    }
+
+    if (!study) {
+        return (
+            <div className="text-center py-12">
+                <AlertTriangle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Study not found</h3>
+                <p className="text-gray-600">The requested study could not be loaded.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <button
+                        onClick={onBack}
+                        className="flex items-center text-gray-600 hover:text-gray-900"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Back to Studies
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                            <Share2 className="w-4 h-4" />
+                        </button>
+                        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                            <Download className="w-4 h-4" />
+                        </button>
+                        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                            <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                            {getStatusIcon(study.status)}
+                            <h1 className="text-2xl font-bold text-gray-900">{study.title}</h1>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
+                            <span className="flex items-center">
+                                <FileText className="w-4 h-4 mr-1" />
+                                {study.protocol}
+                            </span>
+                            <span className="flex items-center">
+                                <GitBranch className="w-4 h-4 mr-1" />
+                                Version {study.version}
+                            </span>
+                            <span className="flex items-center">
+                                <Calendar className="w-4 h-4 mr-1" />
+                                Started {new Date(study.startDate).toLocaleDateString()}
+                            </span>
+                        </div>
+                        <p className="text-gray-700 leading-relaxed">{study.description}</p>
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => onCreateVersion?.(study)}
+                            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                            <GitBranch className="w-4 h-4 mr-2" />
+                            New Version
+                        </button>
+                        <button
+                            onClick={() => onEdit?.(study)}
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                        >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit Study
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="bg-white rounded-lg border border-gray-200">
+                <div className="border-b border-gray-200">
+                    <nav className="flex space-x-8 px-6">
+                        {[
+                            { id: 'overview', label: 'Overview', icon: Activity },
+                            { id: 'enrollment', label: 'Enrollment', icon: Users },
+                            { id: 'timeline', label: 'Timeline', icon: Calendar },
+                            { id: 'documents', label: 'Documents', icon: FileText },
+                            { id: 'amendments', label: 'Amendments', icon: GitBranch }
+                        ].map(({ id, label, icon: Icon }) => (
+                            <button
+                                key={id}
+                                onClick={() => setActiveTab(id)}
+                                className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm ${activeTab === id
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                            >
+                                <Icon className="w-4 h-4 mr-2" />
+                                {label}
+                            </button>
+                        ))}
+                    </nav>
+                </div>
+
+                <div className="p-6">
+                    {/* Overview Tab */}
+                    {activeTab === 'overview' && (
+                        <div className="space-y-6">
+                            {/* Key Metrics */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <StatCard
+                                    icon={Users}
+                                    label="Enrolled Subjects"
+                                    value={study.enrolledSubjects}
+                                    subValue={`${study.plannedSubjects} planned`}
+                                    trend="+5.2%"
+                                />
+                                <StatCard
+                                    icon={MapPin}
+                                    label="Active Sites"
+                                    value={study.activeSites}
+                                    subValue={`${study.sites} total sites`}
+                                    color="green"
+                                />
+                                <StatCard
+                                    icon={Target}
+                                    label="Enrollment Rate"
+                                    value={`${study.metrics.enrollmentRate}%`}
+                                    trend="+2.1%"
+                                    color="purple"
+                                />
+                                <StatCard
+                                    icon={CheckCircle2}
+                                    label="Retention Rate"
+                                    value={`${study.metrics.retentionRate}%`}
+                                    color="indigo"
+                                />
+                            </div>
+
+                            {/* Progress Tracking */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="bg-gray-50 rounded-lg p-6">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Enrollment Progress</h3>
+                                    <div className="space-y-4">
+                                        <ProgressBar
+                                            label="Screened"
+                                            current={study.screenedSubjects}
+                                            total={study.plannedSubjects}
+                                            color="blue"
+                                        />
+                                        <ProgressBar
+                                            label="Enrolled"
+                                            current={study.enrolledSubjects}
+                                            total={study.plannedSubjects}
+                                            color="green"
+                                        />
+                                        <ProgressBar
+                                            label="Randomized"
+                                            current={study.randomizedSubjects}
+                                            total={study.plannedSubjects}
+                                            color="purple"
+                                        />
+                                        <ProgressBar
+                                            label="Completed"
+                                            current={study.completedSubjects}
+                                            total={study.plannedSubjects}
+                                            color="indigo"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="bg-gray-50 rounded-lg p-6">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Study Information</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Phase:</span>
+                                            <span className="font-medium">{study.phase}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Indication:</span>
+                                            <span className="font-medium">{study.indication}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Sponsor:</span>
+                                            <span className="font-medium">{study.sponsor}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Principal Investigator:</span>
+                                            <span className="font-medium">{study.principalInvestigator}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Study Coordinator:</span>
+                                            <span className="font-medium">{study.studyCoordinator}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Est. Completion:</span>
+                                            <span className="font-medium">{new Date(study.estimatedCompletion).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Recent Activities */}
+                            <div className="bg-gray-50 rounded-lg p-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h3>
+                                <div className="space-y-3">
+                                    {study.recentActivities.map((activity, index) => (
+                                        <div key={index} className="flex items-start gap-3">
+                                            <div className="flex-shrink-0 w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
+                                            <div className="flex-1">
+                                                <p className="text-sm text-gray-900">{activity.message}</p>
+                                                <p className="text-xs text-gray-500">
+                                                    {activity.user} • {new Date(activity.date).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Enrollment Tab */}
+                    {activeTab === 'enrollment' && (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <StatCard
+                                    icon={Eye}
+                                    label="Screening Success Rate"
+                                    value={`${study.metrics.screeningSuccessRate}%`}
+                                    color="blue"
+                                />
+                                <StatCard
+                                    icon={Users}
+                                    label="Enrollment Rate"
+                                    value={`${study.metrics.enrollmentRate}%`}
+                                    color="green"
+                                />
+                                <StatCard
+                                    icon={Target}
+                                    label="Retention Rate"
+                                    value={`${study.metrics.retentionRate}%`}
+                                    color="purple"
+                                />
+                            </div>
+
+                            <div className="bg-gray-50 rounded-lg p-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Enrollment Details</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <h4 className="font-medium text-gray-900 mb-2">Subject Disposition</h4>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Screened:</span>
+                                                <span className="font-medium">{study.screenedSubjects}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Enrolled:</span>
+                                                <span className="font-medium">{study.enrolledSubjects}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Randomized:</span>
+                                                <span className="font-medium">{study.randomizedSubjects}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Completed:</span>
+                                                <span className="font-medium">{study.completedSubjects}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Withdrawn:</span>
+                                                <span className="font-medium">{study.withdrawnSubjects}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-medium text-gray-900 mb-2">Site Performance</h4>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Total Sites:</span>
+                                                <span className="font-medium">{study.sites}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Active Sites:</span>
+                                                <span className="font-medium">{study.activeSites}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Avg. per Site:</span>
+                                                <span className="font-medium">{Math.round(study.enrolledSubjects / study.activeSites)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Documents Tab */}
+                    {activeTab === 'documents' && (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-gray-900">Study Documents</h3>
+                                <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Upload Document
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4">
+                                {study.documents.map((doc, index) => (
+                                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-start gap-3">
+                                                <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
+                                                <div>
+                                                    <h4 className="font-medium text-gray-900">{doc.name}</h4>
+                                                    <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                                                        <span>{doc.type}</span>
+                                                        <span>{doc.size}</span>
+                                                        <span>Modified {doc.lastModified}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                                    {doc.status}
+                                                </span>
+                                                <button className="p-1 text-gray-400 hover:text-gray-600">
+                                                    <Download className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Amendments Tab */}
+                    {activeTab === 'amendments' && (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-gray-900">Protocol Amendments</h3>
+                                <button
+                                    onClick={() => onCreateVersion?.(study)}
+                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                                >
+                                    <GitBranch className="w-4 h-4 mr-2" />
+                                    Create Amendment
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {study.amendments.map((amendment, index) => (
+                                    <div key={index} className="border border-gray-200 rounded-lg p-4">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div>
+                                                <h4 className="font-medium text-gray-900">Version {amendment.version}</h4>
+                                                <p className="text-sm text-gray-600 mt-1">{amendment.reason}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${amendment.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                                    }`}>
+                                                    {amendment.status}
+                                                </span>
+                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${amendment.type === 'MAJOR' ? 'bg-red-100 text-red-700' :
+                                                        amendment.type === 'MINOR' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                                    }`}>
+                                                    {amendment.type}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="text-sm text-gray-500">
+                                            {new Date(amendment.date).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default StudyOverviewDashboard;

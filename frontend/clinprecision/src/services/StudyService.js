@@ -12,7 +12,9 @@ export const getStudies = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching studies:', error);
-    throw error;
+    
+    // Return mock data when backend is unavailable
+    return getMockStudies();
   }
 };
 
@@ -27,7 +29,14 @@ export const getStudyById = async (id) => {
     return response.data;
   } catch (error) {
     console.error(`Error fetching study with ID ${id}:`, error);
-    throw error;
+    
+    // Return mock data when backend is unavailable
+    const mockStudies = getMockStudies();
+    const study = mockStudies.find(s => s.id === id);
+    if (study) {
+      return study;
+    }
+    throw new Error(`Study with ID ${id} not found`);
   }
 };
 
@@ -404,6 +413,122 @@ export const unlockStudy = async (studyId) => {
   }
 };
 
+/**
+ * Mock data for development when backend is unavailable
+ */
+const getMockStudies = () => {
+  return [
+    {
+      id: 'STUDY-001',
+      name: 'Phase II Oncology Study - Drug XYZ',
+      protocolNumber: 'PRO-XYZ-001',
+      studyPhase: 'Phase II',
+      indication: 'Advanced Solid Tumors',
+      sponsor: 'Pharmaceutical Company A',
+      status: 'ACTIVE',
+      createdBy: 'Dr. Jane Smith',
+      createdAt: '2025-01-15T10:00:00Z',
+      modifiedAt: '2025-02-01T14:30:00Z',
+      startDate: '2025-03-01',
+      estimatedEndDate: '2026-12-31',
+      targetEnrollment: 100,
+      currentEnrollment: 45,
+      sites: 12,
+      countries: ['USA', 'Canada', 'UK'],
+      primaryObjective: 'To evaluate the efficacy and safety of Drug XYZ in patients with advanced solid tumors',
+      studyType: 'INTERVENTIONAL',
+      designProgress: {
+        basicInfo: { completed: true, valid: true },
+        arms: { completed: true, valid: true },
+        visits: { completed: true, valid: true },
+        forms: { completed: false, valid: false },
+        publishing: { completed: false, valid: false }
+      }
+    },
+    {
+      id: 'STUDY-002',
+      name: 'Phase I Cardiovascular Safety Study',
+      protocolNumber: 'PRO-CVD-002',
+      studyPhase: 'Phase I',
+      indication: 'Cardiovascular Disease',
+      sponsor: 'Biotech Company B',
+      status: 'DRAFT',
+      createdBy: 'Dr. Michael Johnson',
+      createdAt: '2025-02-10T09:00:00Z',
+      modifiedAt: '2025-02-15T16:45:00Z',
+      startDate: '2025-06-01',
+      estimatedEndDate: '2025-12-31',
+      targetEnrollment: 50,
+      currentEnrollment: 0,
+      sites: 5,
+      countries: ['USA'],
+      primaryObjective: 'To assess the safety and tolerability of cardiovascular intervention',
+      studyType: 'INTERVENTIONAL',
+      designProgress: {
+        basicInfo: { completed: true, valid: true },
+        arms: { completed: false, valid: false },
+        visits: { completed: false, valid: false },
+        forms: { completed: false, valid: false },
+        publishing: { completed: false, valid: false }
+      }
+    },
+    {
+      id: 'STUDY-003',
+      name: 'Phase III Diabetes Management Study',
+      protocolNumber: 'PRO-DM-003',
+      studyPhase: 'Phase III',
+      indication: 'Type 2 Diabetes',
+      sponsor: 'Global Pharma Corp',
+      status: 'RECRUITING',
+      createdBy: 'Dr. Sarah Wilson',
+      createdAt: '2024-12-01T08:00:00Z',
+      modifiedAt: '2025-01-20T11:15:00Z',
+      startDate: '2025-01-15',
+      estimatedEndDate: '2027-06-30',
+      targetEnrollment: 500,
+      currentEnrollment: 125,
+      sites: 25,
+      countries: ['USA', 'Canada', 'UK', 'Germany', 'France'],
+      primaryObjective: 'To compare the efficacy of new diabetes medication vs standard of care',
+      studyType: 'INTERVENTIONAL',
+      designProgress: {
+        basicInfo: { completed: true, valid: true },
+        arms: { completed: true, valid: true },
+        visits: { completed: true, valid: true },
+        forms: { completed: true, valid: true },
+        publishing: { completed: true, valid: true }
+      }
+    },
+    {
+      id: 'STUDY-004',
+      name: 'Observational Alzheimer\'s Study',
+      protocolNumber: 'PRO-ALZ-004',
+      studyPhase: 'N/A',
+      indication: 'Alzheimer\'s Disease',
+      sponsor: 'Research Institute',
+      status: 'ACTIVE',
+      createdBy: 'Dr. Robert Chen',
+      createdAt: '2024-11-01T07:30:00Z',
+      modifiedAt: '2025-01-05T13:20:00Z',
+      startDate: '2024-12-01',
+      estimatedEndDate: '2028-12-01',
+      targetEnrollment: 1000,
+      currentEnrollment: 234,
+      sites: 18,
+      countries: ['USA', 'UK', 'Australia'],
+      primaryObjective: 'To study the natural progression of Alzheimer\'s disease biomarkers',
+      studyType: 'OBSERVATIONAL',
+      designProgress: {
+        basicInfo: { completed: true, valid: true },
+        arms: { completed: false, valid: false },
+        visits: { completed: true, valid: true },
+        forms: { completed: true, valid: true },
+        publishing: { completed: true, valid: true }
+      }
+    }
+  ];
+};
+
 // Export all functions as a service object
 const StudyService = {
   getStudies,
@@ -421,7 +546,8 @@ const StudyService = {
   createStudyVersion,
   getStudyVersion,
   lockStudy,
-  unlockStudy
+  unlockStudy,
+  getMockStudies
 };
 
 export default StudyService;

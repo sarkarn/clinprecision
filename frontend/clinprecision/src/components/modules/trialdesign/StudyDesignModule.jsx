@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import StudyRegister from './StudyRegister';
+import StudyCreationWizard from './study-creation/StudyCreationWizard';
+import StudyListGrid from './study-management/StudyListGrid';
+import StudyOverviewDashboard from './study-management/StudyOverviewDashboard';
+import VersionManagementModal from './study-management/VersionManagementModal';
+import StudyDesignDashboard from './study-design/StudyDesignDashboard';
 import StudyEditPage from './StudyEditPage';
 import StudyViewPage from './StudyViewPage';
 import StudyList from './StudyList';
@@ -18,10 +23,9 @@ const Breadcrumb = () => {
   const navigate = useNavigate();
   const pathnames = location.pathname.split('/').filter(x => x);
 
-  // Remove the module name from breadcrumbs since we're already in that module
-  const relevantPathnames = pathnames.filter(name => name !== 'study-design');
-
-  let breadcrumbPath = '';
+  // Find the study-design index to build proper paths
+  const studyDesignIndex = pathnames.indexOf('study-design');
+  const relevantPathnames = studyDesignIndex >= 0 ? pathnames.slice(studyDesignIndex + 1) : [];
 
   return (
     <div className="flex items-center text-sm text-gray-600 mb-4">
@@ -40,12 +44,16 @@ const Breadcrumb = () => {
       </span>
 
       {relevantPathnames.map((name, index) => {
-        breadcrumbPath += `/${name}`;
+        // Build the absolute path up to this point
+        const pathUpToHere = '/study-design/' + relevantPathnames.slice(0, index + 1).join('/');
 
         // Get display name for breadcrumb item
         let displayName;
         if (name === 'list') displayName = 'Study List';
+        else if (name === 'studies') displayName = 'Studies';
+        else if (name === 'study') displayName = 'Study Details';
         else if (name === 'register') displayName = 'Register Study';
+        else if (name === 'create') displayName = 'Create Study';
         else if (name === 'edit') displayName = 'Edit Study';
         else if (name === 'view') displayName = 'View Study';
         else if (name === 'forms') displayName = 'Forms';
@@ -67,7 +75,7 @@ const Breadcrumb = () => {
             ) : (
               <span
                 className="cursor-pointer hover:text-blue-600"
-                onClick={() => navigate(`/study-design${breadcrumbPath}`)}
+                onClick={() => navigate(pathUpToHere)}
               >
                 {displayName}
               </span>
@@ -84,8 +92,95 @@ const StudyDesignModule = () => {
   const { user } = useAuth();
   const location = useLocation();
 
+  // State for version management modal
+  const [showVersionModal, setShowVersionModal] = useState(false);
+  const [selectedStudyForVersion, setSelectedStudyForVersion] = useState(null);
+
   // Check if we're being rendered directly or within Home component
   const isDirectNavigation = location.pathname.split('/').length <= 2;
+
+  // Modern study management handlers
+  const handleCreateNewStudy = () => {
+    navigate('/study-design/create', { replace: true });
+  };
+
+  const handleViewStudy = (study) => {
+    navigate(`/study-design/study/${study.id}`, { replace: true });
+  };
+
+  const handleEditStudy = (study) => {
+    navigate(`/study-design/edit/${study.id}`, { replace: true });
+  };
+
+  const handleDesignStudy = (study) => {
+    navigate(`/study-design/study/${study.id}/design/basic-info`, { replace: true });
+  };
+
+  const handleDeleteStudy = (study) => {
+    // Handle study deletion
+    console.log('Delete study:', study.id);
+    // Add confirmation dialog and API call here
+  };
+
+  const handleCreateVersion = (study) => {
+    setSelectedStudyForVersion(study);
+    setShowVersionModal(true);
+  };
+
+  const handleVersionCreated = (newVersion) => {
+    console.log('New version created:', newVersion);
+    setShowVersionModal(false);
+    setSelectedStudyForVersion(null);
+    // Refresh the current view or navigate as needed
+  };
+
+  const handleBackToDashboard = () => {
+    navigate('/study-design/studies', { replace: true });
+  };
+
+  // Dashboard component with modern design
+  const renderModernDashboard = () => (
+    <div className="space-y-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Study Design Dashboard</h1>
+        <p className="text-gray-600">Manage clinical trial studies and protocols with industry-standard versioning</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Active Studies</h3>
+          <p className="text-3xl font-bold text-blue-600">12</p>
+          <p className="text-sm text-gray-500">Currently recruiting</p>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Draft Protocols</h3>
+          <p className="text-3xl font-bold text-yellow-600">5</p>
+          <p className="text-sm text-gray-500">Awaiting approval</p>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Completed Studies</h3>
+          <p className="text-3xl font-bold text-green-600">8</p>
+          <p className="text-sm text-gray-500">Data analysis complete</p>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Amendments</h3>
+          <p className="text-3xl font-bold text-purple-600">23</p>
+          <p className="text-sm text-gray-500">Protocol versions</p>
+        </div>
+      </div>
+
+      <StudyListGrid
+        onCreateNew={handleCreateNewStudy}
+        onViewStudy={handleViewStudy}
+        onEditStudy={handleEditStudy}
+        onDesignStudy={handleDesignStudy}
+        onDeleteStudy={handleDeleteStudy}
+      />
+    </div>
+  );
 
   return (
     <div className={isDirectNavigation ? "min-h-screen flex flex-col" : ""}>
@@ -120,19 +215,31 @@ const StudyDesignModule = () => {
           <h2 className="text-2xl font-bold mb-2">Study Design</h2>
           <div className="flex space-x-4 mb-4">
             <button
-              onClick={() => navigate('/study-design/register')}
+              onClick={() => navigate('/study-design/create', { replace: true })}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             >
-              Register Study
+              Create New Study
             </button>
             <button
-              onClick={() => navigate('/study-design/list')}
+              onClick={() => navigate('/study-design/studies', { replace: true })}
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
             >
-              View Studies
+              Manage Studies
             </button>
             <button
-              onClick={() => navigate('/study-design/forms')}
+              onClick={() => navigate('/study-design/register', { replace: true })}
+              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+            >
+              Quick Register
+            </button>
+            <button
+              onClick={() => navigate('/study-design/list', { replace: true })}
+              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+            >
+              Legacy List
+            </button>
+            <button
+              onClick={() => navigate('/study-design/forms', { replace: true })}
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
             >
               Manage Forms
@@ -141,6 +248,35 @@ const StudyDesignModule = () => {
         </div>
 
         <Routes>
+          {/* Modern study management routes */}
+          <Route path="studies" element={renderModernDashboard()} />
+          <Route
+            path="study/:studyId"
+            element={
+              <StudyOverviewDashboard
+                studyId={location.pathname.split('/').pop()}
+                onBack={handleBackToDashboard}
+                onEdit={handleEditStudy}
+                onCreateVersion={handleCreateVersion}
+              />
+            }
+          />
+
+          {/* Study creation and editing */}
+          <Route
+            path="create/*"
+            element={
+              <StudyCreationWizard
+                onComplete={(studyData) => {
+                  console.log('Study created:', studyData);
+                  navigate('studies');
+                }}
+                onCancel={() => navigate('studies')}
+              />
+            }
+          />
+
+          {/* Legacy routes for backward compatibility */}
           <Route path="register" element={<StudyRegister />} />
           <Route path="list" element={<StudyList />} />
           <Route path="edit/:studyId" element={<StudyEditPage />} />
@@ -156,10 +292,24 @@ const StudyDesignModule = () => {
           <Route path="forms/builder/:formId" element={<CRFBuilderIntegration />} />
           <Route path="forms/builder/:formId/:versionId" element={<CRFBuilderIntegration />} />
 
-          {/* Default to Study Register */}
-          <Route index element={<StudyRegister />} />
+          {/* Study Design Workflow - New comprehensive design flow */}
+          <Route path="study/:studyId/design/*" element={<StudyDesignDashboard />} />
+
+          {/* Default to modern study dashboard */}
+          <Route index element={renderModernDashboard()} />
         </Routes>
       </div>
+
+      {/* Version Management Modal */}
+      <VersionManagementModal
+        isOpen={showVersionModal}
+        onClose={() => {
+          setShowVersionModal(false);
+          setSelectedStudyForVersion(null);
+        }}
+        study={selectedStudyForVersion}
+        onVersionCreated={handleVersionCreated}
+      />
     </div>
   );
 };

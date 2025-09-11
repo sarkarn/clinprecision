@@ -24,6 +24,7 @@ const CRFBuilderIntegration = () => {
         const loadFormData = async () => {
             try {
                 setLoading(true);
+                setError(null);
 
                 if (formId) {
                     // Load existing form
@@ -172,14 +173,168 @@ const CRFBuilderIntegration = () => {
                 </div>
             )}
 
-            {/* This is where the actual CRF Builder component would be integrated */}
-            <div className="min-h-[400px] border border-dashed border-gray-300 rounded-lg p-4 mb-6">
-                <p className="text-gray-500 text-center">
-                    CRF Builder Component Would Be Integrated Here
-                </p>
-                <p className="text-sm text-gray-400 text-center mt-2">
-                    This placeholder will be replaced with the actual form builder interface
-                </p>
+            {/* Enhanced CRF Builder Interface */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900">Form Builder</h3>
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={() => {
+                                const newSection = {
+                                    id: `section_${Date.now()}`,
+                                    name: 'New Section',
+                                    fields: []
+                                };
+                                const updatedData = {
+                                    ...crfData,
+                                    sections: [...(crfData.sections || []), newSection]
+                                };
+                                handleCrfDataUpdate(updatedData);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-md"
+                        >
+                            Add Section
+                        </button>
+                    </div>
+                </div>
+
+                {/* Form Sections */}
+                {crfData?.sections?.map((section, sectionIndex) => (
+                    <div key={section.id} className="border border-gray-200 rounded-lg p-4 mb-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <input
+                                type="text"
+                                value={section.name}
+                                onChange={(e) => {
+                                    const updatedSections = [...crfData.sections];
+                                    updatedSections[sectionIndex] = { ...section, name: e.target.value };
+                                    handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+                                }}
+                                className="text-lg font-medium text-gray-900 border-none bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2"
+                                placeholder="Section name"
+                            />
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={() => {
+                                        const newField = {
+                                            id: `field_${Date.now()}`,
+                                            name: 'New Field',
+                                            type: 'text',
+                                            required: false
+                                        };
+                                        const updatedSections = [...crfData.sections];
+                                        updatedSections[sectionIndex] = {
+                                            ...section,
+                                            fields: [...(section.fields || []), newField]
+                                        };
+                                        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium py-1 px-2 rounded"
+                                >
+                                    Add Field
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const updatedSections = crfData.sections.filter((_, i) => i !== sectionIndex);
+                                        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+                                    }}
+                                    className="text-red-600 hover:text-red-800 text-sm font-medium py-1 px-2 rounded"
+                                >
+                                    Remove Section
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Fields in this section */}
+                        {section.fields?.map((field, fieldIndex) => (
+                            <div key={field.id} className="bg-gray-50 rounded p-3 mb-3 last:mb-0">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Field Name</label>
+                                        <input
+                                            type="text"
+                                            value={field.name}
+                                            onChange={(e) => {
+                                                const updatedSections = [...crfData.sections];
+                                                const updatedFields = [...section.fields];
+                                                updatedFields[fieldIndex] = { ...field, name: e.target.value };
+                                                updatedSections[sectionIndex] = { ...section, fields: updatedFields };
+                                                handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Field name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                        <select
+                                            value={field.type}
+                                            onChange={(e) => {
+                                                const updatedSections = [...crfData.sections];
+                                                const updatedFields = [...section.fields];
+                                                updatedFields[fieldIndex] = { ...field, type: e.target.value };
+                                                updatedSections[sectionIndex] = { ...section, fields: updatedFields };
+                                                handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        >
+                                            <option value="text">Text</option>
+                                            <option value="number">Number</option>
+                                            <option value="date">Date</option>
+                                            <option value="select">Select</option>
+                                            <option value="textarea">Textarea</option>
+                                            <option value="checkbox">Checkbox</option>
+                                            <option value="radio">Radio</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <label className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={field.required}
+                                                onChange={(e) => {
+                                                    const updatedSections = [...crfData.sections];
+                                                    const updatedFields = [...section.fields];
+                                                    updatedFields[fieldIndex] = { ...field, required: e.target.checked };
+                                                    updatedSections[sectionIndex] = { ...section, fields: updatedFields };
+                                                    handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+                                                }}
+                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                            />
+                                            <span className="ml-2 text-sm text-gray-700">Required</span>
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <button
+                                            onClick={() => {
+                                                const updatedSections = [...crfData.sections];
+                                                const updatedFields = section.fields.filter((_, i) => i !== fieldIndex);
+                                                updatedSections[sectionIndex] = { ...section, fields: updatedFields };
+                                                handleCrfDataUpdate({ ...crfData, sections: updatedSections });
+                                            }}
+                                            className="text-red-600 hover:text-red-800 text-sm font-medium py-1 px-2 rounded"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+
+                        {section.fields?.length === 0 && (
+                            <div className="text-center py-4 text-gray-500">
+                                No fields in this section. Click "Add Field" to get started.
+                            </div>
+                        )}
+                    </div>
+                ))}
+
+                {(!crfData?.sections || crfData.sections.length === 0) && (
+                    <div className="text-center py-8 text-gray-500">
+                        <p className="mb-4">No sections created yet.</p>
+                        <p className="text-sm">Click "Add Section" to start building your form.</p>
+                    </div>
+                )}
             </div>
 
             <div className="flex justify-between">
