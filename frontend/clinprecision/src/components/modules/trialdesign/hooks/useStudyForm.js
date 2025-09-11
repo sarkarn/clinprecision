@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 /**
  * Custom hook for managing study form state and validation
@@ -214,8 +214,31 @@ export const useStudyForm = (initialData = {}) => {
     setTouched({});
   }, [initialData]);
 
-  // Check if form is valid
-  const isValid = Object.keys(errors).length === 0;
+  // Check if form is valid (validate all required fields, not just touched ones)
+  const isValid = useMemo(() => {
+    const validationErrors = {};
+    Object.keys(validationRules).forEach(fieldName => {
+      const rule = validationRules[fieldName];
+      const value = formData[fieldName];
+      
+      // Check required fields regardless of touched status
+      if (rule.required && (!value || value.toString().trim() === '')) {
+        validationErrors[fieldName] = rule.message || `${fieldName} is required`;
+        return;
+      }
+      
+      // Skip other validations if field is empty and not required
+      if (!value) return;
+      
+      // Run other validations
+      const error = validateField(fieldName, value, formData);
+      if (error) {
+        validationErrors[fieldName] = error;
+      }
+    });
+    
+    return Object.keys(validationErrors).length === 0;
+  }, [formData, validationRules, validateField]);
 
   // Check if form has been modified
   const isDirty = Object.keys(touched).length > 0;

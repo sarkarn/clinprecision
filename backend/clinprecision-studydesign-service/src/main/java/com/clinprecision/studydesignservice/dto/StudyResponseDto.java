@@ -1,107 +1,39 @@
-package com.clinprecision.studydesignservice.entity;
+package com.clinprecision.studydesignservice.dto;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Study Entity - Maps to studies table
- * Represents a clinical research study
+ * DTO for study response
+ * Matches the expected frontend response structure
  */
-@Entity
-@Table(name = "studies")
-public class StudyEntity {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class StudyResponseDto {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(name = "name", nullable = false, length = 255)
     private String name;
-    
-    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
-    
-    @Column(name = "sponsor", length = 255)
     private String sponsor;
-    
-    @Column(name = "protocol_number", length = 100)
     private String protocolNumber;
-    
-    @Column(name = "version", length = 20)
-    private String version = "1.0";
-    
-    @Column(name = "is_latest_version")
-    private Boolean isLatestVersion = true;
-    
-    @Column(name = "parent_version_id", length = 36)
+    private String version;
+    private Boolean isLatestVersion;
     private String parentVersionId;
-    
-    @Column(name = "version_notes", columnDefinition = "TEXT")
     private String versionNotes;
-    
-    @Column(name = "is_locked")
-    private Boolean isLocked = false;
-    
-    @Column(name = "phase", length = 20)
+    private Boolean isLocked;
     private String phase;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status")
-    private StudyStatus status = StudyStatus.DRAFT;
-    
-    @Column(name = "start_date")
+    private String status;
     private LocalDate startDate;
-    
-    @Column(name = "end_date")
     private LocalDate endDate;
-    
-    @Column(name = "metadata", columnDefinition = "JSON")
     private String metadata;
-    
-    @Column(name = "created_by")
     private Long createdBy;
-    
-    @Column(name = "created_at")
     private LocalDateTime createdAt;
-    
-    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
-    // One-to-many relationship with organization studies
-    @OneToMany(mappedBy = "study", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-    @JsonManagedReference
-    private List<OrganizationStudyEntity> organizationStudies = new ArrayList<>();
-    
-    // Lifecycle callbacks
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-        if (version == null) {
-            version = "1.0";
-        }
-        if (isLatestVersion == null) {
-            isLatestVersion = true;
-        }
-        if (isLocked == null) {
-            isLocked = false;
-        }
-        if (status == null) {
-            status = StudyStatus.DRAFT;
-        }
-    }
-    
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    private List<OrganizationStudyDto> organizations;
     
     // Default constructor
-    public StudyEntity() {}
+    public StudyResponseDto() {}
     
     // Getters and Setters
     public Long getId() {
@@ -192,11 +124,11 @@ public class StudyEntity {
         this.phase = phase;
     }
     
-    public StudyStatus getStatus() {
+    public String getStatus() {
         return status;
     }
     
-    public void setStatus(StudyStatus status) {
+    public void setStatus(String status) {
         this.status = status;
     }
     
@@ -248,23 +180,11 @@ public class StudyEntity {
         this.updatedAt = updatedAt;
     }
     
-    public List<OrganizationStudyEntity> getOrganizationStudies() {
-        return organizationStudies;
+    public List<OrganizationStudyDto> getOrganizations() {
+        return organizations;
     }
     
-    public void setOrganizationStudies(List<OrganizationStudyEntity> organizationStudies) {
-        this.organizationStudies = organizationStudies;
-    }
-    
-    // Helper method to add organization study
-    public void addOrganizationStudy(OrganizationStudyEntity organizationStudy) {
-        organizationStudies.add(organizationStudy);
-        organizationStudy.setStudy(this);
-    }
-    
-    // Helper method to remove organization study
-    public void removeOrganizationStudy(OrganizationStudyEntity organizationStudy) {
-        organizationStudies.remove(organizationStudy);
-        organizationStudy.setStudy(null);
+    public void setOrganizations(List<OrganizationStudyDto> organizations) {
+        this.organizations = organizations;
     }
 }

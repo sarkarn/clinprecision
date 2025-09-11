@@ -92,7 +92,11 @@ const OrganizationsRegulatoryStep = ({
         const currentOrgs = formData.organizations || [];
         const newOrgs = currentOrgs.map(org => ({
             ...org,
-            isPrimary: org.organizationId === orgId && org.role === role
+            // Only clear isPrimary for organizations with the SAME role
+            // This allows one primary per role type, not one primary total
+            isPrimary: org.role === role
+                ? (org.organizationId === orgId) // Set true for selected org, false for others in same role
+                : org.isPrimary // Keep existing isPrimary for different roles
         }));
         onFieldChange('organizations', newOrgs);
     };
@@ -107,6 +111,11 @@ const OrganizationsRegulatoryStep = ({
     const isPrimaryForRole = (orgId) => {
         const org = formData.organizations?.find(o => o.organizationId === orgId);
         return org?.isPrimary || false;
+    };
+
+    // Get the primary organization for a specific role
+    const getPrimaryForRole = (role) => {
+        return formData.organizations?.find(org => org.role === role && org.isPrimary);
     };
 
     return (
@@ -173,15 +182,23 @@ const OrganizationsRegulatoryStep = ({
                                                 </select>
 
                                                 {currentRole && (
-                                                    <label className="flex items-center text-sm">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isPrimary}
-                                                            onChange={(e) => handleSetPrimary(org.id, currentRole)}
-                                                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                                        />
-                                                        <span className="ml-2 text-gray-700">Primary</span>
-                                                    </label>
+                                                    <div className="flex flex-col items-center">
+                                                        <label className="flex items-center text-sm">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isPrimary}
+                                                                onChange={(e) => handleSetPrimary(org.id, currentRole)}
+                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                            />
+                                                            <span className="ml-2 text-gray-700">Primary</span>
+                                                        </label>
+                                                        {/* Show hint if another org is already primary for this role */}
+                                                        {!isPrimary && getPrimaryForRole(currentRole) && (
+                                                            <span className="text-xs text-gray-500 mt-1">
+                                                                Another {currentRole} is primary
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

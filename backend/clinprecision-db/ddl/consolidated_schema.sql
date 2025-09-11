@@ -133,6 +133,14 @@ CREATE TABLE users_user_types (
     FOREIGN KEY (user_types_id) REFERENCES user_types(id)
 );
 
+CREATE TABLE phases (
+    id BIGINT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,        -- "Phase I", "Phase II", etc.
+    description TEXT,
+    sort_order INT
+);
+
+
 -- Study related tables
 CREATE TABLE studies (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -171,7 +179,8 @@ CREATE TABLE organization_studies (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     organization_id BIGINT NOT NULL,
     study_id BIGINT NOT NULL,
-    role ENUM('sponsor', 'cro', 'site', 'vendor', 'laboratory') NOT NULL COMMENT 'Role of the organization in the study',
+    role ENUM('sponsor', 'cro', 'site', 'vendor', 'laboratory', 'regulatory', 'statistics', 'safety') NOT NULL COMMENT 'Role of the organization in the study',
+	is_primary BOOLEAN DEFAULT FALSE COMMENT 'Whether this organization is primary for its role',
     start_date DATE COMMENT 'Start date of organization involvement',
     end_date DATE COMMENT 'End date of organization involvement',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -574,6 +583,8 @@ CREATE INDEX idx_user_study_roles_site ON user_study_roles(site_id);
 CREATE INDEX idx_user_site_assignments_user ON user_site_assignments(user_id);
 CREATE INDEX idx_user_site_assignments_site ON user_site_assignments(site_id);
 CREATE INDEX idx_patient_users_subject ON patient_users(subject_id);
+-- Create index for efficient querying of primary organizations
+CREATE INDEX idx_organization_studies_primary ON organization_studies(study_id, role, is_primary);
 
 
 

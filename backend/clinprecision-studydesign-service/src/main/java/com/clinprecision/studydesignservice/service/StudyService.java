@@ -1,98 +1,186 @@
 package com.clinprecision.studydesignservice.service;
 
+import com.clinprecision.studydesignservice.dto.*;
+import com.clinprecision.studydesignservice.entity.OrganizationStudyEntity;
 import com.clinprecision.studydesignservice.entity.StudyEntity;
-import com.clinprecision.studydesignservice.exception.EntityLockedException;
-import com.clinprecision.studydesignservice.model.Study;
-import com.clinprecision.studydesignservice.model.StudyDetailsDTO;
+import com.clinprecision.studydesignservice.exception.StudyNotFoundException;
+import com.clinprecision.studydesignservice.mapper.StudyMapper;
+import com.clinprecision.studydesignservice.repository.OrganizationStudyRepository;
 import com.clinprecision.studydesignservice.repository.StudyRepository;
-import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
+/**
+ * Service for study operations
+ * Handles the main business logic for study management
+ */
 @Service
+@Transactional
 public class StudyService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(StudyService.class);
+    
     private final StudyRepository studyRepository;
-    private final ModelMapper modelMapper;
-    private final LockingService lockingService;
-
-    public StudyService(StudyRepository studyRepository, LockingService lockingService) {
+    private final OrganizationStudyRepository organizationStudyRepository;
+    private final StudyMapper studyMapper;
+    private final StudyValidationService validationService;
+    
+    public StudyService(StudyRepository studyRepository,
+                       OrganizationStudyRepository organizationStudyRepository,
+                       StudyMapper studyMapper,
+                       StudyValidationService validationService) {
         this.studyRepository = studyRepository;
-        this.modelMapper = new ModelMapper();
-        this.lockingService = lockingService;
+        this.organizationStudyRepository = organizationStudyRepository;
+        this.studyMapper = studyMapper;
+        this.validationService = validationService;
     }
-
-    public List<Study> getAllStudies() {
-        return studyRepository.findAll()
-                .stream()
-                .map(entity -> modelMapper.map(entity, Study.class))
-                .collect(Collectors.toList());
-    }
-
-    public Optional<Study> getStudyById(Long id) {
-        return studyRepository.findById(id)
-                .map(entity -> modelMapper.map(entity, Study.class));
-    }
-
-    public Study createStudy(Study study) {
-        StudyEntity entity = modelMapper.map(study, StudyEntity.class);
-        StudyEntity saved = studyRepository.save(entity);
-        return modelMapper.map(saved, Study.class);
-    }
-
-    public Study updateStudy(Long id, Study study) {
-        // Check if study is locked
-        lockingService.ensureStudyNotLocked(id);
-        
-        study.setId(id);
-        StudyEntity entity = modelMapper.map(study, StudyEntity.class);
-        StudyEntity saved = studyRepository.save(entity);
-        return modelMapper.map(saved, Study.class);
-    }
-
+    
     /**
-     * Updates only the basic details of a study without affecting collections or relationships.
-     * This method avoids Hibernate cascade issues by performing a selective update.
-     *
-     * @param id The ID of the study to update
-     * @param details The study details to update
-     * @return The updated study
+     * Create a new study
      */
-    @Transactional
-    public Study updateStudyDetailsOnly(Long id, StudyDetailsDTO details) {
-        // Check if study is locked
-        lockingService.ensureStudyNotLocked(id);
+    public StudyResponseDto createStudy(StudyCreateRequestDto request) {
+        logger.info("Creating new study: {}", request.getName());
         
-        // Get the existing entity from the database
-        StudyEntity entity = studyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Study not found with ID: " + id));
+        // 1. Validate request
+        validationService.validateStudyCreation(request);
         
-        // Update only the scalar properties, preserving collections and relationships
-        if (details.getName() != null) entity.setName(details.getName());
-        if (details.getDescription() != null) entity.setDescription(details.getDescription());
-        if (details.getSponsor() != null) entity.setSponsor(details.getSponsor());
-        if (details.getProtocolNumber() != null) entity.setProtocolNumber(details.getProtocolNumber());
-        if (details.getPhase() != null) entity.setPhase(details.getPhase());
-        if (details.getStatus() != null) entity.setStatus(details.getStatus());
-        if (details.getStartDate() != null) entity.setStartDate(details.getStartDate());
-        if (details.getEndDate() != null) entity.setEndDate(details.getEndDate());
-        if (details.getMetadata() != null) entity.setMetadata(details.getMetadata());
+        // 2. Map to entity
+        StudyEntity study = studyMapper.toEntity(request);
         
-        // Save the updated entity
-        StudyEntity saved = studyRepository.save(entity);
+        // 3. Set default values and audit information
+        study.setCreatedBy(getCurrentUserId()); // From security context
         
-        // Return the updated study
-        return modelMapper.map(saved, Study.class);
+        // 4. Save study
+        StudyEntity savedStudy = studyRepository.save(study);
+        logger.info("Study saved with ID: {}", savedStudy.getId());
+        
+        // 5. Handle organization associations
+        if (request.getOrganizations() != null && !request.getOrganizations().isEmpty()) {
+            saveOrganizationAssociations(savedStudy, request.getOrganizations());
+        }
+        
+        // 6. Reload study with associations for response
+        StudyEntity studyWithAssociations = studyRepository.findByIdWithOrganizations(savedStudy.getId())
+            .orElse(savedStudy);
+        
+        // 7. Return response
+        StudyResponseDto response = studyMapper.toResponseDto(studyWithAssociations);
+        logger.info("Study created successfully: {}", response.getId());
+        return response;
     }
-
-    public void deleteStudy(Long id) {
-        // Check if study is locked
-        lockingService.ensureStudyNotLocked(id);
+    
+    /**
+     * Get study by ID
+     */
+    @Transactional(readOnly = true)
+    public StudyResponseDto getStudyById(Long id) {
+        logger.info("Fetching study with ID: {}", id);
         
-        studyRepository.deleteById(id);
+        StudyEntity study = studyRepository.findByIdWithOrganizations(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+        
+        return studyMapper.toResponseDto(study);
+    }
+    
+    /**
+     * Get all studies
+     */
+    @Transactional(readOnly = true)
+    public List<StudyResponseDto> getAllStudies() {
+        logger.info("Fetching all studies");
+        
+        List<StudyEntity> studies = studyRepository.findAll();
+        logger.info("Found {} studies", studies.size());
+        
+        return studyMapper.toResponseDtoList(studies);
+    }
+    
+    /**
+     * Update an existing study
+     */
+    public StudyResponseDto updateStudy(Long id, StudyUpdateRequestDto request) {
+        logger.info("Updating study with ID: {}", id);
+        
+        // 1. Find existing study
+        StudyEntity existingStudy = studyRepository.findById(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+        
+        // 2. Validate update
+        validationService.validateStudyUpdate(existingStudy, request);
+        
+        // 3. Update fields
+        studyMapper.updateEntityFromDto(request, existingStudy);
+        
+        // 4. Save updated study
+        StudyEntity updatedStudy = studyRepository.save(existingStudy);
+        
+        // 5. Update organization associations if provided
+        if (request.getOrganizations() != null) {
+            updateOrganizationAssociations(updatedStudy, request.getOrganizations());
+        }
+        
+        // 6. Reload study with associations for response
+        StudyEntity studyWithAssociations = studyRepository.findByIdWithOrganizations(updatedStudy.getId())
+            .orElse(updatedStudy);
+        
+        StudyResponseDto response = studyMapper.toResponseDto(studyWithAssociations);
+        logger.info("Study updated successfully: {}", response.getId());
+        return response;
+    }
+    
+    /**
+     * Update study details (specific endpoint for StudyEditPage.jsx)
+     */
+    public StudyResponseDto updateStudyDetails(Long id, StudyUpdateRequestDto request) {
+        logger.info("Updating study details for ID: {}", id);
+        
+        // This method can have different validation rules if needed
+        // For now, it uses the same logic as updateStudy
+        return updateStudy(id, request);
+    }
+    
+    /**
+     * Save organization associations for a study
+     */
+    private void saveOrganizationAssociations(StudyEntity study, List<OrganizationAssignmentDto> organizations) {
+        logger.info("Saving {} organization associations for study {}", organizations.size(), study.getId());
+        
+        for (OrganizationAssignmentDto orgDto : organizations) {
+            OrganizationStudyEntity orgStudy = studyMapper.toOrganizationStudyEntity(orgDto, study);
+            organizationStudyRepository.save(orgStudy);
+            
+            logger.debug("Saved organization association: orgId={}, role={}", 
+                orgDto.getOrganizationId(), orgDto.getRole());
+        }
+    }
+    
+    /**
+     * Update organization associations for a study
+     */
+    private void updateOrganizationAssociations(StudyEntity study, List<OrganizationAssignmentDto> organizations) {
+        logger.info("Updating organization associations for study {}", study.getId());
+        
+        // Remove existing associations
+        organizationStudyRepository.deleteByStudyId(study.getId());
+        
+        // Add new associations
+        if (!organizations.isEmpty()) {
+            saveOrganizationAssociations(study, organizations);
+        }
+    }
+    
+    /**
+     * Get current user ID from security context
+     * TODO: Implement proper security context integration
+     */
+    private Long getCurrentUserId() {
+        // For now, return a default user ID
+        // In production, this should get the user ID from Spring Security context
+        return 1L; // Temporary hardcoded value
     }
 }
 
