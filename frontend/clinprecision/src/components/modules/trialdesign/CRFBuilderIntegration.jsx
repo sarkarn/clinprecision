@@ -23,6 +23,12 @@ const CRFBuilderIntegration = () => {
     const [previewData, setPreviewData] = useState({});
     const [activeMetadataTab, setActiveMetadataTab] = useState({});
 
+    // Template selection for new forms
+    const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+    const [availableTemplates, setAvailableTemplates] = useState([]);
+    const [loadingTemplates, setLoadingTemplates] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState(null);
+
     // CRF data would be loaded from or passed to the CRF Builder component
     const [crfData, setCrfData] = useState(null);
 
@@ -49,7 +55,10 @@ const CRFBuilderIntegration = () => {
                         setCrfData(currentVersion.structure || {});
                     }
                 } else {
-                    // New form - initialize empty CRF data
+                    // New form - show template selector first
+                    await loadTemplates();
+                    setShowTemplateSelector(true);
+                    // Initialize with empty CRF data for now
                     setCrfData({
                         sections: [],
                         fields: []
@@ -71,6 +80,57 @@ const CRFBuilderIntegration = () => {
     const handleCrfDataUpdate = (newData) => {
         setCrfData(newData);
         setChanges(true);
+    };
+
+    // Load available templates
+    const loadTemplates = async () => {
+        try {
+            setLoadingTemplates(true);
+            const templates = await FormService.getFormTemplates();
+            setAvailableTemplates(templates || []);
+        } catch (err) {
+            console.error("Error loading templates:", err);
+            setAvailableTemplates([]);
+        } finally {
+            setLoadingTemplates(false);
+        }
+    };
+
+    // Handle template selection
+    const handleTemplateSelect = async (template) => {
+        try {
+            setSelectedTemplate(template);
+            setShowTemplateSelector(false);
+
+            if (template) {
+                // Initialize form with template data
+                setCrfData(template.structure || {
+                    sections: [],
+                    fields: []
+                });
+
+                // Pre-populate form metadata
+                setForm({
+                    name: `New ${template.name}`,
+                    description: template.description,
+                    type: template.type,
+                    templateId: template.id
+                });
+            } else {
+                // Start from scratch
+                setCrfData({
+                    sections: [],
+                    fields: []
+                });
+                setForm(null);
+            }
+
+            setLoading(false);
+        } catch (err) {
+            console.error("Error applying template:", err);
+            setError("Failed to apply template. Please try again.");
+            setLoading(false);
+        }
     };
 
     // Toggle section expansion
@@ -645,10 +705,20 @@ const CRFBuilderIntegration = () => {
                     name: form?.name || "New Form",
                     description: form?.description || "Form created with CRF Builder",
                     structure: crfData,
+                    type: form?.type || "Custom",
+                    templateId: form?.templateId,
                     formType: "custom" // Add default formType
                 };
 
-                const result = await FormService.createForm(newFormData);
+                let result;
+                if (selectedTemplate && form?.templateId) {
+                    // Create from template
+                    result = await FormService.createFormFromTemplate(form.templateId, newFormData);
+                } else {
+                    // Create from scratch
+                    result = await FormService.createForm(newFormData);
+                }
+
                 alert("Form created successfully!");
                 navigate(`/study-design/forms/${result.id}/versions`);
             } else if (formVersion) {
@@ -694,6 +764,18 @@ const CRFBuilderIntegration = () => {
             <h2 className="text-2xl font-bold mb-6">
                 {formId ? `Edit Form: ${form?.name}` : "Create New Form"}
             </h2>
+
+            {/* Template indicator for new forms */}
+            {!formId && selectedTemplate && (
+                <div className="mb-4 p-3 bg-green-50 rounded-md">
+                    <p className="text-sm text-green-800">
+                        <span className="font-medium">Template:</span> {selectedTemplate.name}
+                        <span className="ml-2 text-xs bg-green-100 px-2 py-1 rounded">
+                            {selectedTemplate.type}
+                        </span>
+                    </p>
+                </div>
+            )}
 
             {formId && formVersion && (
                 <div className="mb-4 p-3 bg-blue-50 rounded-md">
@@ -1034,8 +1116,8 @@ const CRFBuilderIntegration = () => {
                                                                         key={tab.id}
                                                                         onClick={() => setMetadataTab(field.id, tab.id)}
                                                                         className={`py-2 px-1 border-b-2 font-medium text-xs ${activeMetadataTab[field.id] === tab.id
-                                                                                ? 'border-blue-500 text-blue-600'
-                                                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                                                            ? 'border-blue-500 text-blue-600'
+                                                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                                                             }`}
                                                                     >
                                                                         <span className="mr-1">{tab.icon}</span>
@@ -1874,6 +1956,117 @@ const CRFBuilderIntegration = () => {
                     {saving ? "Saving..." : "Save Form"}
                 </button>
             </div>
+
+            {/* Template Selector Modal */}
+            {showTemplateSelector && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                    <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-5xl shadow-lg rounded-md bg-white">
+                        <div className="mt-3">
+                            <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+                                Choose a Form Template
+                            </h3>
+                            <p className="text-gray-600 text-center mb-8">
+                                Start with a pre-built clinical form template or create from scratch
+                            </p>
+
+                            {loadingTemplates ? (
+                                <div className="flex justify-center items-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                                    <span className="ml-3 text-gray-600">Loading templates...</span>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {/* Start from Scratch Option */}
+                                    <div
+                                        className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-500 cursor-pointer transition-colors group"
+                                        onClick={() => handleTemplateSelect(null)}
+                                    >
+                                        <div className="text-center">
+                                            <div className="mx-auto h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                                                <Plus className="h-6 w-6 text-gray-400 group-hover:text-blue-600" />
+                                            </div>
+                                            <h4 className="mt-4 text-lg font-medium text-gray-900">Start from Scratch</h4>
+                                            <p className="mt-2 text-sm text-gray-600">
+                                                Create a completely custom form with your own fields and sections
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Template Categories */}
+                                    {Object.entries(
+                                        availableTemplates.reduce((categories, template) => {
+                                            const category = template.category || 'Other';
+                                            if (!categories[category]) categories[category] = [];
+                                            categories[category].push(template);
+                                            return categories;
+                                        }, {})
+                                    ).map(([category, templates]) => (
+                                        <div key={category}>
+                                            <h4 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
+                                                {category}
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {templates.map((template) => (
+                                                    <div
+                                                        key={template.id}
+                                                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md cursor-pointer transition-all group"
+                                                        onClick={() => handleTemplateSelect(template)}
+                                                    >
+                                                        <div className="flex items-start space-x-3">
+                                                            <div className="flex-shrink-0">
+                                                                <span className="text-2xl" role="img" aria-label={template.type}>
+                                                                    {template.icon}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <h5 className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                                                                    {template.name}
+                                                                </h5>
+                                                                <p className="text-xs text-gray-600 mt-1">
+                                                                    {template.description}
+                                                                </p>
+                                                                <div className="mt-3 flex items-center justify-between text-xs">
+                                                                    <span className={`px-2 py-1 rounded-full ${template.complexity === 'Basic' ? 'bg-green-100 text-green-800' :
+                                                                            template.complexity === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                                                                                'bg-red-100 text-red-800'
+                                                                        }`}>
+                                                                        {template.complexity}
+                                                                    </span>
+                                                                    <span className="text-gray-500">
+                                                                        ⏱️ {template.estimatedTime}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="mt-2">
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-800">
+                                                                        {template.type}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="mt-8 flex justify-center">
+                                <button
+                                    onClick={() => {
+                                        setShowTemplateSelector(false);
+                                        navigate('/study-design/forms');
+                                    }}
+                                    className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium py-2 px-6 rounded mr-4"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
