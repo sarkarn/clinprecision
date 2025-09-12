@@ -8,12 +8,12 @@ export const useStudyForm = (initialData = {}) => {
     // Basic Study Information
     name: '',
     protocolNumber: '',
-    phase: '',
+    studyPhaseId: '', // Changed from 'phase' to match backend expectation
     sponsor: '',
     description: '',
     
     // Timeline Information
-    status: 'draft',
+    studyStatusId: '', // Changed from 'status' to match backend expectation
     startDate: '',
     endDate: '',
     estimatedDuration: '',
@@ -32,7 +32,7 @@ export const useStudyForm = (initialData = {}) => {
     secondaryObjectives: [],
     
     // Regulatory Information
-    regulatoryStatus: '',
+    regulatoryStatusId: '', // Changed from 'regulatoryStatus' to match backend expectation
     ethicsApproval: false,
     fdaInd: false,
     
@@ -55,9 +55,17 @@ export const useStudyForm = (initialData = {}) => {
       pattern: /^[A-Z0-9-]+$/,
       message: 'Protocol number must contain only uppercase letters, numbers, and hyphens'
     },
-    phase: {
+    studyPhaseId: {
       required: true,
       message: 'Study phase is required'
+    },
+    studyStatusId: {
+      required: true,
+      message: 'Study status is required'
+    },
+    regulatoryStatusId: {
+      required: false,
+      message: 'Regulatory status is required'
     },
     sponsor: {
       required: true,
@@ -191,10 +199,10 @@ export const useStudyForm = (initialData = {}) => {
     setFormData({
       name: '',
       protocolNumber: '',
-      phase: '',
+      studyPhaseId: '',
       sponsor: '',
       description: '',
-      status: 'draft',
+      studyStatusId: '',
       startDate: '',
       endDate: '',
       estimatedDuration: '',
@@ -205,7 +213,7 @@ export const useStudyForm = (initialData = {}) => {
       studyType: 'interventional',
       primaryObjective: '',
       secondaryObjectives: [],
-      regulatoryStatus: '',
+      regulatoryStatusId: '',
       ethicsApproval: false,
       fdaInd: false,
       ...initialData

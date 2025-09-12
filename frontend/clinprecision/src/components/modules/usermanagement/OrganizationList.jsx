@@ -4,7 +4,6 @@ import { OrganizationService } from "../../../services/OrganizationService";
 
 export default function OrganizationList() {
     const [organizations, setOrganizations] = useState([]);
-    const [organizationTypes, setOrganizationTypes] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
@@ -13,21 +12,9 @@ export default function OrganizationList() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                // Fetch organizations and organization types in parallel
-                const [orgsData, typesData] = await Promise.all([
-                    OrganizationService.getAllOrganizations(),
-                    OrganizationService.getAllOrganizationTypes()
-                ]);
-
+                // Fetch organizations
+                const orgsData = await OrganizationService.getAllOrganizations();
                 setOrganizations(orgsData);
-
-                // Convert organization types array to a lookup object
-                const typesMap = {};
-                typesData.forEach(type => {
-                    typesMap[type.id] = type.name;
-                });
-                setOrganizationTypes(typesMap);
-
                 setError(null);
             } catch (err) {
                 console.error("Error fetching organization data:", err);
@@ -100,9 +87,6 @@ export default function OrganizationList() {
                                     Name
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Type
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Location
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -118,9 +102,6 @@ export default function OrganizationList() {
                                 <tr key={org.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {org.name}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {organizationTypes[org.organizationTypeId] || 'Unknown Type'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {org.city && org.country ? `${org.city}, ${org.country}` : 'No location data'}

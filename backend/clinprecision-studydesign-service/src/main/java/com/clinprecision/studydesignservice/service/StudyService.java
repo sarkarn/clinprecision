@@ -64,7 +64,7 @@ public class StudyService {
         }
         
         // 6. Reload study with associations for response
-        StudyEntity studyWithAssociations = studyRepository.findByIdWithOrganizations(savedStudy.getId())
+        StudyEntity studyWithAssociations = studyRepository.findByIdWithAllRelationships(savedStudy.getId())
             .orElse(savedStudy);
         
         // 7. Return response
@@ -80,7 +80,7 @@ public class StudyService {
     public StudyResponseDto getStudyById(Long id) {
         logger.info("Fetching study with ID: {}", id);
         
-        StudyEntity study = studyRepository.findByIdWithOrganizations(id)
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
             .orElseThrow(() -> new StudyNotFoundException(id));
         
         return studyMapper.toResponseDto(study);
@@ -93,8 +93,48 @@ public class StudyService {
     public List<StudyResponseDto> getAllStudies() {
         logger.info("Fetching all studies");
         
-        List<StudyEntity> studies = studyRepository.findAll();
+        // For now, get all studies ordered by most recently updated first
+        List<StudyEntity> studies = studyRepository.findAllByOrderByUpdatedAtDesc();
         logger.info("Found {} studies", studies.size());
+        
+        return studyMapper.toResponseDtoList(studies);
+    }
+    
+    /**
+     * Get all studies with filters
+     */
+    @Transactional(readOnly = true)
+    public List<StudyResponseDto> getAllStudiesWithFilters(String status, String phase, String sponsor) {
+        logger.info("Fetching filtered studies: status={}, phase={}, sponsor={}", status, phase, sponsor);
+        
+        // Convert status string to ID if provided
+        Long statusId = null;
+        if (status != null && !status.trim().isEmpty()) {
+            try {
+                // Try to parse as ID first
+                statusId = Long.parseLong(status);
+            } catch (NumberFormatException e) {
+                // If not a number, we could look up by status name/code
+                // For now, leave statusId as null which will be ignored in query
+                logger.warn("Invalid status filter (not a valid ID): {}", status);
+            }
+        }
+        
+        // Convert phase string to ID if provided
+        Long phaseId = null;
+        if (phase != null && !phase.trim().isEmpty()) {
+            try {
+                // Try to parse as ID first
+                phaseId = Long.parseLong(phase);
+            } catch (NumberFormatException e) {
+                // If not a number, we could look up by phase name/code
+                // For now, leave phaseId as null which will be ignored in query
+                logger.warn("Invalid phase filter (not a valid ID): {}", phase);
+            }
+        }
+        
+        List<StudyEntity> studies = studyRepository.findAllWithFilters(statusId, phaseId, null, sponsor);
+        logger.info("Found {} filtered studies", studies.size());
         
         return studyMapper.toResponseDtoList(studies);
     }
@@ -115,7 +155,10 @@ public class StudyService {
         // 3. Update fields
         studyMapper.updateEntityFromDto(request, existingStudy);
         
-        // 4. Save updated study
+        // 4. Update audit information
+        existingStudy.setModifiedBy(getCurrentUserName()); // Set who modified it
+        
+        // 5. Save updated study
         StudyEntity updatedStudy = studyRepository.save(existingStudy);
         
         // 5. Update organization associations if provided
@@ -124,7 +167,7 @@ public class StudyService {
         }
         
         // 6. Reload study with associations for response
-        StudyEntity studyWithAssociations = studyRepository.findByIdWithOrganizations(updatedStudy.getId())
+        StudyEntity studyWithAssociations = studyRepository.findByIdWithAllRelationships(updatedStudy.getId())
             .orElse(updatedStudy);
         
         StudyResponseDto response = studyMapper.toResponseDto(studyWithAssociations);
@@ -181,6 +224,16 @@ public class StudyService {
         // For now, return a default user ID
         // In production, this should get the user ID from Spring Security context
         return 1L; // Temporary hardcoded value
+    }
+    
+    /**
+     * Get current user name from security context
+     * TODO: Implement proper security context integration
+     */
+    private Long getCurrentUserName() {
+        // For now, return a default user name
+        // In production, this should get the user name from Spring Security context
+        return 1L ; // Temporary hardcoded value
     }
 }
 

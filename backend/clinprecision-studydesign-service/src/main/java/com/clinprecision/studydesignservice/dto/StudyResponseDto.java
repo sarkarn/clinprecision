@@ -22,8 +22,27 @@ public class StudyResponseDto {
     private String parentVersionId;
     private String versionNotes;
     private Boolean isLocked;
-    private String phase;
-    private String status;
+    private String indication;
+    private String studyType;
+    private String principalInvestigator;
+    private Integer sites;
+    private Integer plannedSubjects;
+    private Integer enrolledSubjects;
+    private Integer targetEnrollment;
+    private String primaryObjective;
+    private Integer amendments;
+    private Long modifiedBy;
+    
+    // Lookup table references (instead of simple strings)
+    private StudyStatusDto studyStatus;
+    private RegulatoryStatusDto regulatoryStatus;
+    private StudyPhaseDto studyPhase;
+    
+    // Legacy fields for backward compatibility (can be removed after frontend migration)
+    @Deprecated
+    private String status; // Use studyStatus instead
+    @Deprecated
+    private String phase; // Use studyPhase instead
     private LocalDate startDate;
     private LocalDate endDate;
     private String metadata;
@@ -124,12 +143,116 @@ public class StudyResponseDto {
         this.phase = phase;
     }
     
+    public StudyStatusDto getStudyStatus() {
+        return studyStatus;
+    }
+    
+    public void setStudyStatus(StudyStatusDto studyStatus) {
+        this.studyStatus = studyStatus;
+    }
+    
+    public RegulatoryStatusDto getRegulatoryStatus() {
+        return regulatoryStatus;
+    }
+    
+    public void setRegulatoryStatus(RegulatoryStatusDto regulatoryStatus) {
+        this.regulatoryStatus = regulatoryStatus;
+    }
+    
+    public StudyPhaseDto getStudyPhase() {
+        return studyPhase;
+    }
+    
+    public void setStudyPhase(StudyPhaseDto studyPhase) {
+        this.studyPhase = studyPhase;
+    }
+    
     public String getStatus() {
         return status;
     }
     
     public void setStatus(String status) {
         this.status = status;
+    }
+    
+    public String getIndication() {
+        return indication;
+    }
+    
+    public void setIndication(String indication) {
+        this.indication = indication;
+    }
+    
+    public String getStudyType() {
+        return studyType;
+    }
+    
+    public void setStudyType(String studyType) {
+        this.studyType = studyType;
+    }
+    
+    public String getPrincipalInvestigator() {
+        return principalInvestigator;
+    }
+    
+    public void setPrincipalInvestigator(String principalInvestigator) {
+        this.principalInvestigator = principalInvestigator;
+    }
+    
+    public Integer getSites() {
+        return sites;
+    }
+    
+    public void setSites(Integer sites) {
+        this.sites = sites;
+    }
+    
+    public Integer getPlannedSubjects() {
+        return plannedSubjects;
+    }
+    
+    public void setPlannedSubjects(Integer plannedSubjects) {
+        this.plannedSubjects = plannedSubjects;
+    }
+    
+    public Integer getEnrolledSubjects() {
+        return enrolledSubjects;
+    }
+    
+    public void setEnrolledSubjects(Integer enrolledSubjects) {
+        this.enrolledSubjects = enrolledSubjects;
+    }
+    
+    public Integer getTargetEnrollment() {
+        return targetEnrollment;
+    }
+    
+    public void setTargetEnrollment(Integer targetEnrollment) {
+        this.targetEnrollment = targetEnrollment;
+    }
+    
+    public String getPrimaryObjective() {
+        return primaryObjective;
+    }
+    
+    public void setPrimaryObjective(String primaryObjective) {
+        this.primaryObjective = primaryObjective;
+    }
+    
+    public Integer getAmendments() {
+        return amendments;
+    }
+    
+    public void setAmendments(Integer amendments) {
+        this.amendments = amendments;
+    }
+    
+    public Long getModifiedBy() {
+        return modifiedBy;
+    }
+    
+    public void setModifiedBy(Long modifiedBy) {
+        this.modifiedBy = modifiedBy;
     }
     
     public LocalDate getStartDate() {

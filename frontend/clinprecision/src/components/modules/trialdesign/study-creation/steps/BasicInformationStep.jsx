@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FormField from '../../components/FormField';
 import { OrganizationService } from '../../../../../services/OrganizationService';
+import StudyService from '../../../../../services/StudyService';
 
 /**
  * Step 1: Basic Study Information
@@ -15,6 +16,13 @@ const BasicInformationStep = ({
     const [loadingOrganizations, setLoadingOrganizations] = useState(true);
     const [organizationError, setOrganizationError] = useState(null);
     const [showManualSponsor, setShowManualSponsor] = useState(false);
+
+    // Lookup data state
+    const [studyPhases, setStudyPhases] = useState([]);
+    const [studyStatuses, setStudyStatuses] = useState([]);
+    const [regulatoryStatuses, setRegulatoryStatuses] = useState([]);
+    const [loadingLookups, setLoadingLookups] = useState(true);
+    const [lookupError, setLookupError] = useState(null);
 
     // Handle sponsor selection change
     const handleSponsorChange = (fieldName, value) => {
@@ -61,26 +69,69 @@ const BasicInformationStep = ({
 
         fetchOrganizations();
     }, []);
-    const phaseOptions = [
-        { value: 'Phase 1', label: 'Phase I' },
-        { value: 'Phase 2', label: 'Phase II' },
-        { value: 'Phase 3', label: 'Phase III' },
-        { value: 'Phase 4', label: 'Phase IV' },
-        { value: 'Pilot', label: 'Pilot Study' },
-        { value: 'Exploratory', label: 'Exploratory' }
-    ];
 
-    const statusOptions = [
-        { value: 'draft', label: 'Draft' },
-        { value: 'in-review', label: 'In Review' },
-        { value: 'approved', label: 'Approved' },
-        { value: 'active', label: 'Active' },
-        { value: 'recruiting', label: 'Recruiting' },
-        { value: 'completed', label: 'Completed' },
-        { value: 'terminated', label: 'Terminated' },
-        { value: 'suspended', label: 'Suspended' }
-    ];
+    // Load lookup data for dropdowns
+    useEffect(() => {
+        const fetchLookupData = async () => {
+            try {
+                setLoadingLookups(true);
+                const lookupData = await StudyService.getStudyLookupData();
 
+                // Transform phase data to options format
+                const phaseOptions = lookupData.studyPhases.map(phase => ({
+                    value: phase.id, // Use ID as value for backend
+                    label: phase.label, // Use already transformed 'label' field
+                    description: phase.description
+                }));
+
+                // Transform status data to options format
+                const statusOptions = lookupData.studyStatuses.map(status => ({
+                    value: status.id, // Use ID as value for backend
+                    label: status.label, // Use already transformed 'label' field
+                    description: status.description
+                }));
+
+                // Transform regulatory status data to options format
+                const regulatoryOptions = lookupData.regulatoryStatuses.map(regStatus => ({
+                    value: regStatus.id, // Use ID as value for backend
+                    label: regStatus.label, // Use already transformed 'label' field
+                    description: regStatus.description
+                }));
+
+                setStudyPhases(phaseOptions);
+                setStudyStatuses(statusOptions);
+                setRegulatoryStatuses(regulatoryOptions);
+                setLookupError(null);
+            } catch (err) {
+                console.error('Error fetching lookup data:', err);
+                setLookupError('Failed to load dropdown options. Using fallback values.');
+
+                // Fallback to default values if API fails
+                setStudyPhases([
+                    { value: 1, label: 'Phase I' },
+                    { value: 2, label: 'Phase II' },
+                    { value: 3, label: 'Phase III' },
+                    { value: 4, label: 'Phase IV' }
+                ]);
+
+                setStudyStatuses([
+                    { value: 1, label: 'Draft' },
+                    { value: 2, label: 'In Review' },
+                    { value: 3, label: 'Active' }
+                ]);
+
+                setRegulatoryStatuses([
+                    { value: 1, label: 'Pre-IND' },
+                    { value: 2, label: 'IND Submitted' },
+                    { value: 3, label: 'IND Approved' }
+                ]);
+            } finally {
+                setLoadingLookups(false);
+            }
+        };
+
+        fetchLookupData();
+    }, []);
     const studyTypeOptions = [
         { value: 'interventional', label: 'Interventional' },
         { value: 'observational', label: 'Observational' },
@@ -128,15 +179,16 @@ const BasicInformationStep = ({
                 {/* Study Phase */}
                 <FormField
                     label="Study Phase"
-                    name="phase"
+                    name="studyPhaseId"
                     type="select"
-                    value={formData.phase}
+                    value={formData.studyPhaseId}
                     onChange={onFieldChange}
-                    error={getFieldError('phase')}
-                    touched={hasFieldError('phase')}
+                    error={getFieldError('studyPhaseId') || lookupError}
+                    touched={hasFieldError('studyPhaseId')}
                     required
-                    options={phaseOptions}
-                    placeholder="Select study phase"
+                    options={studyPhases}
+                    placeholder={loadingLookups ? "Loading phases..." : "Select study phase"}
+                    disabled={loadingLookups}
                 />
 
                 {/* Study Type */}
@@ -155,13 +207,15 @@ const BasicInformationStep = ({
                 {/* Status */}
                 <FormField
                     label="Current Status"
-                    name="status"
+                    name="studyStatusId"
                     type="select"
-                    value={formData.status}
+                    value={formData.studyStatusId}
                     onChange={onFieldChange}
-                    error={getFieldError('status')}
-                    touched={hasFieldError('status')}
-                    options={statusOptions}
+                    error={getFieldError('studyStatusId') || lookupError}
+                    touched={hasFieldError('studyStatusId')}
+                    options={studyStatuses}
+                    placeholder={loadingLookups ? "Loading statuses..." : "Select current status"}
+                    disabled={loadingLookups}
                     helpText="Current stage of the study lifecycle"
                 />
 
@@ -211,6 +265,15 @@ const BasicInformationStep = ({
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                             Loading organizations...
+                        </div>
+                    )}
+                    {loadingLookups && (
+                        <div className="mt-1 flex items-center text-sm text-gray-500">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Loading form options...
                         </div>
                     )}
                 </div>

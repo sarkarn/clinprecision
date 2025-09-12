@@ -78,20 +78,6 @@ export const OrganizationService = {
   },
 
   /**
-   * Get all organization types
-   * @returns {Promise} - Promise with organization types data
-   */
-  getAllOrganizationTypes: async () => {
-    try {
-      const response = await ApiService.get('/users-ws/organization-types');
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching organization types:", error);
-      throw error;
-    }
-  },
-
-  /**
    * Add a contact to an organization
    * @param {string} organizationId - Organization ID
    * @param {Object} contactData - Contact data

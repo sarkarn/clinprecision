@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 public class OrganizationDto {
     private Long id;
     private String name;
-    private OrganizationTypeDto organizationType;
     private String externalId;
     private String addressLine1;
     private String addressLine2;

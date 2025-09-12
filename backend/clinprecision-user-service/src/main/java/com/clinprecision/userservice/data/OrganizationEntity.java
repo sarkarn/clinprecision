@@ -19,11 +19,7 @@ public class OrganizationEntity {
     
     @Column(name = "name", nullable = false)
     private String name;
-    
-    @ManyToOne
-    @JoinColumn(name = "org_type_id", nullable = false)
-    private OrganizationTypeEntity organizationType;
-    
+
     @Column(name = "external_id")
     private String externalId;
     
@@ -105,14 +101,6 @@ public class OrganizationEntity {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public OrganizationTypeEntity getOrganizationType() {
-        return organizationType;
-    }
-
-    public void setOrganizationType(OrganizationTypeEntity organizationType) {
-        this.organizationType = organizationType;
     }
 
     public String getExternalId() {

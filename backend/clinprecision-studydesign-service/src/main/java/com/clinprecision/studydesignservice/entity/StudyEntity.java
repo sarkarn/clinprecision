@@ -46,12 +46,48 @@ public class StudyEntity {
     @Column(name = "is_locked")
     private Boolean isLocked = false;
     
-    @Column(name = "phase", length = 20)
-    private String phase;
+    @Column(name = "indication", length = 500)
+    private String indication;
     
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status")
-    private StudyStatus status = StudyStatus.DRAFT;
+    @Column(name = "study_type", length = 50)
+    private String studyType = "INTERVENTIONAL";
+    
+    @Column(name = "principal_investigator", length = 255)
+    private String principalInvestigator;
+    
+    @Column(name = "sites")
+    private Integer sites = 0;
+    
+    @Column(name = "planned_subjects")
+    private Integer plannedSubjects = 0;
+    
+    @Column(name = "enrolled_subjects")
+    private Integer enrolledSubjects = 0;
+    
+    @Column(name = "target_enrollment")
+    private Integer targetEnrollment = 0;
+    
+    @Column(name = "primary_objective", columnDefinition = "TEXT")
+    private String primaryObjective;
+    
+    @Column(name = "amendments")
+    private Integer amendments = 0;
+    
+    @Column(name = "modified_by")
+    private Long modifiedBy;
+    
+    // Foreign key relationships to lookup tables
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "study_status_id", referencedColumnName = "id")
+    private StudyStatusEntity studyStatus;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "regulatory_status_id", referencedColumnName = "id")
+    private RegulatoryStatusEntity regulatoryStatus;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "study_phase_id", referencedColumnName = "id")
+    private StudyPhaseEntity studyPhase;
     
     @Column(name = "start_date")
     private LocalDate startDate;
@@ -90,8 +126,10 @@ public class StudyEntity {
         if (isLocked == null) {
             isLocked = false;
         }
-        if (status == null) {
-            status = StudyStatus.DRAFT;
+        // Initialize with default "DRAFT" status if no status is set
+        if (studyStatus == null) {
+            // Note: This would need to be set by the service layer with actual lookup table reference
+            // studyStatus = defaultDraftStatus; 
         }
     }
     
@@ -184,20 +222,108 @@ public class StudyEntity {
         this.isLocked = isLocked;
     }
     
-    public String getPhase() {
-        return phase;
+    public StudyStatusEntity getStudyStatus() {
+        return studyStatus;
     }
     
-    public void setPhase(String phase) {
-        this.phase = phase;
+    public void setStudyStatus(StudyStatusEntity studyStatus) {
+        this.studyStatus = studyStatus;
     }
     
-    public StudyStatus getStatus() {
-        return status;
+    public StudyPhaseEntity getStudyPhase() {
+        return studyPhase;
     }
     
-    public void setStatus(StudyStatus status) {
-        this.status = status;
+    public void setStudyPhase(StudyPhaseEntity studyPhase) {
+        this.studyPhase = studyPhase;
+    }
+    
+    public RegulatoryStatusEntity getRegulatoryStatus() {
+        return regulatoryStatus;
+    }
+    
+    public void setRegulatoryStatus(RegulatoryStatusEntity regulatoryStatus) {
+        this.regulatoryStatus = regulatoryStatus;
+    }
+    
+    public String getIndication() {
+        return indication;
+    }
+    
+    public void setIndication(String indication) {
+        this.indication = indication;
+    }
+    
+    public String getStudyType() {
+        return studyType;
+    }
+    
+    public void setStudyType(String studyType) {
+        this.studyType = studyType;
+    }
+    
+    public String getPrincipalInvestigator() {
+        return principalInvestigator;
+    }
+    
+    public void setPrincipalInvestigator(String principalInvestigator) {
+        this.principalInvestigator = principalInvestigator;
+    }
+    
+    public Integer getSites() {
+        return sites;
+    }
+    
+    public void setSites(Integer sites) {
+        this.sites = sites;
+    }
+    
+    public Integer getPlannedSubjects() {
+        return plannedSubjects;
+    }
+    
+    public void setPlannedSubjects(Integer plannedSubjects) {
+        this.plannedSubjects = plannedSubjects;
+    }
+    
+    public Integer getEnrolledSubjects() {
+        return enrolledSubjects;
+    }
+    
+    public void setEnrolledSubjects(Integer enrolledSubjects) {
+        this.enrolledSubjects = enrolledSubjects;
+    }
+    
+    public Integer getTargetEnrollment() {
+        return targetEnrollment;
+    }
+    
+    public void setTargetEnrollment(Integer targetEnrollment) {
+        this.targetEnrollment = targetEnrollment;
+    }
+    
+    public String getPrimaryObjective() {
+        return primaryObjective;
+    }
+    
+    public void setPrimaryObjective(String primaryObjective) {
+        this.primaryObjective = primaryObjective;
+    }
+    
+    public Integer getAmendments() {
+        return amendments;
+    }
+    
+    public void setAmendments(Integer amendments) {
+        this.amendments = amendments;
+    }
+    
+    public Long getModifiedBy() {
+        return modifiedBy;
+    }
+    
+    public void setModifiedBy(Long modifiedBy) {
+        this.modifiedBy = modifiedBy;
     }
     
     public LocalDate getStartDate() {

@@ -1,7 +1,6 @@
 package com.clinprecision.studydesignservice.repository;
 
 import com.clinprecision.studydesignservice.entity.StudyEntity;
-import com.clinprecision.studydesignservice.entity.StudyStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,16 +17,22 @@ import java.util.Optional;
 public interface StudyRepository extends JpaRepository<StudyEntity, Long> {
     
     /**
-     * Find studies by status
+     * Find studies by status IDs
      */
-    @Query("SELECT s FROM StudyEntity s WHERE s.status IN :statuses ORDER BY s.updatedAt DESC")
-    List<StudyEntity> findByStatusIn(@Param("statuses") List<StudyStatus> statuses);
+    @Query("SELECT s FROM StudyEntity s WHERE s.studyStatus.id IN :statusIds ORDER BY s.updatedAt DESC")
+    List<StudyEntity> findByStatusIdIn(@Param("statusIds") List<Long> statusIds);
     
     /**
-     * Find studies by creator and status
+     * Find studies by status code
      */
-    @Query("SELECT s FROM StudyEntity s WHERE s.createdBy = :userId AND s.status = :status ORDER BY s.updatedAt DESC")
-    List<StudyEntity> findByCreatedByAndStatus(@Param("userId") Long userId, @Param("status") StudyStatus status);
+    @Query("SELECT s FROM StudyEntity s JOIN s.studyStatus ss WHERE UPPER(ss.code) = UPPER(:statusCode) ORDER BY s.updatedAt DESC")
+    List<StudyEntity> findByStatusCode(@Param("statusCode") String statusCode);
+    
+    /**
+     * Find studies by creator and status ID
+     */
+    @Query("SELECT s FROM StudyEntity s WHERE s.createdBy = :userId AND s.studyStatus.id = :statusId ORDER BY s.updatedAt DESC")
+    List<StudyEntity> findByCreatedByAndStatusId(@Param("userId") Long userId, @Param("statusId") Long statusId);
     
     /**
      * Find study by protocol number
@@ -42,10 +47,15 @@ public interface StudyRepository extends JpaRepository<StudyEntity, Long> {
     Long countByProtocolNumberExcludingId(@Param("protocolNumber") String protocolNumber, @Param("excludeId") Long excludeId);
     
     /**
-     * Find study by ID with organization relationships eagerly loaded
+     * Find study by ID with all relationships eagerly loaded
      */
-    @Query("SELECT s FROM StudyEntity s LEFT JOIN FETCH s.organizationStudies os WHERE s.id = :id")
-    Optional<StudyEntity> findByIdWithOrganizations(@Param("id") Long id);
+    @Query("SELECT s FROM StudyEntity s " +
+           "LEFT JOIN FETCH s.organizationStudies os " +
+           "LEFT JOIN FETCH s.studyStatus ss " +
+           "LEFT JOIN FETCH s.regulatoryStatus rs " +
+           "LEFT JOIN FETCH s.studyPhase sp " +
+           "WHERE s.id = :id")
+    Optional<StudyEntity> findByIdWithAllRelationships(@Param("id") Long id);
     
     /**
      * Find studies by name containing text (case insensitive)
@@ -60,8 +70,61 @@ public interface StudyRepository extends JpaRepository<StudyEntity, Long> {
     List<StudyEntity> findBySponsorContainingIgnoreCase(@Param("sponsor") String sponsor);
     
     /**
-     * Find studies by phase
+     * Find studies by phase ID
      */
-    @Query("SELECT s FROM StudyEntity s WHERE s.phase = :phase ORDER BY s.updatedAt DESC")
-    List<StudyEntity> findByPhase(@Param("phase") String phase);
+    @Query("SELECT s FROM StudyEntity s WHERE s.studyPhase.id = :phaseId ORDER BY s.updatedAt DESC")
+    List<StudyEntity> findByPhaseId(@Param("phaseId") Long phaseId);
+    
+    /**
+     * Find studies by phase code
+     */
+    @Query("SELECT s FROM StudyEntity s JOIN s.studyPhase sp WHERE UPPER(sp.code) = UPPER(:phaseCode) ORDER BY s.updatedAt DESC")
+    List<StudyEntity> findByPhaseCode(@Param("phaseCode") String phaseCode);
+    
+    /**
+     * Find all studies ordered by most recently updated first
+     */
+    @Query("SELECT s FROM StudyEntity s ORDER BY s.updatedAt DESC")
+    List<StudyEntity> findAllByOrderByUpdatedAtDesc();
+    
+    /**
+     * Find all studies with comprehensive filtering and sorting for list view
+     */
+    @Query("SELECT s FROM StudyEntity s " +
+           "LEFT JOIN s.studyStatus ss " +
+           "LEFT JOIN s.studyPhase sp " +
+           "LEFT JOIN s.regulatoryStatus rs " +
+           "WHERE (:statusId IS NULL OR s.studyStatus.id = :statusId) AND " +
+           "(:phaseId IS NULL OR s.studyPhase.id = :phaseId) AND " +
+           "(:regulatoryStatusId IS NULL OR s.regulatoryStatus.id = :regulatoryStatusId) AND " +
+           "(:sponsor IS NULL OR LOWER(s.sponsor) LIKE LOWER(CONCAT('%', :sponsor, '%'))) " +
+           "ORDER BY s.updatedAt DESC")
+    List<StudyEntity> findAllWithFilters(@Param("statusId") Long statusId,
+                                        @Param("phaseId") Long phaseId,
+                                        @Param("regulatoryStatusId") Long regulatoryStatusId,
+                                        @Param("sponsor") String sponsor);
+    
+    /**
+     * Find studies by regulatory status allowing enrollment
+     */
+    @Query("SELECT s FROM StudyEntity s JOIN s.regulatoryStatus rs WHERE rs.allowsEnrollment = true ORDER BY s.updatedAt DESC")
+    List<StudyEntity> findStudiesAllowingEnrollment();
+    
+    /**
+     * Find studies in modifiable status
+     */
+    @Query("SELECT s FROM StudyEntity s JOIN s.studyStatus ss WHERE ss.allowsModification = true ORDER BY s.updatedAt DESC")
+    List<StudyEntity> findModifiableStudies();
+    
+    /**
+     * Count studies by phase category
+     */
+    @Query("SELECT sp.phaseCategory, COUNT(s) FROM StudyEntity s JOIN s.studyPhase sp GROUP BY sp.phaseCategory")
+    List<Object[]> countStudiesByPhaseCategory();
+    
+    /**
+     * Count studies by status
+     */
+    @Query("SELECT ss.name, COUNT(s) FROM StudyEntity s JOIN s.studyStatus ss GROUP BY ss.name")
+    List<Object[]> countStudiesByStatus();
 }

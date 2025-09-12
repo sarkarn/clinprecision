@@ -37,14 +37,7 @@ public interface OrganizationRepository extends JpaRepository<OrganizationEntity
      */
     List<OrganizationEntity> findByStatus(OrganizationEntity.OrganizationStatus status);
     
-    /**
-     * Find all organizations by their organization type ID.
-     *
-     * @param orgTypeId the ID of the organization type
-     * @return list of organizations with the specified organization type
-     */
-    List<OrganizationEntity> findByOrganizationType_Id(Long orgTypeId);
-    
+
     /**
      * Find all organizations by their country.
      *

@@ -1,48 +1,225 @@
 import ApiService from './ApiService';
 
 const API_PATH = '/study-design-ws/api/studies';
+const LOOKUP_API_PATH = '/study-design-ws/api/studies/lookup';
+
+// Mock data for testing when backend is not available
+const MOCK_STUDIES = [
+  {
+    id: 1,
+    name: "COVID-19 Vaccine Trial",
+    description: "A randomized controlled trial to evaluate the efficacy of a novel COVID-19 vaccine.",
+    sponsor: "Pfizer Inc.",
+    protocolNumber: "BPI-COVID-001",
+    phase: "Phase 3",
+    status: "active",
+    startDate: "2024-01-15",
+    endDate: "2025-01-15",
+    indication: "COVID-19 Prevention",
+    studyType: "INTERVENTIONAL",
+    principalInvestigator: "Dr. Sarah Johnson",
+    sites: 45,
+    plannedSubjects: 30000,
+    enrolledSubjects: 28500,
+    targetEnrollment: 30000,
+    primaryObjective: "To demonstrate vaccine efficacy",
+    amendments: 2
+  },
+  {
+    id: 2,
+    name: "Diabetes Management Study", 
+    description: "Evaluating a new approach to diabetes management.",
+    sponsor: "Merck & Co.",
+    protocolNumber: "MRG-DM-101",
+    phase: "Phase 2",
+    status: "active",
+    startDate: "2024-02-01",
+    endDate: "2024-12-31",
+    indication: "Type 2 Diabetes",
+    studyType: "INTERVENTIONAL",
+    principalInvestigator: "Dr. Michael Chen",
+    sites: 12,
+    plannedSubjects: 500,
+    enrolledSubjects: 450,
+    targetEnrollment: 500,
+    primaryObjective: "Evaluate glucose control improvement",
+    amendments: 1
+  },
+  {
+    id: 3,
+    name: "Alzheimer's Disease Intervention Study",
+    description: "Evaluating a novel therapeutic approach for early-stage Alzheimer's disease.",
+    sponsor: "Pfizer Inc.",
+    protocolNumber: "NCF-ALZ-202", 
+    phase: "Phase 2",
+    status: "active",
+    startDate: "2024-03-10",
+    endDate: "2025-09-30",
+    indication: "Early-stage Alzheimer's Disease",
+    studyType: "INTERVENTIONAL",
+    principalInvestigator: "Dr. Emily Rodriguez",
+    sites: 25,
+    plannedSubjects: 800,
+    enrolledSubjects: 650,
+    targetEnrollment: 800,
+    primaryObjective: "Assess cognitive improvement",
+    amendments: 0
+  }
+];
+
+// Flag to use mock data for testing (set to true to test frontend without backend)
+const USE_MOCK_DATA = false;
+
+/**
+ * Get mock studies for testing
+ */
+const getMockStudies = () => {
+  console.log('Using mock studies data');
+  return MOCK_STUDIES.map(study => ({
+    id: study.id,
+    title: study.name,
+    description: study.description,
+    sponsor: study.sponsor,
+    protocolNumber: study.protocolNumber,
+    phase: study.phase,
+    status: study.status,
+    startDate: study.startDate,
+    endDate: study.endDate,
+    indication: study.indication,
+    studyType: study.studyType,
+    principalInvestigator: study.principalInvestigator,
+    sites: study.sites,
+    plannedSubjects: study.plannedSubjects,
+    enrolledSubjects: study.enrolledSubjects,
+    targetEnrollment: study.targetEnrollment,
+    primaryObjective: study.primaryObjective,
+    amendments: study.amendments
+  }));
+};
 
 /**
  * Get all studies from backend
  * @returns {Promise<Array>} Promise that resolves to an array of studies
  */
 export const getStudies = async () => {
+  // If mock data flag is enabled, return mock data immediately
+  if (USE_MOCK_DATA) {
+    console.log('USE_MOCK_DATA flag is true, returning mock data');
+    return getMockStudies();
+  }
+
   try {
+    console.log('Attempting to fetch studies from backend at:', API_PATH);
     const response = await ApiService.get(API_PATH);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching studies:', error);
     
-    // Return mock data when backend is unavailable
+    // Debug logging - detailed response inspection
+    console.log('=== BACKEND RESPONSE DEBUG ===');
+    console.log('Full response object:', response);
+    console.log('Response status:', response?.status);
+    console.log('Response headers:', response?.headers);
+    console.log('Response data:', response?.data);
+    console.log('Response data type:', typeof response?.data);
+    console.log('Is response.data an array?', Array.isArray(response?.data));
+    
+    if (response?.data && Array.isArray(response.data)) {
+      console.log('Number of studies in response:', response.data.length);
+      
+      // Log each individual study from backend
+      response.data.forEach((study, index) => {
+        console.log(`=== BACKEND STUDY ${index + 1} ===`);
+        console.log('Full study object:', study);
+        console.log('Study ID:', study.id);
+        console.log('Study NAME field:', study.name);
+        console.log('Study NAME type:', typeof study.name);
+        console.log('Study NAME length:', study.name?.length);
+        console.log('Study NAME is empty?', !study.name || study.name.trim() === '');
+        console.log('Other fields:', {
+          description: study.description,
+          sponsor: study.sponsor,
+          protocolNumber: study.protocolNumber,
+          phase: study.phase,
+          status: study.status
+        });
+      });
+    }
+    
+    // Ensure response.data is an array
+    if (!response || !response.data || !Array.isArray(response.data)) {
+      console.warn('Backend response is not a valid array:', response);
+      return getMockStudies(); // Fall back to mock data
+    }
+    
+    console.log('Backend response data (array):', response.data);
+    console.log('Number of studies received from backend:', response.data.length);
+    
+    // Map the backend response to frontend format
+    const mappedStudies = response.data.map((study, index) => {
+      console.log(`=== MAPPING STUDY ${index + 1} ===`);
+      console.log('Original backend study:', study);
+      console.log('Original study.name:', study.name);
+      console.log('Will map to title:', study.name || 'Untitled Study');
+      
+      const mappedStudy = {
+        id: study.id,
+        title: study.name || 'Untitled Study',
+        description: study.description || 'No description available',
+        sponsor: study.sponsor || 'Unknown Sponsor',
+        protocolNumber: study.protocolNumber || 'N/A',
+        phase: study.phase || 'N/A',
+        status: study.status || 'unknown',
+        startDate: study.startDate || null,
+        endDate: study.endDate || null,
+        indication: study.indication || 'Not specified',
+        studyType: study.studyType || 'INTERVENTIONAL',
+        principalInvestigator: study.principalInvestigator || 'Not assigned',
+        sites: study.sites || 0,
+        plannedSubjects: study.plannedSubjects || 0,
+        enrolledSubjects: study.enrolledSubjects || 0,
+        targetEnrollment: study.targetEnrollment || 0,
+        primaryObjective: study.primaryObjective || 'Not specified',
+        amendments: study.amendments || 0,
+        createdAt: study.createdAt || null,
+        updatedAt: study.updatedAt || null
+      };
+      
+      console.log('Mapped study result:', mappedStudy);
+      console.log('Final title value:', mappedStudy.title);
+      return mappedStudy;
+    });
+    
+    console.log('Final mapped studies array:', mappedStudies);
+    
+    if (mappedStudies.length === 0) {
+      console.log('No studies found in backend, falling back to mock data');
+      return getMockStudies();
+    }
+    
+    // Check if any studies have empty titles (which indicates name field issues)
+    const studiesWithEmptyTitles = mappedStudies.filter(study => !study.title || study.title.trim() === '' || study.title === 'Untitled Study');
+    if (studiesWithEmptyTitles.length > 0) {
+      console.warn(`Found ${studiesWithEmptyTitles.length} studies with empty titles:`, studiesWithEmptyTitles);
+      console.warn('This indicates that the backend name field is null or empty for these studies');
+    }
+    
+    // Log final results summary
+    console.log(`=== FINAL RESULTS SUMMARY ===`);
+    console.log(`Total studies from backend: ${mappedStudies.length}`);
+    console.log(`Studies with proper titles: ${mappedStudies.length - studiesWithEmptyTitles.length}`);
+    console.log(`Studies with missing titles: ${studiesWithEmptyTitles.length}`);
+    console.log('Final mapped studies:', mappedStudies);
+    
+    return mappedStudies;
+    
+  } catch (error) {
+    console.error('Error fetching studies from backend:', error);
+    console.log('Falling back to mock data due to error');
     return getMockStudies();
   }
 };
 
 /**
- * Get a study by ID from backend
- * @param {string} id - The ID of the study to retrieve
- * @returns {Promise<Object>} Promise that resolves to the study data
- */
-export const getStudyById = async (id) => {
-  try {
-    const response = await ApiService.get(`${API_PATH}/${id}`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching study with ID ${id}:`, error);
-    
-    // Return mock data when backend is unavailable
-    const mockStudies = getMockStudies();
-    const study = mockStudies.find(s => s.id === id);
-    if (study) {
-      return study;
-    }
-    throw new Error(`Study with ID ${id} not found`);
-  }
-};
-
-/**
- * Register a new study with backend integration
- * @param {Object} studyData - The study data to create
+ * Create a new study
+ * @param {Object} studyData Study data to create
  * @returns {Promise<Object>} Promise that resolves to the created study
  */
 export const registerStudy = async (studyData) => {
@@ -50,483 +227,305 @@ export const registerStudy = async (studyData) => {
     const response = await ApiService.post(API_PATH, studyData);
     return response.data;
   } catch (error) {
-    console.error('Error registering study:', error);
+    console.error('Error creating study:', error);
     throw error;
   }
 };
 
 /**
- * Update an existing study
- * @param {string} id - The ID of the study to update
- * @param {Object} studyData - The updated study data
+ * Get study by ID
+ * @param {number} studyId Study ID
+ * @returns {Promise<Object>} Promise that resolves to the study
+ */
+export const getStudyById = async (studyId) => {
+  try {
+    const response = await ApiService.get(`${API_PATH}/${studyId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching study:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update study
+ * @param {number} studyId Study ID
+ * @param {Object} studyData Study data to update
  * @returns {Promise<Object>} Promise that resolves to the updated study
  */
-export const updateStudy = async (id, studyData) => {
+export const updateStudy = async (studyId, studyData) => {
   try {
-    const response = await ApiService.put(`${API_PATH}/${id}`, studyData);
+    const response = await ApiService.put(`${API_PATH}/${studyId}`, studyData);
     return response.data;
   } catch (error) {
-    console.error(`Error updating study with ID ${id}:`, error);
+    console.error('Error updating study:', error);
     throw error;
   }
 };
 
 /**
- * Update a study using a safer approach that avoids Hibernate cascade issues
- * @param {string} id - The ID of the study to update
- * @param {Object} studyData - The basic study data (without arms)
- * @returns {Promise<Object>} Promise that resolves to the updated study
+ * Delete study
+ * @param {number} studyId Study ID
+ * @returns {Promise<void>} Promise that resolves when study is deleted
  */
-export const updateStudySafely = async (id, studyData) => {
+export const deleteStudy = async (studyId) => {
   try {
-    // 1. Get the existing study to preserve any server-side data
-    const currentStudy = await getStudyById(id);
+    await ApiService.delete(`${API_PATH}/${studyId}`);
+  } catch (error) {
+    console.error('Error deleting study:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all study statuses for dropdown lists
+ * @returns {Promise<Array>} Promise that resolves to an array of study statuses
+ */
+export const getStudyStatuses = async () => {
+  try {
+    console.log('Fetching study statuses from:', `${LOOKUP_API_PATH}/statuses`);
+    const response = await ApiService.get(`${LOOKUP_API_PATH}/statuses`);
     
-    // 2. Prepare minimal study update that won't affect arms
-    const studyToUpdate = { 
-      id: id,
-      name: studyData.name || currentStudy.name,
-      description: studyData.description || currentStudy.description,
-      sponsor: studyData.sponsor || currentStudy.sponsor,
-      protocolNumber: studyData.protocolNumber || currentStudy.protocolNumber,
-      phase: studyData.phase || currentStudy.phase,
-      status: studyData.status || currentStudy.status,
-      startDate: studyData.startDate || currentStudy.startDate,
-      endDate: studyData.endDate || currentStudy.endDate,
-      metadata: studyData.metadata || currentStudy.metadata
+    if (response?.data && Array.isArray(response.data)) {
+      console.log('Found', response.data.length, 'study statuses');
+      return response.data.map(status => ({
+        id: status.id,
+        value: status.code,
+        label: status.name,
+        description: status.description,
+        allowsModification: status.allowsModification,
+        isFinalStatus: status.isFinalStatus
+      }));
+    }
+    
+    // Fallback to hardcoded values if lookup fails
+    return [
+      { id: 1, value: 'DRAFT', label: 'Draft', description: 'Study in initial planning phase' },
+      { id: 2, value: 'PLANNING', label: 'Planning', description: 'Study design being finalized' },
+      { id: 3, value: 'APPROVED', label: 'Approved', description: 'Study approved and ready to start' },
+      { id: 4, value: 'ACTIVE', label: 'Active', description: 'Study actively enrolling participants' },
+      { id: 5, value: 'COMPLETED', label: 'Completed', description: 'Study successfully completed' },
+      { id: 6, value: 'TERMINATED', label: 'Terminated', description: 'Study terminated before completion' },
+      { id: 7, value: 'SUSPENDED', label: 'Suspended', description: 'Study temporarily halted' }
+    ];
+  } catch (error) {
+    console.error('Error fetching study statuses:', error);
+    // Return fallback data
+    return [
+      { id: 1, value: 'DRAFT', label: 'Draft', description: 'Study in initial planning phase' },
+      { id: 2, value: 'PLANNING', label: 'Planning', description: 'Study design being finalized' },
+      { id: 3, value: 'APPROVED', label: 'Approved', description: 'Study approved and ready to start' },
+      { id: 4, value: 'ACTIVE', label: 'Active', description: 'Study actively enrolling participants' },
+      { id: 5, value: 'COMPLETED', label: 'Completed', description: 'Study successfully completed' },
+      { id: 6, value: 'TERMINATED', label: 'Terminated', description: 'Study terminated before completion' },
+      { id: 7, value: 'SUSPENDED', label: 'Suspended', description: 'Study temporarily halted' }
+    ];
+  }
+};
+
+/**
+ * Get all regulatory statuses for dropdown lists
+ * @returns {Promise<Array>} Promise that resolves to an array of regulatory statuses
+ */
+export const getRegulatoryStatuses = async () => {
+  try {
+    console.log('Fetching regulatory statuses from:', `${LOOKUP_API_PATH}/regulatory-statuses`);
+    const response = await ApiService.get(`${LOOKUP_API_PATH}/regulatory-statuses`);
+    
+    if (response?.data && Array.isArray(response.data)) {
+      console.log('Found', response.data.length, 'regulatory statuses');
+      return response.data.map(status => ({
+        id: status.id,
+        value: status.code,
+        label: status.name,
+        description: status.description,
+        category: status.regulatoryCategory,
+        allowsEnrollment: status.allowsEnrollment,
+        requiresDocumentation: status.requiresDocumentation
+      }));
+    }
+    
+    // Fallback to hardcoded values if lookup fails
+    return [
+      { id: 1, value: 'NOT_APPLICABLE', label: 'Not Applicable', description: 'No regulatory approval required' },
+      { id: 2, value: 'PREPARING_SUBMISSION', label: 'Preparing Submission', description: 'Preparing regulatory documents' },
+      { id: 3, value: 'IND_SUBMITTED', label: 'IND Submitted', description: 'Investigational New Drug application submitted' },
+      { id: 4, value: 'IRB_SUBMITTED', label: 'IRB Submitted', description: 'Submitted to Institutional Review Board' },
+      { id: 5, value: 'IND_APPROVED', label: 'IND Approved', description: 'IND application approved by FDA' },
+      { id: 6, value: 'IRB_APPROVED', label: 'IRB Approved', description: 'Study approved by IRB' },
+      { id: 7, value: 'FULL_REGULATORY_APPROVAL', label: 'Full Regulatory Approval', description: 'All required approvals obtained' }
+    ];
+  } catch (error) {
+    console.error('Error fetching regulatory statuses:', error);
+    // Return fallback data
+    return [
+      { id: 1, value: 'NOT_APPLICABLE', label: 'Not Applicable', description: 'No regulatory approval required' },
+      { id: 2, value: 'PREPARING_SUBMISSION', label: 'Preparing Submission', description: 'Preparing regulatory documents' },
+      { id: 3, value: 'IND_SUBMITTED', label: 'IND Submitted', description: 'Investigational New Drug application submitted' },
+      { id: 4, value: 'IRB_SUBMITTED', label: 'IRB Submitted', description: 'Submitted to Institutional Review Board' },
+      { id: 5, value: 'IND_APPROVED', label: 'IND Approved', description: 'IND application approved by FDA' },
+      { id: 6, value: 'IRB_APPROVED', label: 'IRB Approved', description: 'Study approved by IRB' },
+      { id: 7, value: 'FULL_REGULATORY_APPROVAL', label: 'Full Regulatory Approval', description: 'All required approvals obtained' }
+    ];
+  }
+};
+
+/**
+ * Get all study phases for dropdown lists
+ * @returns {Promise<Array>} Promise that resolves to an array of study phases
+ */
+export const getStudyPhases = async () => {
+  try {
+    console.log('Fetching study phases from:', `${LOOKUP_API_PATH}/phases`);
+    const response = await ApiService.get(`${LOOKUP_API_PATH}/phases`);
+    
+    if (response?.data && Array.isArray(response.data)) {
+      console.log('Found', response.data.length, 'study phases');
+      return response.data.map(phase => ({
+        id: phase.id,
+        value: phase.code,
+        label: phase.name,
+        description: phase.description,
+        category: phase.phaseCategory,
+        typicalPatientCountMin: phase.typicalPatientCountMin,
+        typicalPatientCountMax: phase.typicalPatientCountMax,
+        typicalDurationMonths: phase.typicalDurationMonths,
+        requiresInd: phase.requiresInd,
+        requiresIde: phase.requiresIde
+      }));
+    }
+    
+    // Fallback to hardcoded values if lookup fails
+    return [
+      { id: 1, value: 'PRECLINICAL', label: 'Preclinical', description: 'Laboratory and animal studies' },
+      { id: 2, value: 'PHASE_I', label: 'Phase I', description: 'First-in-human studies focusing on safety' },
+      { id: 3, value: 'PHASE_II', label: 'Phase II', description: 'Studies focusing on efficacy' },
+      { id: 4, value: 'PHASE_III', label: 'Phase III', description: 'Large-scale studies to confirm efficacy' },
+      { id: 5, value: 'PHASE_IV', label: 'Phase IV', description: 'Post-marketing surveillance studies' },
+      { id: 6, value: 'PILOT', label: 'Pilot Study', description: 'Small-scale preliminary studies' },
+      { id: 7, value: 'FEASIBILITY', label: 'Feasibility Study', description: 'Early studies to assess feasibility' }
+    ];
+  } catch (error) {
+    console.error('Error fetching study phases:', error);
+    // Return fallback data
+    return [
+      { id: 1, value: 'PRECLINICAL', label: 'Preclinical', description: 'Laboratory and animal studies' },
+      { id: 2, value: 'PHASE_I', label: 'Phase I', description: 'First-in-human studies focusing on safety' },
+      { id: 3, value: 'PHASE_II', label: 'Phase II', description: 'Studies focusing on efficacy' },
+      { id: 4, value: 'PHASE_III', label: 'Phase III', description: 'Large-scale studies to confirm efficacy' },
+      { id: 5, value: 'PHASE_IV', label: 'Phase IV', description: 'Post-marketing surveillance studies' },
+      { id: 6, value: 'PILOT', label: 'Pilot Study', description: 'Small-scale preliminary studies' },
+      { id: 7, value: 'FEASIBILITY', label: 'Feasibility Study', description: 'Early studies to assess feasibility' }
+    ];
+  }
+};
+
+/**
+ * Get study phases by category
+ * @param {string} category Phase category (PRECLINICAL, EARLY_PHASE, EFFICACY, REGISTRATION, POST_MARKET)
+ * @returns {Promise<Array>} Promise that resolves to an array of study phases for the category
+ */
+export const getStudyPhasesByCategory = async (category) => {
+  try {
+    const allPhases = await getStudyPhases();
+    return allPhases.filter(phase => phase.category === category);
+  } catch (error) {
+    console.error('Error fetching study phases by category:', error);
+    return [];
+  }
+};
+
+/**
+ * Get lookup data for all study creation dropdowns
+ * @returns {Promise<Object>} Promise that resolves to an object with all lookup data
+ */
+export const getStudyLookupData = async () => {
+  try {
+    console.log('Fetching all study lookup data...');
+    
+    const [statuses, regulatoryStatuses, phases] = await Promise.all([
+      getStudyStatuses(),
+      getRegulatoryStatuses(),
+      getStudyPhases()
+    ]);
+    
+    const lookupData = {
+      studyStatuses: statuses,
+      regulatoryStatuses: regulatoryStatuses,
+      studyPhases: phases
     };
     
-    // 3. Add custom headers to signal this is a "details only" update
-    try {
-      // First try the custom header approach
-      const response = await ApiService.put(
-        `${API_PATH}/${id}`, 
-        studyToUpdate,
-        { 
-          headers: { 
-            'X-Update-Details-Only': 'true',
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+    console.log('Successfully loaded all lookup data:', {
+      studyStatuses: statuses.length,
+      regulatoryStatuses: regulatoryStatuses.length,
+      studyPhases: phases.length
+    });
+    
+    return lookupData;
+  } catch (error) {
+    console.error('Error fetching study lookup data:', error);
+    throw error;
+  }
+};
+
+/**
+ * Debug method to test backend connectivity and data format
+ * Can be called from browser console: StudyService.debugBackendConnection()
+ */
+export const debugBackendConnection = async () => {
+  console.log('=== DEBUG BACKEND CONNECTION ===');
+  
+  try {
+    console.log('Testing direct API call to:', API_PATH);
+    const response = await ApiService.get(API_PATH);
+    
+    console.log('✅ Backend connection successful');
+    console.log('Response status:', response?.status);
+    console.log('Response data type:', typeof response?.data);
+    console.log('Response data:', response?.data);
+    
+    if (Array.isArray(response?.data)) {
+      console.log(`Found ${response.data.length} studies`);
       
-      console.log("Study updated with 'X-Update-Details-Only' header approach");
-      return response.data;
-    } catch (err) {
-      if (err.response && err.response.status === 500) {
-        console.warn("Update with custom header failed, trying basic properties approach");
+      if (response.data.length > 0) {
+        console.log('First study sample:', response.data[0]);
+        console.log('First study name field:', response.data[0]?.name);
         
-        // Last resort - try a direct update with key fields only but no ID
-        // This is to avoid Hibernate loading the full entity graph
-        const basicStudyData = {
-          name: studyData.name,
-          description: studyData.description,
-          sponsor: studyData.sponsor,
-          phase: studyData.phase,
-          status: studyData.status,
-          startDate: studyData.startDate,
-          endDate: studyData.endDate
-        };
-        
-        const basicResponse = await ApiService.put(`${API_PATH}/${id}`, basicStudyData);
-        console.log("Study updated with basic properties approach");
-        return basicResponse.data;
+        // Test direct field access
+        const testStudy = response.data[0];
+        console.log('Direct field test:');
+        console.log('- id:', testStudy?.id);
+        console.log('- name:', testStudy?.name);
+        console.log('- name type:', typeof testStudy?.name);
+        console.log('- name length:', testStudy?.name?.length);
+        console.log('- description:', testStudy?.description);
+        console.log('- sponsor:', testStudy?.sponsor);
+      } else {
+        console.log('❌ Database appears to be empty - no studies found');
+        console.log('You may need to:');
+        console.log('1. Load sample data from SQL scripts');
+        console.log('2. Create a study through the creation wizard');
+        console.log('3. Manually insert data into the database');
       }
-      
-      throw err; // Re-throw if it's not a 500
-    }
-  } catch (error) {
-    console.error(`Error safely updating study with ID ${id}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Update only the basic details of a study using PATCH method to bypass Hibernate cascade issues
- * @param {string} id - The ID of the study to update
- * @param {Object} studyData - Only the basic study properties to update (no relationships)
- * @returns {Promise<Object>} Promise that resolves to the updated study 
- */
-export const updateStudyDetailsOnly = async (id, studyData) => {
-  try {
-    // Create a new endpoint path specifically for this operation
-    const patchEndpoint = `${API_PATH}/${id}/details`;
-    
-    // Extract only the basic properties we want to update
-    const detailsToUpdate = {
-      name: studyData.name,
-      description: studyData.description,
-      sponsor: studyData.sponsor,
-      protocolNumber: studyData.protocolNumber,
-      phase: studyData.phase,
-      status: studyData.status,
-      startDate: studyData.startDate,
-      endDate: studyData.endDate,
-      investigator: studyData.investigator,
-      // Add any other scalar properties, but NO collections or relationships
-    };
-    
-    // Filter out undefined values
-    const filteredDetails = Object.fromEntries(
-      Object.entries(detailsToUpdate).filter(([_, v]) => v !== undefined)
-    );
-    
-    try {
-      // Use POST method with a method override header
-      const response = await ApiService.post(
-        patchEndpoint, 
-        filteredDetails,
-        {
-          headers: {
-            'X-HTTP-Method-Override': 'PATCH', // Signal to backend this is a PATCH operation
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      return response.data;
-    } catch (err) {
-      // If we get a 404, the endpoint doesn't exist yet (backend not deployed)
-      // So we'll fall back to updateStudySafely
-      if (err.response && err.response.status === 404) {
-        console.warn("Details endpoint not found (404), falling back to safe update method");
-        return await updateStudySafely(id, studyData);
-      }
-      throw err; // Re-throw if it's not a 404
-    }
-  } catch (error) {
-    console.error(`Error updating study details for ID ${id}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Delete a study by ID
- * @param {string} id - The ID of the study to delete
- * @returns {Promise<Object>} Promise that resolves to the deletion confirmation
- */
-export const deleteStudy = async (id) => {
-  try {
-    const response = await ApiService.delete(`${API_PATH}/${id}`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error deleting study with ID ${id}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Get study arms by study ID
- * @param {string} studyId - The ID of the study
- * @returns {Promise<Array>} Promise that resolves to an array of arms
- */
-export const getStudyArms = async (studyId) => {
-  try {
-    try {
-      const response = await ApiService.get(`${API_PATH}/${studyId}/arms`);
-      return response.data;
-    } catch (error) {
-      // If we get a 404, it means the arms endpoint doesn't exist
-      // or the study has no arms yet
-      if (error.response && error.response.status === 404) {
-        console.warn(`Arms endpoint for study ${studyId} returned 404, returning empty array`);
-        return [];
-      }
-      throw error; // Re-throw if it's not a 404
-    }
-  } catch (error) {
-    console.error(`Error fetching arms for study ${studyId}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Create a new arm for a study
- * @param {string} studyId - The ID of the study
- * @param {Object} armData - The arm data to create
- * @returns {Promise<Object>} Promise that resolves to the created arm
- */
-export const createStudyArm = async (studyId, armData) => {
-  try {
-    try {
-      const response = await ApiService.post(`${API_PATH}/${studyId}/arms`, armData);
-      return response.data;
-    } catch (error) {
-      // If the arms endpoint doesn't exist (404), we'll create a mock response
-      // This allows frontend development to continue even if the backend isn't fully implemented
-      if (error.response && error.response.status === 404) {
-        console.warn(`Arms endpoint for study ${studyId} returned 404, creating mock arm response`);
-        // Create a mock response with a generated ID
-        const mockArm = {
-          ...armData,
-          id: `temp-${Date.now()}`, // Temporary ID that can be recognized later
-          studyId: studyId,
-          createdAt: new Date().toISOString()
-        };
-        return mockArm;
-      }
-      throw error; // Re-throw if it's not a 404
-    }
-  } catch (error) {
-    console.error(`Error creating arm for study ${studyId}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Update an existing arm in a study
- * @param {string} studyId - The ID of the study
- * @param {string} armId - The ID of the arm to update
- * @param {Object} armData - The updated arm data
- * @returns {Promise<Object>} Promise that resolves to the updated arm
- */
-export const updateStudyArm = async (studyId, armId, armData) => {
-  try {
-    // Check if this is a temporary ID (starts with 'temp-')
-    if (armId && armId.toString().startsWith('temp-')) {
-      console.log(`Skipping update for temporary arm ${armId}, would create it on the server if endpoint existed`);
-      return armData; // Just return the data as-is for temporary arms
+    } else {
+      console.log('❌ Backend returned non-array data');
     }
     
-    try {
-      const response = await ApiService.put(`${API_PATH}/${studyId}/arms/${armId}`, armData);
-      return response.data;
-    } catch (error) {
-      // If the arms endpoint doesn't exist (404), we'll create a mock response
-      if (error.response && error.response.status === 404) {
-        console.warn(`Arms endpoint for study ${studyId} returned 404, returning original data`);
-        return armData; // Just return the original data
-      }
-      throw error; // Re-throw if it's not a 404
-    }
+    return response?.data;
+    
   } catch (error) {
-    console.error(`Error updating arm ${armId} in study ${studyId}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Delete an arm from a study
- * @param {string} studyId - The ID of the study
- * @param {string} armId - The ID of the arm to delete
- * @returns {Promise<Object>} Promise that resolves to the deletion confirmation
- */
-export const deleteStudyArm = async (studyId, armId) => {
-  try {
-    // Check if this is a temporary ID (starts with 'temp-')
-    if (armId && armId.toString().startsWith('temp-')) {
-      console.log(`Skipping delete for temporary arm ${armId}, nothing to delete on server`);
-      return { success: true }; // Mock success response for temporary arms
+    console.log('❌ Backend connection failed');
+    console.error('Error details:', error);
+    
+    if (error.response) {
+      console.log('HTTP Status:', error.response.status);
+      console.log('HTTP Status Text:', error.response.statusText);
+      console.log('Response Headers:', error.response.headers);
+      console.log('Response Data:', error.response.data);
     }
     
-    try {
-      const response = await ApiService.delete(`${API_PATH}/${studyId}/arms/${armId}`);
-      return response.data;
-    } catch (error) {
-      // If the arms endpoint doesn't exist (404), we'll create a mock response
-      if (error.response && error.response.status === 404) {
-        console.warn(`Arms endpoint for study ${studyId} returned 404, returning mock delete success`);
-        return { success: true }; // Mock success response
-      }
-      throw error; // Re-throw if it's not a 404
-    }
-  } catch (error) {
-    console.error(`Error deleting arm ${armId} from study ${studyId}:`, error);
-    throw error;
+    return null;
   }
-};
-
-/**
- * Get versions of a study
- * @param {string} studyId - The ID of the study
- * @returns {Promise<Array>} Promise that resolves to an array of study versions
- */
-export const getStudyVersions = async (studyId) => {
-  try {
-    const response = await ApiService.get(`${API_PATH}/${studyId}/versions`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching versions for study ${studyId}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Create a new version of a study
- * @param {string} studyId - The ID of the study
- * @param {Object} versionData - Data for the new version
- * @returns {Promise<Object>} Promise that resolves to the created version
- */
-export const createStudyVersion = async (studyId, versionData = {}) => {
-  try {
-    const response = await ApiService.post(`${API_PATH}/${studyId}/versions`, versionData);
-    return response.data;
-  } catch (error) {
-    console.error(`Error creating new version for study ${studyId}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Get a specific version of a study
- * @param {string} studyId - The ID of the study
- * @param {string} versionId - The ID of the version
- * @returns {Promise<Object>} Promise that resolves to the study version
- */
-export const getStudyVersion = async (studyId, versionId) => {
-  try {
-    const response = await ApiService.get(`${API_PATH}/${studyId}/versions/${versionId}`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching version ${versionId} of study ${studyId}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Lock a study for editing
- * @param {string} studyId - The ID of the study to lock
- * @returns {Promise<Object>} Promise that resolves to the lock confirmation
- */
-export const lockStudy = async (studyId) => {
-  try {
-    const response = await ApiService.post(`${API_PATH}/${studyId}/lock`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error locking study ${studyId}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Unlock a study for editing
- * @param {string} studyId - The ID of the study to unlock
- * @returns {Promise<Object>} Promise that resolves to the unlock confirmation
- */
-export const unlockStudy = async (studyId) => {
-  try {
-    const response = await ApiService.post(`${API_PATH}/${studyId}/unlock`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error unlocking study ${studyId}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Mock data for development when backend is unavailable
- */
-const getMockStudies = () => {
-  return [
-    {
-      id: 'STUDY-001',
-      name: 'Phase II Oncology Study - Drug XYZ',
-      protocolNumber: 'PRO-XYZ-001',
-      studyPhase: 'Phase II',
-      indication: 'Advanced Solid Tumors',
-      sponsor: 'Pharmaceutical Company A',
-      status: 'ACTIVE',
-      createdBy: 'Dr. Jane Smith',
-      createdAt: '2025-01-15T10:00:00Z',
-      modifiedAt: '2025-02-01T14:30:00Z',
-      startDate: '2025-03-01',
-      estimatedEndDate: '2026-12-31',
-      targetEnrollment: 100,
-      currentEnrollment: 45,
-      sites: 12,
-      countries: ['USA', 'Canada', 'UK'],
-      primaryObjective: 'To evaluate the efficacy and safety of Drug XYZ in patients with advanced solid tumors',
-      studyType: 'INTERVENTIONAL',
-      designProgress: {
-        basicInfo: { completed: true, valid: true },
-        arms: { completed: true, valid: true },
-        visits: { completed: true, valid: true },
-        forms: { completed: false, valid: false },
-        publishing: { completed: false, valid: false }
-      }
-    },
-    {
-      id: 'STUDY-002',
-      name: 'Phase I Cardiovascular Safety Study',
-      protocolNumber: 'PRO-CVD-002',
-      studyPhase: 'Phase I',
-      indication: 'Cardiovascular Disease',
-      sponsor: 'Biotech Company B',
-      status: 'DRAFT',
-      createdBy: 'Dr. Michael Johnson',
-      createdAt: '2025-02-10T09:00:00Z',
-      modifiedAt: '2025-02-15T16:45:00Z',
-      startDate: '2025-06-01',
-      estimatedEndDate: '2025-12-31',
-      targetEnrollment: 50,
-      currentEnrollment: 0,
-      sites: 5,
-      countries: ['USA'],
-      primaryObjective: 'To assess the safety and tolerability of cardiovascular intervention',
-      studyType: 'INTERVENTIONAL',
-      designProgress: {
-        basicInfo: { completed: true, valid: true },
-        arms: { completed: false, valid: false },
-        visits: { completed: false, valid: false },
-        forms: { completed: false, valid: false },
-        publishing: { completed: false, valid: false }
-      }
-    },
-    {
-      id: 'STUDY-003',
-      name: 'Phase III Diabetes Management Study',
-      protocolNumber: 'PRO-DM-003',
-      studyPhase: 'Phase III',
-      indication: 'Type 2 Diabetes',
-      sponsor: 'Global Pharma Corp',
-      status: 'RECRUITING',
-      createdBy: 'Dr. Sarah Wilson',
-      createdAt: '2024-12-01T08:00:00Z',
-      modifiedAt: '2025-01-20T11:15:00Z',
-      startDate: '2025-01-15',
-      estimatedEndDate: '2027-06-30',
-      targetEnrollment: 500,
-      currentEnrollment: 125,
-      sites: 25,
-      countries: ['USA', 'Canada', 'UK', 'Germany', 'France'],
-      primaryObjective: 'To compare the efficacy of new diabetes medication vs standard of care',
-      studyType: 'INTERVENTIONAL',
-      designProgress: {
-        basicInfo: { completed: true, valid: true },
-        arms: { completed: true, valid: true },
-        visits: { completed: true, valid: true },
-        forms: { completed: true, valid: true },
-        publishing: { completed: true, valid: true }
-      }
-    },
-    {
-      id: 'STUDY-004',
-      name: 'Observational Alzheimer\'s Study',
-      protocolNumber: 'PRO-ALZ-004',
-      studyPhase: 'N/A',
-      indication: 'Alzheimer\'s Disease',
-      sponsor: 'Research Institute',
-      status: 'ACTIVE',
-      createdBy: 'Dr. Robert Chen',
-      createdAt: '2024-11-01T07:30:00Z',
-      modifiedAt: '2025-01-05T13:20:00Z',
-      startDate: '2024-12-01',
-      estimatedEndDate: '2028-12-01',
-      targetEnrollment: 1000,
-      currentEnrollment: 234,
-      sites: 18,
-      countries: ['USA', 'UK', 'Australia'],
-      primaryObjective: 'To study the natural progression of Alzheimer\'s disease biomarkers',
-      studyType: 'OBSERVATIONAL',
-      designProgress: {
-        basicInfo: { completed: true, valid: true },
-        arms: { completed: false, valid: false },
-        visits: { completed: true, valid: true },
-        forms: { completed: true, valid: true },
-        publishing: { completed: true, valid: true }
-      }
-    }
-  ];
 };
 
 // Export all functions as a service object
@@ -535,19 +534,21 @@ const StudyService = {
   getStudyById,
   registerStudy,
   updateStudy,
-  updateStudySafely,
-  updateStudyDetailsOnly,
   deleteStudy,
-  getStudyArms,
-  createStudyArm,
-  updateStudyArm,
-  deleteStudyArm,
-  getStudyVersions,
-  createStudyVersion,
-  getStudyVersion,
-  lockStudy,
-  unlockStudy,
-  getMockStudies
+  getStudyStatuses,
+  getRegulatoryStatuses,
+  getStudyPhases,
+  getStudyPhasesByCategory,
+  getStudyLookupData,
+  debugBackendConnection
 };
 
 export default StudyService;
+
+// Make debug method available globally for browser console testing
+if (typeof window !== 'undefined') {
+  window.StudyServiceDebug = {
+    debugBackendConnection,
+    testGetStudies: getStudies
+  };
+}

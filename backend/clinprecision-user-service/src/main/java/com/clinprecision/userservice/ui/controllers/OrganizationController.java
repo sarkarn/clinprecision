@@ -2,12 +2,8 @@ package com.clinprecision.userservice.ui.controllers;
 
 import com.clinprecision.userservice.data.OrganizationContactEntity;
 import com.clinprecision.userservice.data.OrganizationEntity;
-import com.clinprecision.userservice.data.OrganizationTypeEntity;
 import com.clinprecision.userservice.ui.model.OrganizationDto;
-import com.clinprecision.userservice.ui.model.OrganizationTypeDto;
 import com.clinprecision.userservice.mapper.OrganizationMapper;
-import com.clinprecision.userservice.mapper.OrganizationTypeMapper;
-import com.clinprecision.userservice.repository.OrganizationTypeRepository;
 import com.clinprecision.userservice.service.OrganizationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,19 +24,13 @@ import java.util.stream.Collectors;
 public class OrganizationController {
 
     private final OrganizationService organizationService;
-    private final OrganizationTypeRepository organizationTypeRepository;
     private final OrganizationMapper organizationMapper;
-    private final OrganizationTypeMapper organizationTypeMapper;
 
     @Autowired
     public OrganizationController(OrganizationService organizationService,
-                                 OrganizationTypeRepository organizationTypeRepository,
-                                 OrganizationMapper organizationMapper,
-                                 OrganizationTypeMapper organizationTypeMapper) {
+                                 OrganizationMapper organizationMapper) {
         this.organizationService = organizationService;
-        this.organizationTypeRepository = organizationTypeRepository;
         this.organizationMapper = organizationMapper;
-        this.organizationTypeMapper = organizationTypeMapper;
     }
 
     /**
@@ -79,14 +69,7 @@ public class OrganizationController {
     @PostMapping
     public ResponseEntity<OrganizationDto> createOrganization(@RequestBody OrganizationDto organizationDto) {
         // Convert DTO to entity
-    OrganizationEntity organization = organizationMapper.toEntity(organizationDto);
-        if (organizationDto.getOrganizationType() != null && organizationDto.getOrganizationType().getId() != null) {
-            OrganizationTypeEntity organizationType = organizationTypeRepository.findById(organizationDto.getOrganizationType().getId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization type not found"));
-            organization.setOrganizationType(organizationType);
-        } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization type is required");
-        }
+        OrganizationEntity organization = organizationMapper.toEntity(organizationDto);
         OrganizationEntity createdOrganization = organizationService.createOrganization(organization);
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(organizationMapper.toDto(createdOrganization));
@@ -111,18 +94,7 @@ public class OrganizationController {
             System.out.println("Organization not found: " + id);
             return ResponseEntity.notFound().build();
         }
-    OrganizationEntity organization = organizationMapper.toEntity(organizationDto);
-        
-        System.out.println("OrganizationDto.organizationType: " + organizationDto.getOrganizationType());
-        
-        if (organizationDto.getOrganizationType() != null && organizationDto.getOrganizationType().getId() != null) {
-            OrganizationTypeEntity organizationType = organizationTypeRepository.findById(organizationDto.getOrganizationType().getId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization type not found"));
-            organization.setOrganizationType(organizationType);
-        } else {
-            System.out.println("ERROR: Organization type is missing or ID is null");
-            return ResponseEntity.badRequest().build();
-        }
+        OrganizationEntity organization = organizationMapper.toEntity(organizationDto);
         OrganizationEntity updatedOrganization = organizationService.updateOrganization(id, organization);
     return ResponseEntity.ok(organizationMapper.toDto(updatedOrganization));
     }
@@ -248,20 +220,6 @@ public class OrganizationController {
         }
     }
 
-    /**
-     * GET /organization-types : Get all organization types
-     *
-     * @return the ResponseEntity with status 200 (OK) and the list of organization types in body
-     */
-    @GetMapping("/organization-types")
-    public ResponseEntity<List<OrganizationTypeDto>> getAllOrganizationTypes() {
-        List<OrganizationTypeEntity> organizationTypes = organizationTypeRepository.findAll();
-    List<OrganizationTypeDto> organizationTypeDtos = organizationTypes.stream()
-        .map(organizationTypeMapper::toDto)
-        .collect(Collectors.toList());
-    return ResponseEntity.ok(organizationTypeDtos);
-    }
-    
     /**
      * Helper method to convert an OrganizationContactEntity to a Map
      */

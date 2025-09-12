@@ -102,7 +102,7 @@ const StudyCreationWizard = () => {
     const validateCurrentStep = () => {
         switch (currentStep) {
             case 0: // Basic Information
-                const basicFields = ['name', 'protocolNumber', 'phase', 'sponsor'];
+                const basicFields = ['name', 'protocolNumber', 'studyPhaseId', 'sponsor'];
                 const basicErrors = basicFields.filter(field => !formData[field] || hasFieldError(field));
                 if (basicErrors.length > 0) {
                     setStepError(0, `Please complete all required fields: ${basicErrors.join(', ')}`);

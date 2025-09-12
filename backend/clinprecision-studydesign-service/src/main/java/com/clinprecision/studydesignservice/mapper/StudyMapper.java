@@ -1,8 +1,10 @@
 package com.clinprecision.studydesignservice.mapper;
 
 import com.clinprecision.studydesignservice.dto.*;
-import com.clinprecision.studydesignservice.entity.OrganizationStudyEntity;
-import com.clinprecision.studydesignservice.entity.StudyEntity;
+import com.clinprecision.studydesignservice.entity.*;
+import com.clinprecision.studydesignservice.service.StudyStatusService;
+import com.clinprecision.studydesignservice.service.RegulatoryStatusService;
+import com.clinprecision.studydesignservice.service.StudyPhaseService;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -15,6 +17,18 @@ import java.util.stream.Collectors;
 @Component
 public class StudyMapper {
     
+    private final StudyStatusService studyStatusService;
+    private final RegulatoryStatusService regulatoryStatusService;
+    private final StudyPhaseService studyPhaseService;
+    
+    public StudyMapper(StudyStatusService studyStatusService,
+                      RegulatoryStatusService regulatoryStatusService,
+                      StudyPhaseService studyPhaseService) {
+        this.studyStatusService = studyStatusService;
+        this.regulatoryStatusService = regulatoryStatusService;
+        this.studyPhaseService = studyPhaseService;
+    }
+    
     /**
      * Convert StudyCreateRequestDto to StudyEntity
      */
@@ -26,16 +40,39 @@ public class StudyMapper {
         StudyEntity entity = new StudyEntity();
         entity.setName(dto.getName());
         entity.setProtocolNumber(dto.getProtocolNumber());
-        entity.setPhase(dto.getPhase());
         entity.setSponsor(dto.getSponsor());
         entity.setDescription(dto.getDescription());
+        entity.setIndication(dto.getIndication());
+        entity.setStudyType(dto.getStudyType());
+        entity.setPrincipalInvestigator(dto.getPrincipalInvestigator());
+        entity.setSites(dto.getSites());
+        entity.setPlannedSubjects(dto.getPlannedSubjects());
+        entity.setEnrolledSubjects(dto.getEnrolledSubjects());
+        entity.setTargetEnrollment(dto.getTargetEnrollment());
+        entity.setPrimaryObjective(dto.getPrimaryObjective());
+        entity.setAmendments(dto.getAmendments());
         entity.setStartDate(dto.getStartDate());
         entity.setEndDate(dto.getEndDate());
         entity.setMetadata(dto.getMetadata());
         
-        // Convert status string to enum
-        if (dto.getStatus() != null) {
-            entity.setStatus(com.clinprecision.studydesignservice.entity.StudyStatus.valueOf(dto.getStatus().toUpperCase()));
+        // Handle lookup table relationships
+        if (dto.getStudyStatusId() != null) {
+            studyStatusService.findEntityById(dto.getStudyStatusId())
+                .ifPresent(entity::setStudyStatus);
+        } else {
+            // Set default draft status if no status provided
+            studyStatusService.getDefaultDraftStatus()
+                .ifPresent(entity::setStudyStatus);
+        }
+        
+        if (dto.getStudyPhaseId() != null) {
+            studyPhaseService.findEntityById(dto.getStudyPhaseId())
+                .ifPresent(entity::setStudyPhase);
+        }
+        
+        if (dto.getRegulatoryStatusId() != null) {
+            regulatoryStatusService.findEntityById(dto.getRegulatoryStatusId())
+                .ifPresent(entity::setRegulatoryStatus);
         }
         
         return entity;
@@ -60,19 +97,74 @@ public class StudyMapper {
         dto.setParentVersionId(entity.getParentVersionId());
         dto.setVersionNotes(entity.getVersionNotes());
         dto.setIsLocked(entity.getIsLocked());
-        dto.setPhase(entity.getPhase());
+        dto.setIndication(entity.getIndication());
+        dto.setStudyType(entity.getStudyType());
+        dto.setPrincipalInvestigator(entity.getPrincipalInvestigator());
+        dto.setSites(entity.getSites());
+        dto.setPlannedSubjects(entity.getPlannedSubjects());
+        dto.setEnrolledSubjects(entity.getEnrolledSubjects());
+        dto.setTargetEnrollment(entity.getTargetEnrollment());
+        dto.setPrimaryObjective(entity.getPrimaryObjective());
+        dto.setAmendments(entity.getAmendments());
+        dto.setModifiedBy(entity.getModifiedBy());
         dto.setStartDate(entity.getStartDate());
         dto.setEndDate(entity.getEndDate());
         dto.setMetadata(entity.getMetadata());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
-        
-        // Convert status enum to string
-        if (entity.getStatus() != null) {
-            dto.setStatus(entity.getStatus().name().toLowerCase());
+
+        // Convert lookup table relationships to DTOs
+        if (entity.getStudyStatus() != null) {
+            StudyStatusDto statusDto = new StudyStatusDto();
+            statusDto.setId(entity.getStudyStatus().getId());
+            statusDto.setCode(entity.getStudyStatus().getCode());
+            statusDto.setName(entity.getStudyStatus().getName());
+            statusDto.setDescription(entity.getStudyStatus().getDescription());
+            statusDto.setDisplayOrder(entity.getStudyStatus().getDisplayOrder());
+            statusDto.setIsActive(entity.getStudyStatus().getIsActive());
+            statusDto.setAllowsModification(entity.getStudyStatus().getAllowsModification());
+            statusDto.setIsFinalStatus(entity.getStudyStatus().getIsFinalStatus());
+            dto.setStudyStatus(statusDto);
+            
+            // Set legacy status field for backward compatibility
+            dto.setStatus(entity.getStudyStatus().getCode());
         }
         
+        if (entity.getStudyPhase() != null) {
+            StudyPhaseDto phaseDto = new StudyPhaseDto();
+            phaseDto.setId(entity.getStudyPhase().getId());
+            phaseDto.setCode(entity.getStudyPhase().getCode());
+            phaseDto.setName(entity.getStudyPhase().getName());
+            phaseDto.setDescription(entity.getStudyPhase().getDescription());
+            phaseDto.setPhaseCategory(entity.getStudyPhase().getPhaseCategory().toString());
+            phaseDto.setTypicalPatientCountMin(entity.getStudyPhase().getTypicalPatientCountMin());
+            phaseDto.setTypicalPatientCountMax(entity.getStudyPhase().getTypicalPatientCountMax());
+            phaseDto.setTypicalDurationMonths(entity.getStudyPhase().getTypicalDurationMonths());
+            phaseDto.setRequiresIde(entity.getStudyPhase().getRequiresIde());
+            phaseDto.setRequiresInd(entity.getStudyPhase().getRequiresInd());
+            phaseDto.setDisplayOrder(entity.getStudyPhase().getDisplayOrder());
+            phaseDto.setIsActive(entity.getStudyPhase().getIsActive());
+            dto.setStudyPhase(phaseDto);
+            
+            // Set legacy phase field for backward compatibility
+            dto.setPhase(entity.getStudyPhase().getName());
+        }
+        
+        if (entity.getRegulatoryStatus() != null) {
+            RegulatoryStatusDto regStatusDto = new RegulatoryStatusDto();
+            regStatusDto.setId(entity.getRegulatoryStatus().getId());
+            regStatusDto.setCode(entity.getRegulatoryStatus().getCode());
+            regStatusDto.setName(entity.getRegulatoryStatus().getName());
+            regStatusDto.setDescription(entity.getRegulatoryStatus().getDescription());
+            regStatusDto.setRegulatoryCategory(entity.getRegulatoryStatus().getRegulatoryCategory().toString());
+            regStatusDto.setAllowsEnrollment(entity.getRegulatoryStatus().getAllowsEnrollment());
+            regStatusDto.setRequiresDocumentation(entity.getRegulatoryStatus().getRequiresDocumentation());
+            regStatusDto.setDisplayOrder(entity.getRegulatoryStatus().getDisplayOrder());
+            regStatusDto.setIsActive(entity.getRegulatoryStatus().getIsActive());
+            dto.setRegulatoryStatus(regStatusDto);
+        }
+
         // Convert organization studies
         if (entity.getOrganizationStudies() != null && !entity.getOrganizationStudies().isEmpty()) {
             dto.setOrganizations(entity.getOrganizationStudies().stream()
@@ -111,14 +203,39 @@ public class StudyMapper {
         if (dto.getProtocolNumber() != null) {
             entity.setProtocolNumber(dto.getProtocolNumber());
         }
-        if (dto.getPhase() != null) {
-            entity.setPhase(dto.getPhase());
-        }
+      
         if (dto.getSponsor() != null) {
             entity.setSponsor(dto.getSponsor());
         }
         if (dto.getDescription() != null) {
             entity.setDescription(dto.getDescription());
+        }
+        if (dto.getIndication() != null) {
+            entity.setIndication(dto.getIndication());
+        }
+        if (dto.getStudyType() != null) {
+            entity.setStudyType(dto.getStudyType());
+        }
+        if (dto.getPrincipalInvestigator() != null) {
+            entity.setPrincipalInvestigator(dto.getPrincipalInvestigator());
+        }
+        if (dto.getSites() != null) {
+            entity.setSites(dto.getSites());
+        }
+        if (dto.getPlannedSubjects() != null) {
+            entity.setPlannedSubjects(dto.getPlannedSubjects());
+        }
+        if (dto.getEnrolledSubjects() != null) {
+            entity.setEnrolledSubjects(dto.getEnrolledSubjects());
+        }
+        if (dto.getTargetEnrollment() != null) {
+            entity.setTargetEnrollment(dto.getTargetEnrollment());
+        }
+        if (dto.getPrimaryObjective() != null) {
+            entity.setPrimaryObjective(dto.getPrimaryObjective());
+        }
+        if (dto.getAmendments() != null) {
+            entity.setAmendments(dto.getAmendments());
         }
         if (dto.getStartDate() != null) {
             entity.setStartDate(dto.getStartDate());
@@ -129,8 +246,27 @@ public class StudyMapper {
         if (dto.getMetadata() != null) {
             entity.setMetadata(dto.getMetadata());
         }
-        if (dto.getStatus() != null) {
-            entity.setStatus(com.clinprecision.studydesignservice.entity.StudyStatus.valueOf(dto.getStatus().toUpperCase()));
+        
+        // Update lookup table relationships
+        if (dto.getStudyStatusId() != null) {
+            StudyStatusEntity studyStatus = studyStatusService.findEntityById(dto.getStudyStatusId()).orElse(null);
+            if (studyStatus != null) {
+                entity.setStudyStatus(studyStatus);
+            }
+        }
+        
+        if (dto.getStudyPhaseId() != null) {
+            StudyPhaseEntity studyPhase = studyPhaseService.findEntityById(dto.getStudyPhaseId()).orElse(null);
+            if (studyPhase != null) {
+                entity.setStudyPhase(studyPhase);
+            }
+        }
+        
+        if (dto.getRegulatoryStatusId() != null) {
+            RegulatoryStatusEntity regulatoryStatus = regulatoryStatusService.findEntityById(dto.getRegulatoryStatusId()).orElse(null);
+            if (regulatoryStatus != null) {
+                entity.setRegulatoryStatus(regulatoryStatus);
+            }
         }
     }
     
