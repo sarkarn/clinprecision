@@ -6,10 +6,12 @@ import com.clinprecision.studydesignservice.dto.StudyUpdateRequestDto;
 import com.clinprecision.studydesignservice.dto.StudyStatusDto;
 import com.clinprecision.studydesignservice.dto.RegulatoryStatusDto;
 import com.clinprecision.studydesignservice.dto.StudyPhaseDto;
+import com.clinprecision.studydesignservice.dto.StudyDashboardMetricsDto;
 import com.clinprecision.studydesignservice.service.StudyService;
 import com.clinprecision.studydesignservice.service.StudyStatusService;
 import com.clinprecision.studydesignservice.service.RegulatoryStatusService;
 import com.clinprecision.studydesignservice.service.StudyPhaseService;
+import com.clinprecision.studydesignservice.service.StudyDashboardService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,15 +37,18 @@ public class StudyController {
     private final StudyStatusService studyStatusService;
     private final RegulatoryStatusService regulatoryStatusService;
     private final StudyPhaseService studyPhaseService;
+    private final StudyDashboardService studyDashboardService;
     
     public StudyController(StudyService studyService, 
                           StudyStatusService studyStatusService,
                           RegulatoryStatusService regulatoryStatusService,
-                          StudyPhaseService studyPhaseService) {
+                          StudyPhaseService studyPhaseService,
+                          StudyDashboardService studyDashboardService) {
         this.studyService = studyService;
         this.studyStatusService = studyStatusService;
         this.regulatoryStatusService = regulatoryStatusService;
         this.studyPhaseService = studyPhaseService;
+        this.studyDashboardService = studyDashboardService;
     }
     
     /**
@@ -169,5 +174,31 @@ public class StudyController {
         
         logger.info("Fetched {} study phases", response.size());
         return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Get dashboard metrics
+     * GET /api/studies/dashboard/metrics
+     */
+    @GetMapping("/dashboard/metrics")
+    public ResponseEntity<StudyDashboardMetricsDto> getDashboardMetrics() {
+        logger.info("GET /api/studies/dashboard/metrics - Fetching dashboard metrics");
+        
+        try {
+            StudyDashboardMetricsDto metrics = studyDashboardService.getDashboardMetrics();
+            
+            logger.info("Dashboard metrics fetched successfully - Active: {}, Draft: {}, Completed: {}, Amendments: {}", 
+                       metrics.getActiveStudies(), metrics.getDraftProtocols(), 
+                       metrics.getCompletedStudies(), metrics.getTotalAmendments());
+            
+            return ResponseEntity.ok(metrics);
+            
+        } catch (Exception e) {
+            logger.error("Error fetching dashboard metrics", e);
+            
+            // Return empty metrics in case of error
+            StudyDashboardMetricsDto fallbackMetrics = new StudyDashboardMetricsDto(0L, 0L, 0L, 0L);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(fallbackMetrics);
+        }
     }
 }

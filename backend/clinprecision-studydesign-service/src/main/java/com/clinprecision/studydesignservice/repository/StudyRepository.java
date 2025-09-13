@@ -127,4 +127,52 @@ public interface StudyRepository extends JpaRepository<StudyEntity, Long> {
      */
     @Query("SELECT ss.name, COUNT(s) FROM StudyEntity s JOIN s.studyStatus ss GROUP BY ss.name")
     List<Object[]> countStudiesByStatus();
+    
+    /**
+     * Count active studies (studies with ACTIVE status)
+     */
+    @Query("SELECT COUNT(s) FROM StudyEntity s JOIN s.studyStatus ss WHERE UPPER(ss.code) = 'ACTIVE'")
+    Long countActiveStudies();
+    
+    /**
+     * Count draft studies (studies with DRAFT status)
+     */
+    @Query("SELECT COUNT(s) FROM StudyEntity s JOIN s.studyStatus ss WHERE UPPER(ss.code) = 'DRAFT'")
+    Long countDraftStudies();
+    
+    /**
+     * Count completed studies (studies with COMPLETED status)
+     */
+    @Query("SELECT COUNT(s) FROM StudyEntity s JOIN s.studyStatus ss WHERE UPPER(ss.code) = 'COMPLETED'")
+    Long countCompletedStudies();
+    
+    /**
+     * Count suspended studies (studies with SUSPENDED status)
+     */
+    @Query("SELECT COUNT(s) FROM StudyEntity s JOIN s.studyStatus ss WHERE UPPER(ss.code) = 'SUSPENDED'")
+    Long countSuspendedStudies();
+    
+    /**
+     * Count terminated studies (studies with TERMINATED status)
+     */
+    @Query("SELECT COUNT(s) FROM StudyEntity s JOIN s.studyStatus ss WHERE UPPER(ss.code) = 'TERMINATED'")
+    Long countTerminatedStudies();
+    
+    /**
+     * Get total amendments count across all studies
+     */
+    @Query("SELECT SUM(COALESCE(s.amendments, 0)) FROM StudyEntity s")
+    Long getTotalAmendments();
+    
+    /**
+     * Count studies by status code (generic method for any status)
+     */
+    @Query("SELECT COUNT(s) FROM StudyEntity s JOIN s.studyStatus ss WHERE UPPER(ss.code) = UPPER(:statusCode)")
+    Long countStudiesByStatusCode(@Param("statusCode") String statusCode);
+    
+    /**
+     * Get studies count by phase for dashboard metrics
+     */
+    @Query("SELECT sp.name, COUNT(s) FROM StudyEntity s JOIN s.studyPhase sp GROUP BY sp.name ORDER BY sp.displayOrder")
+    List<Object[]> countStudiesByPhaseName();
 }

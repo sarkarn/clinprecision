@@ -528,6 +528,47 @@ export const debugBackendConnection = async () => {
   }
 };
 
+/**
+ * Get dashboard metrics from backend
+ * @returns {Promise<Object>} Promise that resolves to dashboard metrics data
+ */
+export const getDashboardMetrics = async () => {
+  try {
+    console.log('Fetching dashboard metrics from:', `${API_PATH}/dashboard/metrics`);
+    const response = await ApiService.get(`${API_PATH}/dashboard/metrics`);
+    
+    if (response?.data) {
+      console.log('Dashboard metrics received:', response.data);
+      return response.data;
+    }
+    
+    // Fallback to default metrics if no data
+    return getFallbackMetrics();
+    
+  } catch (error) {
+    console.error('Error fetching dashboard metrics:', error);
+    return getFallbackMetrics();
+  }
+};
+
+/**
+ * Get fallback metrics for when backend is unavailable
+ * @returns {Object} Fallback dashboard metrics
+ */
+const getFallbackMetrics = () => {
+  return {
+    activeStudies: 0,
+    draftProtocols: 0,
+    completedStudies: 0,
+    totalAmendments: 0,
+    studiesByStatus: {},
+    studiesByPhase: {},
+    lastUpdated: new Date().toISOString(),
+    error: true,
+    message: 'Unable to load current metrics. Please try again.'
+  };
+};
+
 // Export all functions as a service object
 const StudyService = {
   getStudies,
@@ -540,6 +581,7 @@ const StudyService = {
   getStudyPhases,
   getStudyPhasesByCategory,
   getStudyLookupData,
+  getDashboardMetrics,
   debugBackendConnection
 };
 
