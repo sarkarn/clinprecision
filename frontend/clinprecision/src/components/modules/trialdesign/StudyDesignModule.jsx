@@ -8,7 +8,6 @@ import VersionManagementModal from './study-management/VersionManagementModal';
 import StudyDesignDashboard from './study-design/StudyDesignDashboard';
 import StudyEditPage from './StudyEditPage';
 import StudyViewPage from './StudyViewPage';
-import StudyList from './StudyList';
 import FormList from './FormList';
 import FormDesigner from './FormDesigner';
 import FormVersionHistory from './FormVersionHistory';
@@ -49,8 +48,7 @@ const Breadcrumb = () => {
 
         // Get display name for breadcrumb item
         let displayName;
-        if (name === 'list') displayName = 'Study List';
-        else if (name === 'studies') displayName = 'Studies';
+        if (name === 'studies') displayName = 'Studies';
         else if (name === 'study') displayName = 'Study Details';
         else if (name === 'register') displayName = 'Register Study';
         else if (name === 'create') displayName = 'Create Study';
@@ -233,12 +231,6 @@ const StudyDesignModule = () => {
               Quick Register
             </button>
             <button
-              onClick={() => navigate('/study-design/list', { replace: true })}
-              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-            >
-              Legacy List
-            </button>
-            <button
               onClick={() => navigate('/study-design/forms', { replace: true })}
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
             >
@@ -278,7 +270,6 @@ const StudyDesignModule = () => {
 
           {/* Legacy routes for backward compatibility */}
           <Route path="register" element={<StudyRegister />} />
-          <Route path="list" element={<StudyList />} />
           <Route path="edit/:studyId" element={<StudyEditPage />} />
           <Route path="view/:studyId" element={<StudyViewPage />} />
 

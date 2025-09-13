@@ -244,7 +244,7 @@ const StudyCreationWizard = () => {
             console.log('Study created successfully:', response);
 
             // Navigate to study list or edit page
-            navigate('/study-design/list', {
+            navigate('/study-design/studies', {
                 state: {
                     message: `Study "${formData.name}" has been created successfully!`,
                     type: 'success'
@@ -268,7 +268,7 @@ const StudyCreationWizard = () => {
         if (isDirty) {
             setShowExitConfirm(true);
         } else {
-            navigate('/study-design/list');
+            navigate('/study-design/studies');
         }
     };
 
@@ -444,7 +444,7 @@ const StudyCreationWizard = () => {
                                 </Button>
                                 <Button
                                     variant="danger"
-                                    onClick={() => navigate('/study-design/list')}
+                                    onClick={() => navigate('/study-design/studies')}
                                 >
                                     Exit Without Saving
                                 </Button>

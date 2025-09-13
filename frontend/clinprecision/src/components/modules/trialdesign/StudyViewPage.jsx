@@ -34,7 +34,7 @@ const StudyViewPage = () => {
     return (
         <div className="bg-white shadow rounded-lg p-6">
             <div className="mb-6">
-                <Link to="/study-design/list" className="text-blue-600 hover:underline">
+                <Link to="/study-design/studies" className="text-blue-600 hover:underline">
                     &larr; Back to Studies
                 </Link>
                 <h2 className="text-2xl font-bold mt-2">View Study: {study.name}</h2>
