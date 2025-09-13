@@ -536,7 +536,7 @@ const StudyEditPage = () => {
     return (
         <div className="bg-white shadow rounded-lg p-6">
             <div className="mb-6">
-                <Link to="/study-design/list" className="text-blue-600 hover:underline">
+                <Link to="/study-design/studies" className="text-blue-600 hover:underline">
                     &larr; Back to Studies
                 </Link>
                 <h2 className="text-2xl font-bold mt-2">Edit Study: {study.name}</h2>
@@ -678,7 +678,7 @@ const StudyEditPage = () => {
                     <div className="flex justify-end">
                         <button
                             type="button"
-                            onClick={() => navigate('/study-design/list')}
+                            onClick={() => navigate('/study-design/studies')}
                             className="bg-gray-300 text-gray-700 px-4 py-2 rounded mr-2"
                         >
                             Cancel

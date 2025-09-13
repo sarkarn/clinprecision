@@ -7,7 +7,6 @@ export default function OrganizationDetail() {
     const navigate = useNavigate();
 
     const [organization, setOrganization] = useState(null);
-    const [organizationType, setOrganizationType] = useState("");
     const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -29,19 +28,13 @@ export default function OrganizationDetail() {
             try {
                 setLoading(true);
 
-                // Fetch organization, its type, and contacts in parallel
-                const [orgData, typesData, contactsData] = await Promise.all([
+                // Fetch organization and contacts in parallel
+                const [orgData, contactsData] = await Promise.all([
                     OrganizationService.getOrganizationById(id),
-                    OrganizationService.getAllOrganizationTypes(),
                     OrganizationService.getOrganizationContacts(id)
                 ]);
 
                 setOrganization(orgData);
-
-                // Find the organization type name
-                const type = typesData.find(t => t.id === orgData.organizationTypeId);
-                setOrganizationType(type ? type.name : "Unknown Type");
-
                 setContacts(contactsData);
                 setError(null);
             } catch (err) {
@@ -194,7 +187,6 @@ export default function OrganizationDetail() {
             <div className="mb-6 flex justify-between items-center">
                 <div>
                     <h3 className="text-xl font-semibold">{organization.name}</h3>
-                    <p className="text-gray-600 mt-1">{organizationType}</p>
                 </div>
                 <div className="flex space-x-3">
                     <button

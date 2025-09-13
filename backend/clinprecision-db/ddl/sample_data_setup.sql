@@ -106,44 +106,44 @@ SELECT r.id, a.id FROM roles r, authorities a WHERE r.name = 'SYSTEM_ADMIN' AND 
 INSERT INTO users_roles (users_id, roles_id)
 VALUES (@admin_user_id, (SELECT id FROM roles WHERE name = 'SYSTEM_ADMIN'));
 
-INSERT INTO organization_types (name, code, description, created_at, updated_at) VALUES
+INSERT INTO organization_roles (name, code, description, created_at, updated_at) VALUES
 ('Sponsor', 'SPONSOR', 'Organization that initiates, manages and/or finances a clinical trial', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('CRO', 'CRO', 'Contract Research Organization that provides clinical trial services to sponsors', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('Site', 'SITE', 'Clinical site where the study is conducted', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('Vendor', 'VENDOR', 'Service provider for the clinical trial', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Laboratory', 'LAB', 'Laboratory for processing trial samples', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Academic', 'ACADEMIC', 'Academic or research institution', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Laboratory', 'LABORATORY', 'Laboratory for processing trial samples', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('Regulatory', 'REGULATORY', 'Regulatory agency or authority', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Hospital', 'HOSPITAL', 'Hospital or healthcare provider', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('Statistics', 'STATISTICS', 'Statistics Department', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Safety', 'SAFETY', 'Safety Department', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Insert sample organizations
-INSERT INTO organizations (name, org_type_id, external_id, address_line1, address_line2, city, state, postal_code, country, phone, email, website, status, created_at, updated_at) VALUES
+INSERT INTO organizations (name, external_id, address_line1, address_line2, city, state, postal_code, country, phone, email, website, status, created_at, updated_at) VALUES
 -- Sponsors
-('Pharma Global', (SELECT id FROM organization_types WHERE code = 'SPONSOR'), 'PG12345', '123 Research Drive', 'Suite 400', 'Boston', 'MA', '02110', 'USA', '+1-617-555-1234', 'contact@pharmaglobal.com', 'https://www.pharmaglobal.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('BioAdvance Corp', (SELECT id FROM organization_types WHERE code = 'SPONSOR'), 'BAC7890', '500 Innovation Way', 'Building 3', 'San Francisco', 'CA', '94107', 'USA', '+1-415-555-2345', 'info@bioadvance.com', 'https://www.bioadvance.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Pharma Global', 'PG12345', '123 Research Drive', 'Suite 400', 'Boston', 'MA', '02110', 'USA', '+1-617-555-1234', 'contact@pharmaglobal.com', 'https://www.pharmaglobal.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('BioAdvance Corp', 'BAC7890', '500 Innovation Way', 'Building 3', 'San Francisco', 'CA', '94107', 'USA', '+1-415-555-2345', 'info@bioadvance.com', 'https://www.bioadvance.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
 -- CROs
-('Clinical Research Partners', (SELECT id FROM organization_types WHERE code = 'CRO'), 'CRP4567', '789 Science Park', NULL, 'Princeton', 'NJ', '08540', 'USA', '+1-609-555-3456', 'info@crpartners.com', 'https://www.crpartners.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Global Trial Services', (SELECT id FROM organization_types WHERE code = 'CRO'), 'GTS2345', '1000 Clinical Boulevard', '15th Floor', 'Durham', 'NC', '27701', 'USA', '+1-919-555-4567', 'contact@globaltrialservices.com', 'https://www.globaltrialservices.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Clinical Research Partners', 'CRP4567', '789 Science Park', NULL, 'Princeton', 'NJ', '08540', 'USA', '+1-609-555-3456', 'info@crpartners.com', 'https://www.crpartners.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Global Trial Services', 'GTS2345', '1000 Clinical Boulevard', '15th Floor', 'Durham', 'NC', '27701', 'USA', '+1-919-555-4567', 'contact@globaltrialservices.com', 'https://www.globaltrialservices.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
 -- Sites
-('City Medical Center', (SELECT id FROM organization_types WHERE code = 'SITE'), 'CMC8901', '567 Hospital Drive', NULL, 'Chicago', 'IL', '60612', 'USA', '+1-312-555-5678', 'admin@citymedical.org', 'https://www.citymedical.org', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('University Research Hospital', (SELECT id FROM organization_types WHERE code = 'SITE'), 'URH3456', '200 University Ave', 'Clinical Trials Unit', 'Philadelphia', 'PA', '19104', 'USA', '+1-215-555-6789', 'trials@urh.edu', 'https://www.urh.edu', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('City Medical Center', 'CMC8901', '567 Hospital Drive', NULL, 'Chicago', 'IL', '60612', 'USA', '+1-312-555-5678', 'admin@citymedical.org', 'https://www.citymedical.org', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('University Research Hospital', 'URH3456', '200 University Ave', 'Clinical Trials Unit', 'Philadelphia', 'PA', '19104', 'USA', '+1-215-555-6789', 'trials@urh.edu', 'https://www.urh.edu', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
 -- Vendors
-('LabEquip Supplies', (SELECT id FROM organization_types WHERE code = 'VENDOR'), 'LES7654', '321 Industrial Parkway', NULL, 'Atlanta', 'GA', '30318', 'USA', '+1-404-555-7890', 'sales@labequip.com', 'https://www.labequip.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('MedTech Solutions', (SELECT id FROM organization_types WHERE code = 'VENDOR'), 'MTS4321', '888 Technology Square', 'Suite 500', 'Cambridge', 'MA', '02139', 'USA', '+1-617-555-8901', 'info@medtechsolutions.com', 'https://www.medtechsolutions.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('LabEquip Supplies', 'LES7654', '321 Industrial Parkway', NULL, 'Atlanta', 'GA', '30318', 'USA', '+1-404-555-7890', 'sales@labequip.com', 'https://www.labequip.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('MedTech Solutions', 'MTS4321', '888 Technology Square', 'Suite 500', 'Cambridge', 'MA', '02139', 'USA', '+1-617-555-8901', 'info@medtechsolutions.com', 'https://www.medtechsolutions.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
 -- Laboratories
-('Central Analysis Labs', (SELECT id FROM organization_types WHERE code = 'LAB'), 'CAL9876', '444 Science Center', NULL, 'Research Triangle Park', 'NC', '27709', 'USA', '+1-919-555-9012', 'info@centrallabs.com', 'https://www.centrallabs.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Precision Diagnostics', (SELECT id FROM organization_types WHERE code = 'LAB'), 'PD5432', '777 Biotech Way', 'Building 2', 'San Diego', 'CA', '92121', 'USA', '+1-858-555-0123', 'contact@precisiondiagnostics.com', 'https://www.precisiondiagnostics.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Central Analysis Labs', 'CAL9876', '444 Science Center', NULL, 'Research Triangle Park', 'NC', '27709', 'USA', '+1-919-555-9012', 'info@centrallabs.com', 'https://www.centrallabs.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Precision Diagnostics',  'PD5432', '777 Biotech Way', 'Building 2', 'San Diego', 'CA', '92121', 'USA', '+1-858-555-0123', 'contact@precisiondiagnostics.com', 'https://www.precisiondiagnostics.com', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
 -- Academic Institutions
-('Research University', (SELECT id FROM organization_types WHERE code = 'ACADEMIC'), 'RU1234', '100 Academic Way', 'Research Wing', 'Boston', 'MA', '02115', 'USA', '+1-617-555-4321', 'research@university.edu', 'https://www.university.edu', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Medical College', (SELECT id FROM organization_types WHERE code = 'ACADEMIC'), 'MC5678', '300 College Blvd', NULL, 'New York', 'NY', '10065', 'USA', '+1-212-555-8765', 'info@medcollege.edu', 'https://www.medcollege.edu', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Research University', 'RU1234', '100 Academic Way', 'Research Wing', 'Boston', 'MA', '02115', 'USA', '+1-617-555-4321', 'research@university.edu', 'https://www.university.edu', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Medical College', 'MC5678', '300 College Blvd', NULL, 'New York', 'NY', '10065', 'USA', '+1-212-555-8765', 'info@medcollege.edu', 'https://www.medcollege.edu', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
 -- Regulatory Organizations
-('Healthcare Regulatory Authority', (SELECT id FROM organization_types WHERE code = 'REGULATORY'), 'HRA9012', '700 Regulatory Plaza', '20th Floor', 'Washington', 'DC', '20001', 'USA', '+1-202-555-6543', 'contact@healthregauth.gov', 'https://www.healthregauth.gov', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('Healthcare Regulatory Authority', 'HRA9012', '700 Regulatory Plaza', '20th Floor', 'Washington', 'DC', '20001', 'USA', '+1-202-555-6543', 'contact@healthregauth.gov', 'https://www.healthregauth.gov', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO organization_contacts (
     organization_id, contact_name, title, department, email, phone, is_primary, created_at, updated_at
@@ -180,34 +180,34 @@ INSERT INTO organization_contacts (
 
 -- Insert sample studies
 -- Study 1: COVID-19 Vaccine Trial
-INSERT INTO studies (id, name, description, sponsor, protocol_number, phase, status, start_date, end_date, created_by, created_at, updated_at)
+INSERT INTO studies (id, name, description, sponsor, protocol_number, study_phase_id, study_status_id,regulatory_status_id, start_date, end_date, created_by, created_at, updated_at)
 VALUES (1, 'COVID-19 Vaccine Trial', 'A randomized controlled trial to evaluate the efficacy of a novel COVID-19 vaccine.', 
-        (SELECT name FROM organizations WHERE external_id = 'PG12345'), 'BPI-COVID-001', 'Phase 3', 'active', '2024-01-15', '2025-01-15', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        (SELECT name FROM organizations WHERE external_id = 'PG12345'), 'BPI-COVID-001', '1', '1','1', '2024-01-15', '2025-01-15', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Study 2: Diabetes Management Study
-INSERT INTO studies (id, name, description, sponsor, protocol_number, phase, status, start_date, end_date, created_by, created_at, updated_at)
+INSERT INTO studies (id, name, description, sponsor, protocol_number, study_phase_id, study_status_id,regulatory_status_id, start_date, end_date, created_by, created_at, updated_at)
 VALUES (2, 'Diabetes Management Study', 'Evaluating a new approach to diabetes management.', 
-        (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'MRG-DM-101', 'Phase 2', 'active', '2024-02-01', '2024-12-31', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'MRG-DM-101', '1', '1','1', '2024-02-01', '2024-12-31', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Study 3: Alzheimer's Disease Intervention Study
-INSERT INTO studies (id, name, description, sponsor, protocol_number, phase, status, start_date, end_date, created_by, created_at, updated_at)
+INSERT INTO studies (id, name, description, sponsor, protocol_number, study_phase_id, study_status_id,regulatory_status_id, start_date, end_date, created_by, created_at, updated_at)
 VALUES (3, 'Alzheimer''s Disease Intervention Study', 'Evaluating a novel therapeutic approach for early-stage Alzheimer''s disease.', 
-        (SELECT name FROM organizations WHERE external_id = 'PG12345'), 'NCF-ALZ-202', 'Phase 2', 'active', '2024-03-10', '2025-09-30', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        (SELECT name FROM organizations WHERE external_id = 'PG12345'), 'NCF-ALZ-202', '1', '1','1', '2024-03-10', '2025-09-30', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Study 4: Rheumatoid Arthritis Comparative Therapy Trial
-INSERT INTO studies (id, name, description, sponsor, protocol_number, phase, status, start_date, end_date, created_by, created_at, updated_at)
+INSERT INTO studies (id, name, description, sponsor, protocol_number, study_phase_id, study_status_id,regulatory_status_id, start_date, end_date, created_by, created_at, updated_at)
 VALUES (4, 'Rheumatoid Arthritis Comparative Therapy Trial', 'A comparative study of three different therapeutic approaches for rheumatoid arthritis.', 
-        (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'ACP-RA-301', 'Phase 3', 'active', '2024-05-01', '2026-04-30', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'ACP-RA-301', '1', '1','1','2024-05-01', '2026-04-30', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Study 5: Hypertension Management in Elderly Patients
-INSERT INTO studies (id, name, description, sponsor, protocol_number, phase, status, start_date, end_date, created_by, created_at, updated_at)
+INSERT INTO studies (id, name, description, sponsor, protocol_number, study_phase_id, study_status_id,regulatory_status_id, start_date, end_date, created_by, created_at, updated_at)
 VALUES (5, 'Hypertension Management in Elderly Patients', 'Post-marketing study examining optimal hypertension management strategies in patients over 65.', 
-        (SELECT name FROM organizations WHERE external_id = 'PG12345'), 'CHI-HTN-401', 'Phase 4', 'active', '2023-11-15', '2024-11-14', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        (SELECT name FROM organizations WHERE external_id = 'PG12345'), 'CHI-HTN-401', '1', '1','1', '2023-11-15', '2024-11-14', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Study 6: Pediatric Asthma Treatment Optimization
-INSERT INTO studies (id, name, description, sponsor, protocol_number, phase, status, start_date, end_date, created_by, created_at, updated_at)
+INSERT INTO studies (id, name, description, sponsor, protocol_number, study_phase_id, study_status_id,regulatory_status_id, start_date, end_date, created_by, created_at, updated_at)
 VALUES (6, 'Pediatric Asthma Treatment Optimization', 'Evaluating the efficacy of a modified treatment protocol in pediatric asthma patients aged 5-12.', 
-        (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'RCF-AST-201', 'Phase 2', 'completed', '2023-01-10', '2023-12-20', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'RCF-AST-201', '1', '1','1', '2023-01-10', '2023-12-20', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Create study arms
 -- Study 1 arm

@@ -237,12 +237,6 @@ const latestVersion = await StudyService.getLatestVersion(studyId);
 
 ## Migration Guide
 
-### From Legacy Study List
-1. Update routing to use new `/studies` path
-2. Replace old StudyList component with StudyListGrid
-3. Update API calls to support new filtering/pagination
-4. Migrate study data to new versioning schema
-
 ### Database Schema Updates
 ```sql
 -- Add versioning tables

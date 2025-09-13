@@ -37,7 +37,6 @@ public class UsersServiceImpl implements UsersService {
     BCryptPasswordEncoder bCryptPasswordEncoder;
     //RestTemplate restTemplate;
     Environment environment;
-    AlbumsServiceClient albumsServiceClient;
     UserTypeRepository userTypeRepository;
     OrganizationRepository organizationRepository;
     com.clinprecision.userservice.data.RoleRepository roleRepository;

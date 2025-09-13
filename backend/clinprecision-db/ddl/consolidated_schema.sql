@@ -67,7 +67,7 @@ CREATE TABLE users_roles (
 );
 
 -- Organization related tables
-CREATE TABLE organization_types (
+CREATE TABLE organization_roles (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE COMMENT 'Organization type name (e.g., Sponsor, CRO, Site, Vendor, Laboratory)',
 	code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Organization type Code',
@@ -79,7 +79,6 @@ CREATE TABLE organization_types (
 CREATE TABLE organizations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL COMMENT 'Organization name',
-    org_type_id BIGINT NOT NULL COMMENT 'Reference to organization type',
     external_id VARCHAR(100) COMMENT 'External identifier for the organization',
     address_line1 VARCHAR(255) COMMENT 'Address line 1',
     address_line2 VARCHAR(255) COMMENT 'Address line 2',
@@ -92,8 +91,7 @@ CREATE TABLE organizations (
     website VARCHAR(255) COMMENT 'Organization website',
     status ENUM('active', 'inactive', 'suspended') DEFAULT 'active' COMMENT 'Organization status',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (org_type_id) REFERENCES organization_types(id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Add foreign key for users to organizations after both tables exist
@@ -133,6 +131,107 @@ CREATE TABLE users_user_types (
     FOREIGN KEY (user_types_id) REFERENCES user_types(id)
 );
 
+-- =====================================================
+-- 1. STUDY STATUS LOOKUP TABLE
+-- =====================================================
+CREATE TABLE study_status (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(100) NOT NULL UNIQUE COMMENT 'Short code for the status (e.g., DRAFT, ACTIVE)',
+    name VARCHAR(200) NOT NULL UNIQUE COMMENT 'Display name for the status',
+    description TEXT COMMENT 'Detailed description of the status',
+    display_order INTEGER NOT NULL COMMENT 'Order for UI display (lower numbers first)',
+    is_active BOOLEAN DEFAULT TRUE COMMENT 'Whether this status is currently active/selectable',
+    allows_modification BOOLEAN DEFAULT TRUE COMMENT 'Whether studies in this status can be modified',
+    is_final_status BOOLEAN DEFAULT FALSE COMMENT 'Whether this is a terminal status',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_study_status_code (code),
+    INDEX idx_study_status_active (is_active),
+    INDEX idx_study_status_display_order (display_order)
+);
+
+-- =====================================================
+-- 2. REGULATORY STATUS LOOKUP TABLE
+-- =====================================================
+CREATE TABLE regulatory_status (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(100) NOT NULL UNIQUE COMMENT 'Short code for regulatory status (e.g., PENDING_APPROVAL, APPROVED)',
+    name VARCHAR(200) NOT NULL UNIQUE COMMENT 'Display name for regulatory status',
+    description TEXT COMMENT 'Detailed description of the regulatory status',
+    display_order INTEGER NOT NULL COMMENT 'Order for UI display (lower numbers first)',
+    is_active BOOLEAN DEFAULT TRUE COMMENT 'Whether this status is currently active/selectable',
+    requires_documentation BOOLEAN DEFAULT FALSE COMMENT 'Whether this status requires supporting documentation',
+    allows_enrollment BOOLEAN DEFAULT FALSE COMMENT 'Whether patient enrollment is allowed in this status',
+    regulatory_category ENUM('PRE_SUBMISSION', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'WITHDRAWN') 
+        NOT NULL COMMENT 'High-level categorization of regulatory status',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_regulatory_status_code (code),
+    INDEX idx_regulatory_status_category (regulatory_category),
+    INDEX idx_regulatory_status_active (is_active),
+    INDEX idx_regulatory_status_display_order (display_order)
+);
+
+-- =====================================================
+-- 3. STUDY PHASE LOOKUP TABLE
+-- =====================================================
+CREATE TABLE study_phase (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(100) NOT NULL UNIQUE COMMENT 'Short code for the phase (e.g., PHASE_I, PHASE_II)',
+    name VARCHAR(200) NOT NULL UNIQUE COMMENT 'Display name for the phase',
+    description TEXT COMMENT 'Detailed description of the study phase',
+    display_order INTEGER NOT NULL COMMENT 'Order for UI display (lower numbers first)',
+    is_active BOOLEAN DEFAULT TRUE COMMENT 'Whether this phase is currently active/selectable',
+    typical_duration_months INTEGER COMMENT 'Typical duration in months for this phase',
+    typical_patient_count_min INTEGER COMMENT 'Typical minimum number of patients for this phase',
+    typical_patient_count_max INTEGER COMMENT 'Typical maximum number of patients for this phase',
+    phase_category ENUM('PRECLINICAL', 'EARLY_PHASE', 'EFFICACY', 'REGISTRATION', 'POST_MARKET') 
+        NOT NULL COMMENT 'High-level categorization of study phase',
+    requires_ide BOOLEAN DEFAULT FALSE COMMENT 'Whether this phase typically requires IDE (Investigational Device Exemption)',
+    requires_ind BOOLEAN DEFAULT FALSE COMMENT 'Whether this phase typically requires IND (Investigational New Drug)',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_study_phase_code (code),
+    INDEX idx_study_phase_category (phase_category),
+    INDEX idx_study_phase_active (is_active),
+    INDEX idx_study_phase_display_order (display_order)
+);
+
+-- =====================================================
+-- 4. FOREIGN KEY RELATIONSHIPS (Optional - for future enhancement)
+-- =====================================================
+-- Note: These can be added later when refactoring the studies table to use lookup tables
+
+-- Example of how to add foreign keys to studies table:
+-- ALTER TABLE studies ADD COLUMN study_status_id BIGINT;
+-- ALTER TABLE studies ADD COLUMN regulatory_status_id BIGINT;  
+-- ALTER TABLE studies ADD COLUMN study_phase_id BIGINT;
+-- 
+-- ALTER TABLE studies ADD FOREIGN KEY (study_status_id) REFERENCES study_status(id);
+-- ALTER TABLE studies ADD FOREIGN KEY (regulatory_status_id) REFERENCES regulatory_status(id);
+-- ALTER TABLE studies ADD FOREIGN KEY (study_phase_id) REFERENCES study_phase(id);
+
+-- =====================================================
+-- 5. AUDIT LOG TABLE (Optional - for tracking changes)
+-- =====================================================
+CREATE TABLE study_lookup_audit (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    table_name VARCHAR(50) NOT NULL COMMENT 'Name of the lookup table that was modified',
+    record_id BIGINT NOT NULL COMMENT 'ID of the record that was modified',
+    action_type ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL COMMENT 'Type of action performed',
+    old_values JSON COMMENT 'Previous values (for UPDATE and DELETE)',
+    new_values JSON COMMENT 'New values (for INSERT and UPDATE)',
+    modified_by BIGINT COMMENT 'User ID who made the change',
+    modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_audit_table_record (table_name, record_id),
+    INDEX idx_audit_modified_at (modified_at),
+    FOREIGN KEY (modified_by) REFERENCES users(id)
+);
+
 -- Study related tables
 CREATE TABLE studies (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -145,14 +244,28 @@ CREATE TABLE studies (
     parent_version_id VARCHAR(36) DEFAULT NULL,
     version_notes TEXT,
     is_locked BOOLEAN DEFAULT FALSE,
-    phase VARCHAR(20),
-    status ENUM('draft', 'active', 'completed', 'terminated') DEFAULT 'draft',
     start_date DATE,
     end_date DATE,
+	indication VARCHAR(500),
+	study_type VARCHAR(50) DEFAULT 'INTERVENTIONAL',
+	principal_investigator VARCHAR(255),
+	sites INTEGER DEFAULT 0,
+	planned_subjects INTEGER DEFAULT 0,
+	enrolled_subjects INTEGER DEFAULT 0,
+	target_enrollment INTEGER DEFAULT 0,
+	primary_objective TEXT,
+	amendments INTEGER DEFAULT 0,
+	study_status_id BIGINT NULL COMMENT 'References study_status.id',
+    regulatory_status_id BIGINT NULL COMMENT 'References regulatory_status.id',
+    study_phase_id BIGINT NULL COMMENT 'References study_phase.id',
     metadata JSON,
     created_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	modified_by BIGINT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_studies_study_status FOREIGN KEY (study_status_id)   REFERENCES study_status(id),
+    CONSTRAINT fk_studies_regulatory_status FOREIGN KEY (regulatory_status_id) REFERENCES regulatory_status(id),
+	CONSTRAINT fk_studies_study_phase FOREIGN KEY (study_phase_id) REFERENCES study_phase(id),
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
@@ -171,7 +284,8 @@ CREATE TABLE organization_studies (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     organization_id BIGINT NOT NULL,
     study_id BIGINT NOT NULL,
-    role ENUM('sponsor', 'cro', 'site', 'vendor', 'laboratory') NOT NULL COMMENT 'Role of the organization in the study',
+    role ENUM('SPONSOR', 'CRO', 'SITE', 'VENDOR', 'LABORATORY', 'REGULATORY', 'STATISTICS', 'SAFETY') NOT NULL COMMENT 'Role of the organization in the study',
+	is_primary BOOLEAN DEFAULT FALSE COMMENT 'Whether this organization is primary for its role',
     start_date DATE COMMENT 'Start date of organization involvement',
     end_date DATE COMMENT 'End date of organization involvement',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -555,6 +669,12 @@ CREATE TABLE user_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+
+ALTER TABLE study_status COMMENT = 'Lookup table for study lifecycle status values';
+ALTER TABLE regulatory_status COMMENT = 'Lookup table for regulatory approval status values';
+ALTER TABLE study_phase COMMENT = 'Lookup table for clinical study phase values';
+ALTER TABLE study_lookup_audit COMMENT = 'Audit trail for changes to lookup table values';
+
 -- Create indexes for common query patterns
 CREATE INDEX idx_form_definitions_study ON form_definitions(study_id);
 CREATE INDEX idx_subjects_study ON subjects(study_id);
@@ -565,7 +685,6 @@ CREATE INDEX idx_field_verifications_form ON field_verifications(form_data_id);
 CREATE INDEX idx_data_queries_form ON data_queries(form_data_id);
 CREATE INDEX idx_audit_trail_entity ON audit_trail(entity_type, entity_id);
 CREATE INDEX idx_users_organization ON users(organization_id);
-CREATE INDEX idx_organizations_type ON organizations(org_type_id);
 CREATE INDEX idx_sites_study ON sites(study_id);
 CREATE INDEX idx_sites_organization ON sites(organization_id);
 CREATE INDEX idx_user_study_roles_user ON user_study_roles(user_id);
@@ -574,7 +693,15 @@ CREATE INDEX idx_user_study_roles_site ON user_study_roles(site_id);
 CREATE INDEX idx_user_site_assignments_user ON user_site_assignments(user_id);
 CREATE INDEX idx_user_site_assignments_site ON user_site_assignments(site_id);
 CREATE INDEX idx_patient_users_subject ON patient_users(subject_id);
-
+-- Create index for efficient querying of primary organizations
+CREATE INDEX idx_organization_studies_primary ON organization_studies(study_id, role, is_primary);
+CREATE INDEX idx_studies_sponsor ON studies(sponsor);
+CREATE INDEX idx_studies_indication ON studies(indication);
+CREATE INDEX idx_studies_created_at ON studies(created_at);
+CREATE INDEX idx_studies_updated_at ON studies(updated_at);
+CREATE INDEX idx_studies_study_status_id ON studies(study_status_id);
+CREATE INDEX idx_studies_regulatory_status_id ON studies(regulatory_status_id);
+CREATE INDEX idx_studies_study_phase_id ON studies(study_phase_id);
 
 
 -- Insert default user types

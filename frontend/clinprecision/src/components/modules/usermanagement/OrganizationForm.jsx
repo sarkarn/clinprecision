@@ -9,7 +9,6 @@ export default function OrganizationForm() {
 
     const [formData, setFormData] = useState({
         name: "",
-        orgTypeId: "",
         externalId: "",
         addressLine1: "",
         addressLine2: "",
@@ -23,7 +22,6 @@ export default function OrganizationForm() {
         status: "active"
     });
 
-    const [organizationTypes, setOrganizationTypes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
@@ -33,17 +31,12 @@ export default function OrganizationForm() {
             try {
                 setLoading(true);
 
-                // Fetch organization types
-                const typesData = await OrganizationService.getAllOrganizationTypes();
-                setOrganizationTypes(typesData);
-
                 // If in edit mode, fetch organization data
                 if (isEditMode) {
                     const orgData = await OrganizationService.getOrganizationById(id);
                     console.log("Loaded organization data:", orgData); // Debug log
                     setFormData({
                         name: orgData.name || "",
-                        orgTypeId: orgData.organizationType?.id || "",
                         externalId: orgData.externalId || "",
                         addressLine1: orgData.addressLine1 || "",
                         addressLine2: orgData.addressLine2 || "",
@@ -84,12 +77,8 @@ export default function OrganizationForm() {
             setLoading(true);
             setError(null);
 
-            // Convert form data to match backend expected field names
-            const organizationData = {
-                ...formData,
-                organizationType: formData.orgTypeId ? { id: parseInt(formData.orgTypeId) } : null
-            };
-            delete organizationData.orgTypeId;
+            // Use form data directly (no more organizationType field)
+            const organizationData = { ...formData };
 
             if (isEditMode) {
                 await OrganizationService.updateOrganization(id, organizationData);
@@ -162,27 +151,6 @@ export default function OrganizationForm() {
                                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                                     required
                                 />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="orgTypeId">
-                                    Organization Type *
-                                </label>
-                                <select
-                                    id="orgTypeId"
-                                    name="orgTypeId"
-                                    value={formData.orgTypeId}
-                                    onChange={handleChange}
-                                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                >
-                                    <option value="">Select a type</option>
-                                    {organizationTypes.map((type) => (
-                                        <option key={type.id} value={type.id}>
-                                            {type.name}
-                                        </option>
-                                    ))}
-                                </select>
                             </div>
 
                             <div>

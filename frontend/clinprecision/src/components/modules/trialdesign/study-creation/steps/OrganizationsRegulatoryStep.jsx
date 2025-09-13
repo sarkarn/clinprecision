@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { OrganizationService } from '../../../../../services/OrganizationService';
+import StudyService from '../../../../../services/StudyService';
 import { LoadingOverlay, Alert } from '../../components/UIComponents';
 
 /**
@@ -9,11 +10,17 @@ const OrganizationsRegulatoryStep = ({
     formData,
     onFieldChange,
     getFieldError,
-    hasFieldError
+    hasFieldError,
+    lookupData = { regulatoryStatuses: [] } // Add lookupData prop with default
 }) => {
     const [availableOrganizations, setAvailableOrganizations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Use regulatory statuses from lookupData prop if available, otherwise load independently
+    const [regulatoryStatuses, setRegulatoryStatuses] = useState([]);
+    const [loadingLookups, setLoadingLookups] = useState(!lookupData.regulatoryStatuses?.length);
+    const [lookupError, setLookupError] = useState(null);
 
     // Load available organizations
     useEffect(() => {
@@ -35,6 +42,60 @@ const OrganizationsRegulatoryStep = ({
         fetchOrganizations();
     }, []);
 
+    // Load regulatory status lookup data (use prop data if available, otherwise fetch)
+    useEffect(() => {
+        const processRegulatoryStatuses = async () => {
+            try {
+                setLoadingLookups(true);
+
+                let statuses = [];
+
+                // Use lookupData prop if available
+                if (lookupData.regulatoryStatuses && lookupData.regulatoryStatuses.length > 0) {
+                    console.log('Using regulatory statuses from lookupData prop:', lookupData.regulatoryStatuses);
+                    statuses = lookupData.regulatoryStatuses;
+                } else {
+                    // Fallback to independent loading if no prop data
+                    console.log('Loading regulatory statuses independently...');
+                    statuses = await StudyService.getRegulatoryStatuses();
+                }
+
+                // Debug logging to understand the data structure
+                console.log('Processing regulatory statuses:', statuses);
+
+                // Transform to options format
+                const statusOptions = (statuses || []).map(status => ({
+                    value: status.id, // Use ID as value for backend
+                    label: status.name || status.label || `Status ${status.id}`, // Use 'name' field primarily, fallback to 'label' or ID
+                    description: status.description || ''
+                })).filter(option => option.value != null && option.label);
+
+                console.log('Transformed regulatory status options:', statusOptions);
+
+                setRegulatoryStatuses(statusOptions);
+                setLookupError(null);
+            } catch (err) {
+                console.error('Error processing regulatory statuses:', err);
+                setLookupError('Failed to load regulatory statuses. Using fallback values.');
+
+                // Fallback to default values if everything fails
+                setRegulatoryStatuses([
+                    { value: 1, label: 'Pre-IND' },
+                    { value: 2, label: 'IND Submitted' },
+                    { value: 3, label: 'IND Approved' },
+                    { value: 4, label: 'IDE Required' },
+                    { value: 5, label: 'IDE Approved' },
+                    { value: 6, label: 'Exempt' },
+                    { value: 7, label: 'Not Applicable' }
+                ]);
+            } finally {
+                setLoadingLookups(false);
+            }
+        };
+
+        processRegulatoryStatuses();
+    }, [lookupData.regulatoryStatuses]); // Re-run when lookupData changes
+
     const roleOptions = [
         { value: 'sponsor', label: 'Sponsor' },
         { value: 'cro', label: 'Contract Research Organization (CRO)' },
@@ -44,16 +105,6 @@ const OrganizationsRegulatoryStep = ({
         { value: 'regulatory', label: 'Regulatory Consultant' },
         { value: 'statistics', label: 'Statistical Analysis' },
         { value: 'safety', label: 'Safety Monitoring' }
-    ];
-
-    const regulatoryStatusOptions = [
-        { value: 'pre-ind', label: 'Pre-IND' },
-        { value: 'ind-submitted', label: 'IND Submitted' },
-        { value: 'ind-approved', label: 'IND Approved' },
-        { value: 'ide-required', label: 'IDE Required' },
-        { value: 'ide-approved', label: 'IDE Approved' },
-        { value: 'exempt', label: 'Exempt' },
-        { value: 'not-applicable', label: 'Not Applicable' }
     ];
 
     // Handle organization role assignment
@@ -92,7 +143,11 @@ const OrganizationsRegulatoryStep = ({
         const currentOrgs = formData.organizations || [];
         const newOrgs = currentOrgs.map(org => ({
             ...org,
-            isPrimary: org.organizationId === orgId && org.role === role
+            // Only clear isPrimary for organizations with the SAME role
+            // This allows one primary per role type, not one primary total
+            isPrimary: org.role === role
+                ? (org.organizationId === orgId) // Set true for selected org, false for others in same role
+                : org.isPrimary // Keep existing isPrimary for different roles
         }));
         onFieldChange('organizations', newOrgs);
     };
@@ -107,6 +162,11 @@ const OrganizationsRegulatoryStep = ({
     const isPrimaryForRole = (orgId) => {
         const org = formData.organizations?.find(o => o.organizationId === orgId);
         return org?.isPrimary || false;
+    };
+
+    // Get the primary organization for a specific role
+    const getPrimaryForRole = (role) => {
+        return formData.organizations?.find(org => org.role === role && org.isPrimary);
     };
 
     return (
@@ -173,15 +233,23 @@ const OrganizationsRegulatoryStep = ({
                                                 </select>
 
                                                 {currentRole && (
-                                                    <label className="flex items-center text-sm">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isPrimary}
-                                                            onChange={(e) => handleSetPrimary(org.id, currentRole)}
-                                                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                                        />
-                                                        <span className="ml-2 text-gray-700">Primary</span>
-                                                    </label>
+                                                    <div className="flex flex-col items-center">
+                                                        <label className="flex items-center text-sm">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isPrimary}
+                                                                onChange={(e) => handleSetPrimary(org.id, currentRole)}
+                                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                            />
+                                                            <span className="ml-2 text-gray-700">Primary</span>
+                                                        </label>
+                                                        {/* Show hint if another org is already primary for this role */}
+                                                        {!isPrimary && getPrimaryForRole(currentRole) && (
+                                                            <span className="text-xs text-gray-500 mt-1">
+                                                                Another {currentRole} is primary
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
@@ -225,18 +293,49 @@ const OrganizationsRegulatoryStep = ({
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Regulatory Status
                         </label>
+                        {/* Debug logging */}
+                        {console.log('=== REGULATORY STATUS DEBUG ===', {
+                            formDataRegulatoryStatusId: formData.regulatoryStatusId,
+                            formDataType: typeof formData.regulatoryStatusId,
+                            availableOptions: regulatoryStatuses.map(opt => ({
+                                value: opt.value,
+                                valueType: typeof opt.value,
+                                label: opt.label
+                            })),
+                            matchingOption: regulatoryStatuses.find(opt => opt.value == formData.regulatoryStatusId),
+                            strictMatchingOption: regulatoryStatuses.find(opt => opt.value === formData.regulatoryStatusId)
+                        })}
                         <select
-                            value={formData.regulatoryStatus || ''}
-                            onChange={(e) => onFieldChange('regulatoryStatus', e.target.value)}
+                            value={formData.regulatoryStatusId || ''}
+                            onChange={(e) => {
+                                // Convert to number if it's a valid number, otherwise keep as string
+                                const value = e.target.value;
+                                const numValue = !isNaN(value) && value !== '' ? Number(value) : value;
+                                console.log('Regulatory status changed:', { originalValue: value, numValue, formDataBefore: formData.regulatoryStatusId });
+                                onFieldChange('regulatoryStatusId', numValue);
+                            }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            disabled={loadingLookups}
                         >
-                            <option value="">Select Status</option>
-                            {regulatoryStatusOptions.map(option => (
+                            <option value="">{loadingLookups ? "Loading..." : "Select Status"}</option>
+                            {regulatoryStatuses.filter(option => option && option.value && option.label).map(option => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}
                                 </option>
                             ))}
                         </select>
+                        {lookupError && (
+                            <p className="mt-1 text-sm text-amber-600">{lookupError}</p>
+                        )}
+                        {loadingLookups && (
+                            <div className="mt-1 flex items-center text-sm text-gray-500">
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Loading regulatory statuses...
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-3">

@@ -50,15 +50,7 @@ public interface OrganizationService {
      */
     List<OrganizationEntity> getOrganizationsByStatus(OrganizationEntity.OrganizationStatus status);
 
-    /**
-     * Get organizations by their organization type ID.
-     *
-     * @param orgTypeId the ID of the organization type
-     * @return list of organizations with the specified organization type
-     */
-    List<OrganizationEntity> getOrganizationsByTypeId(Long orgTypeId);
-
-    /**
+     /**
      * Create a new organization.
      *
      * @param organization the organization entity to create

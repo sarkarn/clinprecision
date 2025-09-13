@@ -51,6 +51,11 @@ const StudyCreationWizard = () => {
 
     // Component state
     const [availableOrganizations, setAvailableOrganizations] = useState([]);
+    const [lookupData, setLookupData] = useState({
+        studyPhases: [],
+        studyStatuses: [],
+        regulatoryStatuses: []
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState(null);
     const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -83,26 +88,40 @@ const StudyCreationWizard = () => {
         }
     ];
 
-    // Load organizations on component mount
+    // Load organizations and lookup data on component mount
     useEffect(() => {
-        const fetchOrganizations = async () => {
+        const fetchData = async () => {
             try {
+                // Fetch organizations
                 const orgs = await OrganizationService.getAllOrganizations();
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
+
+                // Fetch lookup data
+                const lookups = await StudyService.getStudyLookupData();
+                setLookupData({
+                    studyPhases: Array.isArray(lookups.studyPhases) ? lookups.studyPhases : [],
+                    studyStatuses: Array.isArray(lookups.studyStatuses) ? lookups.studyStatuses : [],
+                    regulatoryStatuses: Array.isArray(lookups.regulatoryStatuses) ? lookups.regulatoryStatuses : []
+                });
             } catch (err) {
-                console.error('Error fetching organizations:', err);
+                console.error('Error fetching data:', err);
                 setAvailableOrganizations([]);
+                setLookupData({
+                    studyPhases: [],
+                    studyStatuses: [],
+                    regulatoryStatuses: []
+                });
             }
         };
 
-        fetchOrganizations();
+        fetchData();
     }, []);
 
     // Validate current step
     const validateCurrentStep = () => {
         switch (currentStep) {
             case 0: // Basic Information
-                const basicFields = ['name', 'protocolNumber', 'phase', 'sponsor'];
+                const basicFields = ['name', 'protocolNumber', 'studyPhaseId', 'sponsor'];
                 const basicErrors = basicFields.filter(field => !formData[field] || hasFieldError(field));
                 if (basicErrors.length > 0) {
                     setStepError(0, `Please complete all required fields: ${basicErrors.join(', ')}`);
@@ -202,9 +221,9 @@ const StudyCreationWizard = () => {
                     metadata.studyType = apiData.studyType;
                     delete apiData.studyType;
                 }
-                if (apiData.regulatoryStatus) {
-                    metadata.regulatoryStatus = apiData.regulatoryStatus;
-                    delete apiData.regulatoryStatus;
+                if (apiData.regulatoryStatusId) {
+                    metadata.regulatoryStatusId = apiData.regulatoryStatusId;
+                    delete apiData.regulatoryStatusId;
                 }
                 if (typeof apiData.ethicsApproval !== 'undefined') {
                     metadata.ethicsApproval = apiData.ethicsApproval;
@@ -225,7 +244,7 @@ const StudyCreationWizard = () => {
             console.log('Study created successfully:', response);
 
             // Navigate to study list or edit page
-            navigate('/study-design/list', {
+            navigate('/study-design/studies', {
                 state: {
                     message: `Study "${formData.name}" has been created successfully!`,
                     type: 'success'
@@ -249,7 +268,7 @@ const StudyCreationWizard = () => {
         if (isDirty) {
             setShowExitConfirm(true);
         } else {
-            navigate('/study-design/list');
+            navigate('/study-design/studies');
         }
     };
 
@@ -263,6 +282,7 @@ const StudyCreationWizard = () => {
                         onFieldChange={updateField}
                         getFieldError={getFieldError}
                         hasFieldError={hasFieldError}
+                        lookupData={lookupData}
                     />
                 );
             case 1:
@@ -288,6 +308,7 @@ const StudyCreationWizard = () => {
                     <ReviewConfirmationStep
                         formData={formData}
                         availableOrganizations={availableOrganizations}
+                        lookupData={lookupData}
                         onEdit={goToStep}
                     />
                 );
@@ -423,7 +444,7 @@ const StudyCreationWizard = () => {
                                 </Button>
                                 <Button
                                     variant="danger"
-                                    onClick={() => navigate('/study-design/list')}
+                                    onClick={() => navigate('/study-design/studies')}
                                 >
                                     Exit Without Saving
                                 </Button>

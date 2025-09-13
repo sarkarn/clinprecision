@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDataGrid } from '../hooks/useDataGrid';
 import { useStudyVersioning } from '../hooks/useStudyVersioning';
+import StudyService from '../../../../services/StudyService';
 import {
     Search,
     Filter,
@@ -45,6 +46,11 @@ const StudyListGrid = ({
     const [showFilters, setShowFilters] = useState(false);
     const [selectedStudyForVersion, setSelectedStudyForVersion] = useState(null);
 
+    // Lookup data state for filters
+    const [studyPhases, setStudyPhases] = useState([]);
+    const [studyStatuses, setStudyStatuses] = useState([]);
+    const [loadingFilters, setLoadingFilters] = useState(true);
+
     // Study versioning hook
     const {
         createVersion,
@@ -65,79 +71,18 @@ const StudyListGrid = ({
 
     // Load studies data
     const loadStudies = useCallback(async () => {
+        console.log('Loading studies...');
         setLoading(true);
         try {
-            // This would be replaced with actual API call
-            const mockStudies = [
-                {
-                    id: 'STD-001',
-                    title: 'Phase III Oncology Trial - Advanced NSCLC',
-                    status: 'ACTIVE',
-                    version: '2.1',
-                    versionStatus: 'APPROVED',
-                    protocol: 'ONC-2024-001',
-                    phase: 'Phase III',
-                    indication: 'Non-Small Cell Lung Cancer',
-                    sponsor: 'Global Pharma Inc.',
-                    principalInvestigator: 'Dr. Sarah Johnson',
-                    sites: 25,
-                    plannedSubjects: 450,
-                    enrolledSubjects: 287,
-                    startDate: '2024-01-15',
-                    estimatedCompletion: '2026-03-30',
-                    lastModified: '2024-03-15T10:30:00Z',
-                    modifiedBy: 'Dr. Sarah Johnson',
-                    amendments: 3,
-                    tags: ['Oncology', 'Phase III', 'International']
-                },
-                {
-                    id: 'STD-002',
-                    title: 'Cardiovascular Prevention Study',
-                    status: 'RECRUITING',
-                    version: '1.0',
-                    versionStatus: 'ACTIVE',
-                    protocol: 'CARD-2024-002',
-                    phase: 'Phase II',
-                    indication: 'Cardiovascular Disease',
-                    sponsor: 'Heart Research Foundation',
-                    principalInvestigator: 'Dr. Michael Chen',
-                    sites: 12,
-                    plannedSubjects: 200,
-                    enrolledSubjects: 45,
-                    startDate: '2024-02-01',
-                    estimatedCompletion: '2025-12-31',
-                    lastModified: '2024-03-10T14:20:00Z',
-                    modifiedBy: 'Dr. Michael Chen',
-                    amendments: 1,
-                    tags: ['Cardiology', 'Phase II', 'Prevention']
-                },
-                {
-                    id: 'STD-003',
-                    title: 'Neurological Disorder Treatment Protocol',
-                    status: 'DRAFT',
-                    version: '0.5',
-                    versionStatus: 'UNDER_REVIEW',
-                    protocol: 'NEURO-2024-003',
-                    phase: 'Phase I',
-                    indication: 'Alzheimer\'s Disease',
-                    sponsor: 'Neuro Sciences Corp',
-                    principalInvestigator: 'Dr. Emily Rodriguez',
-                    sites: 8,
-                    plannedSubjects: 120,
-                    enrolledSubjects: 0,
-                    startDate: '2024-06-01',
-                    estimatedCompletion: '2025-06-30',
-                    lastModified: '2024-03-12T09:15:00Z',
-                    modifiedBy: 'Dr. Emily Rodriguez',
-                    amendments: 0,
-                    tags: ['Neurology', 'Phase I', 'Alzheimer\'s']
-                }
-            ];
-
-            setStudies(mockStudies);
-            dataGrid.updateData(mockStudies);
+            const studiesData = await StudyService.getStudies();
+            console.log('Studies loaded:', studiesData);
+            setStudies(studiesData);
+            dataGrid.updateData(studiesData);
         } catch (error) {
             console.error('Error loading studies:', error);
+            // If backend fails, fall back to empty array
+            setStudies([]);
+            dataGrid.updateData([]);
         } finally {
             setLoading(false);
         }
@@ -146,6 +91,52 @@ const StudyListGrid = ({
     useEffect(() => {
         loadStudies();
     }, [loadStudies]);
+
+    // Load lookup data for filters
+    useEffect(() => {
+        const fetchFilterData = async () => {
+            try {
+                setLoadingFilters(true);
+                const lookupData = await StudyService.getStudyLookupData();
+
+                // Transform data for filter dropdowns
+                const phaseOptions = lookupData.phases.map(phase => ({
+                    value: phase.displayName,
+                    label: phase.displayName
+                }));
+
+                const statusOptions = lookupData.statuses.map(status => ({
+                    value: status.displayName,
+                    label: status.displayName
+                }));
+
+                setStudyPhases(phaseOptions);
+                setStudyStatuses(statusOptions);
+            } catch (err) {
+                console.error('Error fetching filter data:', err);
+                // Fallback to default values if API fails
+                setStudyPhases([
+                    { value: 'Phase I', label: 'Phase I' },
+                    { value: 'Phase II', label: 'Phase II' },
+                    { value: 'Phase III', label: 'Phase III' },
+                    { value: 'Phase IV', label: 'Phase IV' }
+                ]);
+
+                setStudyStatuses([
+                    { value: 'ACTIVE', label: 'Active' },
+                    { value: 'RECRUITING', label: 'Recruiting' },
+                    { value: 'DRAFT', label: 'Draft' },
+                    { value: 'PAUSED', label: 'Paused' },
+                    { value: 'COMPLETED', label: 'Completed' },
+                    { value: 'CANCELLED', label: 'Cancelled' }
+                ]);
+            } finally {
+                setLoadingFilters(false);
+            }
+        };
+
+        fetchFilterData();
+    }, []);
 
     // Status badge component
     const StatusBadge = ({ status, versionStatus }) => {
@@ -273,7 +264,7 @@ const StudyListGrid = ({
     // Grid view component
     const GridView = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {dataGrid.items.map((study) => (
+            {dataGrid?.items && dataGrid.items.length > 0 ? dataGrid.items.map((study) => (
                 <div key={study.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
@@ -312,7 +303,7 @@ const StudyListGrid = ({
 
                     <div className="mt-4 pt-4 border-t border-gray-100">
                         <div className="flex flex-wrap gap-1">
-                            {study.tags.map((tag, index) => (
+                            {study.tags && study.tags.length > 0 && study.tags.map((tag, index) => (
                                 <span key={index} className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded">
                                     {tag}
                                 </span>
@@ -320,7 +311,13 @@ const StudyListGrid = ({
                         </div>
                     </div>
                 </div>
-            ))}
+            )) : (
+                <div className="col-span-full text-center py-12">
+                    <p className="text-gray-500">
+                        {loading ? 'Loading studies...' : 'No studies found.'}
+                    </p>
+                </div>
+            )}
         </div>
     );
 
@@ -400,7 +397,7 @@ const StudyListGrid = ({
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {dataGrid.items.map((study) => (
+                        {dataGrid?.items && dataGrid.items.length > 0 ? dataGrid.items.map((study) => (
                             <tr key={study.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <input
@@ -453,7 +450,13 @@ const StudyListGrid = ({
                                     <ActionMenu study={study} />
                                 </td>
                             </tr>
-                        ))}
+                        )) : (
+                            <tr>
+                                <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                                    {loading ? 'Loading studies...' : 'No studies found.'}
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -539,14 +542,14 @@ const StudyListGrid = ({
                                     value={dataGrid.filters.status || ''}
                                     onChange={(e) => dataGrid.handleFilterChange('status', e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    disabled={loadingFilters}
                                 >
-                                    <option value="">All Statuses</option>
-                                    <option value="ACTIVE">Active</option>
-                                    <option value="RECRUITING">Recruiting</option>
-                                    <option value="DRAFT">Draft</option>
-                                    <option value="PAUSED">Paused</option>
-                                    <option value="COMPLETED">Completed</option>
-                                    <option value="CANCELLED">Cancelled</option>
+                                    <option value="">{loadingFilters ? 'Loading...' : 'All Statuses'}</option>
+                                    {studyStatuses.map(status => (
+                                        <option key={status.value} value={status.value}>
+                                            {status.label}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -556,12 +559,14 @@ const StudyListGrid = ({
                                     value={dataGrid.filters.phase || ''}
                                     onChange={(e) => dataGrid.handleFilterChange('phase', e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    disabled={loadingFilters}
                                 >
-                                    <option value="">All Phases</option>
-                                    <option value="Phase I">Phase I</option>
-                                    <option value="Phase II">Phase II</option>
-                                    <option value="Phase III">Phase III</option>
-                                    <option value="Phase IV">Phase IV</option>
+                                    <option value="">{loadingFilters ? 'Loading...' : 'All Phases'}</option>
+                                    {studyPhases.map(phase => (
+                                        <option key={phase.value} value={phase.value}>
+                                            {phase.label}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 

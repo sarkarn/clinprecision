@@ -94,7 +94,7 @@ const StudyRegister = () => {
                 setLoading(false);
 
                 // Navigate to the study list or edit page after successful registration
-                navigate('/study-design/list');
+                navigate('/study-design/studies');
             } catch (apiError) {
                 console.error('API Error details:', apiError);
                 console.error('Error response:', apiError.response ? {
@@ -286,7 +286,7 @@ const StudyRegister = () => {
                 <div className="flex justify-end">
                     <button
                         type="button"
-                        onClick={() => navigate('/study-design/list')}
+                        onClick={() => navigate('/study-design/studies')}
                         className="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2"
                     >
                         Cancel

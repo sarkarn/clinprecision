@@ -196,20 +196,6 @@ public class GatewayRoutesConfig {
                     )
                     .uri("lb://study-design-ws")
                 )
-                // Study Design Service - Legacy routes
-                .route("study-design-ws-legacy", r -> r
-                    .path("/study-design-ws/**")
-                    .and()
-                    .method("GET","POST","PUT","DELETE","PATCH")
-                    .and()
-                    .header("Authorization", "Bearer (.*)")
-                    .filters(f -> f
-                            .removeRequestHeader("Cookie")
-                            .rewritePath("/study-design-ws/(?<segment>.*)", "/${segment}")
-                            .filter(authFilter)
-                    )
-                    .uri("lb://study-design-ws")
-                )
                 .build();
     }
 }

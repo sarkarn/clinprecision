@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 /**
  * Custom hook for managing study form state and validation
@@ -8,12 +8,12 @@ export const useStudyForm = (initialData = {}) => {
     // Basic Study Information
     name: '',
     protocolNumber: '',
-    phase: '',
+    studyPhaseId: '', // Changed from 'phase' to match backend expectation
     sponsor: '',
     description: '',
     
     // Timeline Information
-    status: 'draft',
+    studyStatusId: '', // Changed from 'status' to match backend expectation
     startDate: '',
     endDate: '',
     estimatedDuration: '',
@@ -32,7 +32,7 @@ export const useStudyForm = (initialData = {}) => {
     secondaryObjectives: [],
     
     // Regulatory Information
-    regulatoryStatus: '',
+    regulatoryStatusId: '', // Changed from 'regulatoryStatus' to match backend expectation
     ethicsApproval: false,
     fdaInd: false,
     
@@ -55,9 +55,17 @@ export const useStudyForm = (initialData = {}) => {
       pattern: /^[A-Z0-9-]+$/,
       message: 'Protocol number must contain only uppercase letters, numbers, and hyphens'
     },
-    phase: {
+    studyPhaseId: {
       required: true,
       message: 'Study phase is required'
+    },
+    studyStatusId: {
+      required: true,
+      message: 'Study status is required'
+    },
+    regulatoryStatusId: {
+      required: false,
+      message: 'Regulatory status is required'
     },
     sponsor: {
       required: true,
@@ -191,10 +199,10 @@ export const useStudyForm = (initialData = {}) => {
     setFormData({
       name: '',
       protocolNumber: '',
-      phase: '',
+      studyPhaseId: '',
       sponsor: '',
       description: '',
-      status: 'draft',
+      studyStatusId: '',
       startDate: '',
       endDate: '',
       estimatedDuration: '',
@@ -205,7 +213,7 @@ export const useStudyForm = (initialData = {}) => {
       studyType: 'interventional',
       primaryObjective: '',
       secondaryObjectives: [],
-      regulatoryStatus: '',
+      regulatoryStatusId: '',
       ethicsApproval: false,
       fdaInd: false,
       ...initialData
@@ -214,8 +222,31 @@ export const useStudyForm = (initialData = {}) => {
     setTouched({});
   }, [initialData]);
 
-  // Check if form is valid
-  const isValid = Object.keys(errors).length === 0;
+  // Check if form is valid (validate all required fields, not just touched ones)
+  const isValid = useMemo(() => {
+    const validationErrors = {};
+    Object.keys(validationRules).forEach(fieldName => {
+      const rule = validationRules[fieldName];
+      const value = formData[fieldName];
+      
+      // Check required fields regardless of touched status
+      if (rule.required && (!value || value.toString().trim() === '')) {
+        validationErrors[fieldName] = rule.message || `${fieldName} is required`;
+        return;
+      }
+      
+      // Skip other validations if field is empty and not required
+      if (!value) return;
+      
+      // Run other validations
+      const error = validateField(fieldName, value, formData);
+      if (error) {
+        validationErrors[fieldName] = error;
+      }
+    });
+    
+    return Object.keys(validationErrors).length === 0;
+  }, [formData, validationRules, validateField]);
 
   // Check if form has been modified
   const isDirty = Object.keys(touched).length > 0;

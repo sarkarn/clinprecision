@@ -54,11 +54,6 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<OrganizationEntity> getOrganizationsByTypeId(Long orgTypeId) {
-        return organizationRepository.findByOrganizationType_Id(orgTypeId);
-    }
-
-    @Override
     @Transactional
     public OrganizationEntity createOrganization(OrganizationEntity organization) {
         return organizationRepository.save(organization);
@@ -72,7 +67,6 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         // Update organization details
         organization.setName(organizationDetails.getName());
-        organization.setOrganizationType(organizationDetails.getOrganizationType());
         organization.setExternalId(organizationDetails.getExternalId());
         organization.setAddressLine1(organizationDetails.getAddressLine1());
         organization.setAddressLine2(organizationDetails.getAddressLine2());

@@ -7,12 +7,31 @@ import { Alert } from '../../components/UIComponents';
 const ReviewConfirmationStep = ({
     formData,
     availableOrganizations = [],
+    lookupData = { studyPhases: [], studyStatuses: [], regulatoryStatuses: [] },
     onEdit
 }) => {
     // Helper function to get organization name by ID
     const getOrganizationName = (orgId) => {
         const org = availableOrganizations.find(o => o.id === orgId);
         return org?.name || 'Unknown Organization';
+    };
+
+    // Helper function to get study phase name by ID
+    const getStudyPhaseName = (phaseId) => {
+        const phase = lookupData.studyPhases.find(p => p.id === parseInt(phaseId));
+        return phase?.name || phase?.label || 'Unknown Phase';
+    };
+
+    // Helper function to get study status name by ID
+    const getStudyStatusName = (statusId) => {
+        const status = lookupData.studyStatuses.find(s => s.id === parseInt(statusId));
+        return status?.name || status?.label || 'Unknown Status';
+    };
+
+    // Helper function to get regulatory status name by ID
+    const getRegulatoryStatusName = (statusId) => {
+        const status = lookupData.regulatoryStatuses.find(s => s.id === parseInt(statusId));
+        return status?.name || status?.label || 'Unknown Status';
     };
 
     // Helper function to format role display
@@ -45,7 +64,7 @@ const ReviewConfirmationStep = ({
 
         if (!formData.name) issues.push('Study name is required');
         if (!formData.protocolNumber) issues.push('Protocol number is required');
-        if (!formData.phase) issues.push('Study phase is required');
+        if (!formData.studyPhaseId) issues.push('Study phase is required');
         if (!formData.sponsor) issues.push('Sponsor is required');
         if (!formData.principalInvestigator) issues.push('Principal Investigator is required');
 
@@ -102,7 +121,7 @@ const ReviewConfirmationStep = ({
                     </div>
                     <div>
                         <span className="font-medium text-gray-700">Phase:</span>
-                        <p className="text-gray-900">{formData.phase || 'Not specified'}</p>
+                        <p className="text-gray-900">{formData.studyPhaseId ? getStudyPhaseName(formData.studyPhaseId) : 'Not specified'}</p>
                     </div>
                     <div>
                         <span className="font-medium text-gray-700">Study Type:</span>
@@ -110,7 +129,7 @@ const ReviewConfirmationStep = ({
                     </div>
                     <div>
                         <span className="font-medium text-gray-700">Status:</span>
-                        <p className="text-gray-900 capitalize">{formData.status || 'Not specified'}</p>
+                        <p className="text-gray-900 capitalize">{formData.studyStatusId ? getStudyStatusName(formData.studyStatusId) : 'Not specified'}</p>
                     </div>
                     <div>
                         <span className="font-medium text-gray-700">Sponsor:</span>
@@ -214,7 +233,7 @@ const ReviewConfirmationStep = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <span className="font-medium text-gray-700">Regulatory Status:</span>
-                            <p className="text-gray-900">{formData.regulatoryStatus || 'Not specified'}</p>
+                            <p className="text-gray-900">{formData.regulatoryStatusId ? getRegulatoryStatusName(formData.regulatoryStatusId) : 'Not specified'}</p>
                         </div>
                         <div>
                             <span className="font-medium text-gray-700">Ethics Approval Required:</span>
