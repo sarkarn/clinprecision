@@ -7,7 +7,7 @@ export const RoleService = {
    */
   getAllRoles: async () => {
     try {
-      const response = await ApiService.get('/users-ws/roles');
+      const response = await ApiService.get('/admin-ws/roles');
       return response.data;
     } catch (error) {
       console.error('Error fetching roles:', error);

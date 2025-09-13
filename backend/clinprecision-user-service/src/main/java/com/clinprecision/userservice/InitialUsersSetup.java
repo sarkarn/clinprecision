@@ -1,9 +1,11 @@
 package com.clinprecision.userservice;
 
+import com.clinprecision.common.entity.AuthorityEntity;
+import com.clinprecision.common.entity.RoleEntity;
+import com.clinprecision.common.entity.UserEntity;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -14,13 +16,10 @@ import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import com.clinprecision.userservice.data.AuthorityEntity;
-import com.clinprecision.userservice.data.AuthorityRepository;
-import com.clinprecision.userservice.data.RoleEntity;
-import com.clinprecision.userservice.data.RoleRepository;
-import com.clinprecision.userservice.data.UserEntity;
-import com.clinprecision.userservice.data.UsersRepository;
-import com.clinprecision.userservice.shared.Roles;
+import com.clinprecision.userservice.repository.AuthorityRepository;
+import com.clinprecision.userservice.repository.RoleRepository;
+import com.clinprecision.userservice.repository.UsersRepository;
+import com.clinprecision.userservice.ui.model.Roles;
 
 import jakarta.transaction.Transactional;
 

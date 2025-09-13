@@ -7,6 +7,8 @@ import UserForm from "./UserForm";
 import OrganizationList from "./OrganizationList";
 import OrganizationForm from "./OrganizationForm";
 import OrganizationDetail from "./OrganizationDetail";
+import FormTemplateList from "./FormTemplateList";
+import FormTemplateForm from "./FormTemplateForm";
 import { useAuth } from "../../login/AuthContext";
 import { Navigate } from "react-router-dom";
 
@@ -36,6 +38,9 @@ export default function UserManagementModule() {
                 <Route path="organizations/create" element={<OrganizationForm />} />
                 <Route path="organizations/edit/:id" element={<OrganizationForm />} />
                 <Route path="organizations/view/:id" element={<OrganizationDetail />} />
+                <Route path="form-templates" element={<FormTemplateList />} />
+                <Route path="form-templates/create" element={<FormTemplateForm />} />
+                <Route path="form-templates/edit/:id" element={<FormTemplateForm />} />
             </Routes>
         </div>
     );

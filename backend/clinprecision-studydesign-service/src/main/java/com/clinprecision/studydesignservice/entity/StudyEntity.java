@@ -112,6 +112,11 @@ public class StudyEntity {
     @JsonManagedReference
     private List<OrganizationStudyEntity> organizationStudies = new ArrayList<>();
     
+    // One-to-many relationship with form definitions
+    @OneToMany(mappedBy = "study", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonManagedReference("study-forms")
+    private List<FormDefinitionEntity> formDefinitions = new ArrayList<>();
+    
     // Lifecycle callbacks
     @PrePersist
     protected void onCreate() {
@@ -382,6 +387,14 @@ public class StudyEntity {
         this.organizationStudies = organizationStudies;
     }
     
+    public List<FormDefinitionEntity> getFormDefinitions() {
+        return formDefinitions;
+    }
+    
+    public void setFormDefinitions(List<FormDefinitionEntity> formDefinitions) {
+        this.formDefinitions = formDefinitions;
+    }
+    
     // Helper method to add organization study
     public void addOrganizationStudy(OrganizationStudyEntity organizationStudy) {
         organizationStudies.add(organizationStudy);
@@ -392,5 +405,17 @@ public class StudyEntity {
     public void removeOrganizationStudy(OrganizationStudyEntity organizationStudy) {
         organizationStudies.remove(organizationStudy);
         organizationStudy.setStudy(null);
+    }
+    
+    // Helper method to add form definition
+    public void addFormDefinition(FormDefinitionEntity formDefinition) {
+        formDefinitions.add(formDefinition);
+        formDefinition.setStudy(this);
+    }
+    
+    // Helper method to remove form definition
+    public void removeFormDefinition(FormDefinitionEntity formDefinition) {
+        formDefinitions.remove(formDefinition);
+        formDefinition.setStudy(null);
     }
 }
