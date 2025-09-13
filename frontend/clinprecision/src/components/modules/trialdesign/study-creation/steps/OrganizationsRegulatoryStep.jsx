@@ -48,12 +48,17 @@ const OrganizationsRegulatoryStep = ({
                 setLoadingLookups(true);
                 const statuses = await StudyService.getRegulatoryStatuses();
 
+                // Debug logging to understand the data structure
+                console.log('Received regulatory statuses:', statuses);
+
                 // Transform to options format
-                const statusOptions = statuses.map(status => ({
+                const statusOptions = (statuses || []).map(status => ({
                     value: status.id, // Use ID as value for backend
-                    label: status.name, // Use 'name' field from backend DTO
-                    description: status.description
-                }));
+                    label: status.name || status.label || `Status ${status.id}`, // Use 'name' field primarily, fallback to 'label' or ID
+                    description: status.description || ''
+                })).filter(option => option.value != null && option.label);
+
+                console.log('Transformed regulatory status options:', statusOptions);
 
                 setRegulatoryStatuses(statusOptions);
                 setLookupError(null);
@@ -278,12 +283,17 @@ const OrganizationsRegulatoryStep = ({
                         </label>
                         <select
                             value={formData.regulatoryStatusId || ''}
-                            onChange={(e) => onFieldChange('regulatoryStatusId', e.target.value)}
+                            onChange={(e) => {
+                                // Convert to number if it's a valid number, otherwise keep as string
+                                const value = e.target.value;
+                                const numValue = !isNaN(value) && value !== '' ? Number(value) : value;
+                                onFieldChange('regulatoryStatusId', numValue);
+                            }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             disabled={loadingLookups}
                         >
                             <option value="">{loadingLookups ? "Loading..." : "Select Status"}</option>
-                            {regulatoryStatuses.map(option => (
+                            {regulatoryStatuses.filter(option => option && option.value && option.label).map(option => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}
                                 </option>

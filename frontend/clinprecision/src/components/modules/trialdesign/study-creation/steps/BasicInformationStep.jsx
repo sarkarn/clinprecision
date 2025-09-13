@@ -10,19 +10,32 @@ const BasicInformationStep = ({
     formData,
     onFieldChange,
     getFieldError,
-    hasFieldError
+    hasFieldError,
+    lookupData = { studyPhases: [], studyStatuses: [], regulatoryStatuses: [] }
 }) => {
     const [organizations, setOrganizations] = useState([]);
     const [loadingOrganizations, setLoadingOrganizations] = useState(true);
     const [organizationError, setOrganizationError] = useState(null);
     const [showManualSponsor, setShowManualSponsor] = useState(false);
 
-    // Lookup data state
-    const [studyPhases, setStudyPhases] = useState([]);
-    const [studyStatuses, setStudyStatuses] = useState([]);
-    const [regulatoryStatuses, setRegulatoryStatuses] = useState([]);
-    const [loadingLookups, setLoadingLookups] = useState(true);
-    const [lookupError, setLookupError] = useState(null);
+    // Transform lookup data to options format
+    const studyPhases = (lookupData.studyPhases || []).map(phase => ({
+        value: phase.id, // Use ID as value for backend
+        label: phase.label || phase.name || `Phase ${phase.id}`, // Handle both 'label' and 'name' fields with fallback
+        description: phase.description || ''
+    })).filter(option => option.value != null && option.label);
+
+    const studyStatuses = (lookupData.studyStatuses || []).map(status => ({
+        value: status.id, // Use ID as value for backend
+        label: status.label || status.name || `Status ${status.id}`, // Handle both 'label' and 'name' fields with fallback
+        description: status.description || ''
+    })).filter(option => option.value != null && option.label);
+
+    const regulatoryStatuses = (lookupData.regulatoryStatuses || []).map(regStatus => ({
+        value: regStatus.id, // Use ID as value for backend
+        label: regStatus.label || regStatus.name || `Regulatory ${regStatus.id}`, // Handle both 'label' and 'name' fields with fallback
+        description: regStatus.description || ''
+    })).filter(option => option.value != null && option.label);
 
     // Handle sponsor selection change
     const handleSponsorChange = (fieldName, value) => {
@@ -70,73 +83,18 @@ const BasicInformationStep = ({
         fetchOrganizations();
     }, []);
 
-    // Load lookup data for dropdowns
-    useEffect(() => {
-        const fetchLookupData = async () => {
-            try {
-                setLoadingLookups(true);
-                const lookupData = await StudyService.getStudyLookupData();
-
-                // Transform phase data to options format
-                const phaseOptions = lookupData.studyPhases.map(phase => ({
-                    value: phase.id, // Use ID as value for backend
-                    label: phase.label, // Use already transformed 'label' field
-                    description: phase.description
-                }));
-
-                // Transform status data to options format
-                const statusOptions = lookupData.studyStatuses.map(status => ({
-                    value: status.id, // Use ID as value for backend
-                    label: status.label, // Use already transformed 'label' field
-                    description: status.description
-                }));
-
-                // Transform regulatory status data to options format
-                const regulatoryOptions = lookupData.regulatoryStatuses.map(regStatus => ({
-                    value: regStatus.id, // Use ID as value for backend
-                    label: regStatus.label, // Use already transformed 'label' field
-                    description: regStatus.description
-                }));
-
-                setStudyPhases(phaseOptions);
-                setStudyStatuses(statusOptions);
-                setRegulatoryStatuses(regulatoryOptions);
-                setLookupError(null);
-            } catch (err) {
-                console.error('Error fetching lookup data:', err);
-                setLookupError('Failed to load dropdown options. Using fallback values.');
-
-                // Fallback to default values if API fails
-                setStudyPhases([
-                    { value: 1, label: 'Phase I' },
-                    { value: 2, label: 'Phase II' },
-                    { value: 3, label: 'Phase III' },
-                    { value: 4, label: 'Phase IV' }
-                ]);
-
-                setStudyStatuses([
-                    { value: 1, label: 'Draft' },
-                    { value: 2, label: 'In Review' },
-                    { value: 3, label: 'Active' }
-                ]);
-
-                setRegulatoryStatuses([
-                    { value: 1, label: 'Pre-IND' },
-                    { value: 2, label: 'IND Submitted' },
-                    { value: 3, label: 'IND Approved' }
-                ]);
-            } finally {
-                setLoadingLookups(false);
-            }
-        };
-
-        fetchLookupData();
-    }, []);
     const studyTypeOptions = [
         { value: 'interventional', label: 'Interventional' },
         { value: 'observational', label: 'Observational' },
         { value: 'expanded-access', label: 'Expanded Access' }
     ];
+
+    // Debug current form data (will help diagnose validation issues)
+    console.log('BasicInformationStep - Current form data:', {
+        studyPhaseId: formData.studyPhaseId,
+        studyPhaseIdType: typeof formData.studyPhaseId,
+        availablePhases: studyPhases.map(p => ({ value: p.value, valueType: typeof p.value, label: p.label }))
+    });
 
     return (
         <div className="space-y-6">
@@ -181,14 +139,18 @@ const BasicInformationStep = ({
                     label="Study Phase"
                     name="studyPhaseId"
                     type="select"
-                    value={formData.studyPhaseId}
-                    onChange={onFieldChange}
-                    error={getFieldError('studyPhaseId') || lookupError}
+                    value={formData.studyPhaseId || ''}
+                    onChange={(fieldName, value) => {
+                        // Convert to number if it's a valid number, otherwise keep as string
+                        const numValue = !isNaN(value) && value !== '' ? Number(value) : value;
+                        onFieldChange(fieldName, numValue);
+                    }}
+                    error={getFieldError('studyPhaseId')}
                     touched={hasFieldError('studyPhaseId')}
                     required
-                    options={studyPhases}
-                    placeholder={loadingLookups ? "Loading phases..." : "Select study phase"}
-                    disabled={loadingLookups}
+                    options={studyPhases.filter(option => option && option.value && option.label)}
+                    placeholder="Select study phase"
+                    disabled={false}
                 />
 
                 {/* Study Type */}
@@ -211,11 +173,11 @@ const BasicInformationStep = ({
                     type="select"
                     value={formData.studyStatusId}
                     onChange={onFieldChange}
-                    error={getFieldError('studyStatusId') || lookupError}
+                    error={getFieldError('studyStatusId')}
                     touched={hasFieldError('studyStatusId')}
                     options={studyStatuses}
-                    placeholder={loadingLookups ? "Loading statuses..." : "Select current status"}
-                    disabled={loadingLookups}
+                    placeholder="Select current status"
+                    disabled={false}
                     helpText="Current stage of the study lifecycle"
                 />
 
@@ -265,15 +227,6 @@ const BasicInformationStep = ({
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                             Loading organizations...
-                        </div>
-                    )}
-                    {loadingLookups && (
-                        <div className="mt-1 flex items-center text-sm text-gray-500">
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Loading form options...
                         </div>
                     )}
                 </div>

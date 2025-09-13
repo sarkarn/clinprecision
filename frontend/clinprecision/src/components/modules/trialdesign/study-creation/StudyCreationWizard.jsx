@@ -51,6 +51,11 @@ const StudyCreationWizard = () => {
 
     // Component state
     const [availableOrganizations, setAvailableOrganizations] = useState([]);
+    const [lookupData, setLookupData] = useState({
+        studyPhases: [],
+        studyStatuses: [],
+        regulatoryStatuses: []
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState(null);
     const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -83,19 +88,33 @@ const StudyCreationWizard = () => {
         }
     ];
 
-    // Load organizations on component mount
+    // Load organizations and lookup data on component mount
     useEffect(() => {
-        const fetchOrganizations = async () => {
+        const fetchData = async () => {
             try {
+                // Fetch organizations
                 const orgs = await OrganizationService.getAllOrganizations();
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
+
+                // Fetch lookup data
+                const lookups = await StudyService.getStudyLookupData();
+                setLookupData({
+                    studyPhases: Array.isArray(lookups.studyPhases) ? lookups.studyPhases : [],
+                    studyStatuses: Array.isArray(lookups.studyStatuses) ? lookups.studyStatuses : [],
+                    regulatoryStatuses: Array.isArray(lookups.regulatoryStatuses) ? lookups.regulatoryStatuses : []
+                });
             } catch (err) {
-                console.error('Error fetching organizations:', err);
+                console.error('Error fetching data:', err);
                 setAvailableOrganizations([]);
+                setLookupData({
+                    studyPhases: [],
+                    studyStatuses: [],
+                    regulatoryStatuses: []
+                });
             }
         };
 
-        fetchOrganizations();
+        fetchData();
     }, []);
 
     // Validate current step
@@ -263,6 +282,7 @@ const StudyCreationWizard = () => {
                         onFieldChange={updateField}
                         getFieldError={getFieldError}
                         hasFieldError={hasFieldError}
+                        lookupData={lookupData}
                     />
                 );
             case 1:
@@ -288,6 +308,7 @@ const StudyCreationWizard = () => {
                     <ReviewConfirmationStep
                         formData={formData}
                         availableOrganizations={availableOrganizations}
+                        lookupData={lookupData}
                         onEdit={goToStep}
                     />
                 );

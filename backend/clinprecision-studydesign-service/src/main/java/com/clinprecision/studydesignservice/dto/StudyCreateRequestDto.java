@@ -29,10 +29,7 @@ public class StudyCreateRequestDto {
     private Long studyStatusId;
     private Long regulatoryStatusId;
     
-    // Legacy field for backward compatibility (can be removed after frontend migration)
-    @Deprecated
-    @NotBlank(message = "Phase is required")
-    private String phase;
+
     
     @Size(max = 255, message = "Sponsor name cannot exceed 255 characters")
     private String sponsor;
@@ -92,14 +89,6 @@ public class StudyCreateRequestDto {
     
     public void setProtocolNumber(String protocolNumber) {
         this.protocolNumber = protocolNumber;
-    }
-    
-    public String getPhase() {
-        return phase;
-    }
-    
-    public void setPhase(String phase) {
-        this.phase = phase;
     }
     
     public Long getStudyPhaseId() {

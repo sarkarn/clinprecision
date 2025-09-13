@@ -12,76 +12,73 @@ import java.util.Set;
 @Entity
 @Table(name = "organizations")
 public class OrganizationEntity {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "external_id")
     private String externalId;
-    
+
     @Column(name = "address_line1")
     private String addressLine1;
-    
+
     @Column(name = "address_line2")
     private String addressLine2;
-    
+
     @Column(name = "city")
     private String city;
-    
+
     @Column(name = "state")
     private String state;
-    
+
     @Column(name = "postal_code")
     private String postalCode;
-    
+
     @Column(name = "country")
     private String country;
-    
+
     @Column(name = "phone")
     private String phone;
-    
+
     @Column(name = "email")
     private String email;
-    
+
     @Column(name = "website")
     private String website;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private OrganizationStatus status = OrganizationStatus.active;
-    
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-    
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
+
     @OneToMany(mappedBy = "organization")
     private Set<UserEntity> users = new HashSet<>();
-    
+
     @OneToMany(mappedBy = "organization")
     private Set<SiteEntity> sites = new HashSet<>();
-    
+
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<OrganizationContactEntity> contacts = new HashSet<>();
-    
-    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<OrganizationStudyEntity> studies = new HashSet<>();
-    
+
     public enum OrganizationStatus {
         active, inactive, suspended
     }
-    
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
-    
+
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
@@ -231,11 +228,4 @@ public class OrganizationEntity {
         this.contacts = contacts;
     }
 
-    public Set<OrganizationStudyEntity> getStudies() {
-        return studies;
-    }
-
-    public void setStudies(Set<OrganizationStudyEntity> studies) {
-        this.studies = studies;
-    }
 }
