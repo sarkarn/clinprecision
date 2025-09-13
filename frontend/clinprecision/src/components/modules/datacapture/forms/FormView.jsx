@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getFormDefinition, getFormData } from '../../../../services/DataEntryService';
 
@@ -8,7 +8,7 @@ export default function FormView() {
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     const fetchFormData = async () => {
       setLoading(true);
@@ -16,7 +16,7 @@ export default function FormView() {
         // Get the form definition (fields, metadata, etc.)
         const definition = await getFormDefinition(formId);
         setFormDefinition(definition);
-        
+
         // Get form data
         const data = await getFormData(subjectId, visitId, formId);
         setFormData(data || {});
@@ -26,55 +26,55 @@ export default function FormView() {
         setLoading(false);
       }
     };
-    
+
     fetchFormData();
   }, [subjectId, visitId, formId]);
-  
+
   const renderFieldValue = (field) => {
     const value = formData[field.id];
-    
+
     if (value === undefined || value === null || value === '') {
       return <span className="text-gray-400">Not provided</span>;
     }
-    
+
     switch (field.type) {
       case 'text':
       case 'textarea':
         return <p>{value}</p>;
-        
+
       case 'number':
         return (
           <p>
             {value} {field.metadata?.units && <span className="text-gray-500">{field.metadata.units}</span>}
           </p>
         );
-        
+
       case 'date':
         return <p>{new Date(value).toLocaleDateString()}</p>;
-        
+
       case 'time':
         return <p>{value}</p>;
-        
+
       case 'radio':
         const radioOption = field.metadata?.options?.find(opt => opt.value === value);
         return <p>{radioOption?.label || value}</p>;
-        
+
       case 'checkbox':
         return <p>{value === true ? 'Yes' : 'No'}</p>;
-        
+
       case 'select':
         const selectOption = field.metadata?.options?.find(opt => opt.value === value);
         return <p>{selectOption?.label || value}</p>;
-        
+
       case 'multiselect':
         if (!Array.isArray(value) || value.length === 0) {
           return <span className="text-gray-400">None selected</span>;
         }
-        
+
         const selectedOptions = field.metadata?.options
           ?.filter(opt => value.includes(opt.value))
           .map(opt => opt.label);
-          
+
         return (
           <ul className="list-disc list-inside">
             {selectedOptions?.map((label, i) => (
@@ -82,12 +82,12 @@ export default function FormView() {
             ))}
           </ul>
         );
-        
+
       default:
         return <p>{String(value)}</p>;
     }
   };
-  
+
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -99,7 +99,7 @@ export default function FormView() {
       </div>
     );
   }
-  
+
   if (!formDefinition) {
     return (
       <div className="text-center py-8 bg-gray-50 border border-gray-200 rounded-md">
@@ -113,7 +113,7 @@ export default function FormView() {
       </div>
     );
   }
-  
+
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <div className="mb-6">
@@ -137,7 +137,7 @@ export default function FormView() {
           </p>
         )}
       </div>
-      
+
       <div className="space-y-6 mb-8">
         {formDefinition.fields.map((field, index) => (
           <div key={field.id || index} className="bg-gray-50 p-4 rounded">
@@ -154,7 +154,7 @@ export default function FormView() {
           </div>
         ))}
       </div>
-      
+
       <div className="flex justify-end space-x-2 mt-4">
         <button
           onClick={() => navigate(`/datacapture-management/subjects/${subjectId}/visits/${visitId}`)}

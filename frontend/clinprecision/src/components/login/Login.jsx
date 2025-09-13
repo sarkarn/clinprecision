@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
 import LoginService from "../../services/LoginService";
 
 export default function Login() {
@@ -59,10 +58,10 @@ export default function Login() {
             <header className="bg-white shadow flex justify-between items-center px-8 py-4">
                 <div className="flex items-center space-x-6">
                     <h1 className="text-xl font-bold text-blue-600">ClinicalConnect</h1>
-                    <Link to="/" className="text-gray-700 hover:text-blue-600">Solutions</Link>
-                    <Link to="/" className="text-gray-700 hover:text-blue-600">Resources</Link>
-                    <Link to="/about" className="text-gray-700 hover:text-blue-600">About</Link>
-                    <Link to="/help" className="text-gray-700 hover:text-blue-600">Contact Us</Link>
+                    <span className="text-gray-700">Solutions</span>
+                    <span className="text-gray-700">Resources</span>
+                    <span className="text-gray-700">About</span>
+                    <span className="text-gray-700">Contact Us</span>
                 </div>
             </header>
             <div className="max-w-md mx-auto mt-12 p-8 bg-white shadow rounded">

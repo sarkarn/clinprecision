@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import StudyRegister from './StudyRegister';
 import StudyCreationWizard from './study-creation/StudyCreationWizard';
@@ -7,7 +7,6 @@ import StudyListGrid from './study-management/StudyListGrid';
 import StudyOverviewDashboard from './study-management/StudyOverviewDashboard';
 import VersionManagementModal from './study-management/VersionManagementModal';
 import StudyDesignDashboard from './study-design/StudyDesignDashboard';
-import StudyEditPage from './StudyEditPage';
 import StudyViewPage from './StudyViewPage';
 import FormList from './FormList';
 import FormDesigner from './FormDesigner';
@@ -68,7 +67,7 @@ const Breadcrumb = () => {
         }
 
         return (
-          <React.Fragment key={index}>
+          <div key={index}>
             <span className="mx-2">/</span>
             {index === relevantPathnames.length - 1 ? (
               <span className="font-medium text-blue-600">{displayName}</span>
@@ -80,7 +79,7 @@ const Breadcrumb = () => {
                 {displayName}
               </span>
             )}
-          </React.Fragment>
+          </div>
         );
       })}
     </div>
@@ -160,8 +159,8 @@ const StudyDesignModule = () => {
               onClick={refreshMetrics}
               disabled={loading}
               className={`inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium ${loading
-                  ? 'text-gray-400 cursor-not-allowed bg-gray-50'
-                  : 'text-gray-700 bg-white hover:bg-gray-50'
+                ? 'text-gray-400 cursor-not-allowed bg-gray-50'
+                : 'text-gray-700 bg-white hover:bg-gray-50'
                 }`}
               title="Refresh metrics"
             >

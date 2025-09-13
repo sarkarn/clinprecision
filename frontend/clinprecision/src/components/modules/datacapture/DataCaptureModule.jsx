@@ -1,5 +1,4 @@
 // DataCaptureModule.jsx
-import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import SubjectList from './SubjectList';
 import SubjectEnrollment from './SubjectEnrollment';
