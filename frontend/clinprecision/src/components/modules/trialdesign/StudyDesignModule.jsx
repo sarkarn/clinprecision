@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import StudyRegister from './StudyRegister';
 import StudyCreationWizard from './study-creation/StudyCreationWizard';
+import StudyEditWizard from './study-creation/StudyEditWizard';
 import StudyListGrid from './study-management/StudyListGrid';
 import StudyOverviewDashboard from './study-management/StudyOverviewDashboard';
 import VersionManagementModal from './study-management/VersionManagementModal';
@@ -270,7 +271,7 @@ const StudyDesignModule = () => {
 
           {/* Legacy routes for backward compatibility */}
           <Route path="register" element={<StudyRegister />} />
-          <Route path="edit/:studyId" element={<StudyEditPage />} />
+          <Route path="edit/:studyId" element={<StudyEditWizard />} />
           <Route path="view/:studyId" element={<StudyViewPage />} />
 
           {/* Form Management Routes */}

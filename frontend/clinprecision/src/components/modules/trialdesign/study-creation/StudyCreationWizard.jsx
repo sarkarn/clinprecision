@@ -221,9 +221,9 @@ const StudyCreationWizard = () => {
                     metadata.studyType = apiData.studyType;
                     delete apiData.studyType;
                 }
-                if (apiData.regulatoryStatus) {
-                    metadata.regulatoryStatus = apiData.regulatoryStatus;
-                    delete apiData.regulatoryStatus;
+                if (apiData.regulatoryStatusId) {
+                    metadata.regulatoryStatusId = apiData.regulatoryStatusId;
+                    delete apiData.regulatoryStatusId;
                 }
                 if (typeof apiData.ethicsApproval !== 'undefined') {
                     metadata.ethicsApproval = apiData.ethicsApproval;

@@ -10,15 +10,16 @@ const OrganizationsRegulatoryStep = ({
     formData,
     onFieldChange,
     getFieldError,
-    hasFieldError
+    hasFieldError,
+    lookupData = { regulatoryStatuses: [] } // Add lookupData prop with default
 }) => {
     const [availableOrganizations, setAvailableOrganizations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Lookup data state
+    // Use regulatory statuses from lookupData prop if available, otherwise load independently
     const [regulatoryStatuses, setRegulatoryStatuses] = useState([]);
-    const [loadingLookups, setLoadingLookups] = useState(true);
+    const [loadingLookups, setLoadingLookups] = useState(!lookupData.regulatoryStatuses?.length);
     const [lookupError, setLookupError] = useState(null);
 
     // Load available organizations
@@ -41,15 +42,26 @@ const OrganizationsRegulatoryStep = ({
         fetchOrganizations();
     }, []);
 
-    // Load regulatory status lookup data
+    // Load regulatory status lookup data (use prop data if available, otherwise fetch)
     useEffect(() => {
-        const fetchRegulatoryStatuses = async () => {
+        const processRegulatoryStatuses = async () => {
             try {
                 setLoadingLookups(true);
-                const statuses = await StudyService.getRegulatoryStatuses();
+
+                let statuses = [];
+
+                // Use lookupData prop if available
+                if (lookupData.regulatoryStatuses && lookupData.regulatoryStatuses.length > 0) {
+                    console.log('Using regulatory statuses from lookupData prop:', lookupData.regulatoryStatuses);
+                    statuses = lookupData.regulatoryStatuses;
+                } else {
+                    // Fallback to independent loading if no prop data
+                    console.log('Loading regulatory statuses independently...');
+                    statuses = await StudyService.getRegulatoryStatuses();
+                }
 
                 // Debug logging to understand the data structure
-                console.log('Received regulatory statuses:', statuses);
+                console.log('Processing regulatory statuses:', statuses);
 
                 // Transform to options format
                 const statusOptions = (statuses || []).map(status => ({
@@ -63,10 +75,10 @@ const OrganizationsRegulatoryStep = ({
                 setRegulatoryStatuses(statusOptions);
                 setLookupError(null);
             } catch (err) {
-                console.error('Error fetching regulatory statuses:', err);
+                console.error('Error processing regulatory statuses:', err);
                 setLookupError('Failed to load regulatory statuses. Using fallback values.');
 
-                // Fallback to default values if API fails
+                // Fallback to default values if everything fails
                 setRegulatoryStatuses([
                     { value: 1, label: 'Pre-IND' },
                     { value: 2, label: 'IND Submitted' },
@@ -81,8 +93,8 @@ const OrganizationsRegulatoryStep = ({
             }
         };
 
-        fetchRegulatoryStatuses();
-    }, []);
+        processRegulatoryStatuses();
+    }, [lookupData.regulatoryStatuses]); // Re-run when lookupData changes
 
     const roleOptions = [
         { value: 'sponsor', label: 'Sponsor' },
@@ -281,12 +293,25 @@ const OrganizationsRegulatoryStep = ({
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Regulatory Status
                         </label>
+                        {/* Debug logging */}
+                        {console.log('=== REGULATORY STATUS DEBUG ===', {
+                            formDataRegulatoryStatusId: formData.regulatoryStatusId,
+                            formDataType: typeof formData.regulatoryStatusId,
+                            availableOptions: regulatoryStatuses.map(opt => ({
+                                value: opt.value,
+                                valueType: typeof opt.value,
+                                label: opt.label
+                            })),
+                            matchingOption: regulatoryStatuses.find(opt => opt.value == formData.regulatoryStatusId),
+                            strictMatchingOption: regulatoryStatuses.find(opt => opt.value === formData.regulatoryStatusId)
+                        })}
                         <select
                             value={formData.regulatoryStatusId || ''}
                             onChange={(e) => {
                                 // Convert to number if it's a valid number, otherwise keep as string
                                 const value = e.target.value;
                                 const numValue = !isNaN(value) && value !== '' ? Number(value) : value;
+                                console.log('Regulatory status changed:', { originalValue: value, numValue, formDataBefore: formData.regulatoryStatusId });
                                 onFieldChange('regulatoryStatusId', numValue);
                             }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

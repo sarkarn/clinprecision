@@ -21,8 +21,6 @@ public class StudyUpdateRequestDto {
     @Size(max = 100, message = "Protocol number cannot exceed 100 characters")
     private String protocolNumber;
     
-    private String phase;
-    
     // New lookup table ID fields
     private Long studyStatusId;
     private Long studyPhaseId;
@@ -52,11 +50,7 @@ public class StudyUpdateRequestDto {
     private String primaryObjective;
     
     private Integer amendments;
-    
-    @Pattern(regexp = "draft|active|completed|terminated", 
-             message = "Status must be one of: draft, active, completed, terminated")
-    private String status;
-    
+
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
     
@@ -87,15 +81,7 @@ public class StudyUpdateRequestDto {
     public void setProtocolNumber(String protocolNumber) {
         this.protocolNumber = protocolNumber;
     }
-    
-    public String getPhase() {
-        return phase;
-    }
-    
-    public void setPhase(String phase) {
-        this.phase = phase;
-    }
-    
+
     public String getSponsor() {
         return sponsor;
     }
@@ -183,14 +169,7 @@ public class StudyUpdateRequestDto {
     public void setAmendments(Integer amendments) {
         this.amendments = amendments;
     }
-    
-    public String getStatus() {
-        return status;
-    }
-    
-    public void setStatus(String status) {
-        this.status = status;
-    }
+
     
     public LocalDate getStartDate() {
         return startDate;
