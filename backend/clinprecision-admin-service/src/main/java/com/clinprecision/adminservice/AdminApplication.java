@@ -14,7 +14,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 @EnableDiscoveryClient
 @EnableFeignClients
 @ComponentScan(basePackages = {"com.clinprecision.adminservice", "com.clinprecision.common"})
-@EntityScan(basePackages = {"com.clinprecision.adminservice", "com.clinprecision.common.entity"})
+@EntityScan(basePackages = {"com.clinprecision.adminservice.data.entity", "com.clinprecision.common.entity"})
 @EnableJpaRepositories(basePackages = {"com.clinprecision.adminservice.repository", "com.clinprecision.common.repository"})
 public class AdminApplication {
 

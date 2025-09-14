@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-09-13T17:09:16-0400",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21 (Oracle Corporation)"
+    date = "2025-09-14T07:58:39-0400",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.43.0.v20250819-1513, environment: Java 21.0.8 (Eclipse Adoptium)"
 )
 @Component
 public class SiteMapperImpl implements SiteMapper {
@@ -29,21 +29,21 @@ public class SiteMapperImpl implements SiteMapper {
 
         SiteDto siteDto = new SiteDto();
 
-        siteDto.setId( entity.getId() );
-        siteDto.setName( entity.getName() );
-        siteDto.setSiteNumber( entity.getSiteNumber() );
-        siteDto.setOrganization( organizationMapper.toDto( entity.getOrganization() ) );
-        siteDto.setPrincipalInvestigator( userMapper.toDto( entity.getPrincipalInvestigator() ) );
         siteDto.setAddressLine1( entity.getAddressLine1() );
         siteDto.setAddressLine2( entity.getAddressLine2() );
         siteDto.setCity( entity.getCity() );
-        siteDto.setState( entity.getState() );
-        siteDto.setPostalCode( entity.getPostalCode() );
         siteDto.setCountry( entity.getCountry() );
-        siteDto.setPhone( entity.getPhone() );
-        siteDto.setEmail( entity.getEmail() );
-        siteDto.setStatus( entity.getStatus() );
         siteDto.setCreatedAt( entity.getCreatedAt() );
+        siteDto.setEmail( entity.getEmail() );
+        siteDto.setId( entity.getId() );
+        siteDto.setName( entity.getName() );
+        siteDto.setOrganization( organizationMapper.toDto( entity.getOrganization() ) );
+        siteDto.setPhone( entity.getPhone() );
+        siteDto.setPostalCode( entity.getPostalCode() );
+        siteDto.setPrincipalInvestigator( userMapper.toDto( entity.getPrincipalInvestigator() ) );
+        siteDto.setSiteNumber( entity.getSiteNumber() );
+        siteDto.setState( entity.getState() );
+        siteDto.setStatus( entity.getStatus() );
         siteDto.setUpdatedAt( entity.getUpdatedAt() );
 
         return siteDto;

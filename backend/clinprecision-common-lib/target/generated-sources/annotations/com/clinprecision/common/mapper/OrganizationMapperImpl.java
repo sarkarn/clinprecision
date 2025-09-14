@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-09-13T17:09:16-0400",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21 (Oracle Corporation)"
+    date = "2025-09-14T07:58:39-0400",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.43.0.v20250819-1513, environment: Java 21.0.8 (Eclipse Adoptium)"
 )
 @Component
 public class OrganizationMapperImpl implements OrganizationMapper {
@@ -23,21 +23,21 @@ public class OrganizationMapperImpl implements OrganizationMapper {
 
         OrganizationDto organizationDto = new OrganizationDto();
 
-        organizationDto.setId( entity.getId() );
-        organizationDto.setName( entity.getName() );
-        organizationDto.setExternalId( entity.getExternalId() );
         organizationDto.setAddressLine1( entity.getAddressLine1() );
         organizationDto.setAddressLine2( entity.getAddressLine2() );
         organizationDto.setCity( entity.getCity() );
-        organizationDto.setState( entity.getState() );
-        organizationDto.setPostalCode( entity.getPostalCode() );
         organizationDto.setCountry( entity.getCountry() );
-        organizationDto.setPhone( entity.getPhone() );
-        organizationDto.setEmail( entity.getEmail() );
-        organizationDto.setWebsite( entity.getWebsite() );
-        organizationDto.setStatus( entity.getStatus() );
         organizationDto.setCreatedAt( entity.getCreatedAt() );
+        organizationDto.setEmail( entity.getEmail() );
+        organizationDto.setExternalId( entity.getExternalId() );
+        organizationDto.setId( entity.getId() );
+        organizationDto.setName( entity.getName() );
+        organizationDto.setPhone( entity.getPhone() );
+        organizationDto.setPostalCode( entity.getPostalCode() );
+        organizationDto.setState( entity.getState() );
+        organizationDto.setStatus( entity.getStatus() );
         organizationDto.setUpdatedAt( entity.getUpdatedAt() );
+        organizationDto.setWebsite( entity.getWebsite() );
 
         return organizationDto;
     }
