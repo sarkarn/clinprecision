@@ -7,6 +7,8 @@ import java.util.Date;
 
 import javax.crypto.SecretKey;
 
+import com.clinprecision.common.dto.UserDto;
+import com.clinprecision.common.dto.UserTypeDto;
 import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,8 +19,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.clinprecision.userservice.service.UsersService;
 import com.clinprecision.userservice.ui.model.LoginRequestModel;
-import com.clinprecision.userservice.ui.model.UserDto;
-import com.clinprecision.userservice.ui.model.UserTypeDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.jsonwebtoken.Jwts;

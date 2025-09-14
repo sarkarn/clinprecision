@@ -200,6 +200,42 @@ CREATE TABLE study_phase (
     INDEX idx_study_phase_display_order (display_order)
 );
 
+CREATE TABLE IF NOT EXISTS form_templates (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    template_id VARCHAR(50) NOT NULL UNIQUE COMMENT 'Unique template identifier (e.g., DEMO-001)',
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100) COMMENT 'Template category (Demographics, Safety, Laboratory, etc.)',
+    version VARCHAR(20) DEFAULT '1.0',
+    is_latest_version BOOLEAN DEFAULT TRUE,
+    status ENUM('draft', 'published', 'archived') DEFAULT 'draft',
+    -- Store the entire field structure including metadata in JSON
+    fields JSON NOT NULL COMMENT 'Array of field definitions with metadata',
+    tags TEXT COMMENT 'Comma-separated tags for searching/filtering',
+    usage_count INT DEFAULT 0 COMMENT 'Number of times template has been used',
+    created_by BIGINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    INDEX idx_template_category (category),
+    INDEX idx_template_status (status),
+    INDEX idx_template_latest (is_latest_version)
+);
+
+-- Create form template versions table for version history
+CREATE TABLE IF NOT EXISTS form_template_versions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    template_id BIGINT NOT NULL,
+    version VARCHAR(20) NOT NULL,
+    version_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT,
+    version_notes TEXT,
+    fields_snapshot JSON NOT NULL COMMENT 'Snapshot of fields at this version',
+    FOREIGN KEY (template_id) REFERENCES form_templates(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    UNIQUE KEY unique_template_version (template_id, version)
+);
+
 -- =====================================================
 -- 4. FOREIGN KEY RELATIONSHIPS (Optional - for future enhancement)
 -- =====================================================
@@ -349,21 +385,24 @@ CREATE TABLE form_definitions (
     study_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-	form_type VARCHAR(100),
+	form_type VARCHAR(100) NULL COMMENT 'Form Type of the form (Demographics, Safety, etc.)',
     version VARCHAR(20) DEFAULT '1.0',
     is_latest_version BOOLEAN DEFAULT TRUE,
     parent_version_id VARCHAR(36) DEFAULT NULL,
     version_notes TEXT,
     is_locked BOOLEAN DEFAULT FALSE,
     status ENUM('draft', 'approved', 'retired') DEFAULT 'draft',
-    template_id VARCHAR(50),
+    template_id BIGINT NULL COMMENT 'Reference to form_templates table for template-based forms',
+	template_version VARCHAR(36) NULL COMMENT 'Version of template used when form was created',
+	tags TEXT NULL COMMENT 'Comma-separated tags for searching/filtering',
     -- Store the entire field structure including metadata in JSON
     fields JSON NOT NULL COMMENT 'Array of field definitions with metadata. Each field has a ONE-TO-ONE relationship with its metadata.',
     created_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES users(id)
+    FOREIGN KEY (created_by) REFERENCES users(id),
+	CONSTRAINT fk_form_template FOREIGN KEY (template_id) REFERENCES form_templates(id) ON DELETE SET NULL
 );
 
 CREATE TABLE form_versions (
@@ -702,6 +741,9 @@ CREATE INDEX idx_studies_updated_at ON studies(updated_at);
 CREATE INDEX idx_studies_study_status_id ON studies(study_status_id);
 CREATE INDEX idx_studies_regulatory_status_id ON studies(regulatory_status_id);
 CREATE INDEX idx_studies_study_phase_id ON studies(study_phase_id);
+-- Add template_id column to form_definitions table to link study forms to templates
+CREATE INDEX idx_form_template ON form_definitions(template_id);
+CREATE INDEX idx_form_status ON form_definitions(status);
 
 
 -- Insert default user types
