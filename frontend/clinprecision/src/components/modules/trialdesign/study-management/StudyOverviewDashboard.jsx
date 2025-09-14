@@ -301,6 +301,20 @@ const StudyOverviewDashboard = ({
 
                     <div className="flex gap-3">
                         <button
+                            onClick={() => window.open(`/study-design/study/${studyId}/forms`, '_blank')}
+                            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-purple-700 bg-white hover:bg-purple-50"
+                        >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Manage Forms
+                        </button>
+                        <button
+                            onClick={() => window.open(`/study-design/study/${studyId}/design/basic-info`, '_blank')}
+                            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-green-700 bg-white hover:bg-green-50"
+                        >
+                            <Target className="w-4 h-4 mr-2" />
+                            Design Study
+                        </button>
+                        <button
                             onClick={() => onCreateVersion?.(study)}
                             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                         >
@@ -333,8 +347,8 @@ const StudyOverviewDashboard = ({
                                 key={id}
                                 onClick={() => setActiveTab(id)}
                                 className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm ${activeTab === id
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                             >
                                 <Icon className="w-4 h-4 mr-2" />
@@ -605,7 +619,7 @@ const StudyOverviewDashboard = ({
                                                     {amendment.status}
                                                 </span>
                                                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${amendment.type === 'MAJOR' ? 'bg-red-100 text-red-700' :
-                                                        amendment.type === 'MINOR' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                                    amendment.type === 'MINOR' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
                                                     }`}>
                                                     {amendment.type}
                                                 </span>

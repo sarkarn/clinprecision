@@ -382,11 +382,11 @@ const StudyListGrid = ({
                             </th>
                             <th
                                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                onClick={() => dataGrid.handleSort('lastModified')}
+                                onClick={() => dataGrid.handleSort('updatedAt')}
                             >
                                 <div className="flex items-center">
                                     Last Modified
-                                    {dataGrid.sortConfig.key === 'lastModified' && (
+                                    {dataGrid.sortConfig.key === 'updatedAt' && (
                                         dataGrid.sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />
                                     )}
                                 </div>
@@ -442,8 +442,8 @@ const StudyListGrid = ({
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <div className="flex flex-col">
-                                        <span>{new Date(study.lastModified).toLocaleDateString()}</span>
-                                        <span className="text-xs">{study.modifiedBy}</span>
+                                        <span>{study.updatedAt ? new Date(study.updatedAt).toLocaleDateString() : 'Not available'}</span>
+                                        <span className="text-xs">{study.modifiedBy || 'Unknown'}</span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

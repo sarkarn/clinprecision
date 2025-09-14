@@ -350,6 +350,16 @@ const StudyDesignModule = () => {
           <Route path="forms/builder/:formId" element={<CRFBuilderIntegration />} />
           <Route path="forms/builder/:formId/:versionId" element={<CRFBuilderIntegration />} />
 
+          {/* Study-specific Form Management Routes */}
+          <Route path="study/:studyId/forms" element={<FormList />} />
+          <Route path="study/:studyId/forms/designer" element={<FormDesigner />} />
+          <Route path="study/:studyId/forms/designer/:formId" element={<FormDesigner />} />
+          <Route path="study/:studyId/forms/:formId/versions" element={<FormVersionHistory />} />
+          <Route path="study/:studyId/forms/:formId/versions/:versionId/view" element={<FormVersionViewer />} />
+          <Route path="study/:studyId/forms/builder" element={<CRFBuilderIntegration />} />
+          <Route path="study/:studyId/forms/builder/:formId" element={<CRFBuilderIntegration />} />
+          <Route path="study/:studyId/forms/builder/:formId/:versionId" element={<CRFBuilderIntegration />} />
+
           {/* Study Design Workflow - New comprehensive design flow */}
           <Route path="study/:studyId/design/*" element={<StudyDesignDashboard />} />
 

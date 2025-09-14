@@ -1,4 +1,5 @@
 import { Link, Routes, Route } from "react-router-dom";
+import { Bell, ListTodo } from 'lucide-react';
 import Logout from "./login/Logout";
 import StudyDesignModule from "./modules/trialdesign/StudyDesignModule";
 import DataCaptureModule from "./modules/datacapture/DataCaptureModule";
@@ -38,6 +39,28 @@ export default function Home() {
                 <div className="flex items-center space-x-4">
                     {user && (
                         <>
+                            {/* Notifications Icon */}
+                            <div className="relative">
+                                <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors relative">
+                                    <Bell size={20} />
+                                    {/* Notification badge */}
+                                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                                        3
+                                    </span>
+                                </button>
+                            </div>
+
+                            {/* Assigned Tasks Icon */}
+                            <div className="relative">
+                                <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors relative">
+                                    <ListTodo size={20} />
+                                    {/* Tasks badge */}
+                                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center">
+                                        5
+                                    </span>
+                                </button>
+                            </div>
+
                             <div className="flex items-center">
                                 <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-2">
                                     {getUserInitial()}

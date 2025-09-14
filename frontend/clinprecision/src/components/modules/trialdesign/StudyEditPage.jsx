@@ -79,8 +79,8 @@ const StudyEditPage = () => {
             // 1. Update study details first
             console.log("Attempting to update study details...");
             try {
-                // The updateStudyDetailsOnly method now handles fallbacks internally
-                await StudyService.updateStudyDetailsOnly(studyId, study);
+                // Use the standard updateStudy method
+                await StudyService.updateStudy(studyId, study);
                 console.log("Study details updated successfully");
             } catch (err) {
                 console.error("All study detail update methods failed:", err);
@@ -668,8 +668,8 @@ const StudyEditPage = () => {
                             </label>
                             <input
                                 type="text"
-                                name="investigator"
-                                value={study.investigator}
+                                name="principalInvestigator"
+                                value={study.principalInvestigator || ''}
                                 onChange={handleStudyChange}
                                 className="border border-gray-300 rounded-md w-full p-2"
                             />
@@ -957,12 +957,12 @@ const StudyEditPage = () => {
                             <div className="flex space-x-3 justify-center">
                                 <button
                                     onClick={() => {
-                                        navigate('/study-design/forms/builder');
+                                        navigate(`/study-design/study/${studyId}/forms/builder`);
                                         setIsCRFBuilderOpen(false);
                                     }}
                                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
                                 >
-                                    Go to Form Builder
+                                    Go to Study Form Builder
                                 </button>
                                 <button
                                     onClick={() => setIsCRFBuilderOpen(false)}
