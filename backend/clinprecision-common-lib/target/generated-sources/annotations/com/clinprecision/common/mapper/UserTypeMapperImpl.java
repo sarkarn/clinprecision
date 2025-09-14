@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-09-13T17:09:16-0400",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21 (Oracle Corporation)"
+    date = "2025-09-14T15:05:30-0400",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.43.0.v20250819-1513, environment: Java 21.0.8 (Eclipse Adoptium)"
 )
 @Component
 public class UserTypeMapperImpl implements UserTypeMapper {
@@ -23,12 +23,12 @@ public class UserTypeMapperImpl implements UserTypeMapper {
 
         UserTypeDto userTypeDto = new UserTypeDto();
 
+        userTypeDto.setCategory( entity.getCategory() );
+        userTypeDto.setCode( entity.getCode() );
+        userTypeDto.setCreatedAt( entity.getCreatedAt() );
+        userTypeDto.setDescription( entity.getDescription() );
         userTypeDto.setId( entity.getId() );
         userTypeDto.setName( entity.getName() );
-        userTypeDto.setDescription( entity.getDescription() );
-        userTypeDto.setCode( entity.getCode() );
-        userTypeDto.setCategory( entity.getCategory() );
-        userTypeDto.setCreatedAt( entity.getCreatedAt() );
         userTypeDto.setUpdatedAt( entity.getUpdatedAt() );
 
         return userTypeDto;

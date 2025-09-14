@@ -291,13 +291,18 @@ const StudyEditWizard = () => {
             // Prepare data for API
             const apiData = { ...formData };
 
-            // Handle metadata fields (same logic as creation wizard)
-            if (apiData.principalInvestigator || apiData.studyCoordinator || apiData.medicalMonitor) {
+            // Handle metadata fields (only put non-database fields in metadata)
+            if (apiData.studyCoordinator || apiData.medicalMonitor || apiData.secondaryObjectives ||
+                typeof apiData.ethicsApproval !== 'undefined' || typeof apiData.fdaInd !== 'undefined' ||
+                apiData.estimatedDuration) {
                 const metadata = {};
-                if (apiData.principalInvestigator) {
-                    metadata.principalInvestigator = apiData.principalInvestigator;
-                    delete apiData.principalInvestigator;
-                }
+                // Keep these as top-level fields for database columns:
+                // - principalInvestigator (maps to principal_investigator column)
+                // - studyType (maps to study_type column) 
+                // - primaryObjective (maps to primary_objective column)
+                // - regulatoryStatusId (maps to regulatory_status_id column)
+
+                // Only put supporting/flexible fields in metadata:
                 if (apiData.studyCoordinator) {
                     metadata.studyCoordinator = apiData.studyCoordinator;
                     delete apiData.studyCoordinator;
@@ -306,10 +311,6 @@ const StudyEditWizard = () => {
                     metadata.medicalMonitor = apiData.medicalMonitor;
                     delete apiData.medicalMonitor;
                 }
-                if (apiData.primaryObjective) {
-                    metadata.primaryObjective = apiData.primaryObjective;
-                    delete apiData.primaryObjective;
-                }
                 if (apiData.secondaryObjectives) {
                     metadata.secondaryObjectives = apiData.secondaryObjectives;
                     delete apiData.secondaryObjectives;
@@ -317,14 +318,6 @@ const StudyEditWizard = () => {
                 if (apiData.estimatedDuration) {
                     metadata.estimatedDuration = apiData.estimatedDuration;
                     delete apiData.estimatedDuration;
-                }
-                if (apiData.studyType) {
-                    metadata.studyType = apiData.studyType;
-                    delete apiData.studyType;
-                }
-                if (apiData.regulatoryStatusId) {
-                    metadata.regulatoryStatusId = apiData.regulatoryStatusId;
-                    delete apiData.regulatoryStatusId;
                 }
                 if (typeof apiData.ethicsApproval !== 'undefined') {
                     metadata.ethicsApproval = apiData.ethicsApproval;

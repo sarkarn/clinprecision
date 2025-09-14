@@ -1,5 +1,6 @@
 import { Link, Routes, Route } from "react-router-dom";
 import Logout from "./login/Logout";
+import TopNavigationHeader from "./shared/TopNavigationHeader";
 import StudyDesignModule from "./modules/trialdesign/StudyDesignModule";
 import DataCaptureModule from "./modules/datacapture/DataCaptureModule";
 import DQManagement from "./modules/dqmgmt/DQManagement";
@@ -9,46 +10,10 @@ import { useAuth } from "./login/AuthContext";
 export default function Home() {
     const { user } = useAuth();
 
-    // Get user initial safely
-    const getUserInitial = () => {
-        if (!user) return "?";
-        // Email will always be available from the login process
-        return user.email ? user.email.charAt(0).toUpperCase() : "?";
-    };
-
-    // Get display name safely
-    const getDisplayName = () => {
-        if (!user) return "";
-        // Use email directly since that's what we store in AuthContext
-        return user.email || "User";
-    };
-
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
-            {/* Top Menu Bar */}
-            <header className="bg-white shadow-sm flex justify-between items-center px-8 py-3 sticky top-0 z-10">
-                <div className="flex items-center">
-                    <h1 className="text-xl font-bold text-blue-600 mr-8">ClinicalConnect</h1>
-                    <div className="hidden lg:flex items-center space-x-6">
-                        <Link to="/help" className="text-gray-700 hover:text-blue-600">Documentation</Link>
-                        <Link to="/about" className="text-gray-700 hover:text-blue-600">About</Link>
-                        <Link to="/contact" className="text-gray-700 hover:text-blue-600">Contact</Link>
-                    </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                    {user && (
-                        <>
-                            <div className="flex items-center">
-                                <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-2">
-                                    {getUserInitial()}
-                                </div>
-                                <span className="text-gray-700 hidden md:inline-block">{getDisplayName()}</span>
-                            </div>
-                            <Logout />
-                        </>
-                    )}
-                </div>
-            </header>
+            {/* Top Navigation Header - now reusable */}
+            <TopNavigationHeader showFullNavigation={true} />
 
             <div className="flex flex-1">
                 {/* Side Nav Bar - More visually distinct */}

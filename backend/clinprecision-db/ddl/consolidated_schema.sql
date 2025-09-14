@@ -282,15 +282,15 @@ CREATE TABLE studies (
     is_locked BOOLEAN DEFAULT FALSE,
     start_date DATE,
     end_date DATE,
-	indication VARCHAR(500),
-	study_type VARCHAR(50) DEFAULT 'INTERVENTIONAL',
-	principal_investigator VARCHAR(255),
-	sites INTEGER DEFAULT 0,
-	planned_subjects INTEGER DEFAULT 0,
-	enrolled_subjects INTEGER DEFAULT 0,
-	target_enrollment INTEGER DEFAULT 0,
-	primary_objective TEXT,
-	amendments INTEGER DEFAULT 0,
+	indication VARCHAR(500) COMMENT 'Medical indication or condition being studied',
+	study_type VARCHAR(50) DEFAULT 'INTERVENTIONAL' COMMENT 'Type of study: INTERVENTIONAL, OBSERVATIONAL, etc.',
+	principal_investigator VARCHAR(255) COMMENT 'Name of the principal investigator',
+	sites INTEGER DEFAULT 0 COMMENT 'Number of study sites',
+	planned_subjects INTEGER DEFAULT 0 COMMENT 'Number of planned subjects for enrollment',
+	enrolled_subjects INTEGER DEFAULT 0 COMMENT 'Number of currently enrolled subjects',
+	target_enrollment INTEGER DEFAULT 0 COMMENT 'Target enrollment number',
+	primary_objective TEXT COMMENT 'Primary objective of the study',
+	amendments INTEGER DEFAULT 0 COMMENT 'Number of amendments made to the study',
 	study_status_id BIGINT NULL COMMENT 'References study_status.id',
     regulatory_status_id BIGINT NULL COMMENT 'References regulatory_status.id',
     study_phase_id BIGINT NULL COMMENT 'References study_phase.id',
@@ -304,6 +304,7 @@ CREATE TABLE studies (
 	CONSTRAINT fk_studies_study_phase FOREIGN KEY (study_phase_id) REFERENCES study_phase(id),
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
+
 
 CREATE TABLE study_versions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-09-13T17:09:16-0400",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21 (Oracle Corporation)"
+    date = "2025-09-14T15:05:30-0400",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.43.0.v20250819-1513, environment: Java 21.0.8 (Eclipse Adoptium)"
 )
 @Component
 public class UserMapperImpl implements UserMapper {
@@ -33,31 +33,31 @@ public class UserMapperImpl implements UserMapper {
 
         UserDto userDto = new UserDto();
 
-        userDto.setUserTypes( userTypeEntitySetToUserTypeDtoSet( entity.getUserTypes() ) );
-        userDto.setId( entity.getId() );
-        userDto.setUserId( entity.getUserId() );
-        userDto.setFirstName( entity.getFirstName() );
-        userDto.setMiddleName( entity.getMiddleName() );
-        userDto.setLastName( entity.getLastName() );
-        userDto.setEmail( entity.getEmail() );
-        userDto.setTitle( entity.getTitle() );
-        userDto.setOrganization( organizationMapper.toDto( entity.getOrganization() ) );
-        userDto.setProfession( entity.getProfession() );
-        userDto.setPhone( entity.getPhone() );
-        userDto.setMobilePhone( entity.getMobilePhone() );
         userDto.setAddressLine1( entity.getAddressLine1() );
         userDto.setAddressLine2( entity.getAddressLine2() );
         userDto.setCity( entity.getCity() );
-        userDto.setState( entity.getState() );
-        userDto.setPostalCode( entity.getPostalCode() );
         userDto.setCountry( entity.getCountry() );
-        userDto.setStatus( entity.getStatus() );
-        userDto.setLastLoginAt( entity.getLastLoginAt() );
-        userDto.setPasswordResetRequired( entity.isPasswordResetRequired() );
-        userDto.setNotes( entity.getNotes() );
         userDto.setCreatedAt( entity.getCreatedAt() );
-        userDto.setUpdatedAt( entity.getUpdatedAt() );
+        userDto.setEmail( entity.getEmail() );
         userDto.setEncryptedPassword( entity.getEncryptedPassword() );
+        userDto.setFirstName( entity.getFirstName() );
+        userDto.setId( entity.getId() );
+        userDto.setLastLoginAt( entity.getLastLoginAt() );
+        userDto.setLastName( entity.getLastName() );
+        userDto.setMiddleName( entity.getMiddleName() );
+        userDto.setMobilePhone( entity.getMobilePhone() );
+        userDto.setNotes( entity.getNotes() );
+        userDto.setOrganization( organizationMapper.toDto( entity.getOrganization() ) );
+        userDto.setPasswordResetRequired( entity.isPasswordResetRequired() );
+        userDto.setPhone( entity.getPhone() );
+        userDto.setPostalCode( entity.getPostalCode() );
+        userDto.setProfession( entity.getProfession() );
+        userDto.setState( entity.getState() );
+        userDto.setStatus( entity.getStatus() );
+        userDto.setTitle( entity.getTitle() );
+        userDto.setUpdatedAt( entity.getUpdatedAt() );
+        userDto.setUserId( entity.getUserId() );
+        userDto.setUserTypes( userTypeEntitySetToUserTypeDtoSet( entity.getUserTypes() ) );
 
         userDto.setRoleIds( entity.getRoles() != null ? entity.getRoles().stream().map(role -> role.getId()).collect(java.util.stream.Collectors.toSet()) : null );
 

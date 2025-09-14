@@ -23,7 +23,11 @@ const MOCK_STUDIES = [
     enrolledSubjects: 28500,
     targetEnrollment: 30000,
     primaryObjective: "To demonstrate vaccine efficacy",
-    amendments: 2
+    amendments: 2,
+    createdAt: "2024-01-10T09:00:00Z",
+    updatedAt: "2024-03-15T14:30:00Z",
+    createdBy: 1,
+    modifiedBy: 1
   },
   {
     id: 2,
@@ -43,7 +47,11 @@ const MOCK_STUDIES = [
     enrolledSubjects: 450,
     targetEnrollment: 500,
     primaryObjective: "Evaluate glucose control improvement",
-    amendments: 1
+    amendments: 1,
+    createdAt: "2024-01-25T11:15:00Z",
+    updatedAt: "2024-03-08T10:20:00Z",
+    createdBy: 2,
+    modifiedBy: 2
   },
   {
     id: 3,
@@ -63,7 +71,11 @@ const MOCK_STUDIES = [
     enrolledSubjects: 650,
     targetEnrollment: 800,
     primaryObjective: "Assess cognitive improvement",
-    amendments: 0
+    amendments: 0,
+    createdAt: "2024-03-05T13:45:00Z",
+    updatedAt: "2024-03-12T16:10:00Z",
+    createdBy: 3,
+    modifiedBy: 3
   }
 ];
 
@@ -179,7 +191,9 @@ export const getStudies = async () => {
         primaryObjective: study.primaryObjective || 'Not specified',
         amendments: study.amendments || 0,
         createdAt: study.createdAt || null,
-        updatedAt: study.updatedAt || null
+        updatedAt: study.updatedAt || null,
+        createdBy: study.createdBy || null,
+        modifiedBy: study.modifiedBy || null
       };
       
       console.log('Mapped study result:', mappedStudy);

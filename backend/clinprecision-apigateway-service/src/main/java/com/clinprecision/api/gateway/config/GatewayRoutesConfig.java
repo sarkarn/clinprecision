@@ -167,6 +167,31 @@ public class GatewayRoutesConfig {
                     )
                     .uri("lb://admin-ws")
                 )
+                // Form Templates - GET operations (no auth required for read access)
+                .route("admin-ws-form-templates-get", r -> r
+                        .path("/admin-ws/form-templates/**")
+                        .and()
+                        .method("GET")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
+                        )
+                        .uri("lb://admin-ws")
+                )
+                // Form Templates - POST, PUT, DELETE, PATCH operations (requires auth)
+                .route("admin-ws-form-templates-write", r -> r
+                        .path("/admin-ws/form-templates/**")
+                        .and()
+                        .method("POST", "PUT", "DELETE", "PATCH")
+                        .and()
+                        .header("Authorization", "Bearer (.*)")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
+                                .filter(authFilter)
+                        )
+                        .uri("lb://admin-ws")
+                )
                 // Study Design Service - API routes
                 .route("study-design-ws-api", r -> r
                     .path("/study-design-ws/api/**")

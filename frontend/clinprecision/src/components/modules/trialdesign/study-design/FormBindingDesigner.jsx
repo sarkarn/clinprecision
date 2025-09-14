@@ -336,6 +336,12 @@ const FormBindingDesigner = () => {
                         </p>
                     </div>
                     <div className="flex space-x-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => navigate(`/study-design/study/${studyId}/forms`)}
+                        >
+                            Manage Study Forms
+                        </Button>
                         <Button variant="outline" onClick={() => navigate(-1)}>
                             Back
                         </Button>
@@ -564,10 +570,10 @@ const MatrixCell = ({
                 <button
                     onClick={onSelectBinding}
                     className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${isSelected
-                            ? 'bg-blue-600 border-blue-800 text-white'
-                            : binding.isRequired
-                                ? 'bg-green-500 border-green-700 text-white hover:bg-green-600'
-                                : 'bg-yellow-500 border-yellow-700 text-white hover:bg-yellow-600'
+                        ? 'bg-blue-600 border-blue-800 text-white'
+                        : binding.isRequired
+                            ? 'bg-green-500 border-green-700 text-white hover:bg-green-600'
+                            : 'bg-yellow-500 border-yellow-700 text-white hover:bg-yellow-600'
                         }`}
                     title={`${form.name} - ${binding.isRequired ? 'Required' : 'Optional'}`}
                 >
@@ -784,8 +790,8 @@ const FormPreviewPanel = ({ form, visit, binding }) => {
                         <div className="mt-3 pt-3 border-t border-gray-200">
                             <div className="flex items-center space-x-4 text-sm">
                                 <span className={`px-2 py-1 rounded-full ${binding.isRequired
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-yellow-100 text-yellow-800'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-yellow-100 text-yellow-800'
                                     }`}>
                                     {binding.isRequired ? 'Required' : 'Optional'}
                                 </span>

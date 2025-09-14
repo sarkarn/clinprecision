@@ -61,24 +61,6 @@ export default function UserManagementDashboard() {
                         </Link>
                     </div>
                 </div>
-
-                {/* Form Templates Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="p-5 bg-orange-50 border-b border-orange-100">
-                        <h4 className="font-medium text-lg text-orange-800">Form Templates</h4>
-                    </div>
-                    <div className="p-5">
-                        <p className="text-gray-600 mb-4">
-                            Manage reusable form templates for study design and data collection.
-                        </p>
-                        <Link
-                            to="/user-management/form-templates"
-                            className="inline-block bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors"
-                        >
-                            Manage Form Templates
-                        </Link>
-                    </div>
-                </div>
             </div>
         </div>
     );

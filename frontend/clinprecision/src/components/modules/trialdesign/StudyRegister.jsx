@@ -13,7 +13,7 @@ const StudyRegister = () => {
         startDate: '',
         endDate: '',
         sponsor: '',
-        investigator: '',  // This will be handled in the API or stored in metadata
+        principalInvestigator: '',  // This will be handled in the API or stored in metadata
         description: '',
         protocolNumber: '',
         organizations: [] // { organizationId, role }
@@ -68,14 +68,8 @@ const StudyRegister = () => {
             // Create a copy of formData to prepare for API
             const apiFormData = { ...formData };
 
-            // Handle investigator and other non-standard fields in metadata
-            if (apiFormData.investigator) {
-                const metadata = {
-                    investigator: apiFormData.investigator
-                };
-                apiFormData.metadata = JSON.stringify(metadata);
-                delete apiFormData.investigator;
-            }
+            // Handle principalInvestigator and other fields - now using standard field name
+            // No need to store in metadata since backend accepts principalInvestigator directly
 
             // Format dates if needed
             if (apiFormData.startDate) {
@@ -234,8 +228,8 @@ const StudyRegister = () => {
                         </label>
                         <input
                             type="text"
-                            name="investigator"
-                            value={formData.investigator}
+                            name="principalInvestigator"
+                            value={formData.principalInvestigator || ''}
                             onChange={handleChange}
                             className="border border-gray-300 rounded-md w-full px-3 py-2"
                         />

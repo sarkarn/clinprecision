@@ -135,7 +135,7 @@ const StudyViewPage = () => {
                             Principal Investigator
                         </label>
                         <div className="bg-gray-50 border border-gray-300 rounded-md w-full p-2 text-gray-700">
-                            {study.investigator}
+                            {study.principalInvestigator}
                         </div>
                     </div>
                 </div>
