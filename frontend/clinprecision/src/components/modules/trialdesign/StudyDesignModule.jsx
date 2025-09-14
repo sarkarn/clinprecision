@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import TopNavigationHeader from '../../shared/TopNavigationHeader';
 import StudyRegister from './StudyRegister';
 import StudyCreationWizard from './study-creation/StudyCreationWizard';
 import StudyEditWizard from './study-creation/StudyEditWizard';
@@ -15,7 +16,6 @@ import FormVersionViewer from './FormVersionViewer';
 import CRFBuilderIntegration from './CRFBuilderIntegration';
 import { useAuth } from '../../login/AuthContext';
 import { useDashboardMetrics } from './hooks/useDashboardMetrics';
-import Logout from '../../login/Logout';
 
 // Breadcrumb component
 const Breadcrumb = () => {
@@ -28,7 +28,7 @@ const Breadcrumb = () => {
   const relevantPathnames = studyDesignIndex >= 0 ? pathnames.slice(studyDesignIndex + 1) : [];
 
   return (
-    <div className="flex items-center text-sm text-gray-600 mb-4">
+    <div className="flex items-center text-sm text-gray-600 mb-2">
       <span
         className="cursor-pointer hover:text-blue-600"
         onClick={() => navigate('/')}
@@ -98,8 +98,26 @@ const StudyDesignModule = () => {
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [selectedStudyForVersion, setSelectedStudyForVersion] = useState(null);
 
-  // Check if we're being rendered directly or within Home component
-  const isDirectNavigation = location.pathname.split('/').length <= 2;
+  // Since ALL routes go through Home component which already provides TopNavigationHeader,
+  // StudyDesignModule should never show its own header when accessed through the app
+  // Only show header for study-specific contexts (forms, design sub-routes)
+  const isDirectNavigation = false; // Always false since we're always embedded in Home
+
+  // Check if we're embedded within the Home component (not direct navigation)
+  const isEmbeddedInHome = location.pathname.startsWith('/study-design');
+
+  // Check if we're in a study-specific context (should hide main navigation)
+  const isStudySpecificContext = () => {
+    const path = location.pathname;
+    // Hide header for study sub-routes: forms, design, etc. 
+    // But show header for main study overview (/study-design/study/:studyId)
+    const pathParts = path.split('/');
+    if (pathParts.includes('study') && pathParts.length > 4) {
+      // If we have more than 4 parts and includes 'study', we're in a sub-context
+      return true;
+    }
+    return false;
+  };
 
   // Modern study management handlers
   const handleCreateNewStudy = () => {
@@ -251,60 +269,81 @@ const StudyDesignModule = () => {
     <div className={isDirectNavigation ? "min-h-screen flex flex-col" : ""}>
       {/* Only show header when navigated to directly, not when inside Home */}
       {isDirectNavigation && (
-        <header className="fixed top-0 left-0 right-0 bg-white shadow flex justify-between items-center px-8 py-4 z-10">
-          <div className="flex items-center space-x-6">
-            <h1 className="text-xl font-bold text-blue-600">ClinicalConnect</h1>
-            <Link to="/reports" className="text-gray-700 hover:text-blue-600">Reports</Link>
-            <Link to="/help" className="text-gray-700 hover:text-blue-600">Documentation</Link>
-            {user?.role === 'admin' && (
-              <Link to="/admin" className="text-gray-700 hover:text-blue-600">Administration</Link>
-            )}
-          </div>
-          <div className="flex items-center space-x-4">
-            {user && (
-              <>
-                <span className="text-gray-600">{user.username || user.email}</span>
-                <Logout />
-              </>
-            )}
-          </div>
-        </header>
+        <TopNavigationHeader
+          showFullNavigation={false}
+          className="fixed top-0 left-0 right-0"
+        />
       )}
 
       {/* Main Content Area - conditionally add margin-top */}
-      <div className={`container mx-auto px-4 pb-4 flex-1 ${isDirectNavigation ? "mt-16" : "pt-0"}`}>
+      <div className={`container mx-auto px-4 pb-4 flex-1 ${isDirectNavigation ? "mt-16" : isEmbeddedInHome ? "pt-0" : "pt-4"}`}>
         {/* Breadcrumb navigation */}
         <Breadcrumb />
 
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-2">Study Design</h2>
-          <div className="flex space-x-4 mb-4">
-            <button
-              onClick={() => navigate('/study-design/create', { replace: true })}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Create New Study
-            </button>
-            <button
-              onClick={() => navigate('/study-design/studies', { replace: true })}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-            >
-              Manage Studies
-            </button>
-            <button
-              onClick={() => navigate('/study-design/register', { replace: true })}
-              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-            >
-              Quick Register
-            </button>
-            <button
-              onClick={() => navigate('/study-design/forms', { replace: true })}
-              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-            >
-              Manage Forms
-            </button>
+        {/* Main navigation header - only show when accessed directly, not through Home */}
+        {isDirectNavigation && !isStudySpecificContext() && (
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-2">Study Design</h2>
+            <div className="flex space-x-4 mb-4">
+              <button
+                onClick={() => navigate('/study-design/create', { replace: true })}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Create New Study
+              </button>
+              <button
+                onClick={() => navigate('/study-design/studies', { replace: true })}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                Manage Studies
+              </button>
+              <button
+                onClick={() => navigate('/study-design/register', { replace: true })}
+                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+              >
+                Quick Register
+              </button>
+              <button
+                onClick={() => navigate('/study-design/forms', { replace: true })}
+                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+              >
+                Manage Forms
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Action buttons for Study Design landing page - show when on main study-design route */}
+        {location.pathname === '/study-design' && !isStudySpecificContext() && (
+          <div className="mb-6">
+            <div className="flex space-x-4 mb-4">
+              <button
+                onClick={() => navigate('/study-design/create', { replace: true })}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Create New Study
+              </button>
+              <button
+                onClick={() => navigate('/study-design/studies', { replace: true })}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                Manage Studies
+              </button>
+              <button
+                onClick={() => navigate('/study-design/register', { replace: true })}
+                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+              >
+                Quick Register
+              </button>
+              <button
+                onClick={() => navigate('/study-design/forms', { replace: true })}
+                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+              >
+                Manage Forms
+              </button>
+            </div>
+          </div>
+        )}
 
         <Routes>
           {/* Modern study management routes */}
