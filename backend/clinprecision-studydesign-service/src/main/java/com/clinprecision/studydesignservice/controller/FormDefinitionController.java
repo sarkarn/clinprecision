@@ -18,7 +18,6 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/form-definitions")
-@CrossOrigin(origins = "*")
 public class FormDefinitionController {
     
     private final FormDefinitionService formDefinitionService;

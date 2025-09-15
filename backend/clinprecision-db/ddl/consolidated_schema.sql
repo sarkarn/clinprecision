@@ -208,9 +208,10 @@ CREATE TABLE IF NOT EXISTS form_templates (
     category VARCHAR(100) COMMENT 'Template category (Demographics, Safety, Laboratory, etc.)',
     version VARCHAR(20) DEFAULT '1.0',
     is_latest_version BOOLEAN DEFAULT TRUE,
-    status ENUM('draft', 'published', 'archived') DEFAULT 'draft',
+    status ENUM('DRAFT', 'PUBLISHED', 'ARCHIVED') DEFAULT 'DRAFT',
     -- Store the entire field structure including metadata in JSON
     fields JSON NOT NULL COMMENT 'Array of field definitions with metadata',
+	structure JSON COMMENT 'Organized layout/structure of form fields',
     tags TEXT COMMENT 'Comma-separated tags for searching/filtering',
     usage_count INT DEFAULT 0 COMMENT 'Number of times template has been used',
     created_by BIGINT,

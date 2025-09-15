@@ -40,6 +40,9 @@ public class FormTemplateEntity {
     @Column(name = "fields", columnDefinition = "JSON", nullable = false)
     private String fields;
     
+    @Column(name = "structure", columnDefinition = "JSON")
+    private String structure;
+    
     @Column(name = "tags", columnDefinition = "TEXT")
     private String tags;
     
@@ -167,6 +170,14 @@ public class FormTemplateEntity {
     
     public void setFields(String fields) {
         this.fields = fields;
+    }
+    
+    public String getStructure() {
+        return structure;
+    }
+    
+    public void setStructure(String structure) {
+        this.structure = structure;
     }
     
     public String getTags() {

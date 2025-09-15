@@ -17,7 +17,6 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/form-templates")
-@CrossOrigin(origins = "*")
 public class FormTemplateController {
     
     private final FormTemplateService formTemplateService;

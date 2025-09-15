@@ -1,13 +1,14 @@
 import ApiService from './ApiService';
 
-const API_PATH = '/study-design-ws/api/forms';
+const API_PATH = '/study-design-ws/api/form-templates'; // Global form library/templates
+const FORM_DEFINITIONS_PATH = '/study-design-ws/api/form-definitions'; // Study-specific forms
 
 /**
  * Service for handling Form operations
  */
 class FormService {
   /**
-   * Get all forms
+   * Get all forms (global form library/templates)
    * @returns {Promise<Array>} Promise that resolves to an array of forms
    */
   async getForms() {
@@ -186,7 +187,7 @@ class FormService {
    */
   async getFormsByStudy(studyId) {
     try {
-      const response = await ApiService.get(`${API_PATH}/study/${studyId}`);
+      const response = await ApiService.get(`${FORM_DEFINITIONS_PATH}/study/${studyId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching forms for study ${studyId}:`, error);
@@ -296,7 +297,7 @@ class FormService {
         description: 'Standard demographic information collection',
         type: 'Demographics',
         version: '2.1',
-        status: 'Published',
+        status: 'PUBLISHED',
         updatedAt: '2024-03-10T10:30:00Z',
         createdAt: '2024-01-15T09:00:00Z',
         createdBy: 'Dr. Sarah Johnson',
@@ -321,7 +322,7 @@ class FormService {
         description: 'Comprehensive adverse event documentation',
         type: 'Safety',
         version: '1.5',
-        status: 'Published',
+        status: 'PUBLISHED',
         updatedAt: '2024-03-08T14:20:00Z',
         createdAt: '2024-02-01T11:00:00Z',
         createdBy: 'Dr. Michael Chen',
@@ -346,7 +347,7 @@ class FormService {
         description: 'Lab values and test results',
         type: 'Laboratory',
         version: '3.0',
-        status: 'Draft',
+        status: 'DRAFT',
         updatedAt: '2024-03-12T09:15:00Z',
         createdAt: '2024-03-01T10:30:00Z',
         createdBy: 'Dr. Emily Rodriguez',
@@ -371,7 +372,7 @@ class FormService {
         description: 'Prior and concomitant medication tracking',
         type: 'Medication',
         version: '2.3',
-        status: 'Published',
+        status: 'PUBLISHED',
         updatedAt: '2024-03-05T16:45:00Z',
         createdAt: '2024-01-20T08:15:00Z',
         createdBy: 'Dr. Robert Kim',

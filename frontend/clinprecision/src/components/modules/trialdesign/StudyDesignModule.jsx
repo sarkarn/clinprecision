@@ -10,6 +10,7 @@ import VersionManagementModal from './study-management/VersionManagementModal';
 import StudyDesignDashboard from './study-design/StudyDesignDashboard';
 import StudyViewPage from './StudyViewPage';
 import FormList from './FormList';
+import StudyFormList from './StudyFormList';
 import FormDesigner from './FormDesigner';
 import FormVersionHistory from './FormVersionHistory';
 import FormVersionViewer from './FormVersionViewer';
@@ -390,7 +391,7 @@ const StudyDesignModule = () => {
           <Route path="forms/builder/:formId/:versionId" element={<CRFBuilderIntegration />} />
 
           {/* Study-specific Form Management Routes */}
-          <Route path="study/:studyId/forms" element={<FormList />} />
+          <Route path="study/:studyId/forms" element={<StudyFormList />} />
           <Route path="study/:studyId/forms/designer" element={<FormDesigner />} />
           <Route path="study/:studyId/forms/designer/:formId" element={<FormDesigner />} />
           <Route path="study/:studyId/forms/:formId/versions" element={<FormVersionHistory />} />

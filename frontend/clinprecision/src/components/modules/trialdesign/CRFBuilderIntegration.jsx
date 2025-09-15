@@ -2,15 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Settings, Table, List, ChevronDown, ChevronUp, Eye, Edit3 } from 'lucide-react';
 import FormService from '../../../services/FormService';
+import StudyFormService from '../../../services/StudyFormService';
 import FormVersionService from '../../../services/FormVersionService';
 
 /**
  * This component acts as a bridge between the CRF Builder (to be implemented) 
- * and our form services
+ * and our form services. It detects study context and uses appropriate service.
  */
 const CRFBuilderIntegration = () => {
-    const { formId, versionId } = useParams();
+    const { formId, versionId, studyId } = useParams();
     const navigate = useNavigate();
+
+    // Determine if we're in study context
+    const isStudyContext = !!studyId;
+    const formService = isStudyContext ? StudyFormService : FormService;
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [form, setForm] = useState(null);
@@ -39,21 +45,78 @@ const CRFBuilderIntegration = () => {
                 setError(null);
 
                 if (formId) {
-                    // Load existing form
-                    const formData = await FormService.getFormById(formId);
+                    // Load existing form using appropriate service
+                    const formData = isStudyContext
+                        ? await StudyFormService.getStudyFormById(formId)
+                        : await FormService.getFormById(formId);
                     setForm(formData);
 
-                    if (versionId) {
-                        // Load specific version
-                        const versionData = await FormVersionService.getFormVersion(formId, versionId);
-                        setFormVersion(versionData);
-                        setCrfData(versionData.structure || {});
-                    } else {
-                        // Load current version
-                        const currentVersion = await FormVersionService.getCurrentFormVersion(formId);
-                        setFormVersion(currentVersion);
-                        setCrfData(currentVersion.structure || {});
+                    // Reconstruct CRF data from the form's fields and structure
+                    let reconstructedCrfData = {
+                        sections: [],
+                        fields: []
+                    };
+
+                    try {
+                        // Parse the fields and structure from the backend
+                        const fields = typeof formData.fields === 'string' ? JSON.parse(formData.fields) : formData.fields || [];
+                        const structure = typeof formData.structure === 'string' ? JSON.parse(formData.structure) : formData.structure || {};
+
+                        console.log('Loaded form data:', { formData, fields, structure });
+
+                        if (structure.sections && Array.isArray(structure.sections)) {
+                            // Reconstruct sections with their fields
+                            reconstructedCrfData.sections = structure.sections.map(section => {
+                                // Get the actual field objects for this section
+                                const sectionFields = fields.filter(field =>
+                                    section.fields && section.fields.includes(field.id)
+                                );
+
+                                return {
+                                    id: section.id,
+                                    name: section.name,
+                                    description: section.description || '',
+                                    type: section.type || 'regular',
+                                    fields: sectionFields,
+                                    metadata: section.metadata || {
+                                        isRequired: false,
+                                        helpText: '',
+                                        displayOrder: 1
+                                    }
+                                };
+                            });
+                        } else if (fields && fields.length > 0) {
+                            // If no structure but we have fields, create a default section
+                            reconstructedCrfData.sections = [{
+                                id: 'default_section',
+                                name: 'Form Fields',
+                                description: 'Default section containing all form fields',
+                                type: 'regular',
+                                fields: fields,
+                                metadata: {
+                                    isRequired: false,
+                                    helpText: '',
+                                    displayOrder: 1
+                                }
+                            }];
+                        }
+
+                        // If we have legacy structure format, handle it
+                        if (formData.structure && formData.structure.sections) {
+                            reconstructedCrfData = formData.structure;
+                        }
+
+                    } catch (parseError) {
+                        console.warn('Error parsing form data, using default structure:', parseError);
+                        // If parsing fails, create empty structure
+                        reconstructedCrfData = {
+                            sections: [],
+                            fields: []
+                        };
                     }
+
+                    setCrfData(reconstructedCrfData);
+
                 } else {
                     // New form - show template selector first
                     await loadTemplates();
@@ -86,7 +149,9 @@ const CRFBuilderIntegration = () => {
     const loadTemplates = async () => {
         try {
             setLoadingTemplates(true);
-            const templates = await FormService.getFormTemplates();
+            const templates = isStudyContext
+                ? await StudyFormService.getAvailableTemplates()
+                : await FormService.getFormTemplates();
             setAvailableTemplates(templates || []);
         } catch (err) {
             console.error("Error loading templates:", err);
@@ -131,6 +196,78 @@ const CRFBuilderIntegration = () => {
             setError("Failed to apply template. Please try again.");
             setLoading(false);
         }
+    };
+
+    // Save form (create new or update existing)
+    const handleSaveForm = async (formMetadata) => {
+        try {
+            setSaving(true);
+            setError(null);
+
+            const formData = {
+                name: formMetadata?.name || form?.name || 'Untitled Form',
+                description: formMetadata?.description || form?.description || '',
+                type: formMetadata?.type || form?.type || 'General',
+                version: formMetadata?.version || '1.0',
+                status: formMetadata?.status || 'Draft',
+                formDefinition: JSON.stringify(crfData),
+                fields: JSON.stringify(crfData?.fields || []),
+                templateId: form?.templateId || null
+            };
+
+            let savedForm;
+            if (formId) {
+                // Update existing form using appropriate service
+                if (isStudyContext) {
+                    savedForm = await StudyFormService.updateStudyForm(formId, formData);
+                } else {
+                    savedForm = await FormService.updateForm(formId, formData);
+                }
+            } else {
+                // Create new form using appropriate service
+                if (isStudyContext && studyId) {
+                    const studyFormData = {
+                        ...formData,
+                        studyId: parseInt(studyId)
+                    };
+                    savedForm = await StudyFormService.createStudyForm(studyFormData);
+                } else {
+                    savedForm = await FormService.createForm(formData);
+                }
+            }
+
+            setForm(savedForm);
+            setChanges(false);
+
+            // Show success message
+            alert('Form saved successfully!');
+
+            // Navigate to form list or stay on form
+            if (!formId) {
+                // If this was a new form, navigate to the builder page with the new ID
+                const builderPath = isStudyContext
+                    ? `/study-design/study/${studyId}/forms/builder/${savedForm.id}`
+                    : `/study-design/forms/builder/${savedForm.id}`;
+                navigate(builderPath);
+            }
+
+        } catch (err) {
+            console.error('Error saving form:', err);
+            setError(`Failed to save form: ${err.message || 'Unknown error'}`);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Cancel form creation/editing
+    const handleCancel = () => {
+        if (changes && !window.confirm('Are you sure you want to discard your changes?')) {
+            return;
+        }
+        const formListPath = isStudyContext
+            ? `/study-design/study/${studyId}/forms`
+            : '/study-design/forms';
+        navigate(formListPath);
     };
 
     // Toggle section expansion
@@ -699,15 +836,45 @@ const CRFBuilderIntegration = () => {
         try {
             setSaving(true);
 
+            // Extract fields from sections for the fields property
+            const allFields = [];
+            crfData?.sections?.forEach(section => {
+                if (section.fields && Array.isArray(section.fields)) {
+                    allFields.push(...section.fields);
+                }
+            });
+
+            // Create structure object (organized layout information)
+            const structureData = {
+                sections: crfData?.sections?.map(section => ({
+                    id: section.id,
+                    name: section.name,
+                    description: section.description,
+                    type: section.type,
+                    fields: section.fields?.map(field => field.id) || [], // Only field IDs in structure
+                    metadata: section.metadata
+                })) || [],
+                layout: {
+                    type: "sections",
+                    orientation: "vertical",
+                    spacing: "normal"
+                }
+            };
+
             if (!formId) {
                 // Create new form
                 const newFormData = {
+                    templateId: form?.templateId || `FORM-${Date.now()}`, // Backend requires templateId
                     name: form?.name || "New Form",
                     description: form?.description || "Form created with CRF Builder",
-                    structure: crfData,
-                    type: form?.type || "Custom",
-                    templateId: form?.templateId,
-                    formType: "custom" // Add default formType
+                    category: form?.type || form?.category || "Custom", // Map type to category
+                    version: "1.0",
+                    isLatestVersion: true,
+                    status: "DRAFT", // Ensure uppercase enum value
+                    fields: JSON.stringify(allFields), // Field definitions as JSON string
+                    structure: JSON.stringify(structureData), // Structure/layout as JSON string
+                    tags: form?.tags || "",
+                    createdBy: 1 // Default user ID
                 };
 
                 let result;
@@ -720,17 +887,32 @@ const CRFBuilderIntegration = () => {
                 }
 
                 alert("Form created successfully!");
-                navigate(`/study-design/forms/${result.id}/versions`);
-            } else if (formVersion) {
-                // Create new version of existing form
-                const versionData = {
-                    structure: crfData,
-                    notes: "Updated via CRF Builder"
+                const builderPath = isStudyContext
+                    ? `/study-design/study/${studyId}/forms/builder/${result.id}`
+                    : `/study-design/forms/builder/${result.id}`;
+                navigate(builderPath);
+            } else {
+                // Update existing form
+                const updatedFormData = {
+                    templateId: form?.id || form?.templateId || `FORM-${Date.now()}`, // Backend requires templateId
+                    name: form?.name || "Updated Form",
+                    description: form?.description || "Form updated via CRF Builder",
+                    category: form?.type || form?.category || "Custom", // Map type to category  
+                    version: form?.version || "1.0",
+                    isLatestVersion: true,
+                    status: form?.status || "DRAFT", // Ensure uppercase enum value
+                    fields: JSON.stringify(allFields), // Field definitions as JSON string
+                    structure: JSON.stringify(structureData), // Structure/layout as JSON string
+                    tags: form?.tags || "",
+                    createdBy: form?.createdBy || 1 // Default user ID
                 };
 
-                await FormVersionService.createFormVersion(formId, versionData);
-                alert("Form version created successfully!");
-                navigate(`/study-design/forms/${formId}/versions`);
+                await FormService.updateForm(formId, updatedFormData);
+                alert("Form updated successfully!");
+                const formListPath = isStudyContext
+                    ? `/study-design/study/${studyId}/forms`
+                    : `/study-design/forms`;
+                navigate(formListPath);
             }
 
             setSaving(false);
@@ -1941,7 +2123,9 @@ const CRFBuilderIntegration = () => {
                         if (changes && !window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
                             return;
                         }
-                        navigate(formId ? `/study-design/forms/${formId}/versions` : "/study-design/forms");
+                        navigate(formId
+                            ? (isStudyContext ? `/study-design/study/${studyId}/forms/${formId}/versions` : `/study-design/forms/${formId}/versions`)
+                            : (isStudyContext ? `/study-design/study/${studyId}/forms` : "/study-design/forms"));
                     }}
                     className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"
                     disabled={saving}
@@ -2027,8 +2211,8 @@ const CRFBuilderIntegration = () => {
                                                                 </p>
                                                                 <div className="mt-3 flex items-center justify-between text-xs">
                                                                     <span className={`px-2 py-1 rounded-full ${template.complexity === 'Basic' ? 'bg-green-100 text-green-800' :
-                                                                            template.complexity === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                                                                                'bg-red-100 text-red-800'
+                                                                        template.complexity === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                                                                            'bg-red-100 text-red-800'
                                                                         }`}>
                                                                         {template.complexity}
                                                                     </span>
@@ -2056,7 +2240,7 @@ const CRFBuilderIntegration = () => {
                                 <button
                                     onClick={() => {
                                         setShowTemplateSelector(false);
-                                        navigate('/study-design/forms');
+                                        navigate(isStudyContext ? `/study-design/study/${studyId}/forms` : '/study-design/forms');
                                     }}
                                     className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium py-2 px-6 rounded mr-4"
                                 >

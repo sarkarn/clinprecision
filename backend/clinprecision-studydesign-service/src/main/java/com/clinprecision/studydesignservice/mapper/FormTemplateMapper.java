@@ -30,6 +30,7 @@ public class FormTemplateMapper {
         dto.setIsLatestVersion(entity.getIsLatestVersion());
         dto.setStatus(entity.getStatus());
         dto.setFields(entity.getFields());
+        dto.setStructure(entity.getStructure());
         dto.setTags(entity.getTags());
         dto.setUsageCount(entity.getUsageCount());
         dto.setCreatedBy(entity.getCreatedBy());
@@ -56,6 +57,7 @@ public class FormTemplateMapper {
         entity.setIsLatestVersion(dto.getIsLatestVersion());
         entity.setStatus(dto.getStatus());
         entity.setFields(dto.getFields());
+        entity.setStructure(dto.getStructure());
         entity.setTags(dto.getTags());
         entity.setCreatedBy(dto.getCreatedBy());
         
@@ -78,6 +80,7 @@ public class FormTemplateMapper {
         entity.setIsLatestVersion(dto.getIsLatestVersion());
         entity.setStatus(dto.getStatus());
         entity.setFields(dto.getFields());
+        entity.setStructure(dto.getStructure());
         entity.setTags(dto.getTags());
         // Note: createdBy is not updated in update operations
     }

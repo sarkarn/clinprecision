@@ -35,6 +35,8 @@ public class FormTemplateCreateRequestDto {
     @NotNull(message = "Fields JSON is required")
     private String fields;
     
+    private String structure;
+    
     private String tags;
     
     private Long createdBy;
@@ -105,6 +107,14 @@ public class FormTemplateCreateRequestDto {
     
     public void setFields(String fields) {
         this.fields = fields;
+    }
+    
+    public String getStructure() {
+        return structure;
+    }
+    
+    public void setStructure(String structure) {
+        this.structure = structure;
     }
     
     public String getTags() {

@@ -1,7 +1,8 @@
--- Form Library Data Setup Script v2.0
+-- Form Library Data Setup Script v3.0
 -- Creates standardized, reusable form templates for clinical trials
 -- Uses proper form_templates table structure separate from study-specific forms
--- Last updated: September 13, 2025
+-- Updated to include structure column for organized form layout
+-- Last updated: September 14, 2025
 
 USE clinprecisiondb;
 
@@ -9,14 +10,14 @@ USE clinprecisiondb;
 -- 1. Demographics & Baseline Forms Template
 INSERT INTO form_templates (
     template_id, name, description, category, version, status, 
-    fields, tags, usage_count, created_by, created_at
+    fields, structure, tags, usage_count, created_by, created_at
 ) VALUES (
     'DEMO-001',
     'Subject Demographics',
     'Comprehensive demographic data collection form capturing baseline participant information including identification, physical characteristics, and background history essential for clinical trial analysis and regulatory submissions.',
     'Demographics',
     '1.0',
-    'published',
+    'PUBLISHED',
     '[
         {
             "id": "subject_initials",
@@ -132,6 +133,36 @@ INSERT INTO form_templates (
             "section": "physical"
         }
     ]',
+    '{
+        "sections": [
+            {
+                "id": "identification",
+                "title": "Subject Identification",
+                "description": "Basic identification information",
+                "fields": ["subject_initials"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "demographics", 
+                "title": "Demographics",
+                "description": "Basic demographic information",
+                "fields": ["gender", "date_of_birth", "age_at_consent", "ethnicity", "race"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "physical",
+                "title": "Physical Measurements", 
+                "description": "Height, weight, and calculated BMI",
+                "fields": ["height", "weight", "bmi"],
+                "layout": {"columns": 3, "style": "inline"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
     'demographics,baseline,mandatory,ICH-GCP',
     0,
     1,
@@ -141,14 +172,14 @@ INSERT INTO form_templates (
 -- 2. Adverse Events Template
 INSERT INTO form_templates (
     template_id, name, description, category, version, status, 
-    fields, tags, usage_count, created_by, created_at
+    fields, structure, tags, usage_count, created_by, created_at
 ) VALUES (
     'SAF-001',
     'Adverse Event Report',
     'Standardized adverse event reporting form compliant with ICH-GCP guidelines and regulatory requirements for comprehensive safety data collection and analysis.',
     'Safety',
     '1.0',
-    'published',
+    'PUBLISHED',
     '[
         {
             "id": "ae_term",
@@ -281,6 +312,43 @@ INSERT INTO form_templates (
             "section": "outcome"
         }
     ]',
+    '{
+        "sections": [
+            {
+                "id": "event_details",
+                "title": "Event Details",
+                "description": "Basic adverse event information", 
+                "fields": ["ae_term", "ae_description"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "timeline",
+                "title": "Timeline",
+                "description": "Event timing information",
+                "fields": ["start_date", "end_date", "ongoing"],
+                "layout": {"columns": 3, "style": "inline"}
+            },
+            {
+                "id": "assessment",
+                "title": "Clinical Assessment",
+                "description": "Severity and seriousness assessment",
+                "fields": ["severity", "seriousness", "sae_criteria", "causality"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "actions",
+                "title": "Actions & Outcome",
+                "description": "Treatment actions and final outcome",
+                "fields": ["action_taken", "outcome"],
+                "layout": {"columns": 2, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
     'safety,adverse events,SAE,ICH-GCP,regulatory',
     0,
     1,
@@ -290,14 +358,14 @@ INSERT INTO form_templates (
 -- 3. Laboratory Results Template
 INSERT INTO form_templates (
     template_id, name, description, category, version, status, 
-    fields, tags, usage_count, created_by, created_at
+    fields, structure, tags, usage_count, created_by, created_at
 ) VALUES (
     'LAB-001',
     'Laboratory Results - Hematology & Chemistry',
     'Comprehensive laboratory data collection form for hematology, clinical chemistry, and basic metabolic panels commonly required in clinical trials for safety monitoring and efficacy assessment.',
     'Laboratory',
     '1.0',
-    'published',
+    'PUBLISHED',
     '[
         {
             "id": "collection_date",
@@ -451,6 +519,36 @@ INSERT INTO form_templates (
             "section": "chemistry"
         }
     ]',
+    '{
+        "sections": [
+            {
+                "id": "sample_info",
+                "title": "Sample Information",
+                "description": "Collection details and conditions",
+                "fields": ["collection_date", "fasting_status"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "hematology",
+                "title": "Hematology",
+                "description": "Complete blood count parameters",
+                "fields": ["hemoglobin", "hematocrit", "wbc_count", "platelet_count"],
+                "layout": {"columns": 2, "style": "grid"}
+            },
+            {
+                "id": "chemistry",
+                "title": "Clinical Chemistry",
+                "description": "Basic metabolic panel and liver function",
+                "fields": ["glucose", "creatinine", "bun", "alt", "ast", "total_bilirubin"],
+                "layout": {"columns": 3, "style": "grid"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
     'laboratory,hematology,chemistry,safety,monitoring',
     0,
     1,
@@ -460,14 +558,14 @@ INSERT INTO form_templates (
 -- 4. Vital Signs Template
 INSERT INTO form_templates (
     template_id, name, description, category, version, status, 
-    fields, tags, usage_count, created_by, created_at
+    fields, structure, tags, usage_count, created_by, created_at
 ) VALUES (
     'VIT-001',
     'Vital Signs Assessment',
     'Standard vital signs measurement form for comprehensive cardiovascular and physiological monitoring in clinical trials, including blood pressure, heart rate, temperature, and respiratory rate assessments.',
     'Vital Signs',
     '1.0',
-    'published',
+    'PUBLISHED',
     '[
         {
             "id": "assessment_date",
@@ -591,6 +689,57 @@ INSERT INTO form_templates (
             "section": "respiratory"
         }
     ]',
+    '{
+        "sections": [
+            {
+                "id": "timing",
+                "title": "Assessment Details",
+                "description": "When and how measurements were taken",
+                "fields": ["assessment_date"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "conditions",
+                "title": "Measurement Conditions",
+                "description": "Patient position and preparation",
+                "fields": ["position", "rest_period"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "blood_pressure",
+                "title": "Blood Pressure",
+                "description": "Systolic and diastolic measurements",
+                "fields": ["systolic_bp", "diastolic_bp"],
+                "layout": {"columns": 2, "style": "inline"}
+            },
+            {
+                "id": "cardiac",
+                "title": "Heart Rate",
+                "description": "Cardiac measurements",
+                "fields": ["heart_rate"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "general",
+                "title": "Temperature",
+                "description": "Body temperature and measurement method",
+                "fields": ["temperature", "temperature_route"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "respiratory",
+                "title": "Respiratory",
+                "description": "Breathing rate and oxygen saturation",
+                "fields": ["respiratory_rate", "oxygen_saturation"],
+                "layout": {"columns": 2, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
     'vital signs,blood pressure,cardiovascular,monitoring',
     0,
     1,
@@ -600,14 +749,14 @@ INSERT INTO form_templates (
 -- 5. Medical History Template
 INSERT INTO form_templates (
     template_id, name, description, category, version, status, 
-    fields, tags, usage_count, created_by, created_at
+    fields, structure, tags, usage_count, created_by, created_at
 ) VALUES (
     'MED-001',
     'Medical History & Background',
     'Comprehensive medical history collection form capturing relevant past medical history, surgical procedures, family history, and social history information critical for clinical trial participant assessment.',
     'Medical History',
     '1.0',
-    'published',
+    'PUBLISHED',
     '[
         {
             "id": "primary_indication",
@@ -744,6 +893,50 @@ INSERT INTO form_templates (
             "section": "social_history"
         }
     ]',
+    '{
+        "sections": [
+            {
+                "id": "primary_condition",
+                "title": "Primary Medical Condition",
+                "description": "Main condition for study participation",
+                "fields": ["primary_indication", "diagnosis_date", "previous_treatments"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "past_history",
+                "title": "Past Medical History",
+                "description": "Significant medical and surgical history",
+                "fields": ["significant_medical_history", "surgical_history"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "allergies",
+                "title": "Allergies",
+                "description": "Known allergies and adverse reactions",
+                "fields": ["allergies", "no_known_allergies"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "family_history",
+                "title": "Family History",
+                "description": "Relevant family medical history",
+                "fields": ["family_history"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "social_history",
+                "title": "Social History",
+                "description": "Smoking and alcohol use patterns",
+                "fields": ["smoking_status", "pack_years", "alcohol_use"],
+                "layout": {"columns": 3, "style": "inline"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
     'medical history,baseline,past history,family history,social history',
     0,
     1,
@@ -753,14 +946,14 @@ INSERT INTO form_templates (
 -- 6. Physical Examination Template
 INSERT INTO form_templates (
     template_id, name, description, category, version, status, 
-    fields, tags, usage_count, created_by, created_at
+    fields, structure, tags, usage_count, created_by, created_at
 ) VALUES (
     'PE-001',
     'Physical Examination',
     'Comprehensive physical examination form for systematic clinical assessment covering all major organ systems and providing structured documentation for clinical trial baseline and follow-up evaluations.',
     'Physical Exam',
     '1.0',
-    'published',
+    'PUBLISHED',
     '[
         {
             "id": "exam_date",
@@ -964,6 +1157,36 @@ INSERT INTO form_templates (
             "section": "assessment"
         }
     ]',
+    '{
+        "sections": [
+            {
+                "id": "general",
+                "title": "General Assessment",
+                "description": "Overall appearance and vital signs",
+                "fields": ["exam_date", "general_appearance"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "systems",
+                "title": "Systems Review",
+                "description": "Systematic examination of organ systems",
+                "fields": ["heent", "heent_comments", "cardiovascular", "cardiovascular_comments", "respiratory", "respiratory_comments", "abdomen", "abdomen_comments", "neurological", "neurological_comments", "extremities", "extremities_comments", "skin", "skin_comments"],
+                "layout": {"columns": 2, "style": "paired"}
+            },
+            {
+                "id": "assessment",
+                "title": "Clinical Assessment",
+                "description": "Overall clinical impression and summary",
+                "fields": ["overall_assessment"],
+                "layout": {"columns": 1, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
     'physical examination,clinical assessment,baseline,organ systems',
     0,
     1,
@@ -973,14 +1196,14 @@ INSERT INTO form_templates (
 -- 7. Concomitant Medications Template
 INSERT INTO form_templates (
     template_id, name, description, category, version, status, 
-    fields, tags, usage_count, created_by, created_at
+    fields, structure, tags, usage_count, created_by, created_at
 ) VALUES (
     'MED-002',
     'Concomitant Medications',
     'Comprehensive medication history and concurrent therapy documentation form for tracking all medications, supplements, and treatments used during clinical trial participation for drug interaction assessment.',
     'Medications',
     '1.0',
-    'published',
+    'PUBLISHED',
     '[
         {
             "id": "medication_name",
@@ -1138,6 +1361,64 @@ INSERT INTO form_templates (
             "section": "additional_info"
         }
     ]',
+    '{
+        "sections": [
+            {
+                "id": "medication_info",
+                "title": "Medication Information",
+                "description": "Basic medication details and indication",
+                "fields": ["medication_name", "active_ingredient", "indication"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "dosing",
+                "title": "Dosing",
+                "description": "Dose, frequency, and units",
+                "fields": ["dose", "dose_unit", "frequency"],
+                "layout": {"columns": 3, "style": "inline"}
+            },
+            {
+                "id": "administration",
+                "title": "Route of Administration",
+                "description": "How medication is given",
+                "fields": ["route"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "timeline",
+                "title": "Timeline",
+                "description": "Start and end dates",
+                "fields": ["start_date", "end_date", "ongoing"],
+                "layout": {"columns": 3, "style": "inline"}
+            },
+            {
+                "id": "classification",
+                "title": "Classification",
+                "description": "Type of medication or product",
+                "fields": ["prescription_status"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "prescriber_info",
+                "title": "Prescriber Information",
+                "description": "Prescribing physician details",
+                "fields": ["prescriber"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "additional_info",
+                "title": "Additional Information",
+                "description": "Comments and special notes",
+                "fields": ["comments"],
+                "layout": {"columns": 1, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
     'medications,concomitant,drug interactions,concurrent therapy',
     0,
     1,
@@ -1147,14 +1428,14 @@ INSERT INTO form_templates (
 -- 8. Efficacy Assessment Template
 INSERT INTO form_templates (
     template_id, name, description, category, version, status, 
-    fields, tags, usage_count, created_by, created_at
+    fields, structure, tags, usage_count, created_by, created_at
 ) VALUES (
     'EFF-001',
     'Clinical Efficacy Assessment',
     'Standardized efficacy evaluation form for measuring primary and secondary endpoints in clinical trials, including symptom scores, functional assessments, and objective clinical measurements.',
     'Efficacy',
     '1.0',
-    'published',
+    'PUBLISHED',
     '[
         {
             "id": "assessment_date",
@@ -1339,6 +1620,78 @@ INSERT INTO form_templates (
             "section": "comments"
         }
     ]',
+    '{
+        "sections": [
+            {
+                "id": "timing",
+                "title": "Assessment Timing",
+                "description": "When and why assessment was performed",
+                "fields": ["assessment_date", "visit_type"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "primary_endpoints",
+                "title": "Primary Endpoints",
+                "description": "Main efficacy measurements",
+                "fields": ["primary_endpoint_score", "primary_endpoint_change"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "symptoms",
+                "title": "Symptom Assessment",
+                "description": "Overall symptom severity",
+                "fields": ["symptom_severity"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "functional",
+                "title": "Functional Status",
+                "description": "Patient functional ability",
+                "fields": ["functional_status"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "quality_of_life",
+                "title": "Quality of Life",
+                "description": "Overall quality of life score",
+                "fields": ["quality_of_life"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "global_assessments",
+                "title": "Global Impressions",
+                "description": "Patient and clinician overall assessments",
+                "fields": ["patient_global_impression", "clinician_global_impression"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "objective_measures",
+                "title": "Objective Measurements",
+                "description": "Protocol-specific objective parameters",
+                "fields": ["objective_measurement_1", "objective_measurement_1_unit", "objective_measurement_2", "objective_measurement_2_unit"],
+                "layout": {"columns": 2, "style": "paired"}
+            },
+            {
+                "id": "response",
+                "title": "Response Assessment",
+                "description": "Overall response criteria evaluation",
+                "fields": ["response_criteria_met"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "comments",
+                "title": "Additional Comments",
+                "description": "Additional observations and notes",
+                "fields": ["assessment_comments"],
+                "layout": {"columns": 1, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
     'efficacy,endpoints,clinical response,outcomes,assessment',
     0,
     1,
@@ -1350,8 +1703,11 @@ INSERT INTO form_template_versions (template_id, version, version_notes, fields_
 SELECT 
     id,
     version,
-    'Initial template version',
-    fields,
+    'Initial template version with structure support',
+    JSON_OBJECT(
+        'fields', fields,
+        'structure', structure
+    ),
     created_by
 FROM form_templates;
 
