@@ -200,6 +200,7 @@ CREATE TABLE study_phase (
     INDEX idx_study_phase_display_order (display_order)
 );
 
+
 CREATE TABLE IF NOT EXISTS form_templates (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     template_id VARCHAR(50) NOT NULL UNIQUE COMMENT 'Unique template identifier (e.g., DEMO-001)',
@@ -318,6 +319,27 @@ CREATE TABLE study_versions (
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
+-- Create study_design_progress table
+CREATE TABLE study_design_progress (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Primary key',
+    study_id BIGINT NOT NULL COMMENT 'Foreign key to studies table',
+    phase VARCHAR(50) NOT NULL 'Design phase name (basic-info, arms, visits, forms, review, publish, revisions)',
+    completed BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Whether this phase is completed',
+    percentage INT NOT NULL DEFAULT 0 CHECK (percentage >= 0 AND percentage <= 100) COMMENT 'Completion percentage (0-100)',
+    notes TEXT COMMENT 'Optional notes about the phase progress',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Record creation timestamp',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Record update timestamp',
+    created_by BIGINT COMMENT 'User who created this record',
+    updated_by BIGINT COMMENT 'User who last updated this record',
+    
+    -- Constraints
+    UNIQUE KEY unique_study_phase (study_id, phase),
+    FOREIGN KEY fk_design_progress_study (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    FOREIGN KEY fk_design_progress_created_by (created_by) REFERENCES users(id),
+    FOREIGN KEY fk_design_progress_updated_by (updated_by) REFERENCES users(id)
+);
+
+
 CREATE TABLE organization_studies (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     organization_id BIGINT NOT NULL,
@@ -336,13 +358,46 @@ CREATE TABLE organization_studies (
 -- Study arms
 CREATE TABLE study_arms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    study_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    randomization_ratio INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
+    type VARCHAR(50) NOT NULL DEFAULT 'TREATMENT',
+    sequence_number INTEGER NOT NULL,
+    planned_subjects INTEGER DEFAULT 0,
+    study_id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    updated_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    
+    -- Foreign key constraint to studies table
+    CONSTRAINT fk_study_arms_study_id FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    
+    -- Unique constraint on study_id and sequence_number
+	CONSTRAINT chk_study_arms_type CHECK (type IN ('TREATMENT', 'PLACEBO', 'CONTROL', 'ACTIVE_COMPARATOR')),
+    CONSTRAINT uk_study_arms_study_sequence UNIQUE (study_id, sequence_number),
+    CONSTRAINT chk_study_arms_sequence CHECK (sequence_number > 0),
+    CONSTRAINT chk_study_arms_planned_subjects CHECK (planned_subjects >= 0)
+);
+
+CREATE TABLE study_interventions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    type VARCHAR(50) NOT NULL DEFAULT 'DRUG',
+    dosage VARCHAR(255),
+    frequency VARCHAR(255),
+    route VARCHAR(255),
+    study_arm_id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    updated_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    
+    -- Foreign key constraint to study_arms table
+    CONSTRAINT fk_interventions_study_arm_id FOREIGN KEY (study_arm_id) REFERENCES study_arms(id) ON DELETE CASCADE,
+    
+    -- Check constraints for data integrity
+    CONSTRAINT chk_interventions_type CHECK (type IN ('DRUG', 'DEVICE', 'PROCEDURE', 'BEHAVIORAL', 'OTHER'))
 );
 
 -- Sites and visits
@@ -372,7 +427,7 @@ CREATE TABLE visit_definitions (
     timepoint INT NOT NULL,  -- Days from baseline (can be negative for screening)
     window_before INT DEFAULT 0,
     window_after INT DEFAULT 0,
-    visit_type ENUM('screening', 'baseline', 'treatment', 'follow_up', 'unscheduled') DEFAULT 'treatment',
+    visit_type ENUM('SCREENING', 'BASELINE', 'TREATMENT', 'FOLLOW_UP', 'UNSCHEDULED', 'END_OF_STUDY') DEFAULT 'TREATMENT',
     is_required BOOLEAN DEFAULT TRUE,
     sequence_number INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -393,12 +448,13 @@ CREATE TABLE form_definitions (
     parent_version_id VARCHAR(36) DEFAULT NULL,
     version_notes TEXT,
     is_locked BOOLEAN DEFAULT FALSE,
-    status ENUM('draft', 'approved', 'retired') DEFAULT 'draft',
+    status ENUM('DRAFT', 'APPROVED', 'RETIRED') DEFAULT 'DRAFT',
     template_id BIGINT NULL COMMENT 'Reference to form_templates table for template-based forms',
 	template_version VARCHAR(36) NULL COMMENT 'Version of template used when form was created',
 	tags TEXT NULL COMMENT 'Comma-separated tags for searching/filtering',
     -- Store the entire field structure including metadata in JSON
     fields JSON NOT NULL COMMENT 'Array of field definitions with metadata. Each field has a ONE-TO-ONE relationship with its metadata.',
+	structure JSON COMMENT 'Organized layout/structure of form fields (matching form_templates structure)',
     created_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -413,6 +469,7 @@ CREATE TABLE form_versions (
     version VARCHAR(20) NOT NULL,
     version_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by BIGINT,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     version_notes TEXT,
     FOREIGN KEY (form_id) REFERENCES form_definitions(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id)
@@ -422,9 +479,11 @@ CREATE TABLE visit_forms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     visit_definition_id BIGINT NOT NULL,
     form_definition_id BIGINT NOT NULL,
-    sequence_number INT NOT NULL,
     is_required BOOLEAN DEFAULT TRUE,
-    is_active BOOLEAN DEFAULT TRUE,
+    is_conditional BOOLEAN DEFAULT FALSE,
+    conditional_logic TEXT COMMENT 'JSON or expression for conditional forms',
+    display_order INT DEFAULT 1 COMMENT 'Order for display in UI',
+    instructions TEXT COMMENT 'Specific instructions for this form in this visit',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     updated_by BIGINT,
@@ -746,6 +805,17 @@ CREATE INDEX idx_studies_study_phase_id ON studies(study_phase_id);
 -- Add template_id column to form_definitions table to link study forms to templates
 CREATE INDEX idx_form_template ON form_definitions(template_id);
 CREATE INDEX idx_form_status ON form_definitions(status);
+-- Create indexes for performance optimization
+CREATE INDEX idx_study_arms_study_id ON study_arms(study_id);
+CREATE INDEX idx_study_arms_sequence ON study_arms(study_id, sequence_number);
+CREATE INDEX idx_study_arms_type ON study_arms(type);
+CREATE INDEX idx_study_interventions_study_arm_id ON study_interventions(study_arm_id);
+CREATE INDEX idx_study_interventions_type ON study_interventions(type);
+ -- Indexes for performance
+CREATE INDEX idx_design_progress_study_id ON study_design_progress (study_id);
+CREATE INDEX idx_design_progress_phase ON study_design_progress (phase);
+CREATE INDEX idx_design_progress_completed ON study_design_progress (completed);
+CREATE INDEX idx_design_progress_updated_at ON study_design_progress (updated_at);
 
 
 -- Insert default user types
@@ -806,4 +876,76 @@ BEGIN
   );
 END //
 
+-- Create a view for easy progress reporting
+CREATE VIEW v_study_design_progress_summary AS
+SELECT 
+    s.id as study_id,
+    s.name as study_name,
+    COUNT(sdp.id) as total_phases,
+    SUM(CASE WHEN sdp.completed = TRUE THEN 1 ELSE 0 END) as completed_phases,
+    ROUND(AVG(sdp.percentage), 2) as overall_completion_percentage,
+    MAX(sdp.updated_at) as last_progress_update
+FROM studies s
+LEFT JOIN study_design_progress sdp ON s.id = sdp.study_id
+GROUP BY s.id, s.name;
+
+-- Grant permissions (adjust as needed for your user)
+GRANT SELECT, INSERT, UPDATE, DELETE ON study_design_progress TO 'clinprecadmin'@'localhost';
+GRANT SELECT ON v_study_design_progress_summary TO 'clinprecadmin'@'localhost';
+
+-- Add some helpful stored procedures
+DELIMITER //
+
+-- Procedure to initialize design progress for a new study
+CREATE PROCEDURE InitializeStudyDesignProgress(IN p_study_id BIGINT)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+    
+    START TRANSACTION;
+    
+    -- Insert basic-info as completed (since study creation is done)
+    INSERT INTO study_design_progress (study_id, phase, completed, percentage)
+    VALUES (p_study_id, 'basic-info', TRUE, 100)
+    ON DUPLICATE KEY UPDATE 
+        completed = TRUE, 
+        percentage = 100,
+        updated_at = NOW();
+    
+    -- Insert other phases as not completed
+    INSERT INTO study_design_progress (study_id, phase, completed, percentage)
+    VALUES 
+        (p_study_id, 'arms', FALSE, 0),
+        (p_study_id, 'visits', FALSE, 0),
+        (p_study_id, 'forms', FALSE, 0),
+        (p_study_id, 'review', FALSE, 0),
+        (p_study_id, 'publish', FALSE, 0),
+        (p_study_id, 'revisions', FALSE, 0)
+    ON DUPLICATE KEY UPDATE 
+        updated_at = NOW();
+    
+    COMMIT;
+END //
+
+-- Procedure to mark a phase as completed
+CREATE PROCEDURE MarkPhaseCompleted(IN p_study_id BIGINT, IN p_phase VARCHAR(50), IN p_percentage INT)
+BEGIN
+    UPDATE study_design_progress 
+    SET completed = TRUE, 
+        percentage = COALESCE(p_percentage, 100),
+        updated_at = NOW()
+    WHERE study_id = p_study_id AND phase = p_phase;
+END //
+
 DELIMITER ;
+
+-- Grant execute permissions on procedures
+GRANT EXECUTE ON PROCEDURE InitializeStudyDesignProgress TO 'clinprecadmin'@'localhost';
+GRANT EXECUTE ON PROCEDURE MarkPhaseCompleted TO 'clinprecadmin'@'localhost';
+
+-- Migration completed successfully
+SELECT 'Study design progress table migration completed successfully' AS message;
+

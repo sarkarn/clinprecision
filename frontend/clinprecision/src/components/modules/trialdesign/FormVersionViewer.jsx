@@ -2,21 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import FormVersionService from '../../../services/FormVersionService';
 import FormService from '../../../services/FormService';
+import StudyFormService from '../../../services/StudyFormService';
 
 const FormVersionViewer = () => {
-    const { formId, versionId } = useParams();
+    const { formId, versionId, studyId } = useParams();
     const [formVersion, setFormVersion] = useState(null);
     const [form, setForm] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Determine if we're in study context or global form context
+    const isStudyContext = !!studyId;
 
     useEffect(() => {
         const fetchFormVersionDetails = async () => {
             try {
                 setLoading(true);
 
-                // Fetch the form details
-                const formData = await FormService.getFormById(formId);
+                // Fetch the form details using appropriate service
+                const formData = isStudyContext
+                    ? await StudyFormService.getStudyFormById(formId)
+                    : await FormService.getFormById(formId);
                 setForm(formData);
 
                 // Fetch the specific form version details
@@ -34,7 +40,7 @@ const FormVersionViewer = () => {
         if (formId && versionId) {
             fetchFormVersionDetails();
         }
-    }, [formId, versionId]);
+    }, [formId, versionId, studyId, isStudyContext]);
 
     if (loading) return <div className="text-center py-4">Loading form version details...</div>;
     if (error) return <div className="text-red-500 py-4">{error}</div>;
@@ -83,7 +89,13 @@ const FormVersionViewer = () => {
     return (
         <div className="bg-white shadow rounded-lg p-6">
             <div className="mb-6">
-                <Link to={`/study-design/forms/${formId}/versions`} className="text-blue-600 hover:underline">
+                <Link
+                    to={isStudyContext
+                        ? `/study-design/study/${studyId}/forms/${formId}/versions`
+                        : `/study-design/forms/${formId}/versions`
+                    }
+                    className="text-blue-600 hover:underline"
+                >
                     &larr; Back to Version History
                 </Link>
                 <h2 className="text-2xl font-bold mt-2">{form?.name}: Version {formVersion.version}</h2>
@@ -103,8 +115,8 @@ const FormVersionViewer = () => {
                         <p className="text-sm text-gray-600">Status:</p>
                         <p className="font-medium">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${formVersion.status === 'Published' ? 'bg-green-100 text-green-800' :
-                                    formVersion.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' :
-                                        'bg-gray-100 text-gray-800'
+                                formVersion.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-800'
                                 }`}>
                                 {formVersion.status || 'Draft'}
                             </span>
@@ -137,7 +149,10 @@ const FormVersionViewer = () => {
 
             <div className="mt-6 flex justify-between">
                 <Link
-                    to={`/study-design/forms/${formId}/versions`}
+                    to={isStudyContext
+                        ? `/study-design/study/${studyId}/forms/${formId}/versions`
+                        : `/study-design/forms/${formId}/versions`
+                    }
                     className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"
                 >
                     Back to Version History

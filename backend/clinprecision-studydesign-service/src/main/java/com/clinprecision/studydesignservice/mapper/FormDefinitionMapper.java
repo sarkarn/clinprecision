@@ -41,6 +41,7 @@ public class FormDefinitionMapper {
         dto.setTags(entity.getTags());
         
         dto.setFields(entity.getFields());
+        dto.setStructure(entity.getStructure());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
@@ -82,6 +83,7 @@ public class FormDefinitionMapper {
         entity.setTags(dto.getTags());
         
         entity.setFields(dto.getFields());
+        entity.setStructure(dto.getStructure());
         entity.setCreatedBy(dto.getCreatedBy());
         
         return entity;
@@ -113,6 +115,7 @@ public class FormDefinitionMapper {
         entity.setTags(dto.getTags());
         
         entity.setFields(dto.getFields());
+        entity.setStructure(dto.getStructure());
         // Note: studyId and createdBy are not updated in update operations
     }
 }

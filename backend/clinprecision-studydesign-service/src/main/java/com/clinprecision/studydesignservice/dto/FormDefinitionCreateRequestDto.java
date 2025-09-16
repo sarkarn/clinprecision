@@ -50,6 +50,8 @@ public class FormDefinitionCreateRequestDto {
     @NotNull(message = "Fields JSON is required")
     private String fields;
     
+    private String structure;
+    
     private Long createdBy;
     
     // Default constructor
@@ -166,6 +168,14 @@ public class FormDefinitionCreateRequestDto {
     
     public void setFields(String fields) {
         this.fields = fields;
+    }
+    
+    public String getStructure() {
+        return structure;
+    }
+    
+    public void setStructure(String structure) {
+        this.structure = structure;
     }
     
     public Long getCreatedBy() {

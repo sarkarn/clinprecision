@@ -13,8 +13,37 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error fetching study arms:', error);
-            // Return mock data for development
-            return this.getMockStudyArms();
+            throw error;
+        }
+    }
+
+    async createStudyArm(studyId, armData) {
+        try {
+            const response = await ApiService.post(`/studies/${studyId}/arms`, armData);
+            return response.data;
+        } catch (error) {
+            console.error('Error creating study arm:', error);
+            throw error;
+        }
+    }
+
+    async updateStudyArm(armId, updates) {
+        try {
+            const response = await ApiService.put(`/arms/${armId}`, updates);
+            return response.data;
+        } catch (error) {
+            console.error('Error updating study arm:', error);
+            throw error;
+        }
+    }
+
+    async deleteStudyArm(armId) {
+        try {
+            await ApiService.delete(`/arms/${armId}`);
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting study arm:', error);
+            throw error;
         }
     }
 
@@ -24,8 +53,7 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error saving study arms:', error);
-            // Return success for development
-            return { success: true, data: armsData };
+            throw error;
         }
     }
 
@@ -36,7 +64,7 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error fetching visit schedule:', error);
-            return this.getMockVisitSchedule();
+            throw error;
         }
     }
 
@@ -46,7 +74,7 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error saving visit schedule:', error);
-            return { success: true, data: visitData };
+            throw error;
         }
     }
 
@@ -57,7 +85,7 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error fetching form bindings:', error);
-            return this.getMockFormBindings();
+            throw error;
         }
     }
 
@@ -67,7 +95,7 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error saving form bindings:', error);
-            return { success: true, data: bindingData };
+            throw error;
         }
     }
 
@@ -78,7 +106,7 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error validating study:', error);
-            return this.getMockValidationResults();
+            throw error;
         }
     }
 
@@ -88,7 +116,7 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error publishing study:', error);
-            return { success: true, publishedAt: new Date().toISOString() };
+            throw error;
         }
     }
 
@@ -99,7 +127,7 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error fetching revisions:', error);
-            return this.getMockRevisions();
+            throw error;
         }
     }
 
@@ -109,7 +137,7 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error creating revision:', error);
-            return { success: true, revisionId: `rev_${Date.now()}` };
+            throw error;
         }
     }
 
@@ -120,7 +148,7 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error fetching design progress:', error);
-            return this.getMockDesignProgress();
+            throw error;
         }
     }
 
@@ -130,105 +158,18 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error updating design progress:', error);
-            return { success: true, data: progressData };
+            throw error;
         }
     }
 
-    // Mock Data Methods (for development)
-    getMockStudyArms() {
-        return [
-            {
-                id: 'arm1',
-                name: 'Treatment Group A',
-                description: 'Active treatment with Drug X',
-                type: 'experimental',
-                interventions: [
-                    { id: 'int1', name: 'Drug X', type: 'drug', dosage: '10mg daily' }
-                ],
-                targetEnrollment: 50
-            },
-            {
-                id: 'arm2',
-                name: 'Control Group',
-                description: 'Placebo control',
-                type: 'placebo_comparator',
-                interventions: [
-                    { id: 'int2', name: 'Placebo', type: 'drug', dosage: 'matching placebo' }
-                ],
-                targetEnrollment: 50
-            }
-        ];
-    }
-
-    getMockVisitSchedule() {
-        return [
-            {
-                id: 'visit1',
-                name: 'Screening',
-                day: -14,
-                window: '±3 days',
-                procedures: ['informed_consent', 'medical_history', 'physical_exam']
-            },
-            {
-                id: 'visit2',
-                name: 'Baseline',
-                day: 0,
-                window: '±1 day',
-                procedures: ['randomization', 'drug_dispensing', 'lab_tests']
-            }
-        ];
-    }
-
-    getMockFormBindings() {
-        return [
-            {
-                visitId: 'visit1',
-                formId: 'form1',
-                formName: 'Screening Form',
-                required: true,
-                timing: 'during_visit'
-            },
-            {
-                visitId: 'visit2',
-                formId: 'form2',
-                formName: 'Baseline Assessment',
-                required: true,
-                timing: 'during_visit'
-            }
-        ];
-    }
-
-    getMockValidationResults() {
-        return {
-            isValid: true,
-            errors: [],
-            warnings: [
-                { type: 'info', message: 'Consider adding more safety assessments' }
-            ]
-        };
-    }
-
-    getMockRevisions() {
-        return [
-            {
-                id: 'rev1',
-                version: '1.0',
-                status: 'published',
-                createdAt: '2025-01-15T10:00:00Z',
-                description: 'Initial protocol version'
-            }
-        ];
-    }
-
-    getMockDesignProgress() {
-        return {
-            basicInfo: { completed: true, valid: true },
-            arms: { completed: false, valid: false },
-            visits: { completed: false, valid: false },
-            forms: { completed: false, valid: false },
-            publishing: { completed: false, valid: false },
-            revisions: { completed: false, valid: false }
-        };
+    async initializeDesignProgress(studyId) {
+        try {
+            const response = await ApiService.post(`/studies/${studyId}/design-progress/initialize`);
+            return response.data;
+        } catch (error) {
+            console.error('Error initializing design progress:', error);
+            throw error;
+        }
     }
 }
 

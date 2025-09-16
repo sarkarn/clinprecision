@@ -1,28 +1,28 @@
 import ApiService from './ApiService';
 
-const API_PATH = '/study-design-ws/api/studies';
+const API_PATH = '/api/studies';  // Changed from '/study-design-ws/api/studies' to match StudyDesignService pattern
 
 /**
  * Service for handling Visit operations
  */
 class VisitService {
   /**
-   * Get all visits for a study
+   * Get all  async deleteFormBinding(bindingId) {
+    try {
+      const response = await ApiService.delete(`${API_PATH}/form-bindings/${bindingId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting form binding ${bindingId}:`, error);
+      throw error;
+    }
+  }dy
    * @param {string} studyId - The ID of the study
    * @returns {Promise<Array>} Promise that resolves to an array of visits
    */
   async getVisitsByStudy(studyId) {
     try {
-      try {
-        const response = await ApiService.get(`${API_PATH}/${studyId}/visits`);
-        return response.data;
-      } catch (error) {
-        if (error.response && error.response.status === 404) {
-          console.warn(`Visits endpoint for study ${studyId} returned 404, returning empty array`);
-          return [];
-        }
-        throw error;
-      }
+      const response = await ApiService.get(`${API_PATH}/${studyId}/visits`);
+      return response.data;
     } catch (error) {
       console.error(`Error fetching visits for study ${studyId}:`, error);
       throw error;
@@ -54,23 +54,8 @@ class VisitService {
    */
   async createVisit(studyId, armId, visitData) {
     try {
-      try {
-        const response = await ApiService.post(`${API_PATH}/${studyId}/arms/${armId}/visits`, visitData);
-        return response.data;
-      } catch (error) {
-        if (error.response && error.response.status === 404) {
-          console.warn(`Visit creation endpoint for study ${studyId}, arm ${armId} returned 404, creating mock visit response`);
-          // Create a mock response with a generated ID
-          return {
-            ...visitData,
-            id: `temp-visit-${Date.now()}`,
-            armId: armId,
-            studyId: studyId,
-            createdAt: new Date().toISOString()
-          };
-        }
-        throw error;
-      }
+      const response = await ApiService.post(`${API_PATH}/${studyId}/arms/${armId}/visits`, visitData);
+      return response.data;
     } catch (error) {
       console.error(`Error creating visit for study ${studyId}, arm ${armId}:`, error);
       throw error;
@@ -86,22 +71,8 @@ class VisitService {
    */
   async updateVisit(studyId, visitId, visitData) {
     try {
-      // Check if this is a temporary ID (starts with 'temp-')
-      if (visitId && visitId.toString().startsWith('temp-')) {
-        console.log(`Skipping update for temporary visit ${visitId}, would create it on the server if endpoint existed`);
-        return visitData; // Just return the data as-is for temporary visits
-      }
-      
-      try {
-        const response = await ApiService.put(`${API_PATH}/${studyId}/visits/${visitId}`, visitData);
-        return response.data;
-      } catch (error) {
-        if (error.response && error.response.status === 404) {
-          console.warn(`Visit update endpoint for study ${studyId}, visit ${visitId} returned 404, returning original data`);
-          return visitData; // Just return the original data
-        }
-        throw error;
-      }
+      const response = await ApiService.put(`${API_PATH}/${studyId}/visits/${visitId}`, visitData);
+      return response.data;
     } catch (error) {
       console.error(`Error updating visit with ID ${visitId}:`, error);
       throw error;
@@ -116,22 +87,8 @@ class VisitService {
    */
   async deleteVisit(studyId, visitId) {
     try {
-      // Check if this is a temporary ID (starts with 'temp-')
-      if (visitId && visitId.toString().startsWith('temp-')) {
-        console.log(`Skipping delete for temporary visit ${visitId}, nothing to delete on server`);
-        return { success: true }; // Mock success response for temporary visits
-      }
-      
-      try {
-        const response = await ApiService.delete(`${API_PATH}/${studyId}/visits/${visitId}`);
-        return response.data;
-      } catch (error) {
-        if (error.response && error.response.status === 404) {
-          console.warn(`Visit delete endpoint for study ${studyId}, visit ${visitId} returned 404, returning mock delete success`);
-          return { success: true }; // Mock success response
-        }
-        throw error;
-      }
+      const response = await ApiService.delete(`${API_PATH}/${studyId}/visits/${visitId}`);
+      return response.data;
     } catch (error) {
       console.error(`Error deleting visit with ID ${visitId}:`, error);
       throw error;
@@ -216,6 +173,108 @@ class VisitService {
       return response.data;
     } catch (error) {
       console.error(`Error removing visit ${visitId} from arm ${armId} in study ${studyId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get form bindings for all visits in a study
+   * @param {string} studyId - The ID of the study
+   * @returns {Promise<Array>} Promise that resolves to an array of visit-form bindings
+   */
+  async getVisitFormBindings(studyId) {
+    try {
+      try {
+        const response = await ApiService.get(`${API_PATH}/${studyId}/form-bindings`);
+        return response.data;
+      } catch (error) {
+        if (error.response && error.response.status === 404) {
+          console.warn(`Form bindings endpoint for study ${studyId} returned 404, returning empty array`);
+          return [];
+        }
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Error fetching form bindings for study ${studyId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create or update form binding for a visit
+   * @param {string} studyId - The ID of the study
+   * @param {string} visitId - The ID of the visit
+   * @param {string} formId - The ID of the form
+   * @param {Object} bindingData - The binding configuration data
+   * @returns {Promise<Object>} Promise that resolves to the created/updated binding
+   */
+  async createFormBinding(studyId, visitId, formId, bindingData) {
+    try {
+      const response = await ApiService.post(`${API_PATH}/${studyId}/visits/${visitId}/forms/${formId}`, bindingData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error creating form binding for study ${studyId}, visit ${visitId}, form ${formId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove form binding from a visit
+   * @param {string} studyId - The ID of the study
+   * @param {string} visitId - The ID of the visit
+   * @param {string} formId - The ID of the form
+   * @returns {Promise<Object>} Promise that resolves to the deletion confirmation
+   */
+  async removeFormBinding(studyId, visitId, formId) {
+    try {
+      const response = await ApiService.delete(`${API_PATH}/${studyId}/visits/${visitId}/forms/${formId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error removing form binding for study ${studyId}, visit ${visitId}, form ${formId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a visit-form binding
+   * @param {Object} bindingData - The binding data containing studyId, visitId, formId, etc.
+   * @returns {Promise<Object>} Promise that resolves to the created binding
+   */
+  async createVisitFormBinding(bindingData) {
+    const { studyId, visitId, formId, visitDefinitionId, formDefinitionId } = bindingData;
+    // Support both field name formats
+    const actualVisitId = visitDefinitionId || visitId;
+    const actualFormId = formDefinitionId || formId;
+    return this.createFormBinding(studyId, actualVisitId, actualFormId, bindingData);
+  }
+
+  /**
+   * Delete a visit-form binding by ID
+   * @param {string} bindingId - The ID of the binding to delete
+   * @returns {Promise<Object>} Promise that resolves to the deletion confirmation
+   */
+  async deleteVisitFormBinding(bindingId) {
+    try {
+      const response = await ApiService.delete(`${API_PATH}/form-bindings/${bindingId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting form binding ${bindingId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a visit-form binding
+   * @param {string} bindingId - The ID of the binding to update
+   * @param {Object} updates - The updates to apply to the binding
+   * @returns {Promise<Object>} Promise that resolves to the updated binding
+   */
+  async updateVisitFormBinding(bindingId, updates) {
+    try {
+      const response = await ApiService.put(`${API_PATH}/form-bindings/${bindingId}`, updates);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating form binding ${bindingId}:`, error);
       throw error;
     }
   }

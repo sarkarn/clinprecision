@@ -10,6 +10,10 @@ import FormBindingDesigner from './FormBindingDesigner';
 import StudyPublishWorkflow from './StudyPublishWorkflow';
 import ProtocolRevisionWorkflow from './ProtocolRevisionWorkflow';
 
+// Import services
+import { getStudyById } from '../../../../services/StudyService';
+import StudyDesignService from '../../../../services/StudyDesignService';
+
 /**
  * Study Design Dashboard Component
  * Main orchestrator for the complete study design workflow
@@ -121,43 +125,68 @@ const StudyDesignDashboard = () => {
     const loadStudyData = async () => {
         try {
             setLoading(true);
+            setErrors([]);
 
-            // Mock data - replace with actual API call
-            const mockData = {
-                study: {
-                    id: studyId,
-                    name: 'Phase III Oncology Trial - Advanced NSCLC',
-                    state: 'DESIGN',
-                    version: '1.0',
-                    lastModified: '2024-01-15T10:30:00Z',
-                    createdBy: 'Dr. Sarah Johnson',
-                    studyPhase: 'Phase III',
-                    indication: 'Advanced Non-Small Cell Lung Cancer'
-                },
-                designProgress: {
-                    'basic-info': { completed: true, percentage: 100, lastUpdated: '2024-01-10T09:00:00Z' },
-                    'arms': { completed: true, percentage: 85, lastUpdated: '2024-01-12T14:30:00Z' },
-                    'visits': { completed: true, percentage: 90, lastUpdated: '2024-01-13T11:15:00Z' },
-                    'forms': { completed: false, percentage: 60, lastUpdated: '2024-01-14T16:45:00Z' },
-                    'review': { completed: false, percentage: 0, lastUpdated: null },
-                    'publish': { completed: false, percentage: 0, lastUpdated: null },
-                    'revisions': { completed: false, percentage: 0, lastUpdated: null }
-                },
-                completedPhases: ['basic-info', 'arms', 'visits']
-            };
+            // Fetch real study data from backend
+            const studyResponse = await getStudyById(studyId);
+            setStudy(studyResponse);
 
-            setStudy(mockData.study);
-            setDesignProgress(mockData.designProgress);
-            setCompletedPhases(mockData.completedPhases);
+            // Fetch design progress from backend API
+            try {
+                const designProgressResponse = await StudyDesignService.getDesignProgress(studyId);
+
+                // Check if response is in expected format (has progressData)
+                const progressData = designProgressResponse.progressData || designProgressResponse;
+                setDesignProgress(progressData);
+
+                // Calculate completed phases based on progress data
+                const completed = Object.entries(progressData).filter(
+                    ([_, progress]) => progress && progress.completed
+                ).map(([phaseId, _]) => phaseId);
+
+                setCompletedPhases(completed);
+
+                console.info('Design progress loaded successfully for study', studyId);
+
+            } catch (progressError) {
+                console.warn('Design progress API call failed, initializing default progress:', progressError);
+
+                // Try to initialize design progress for this study
+                try {
+                    await StudyDesignService.initializeDesignProgress(studyId);
+                    // Retry fetching progress after initialization
+                    const retryProgressResponse = await StudyDesignService.getDesignProgress(studyId);
+                    const progressData = retryProgressResponse.progressData || retryProgressResponse;
+                    setDesignProgress(progressData);
+
+                    const completed = Object.entries(progressData).filter(
+                        ([_, progress]) => progress && progress.completed
+                    ).map(([phaseId, _]) => phaseId);
+                    setCompletedPhases(completed);
+
+                } catch (initError) {
+                    console.error('Failed to initialize design progress, using fallback:', initError);
+                    // Fallback to default state if initialization fails
+                    setDesignProgress({
+                        'basic-info': { completed: true, percentage: 100, lastUpdated: new Date().toISOString() },
+                        'arms': { completed: false, percentage: 0, lastUpdated: null },
+                        'visits': { completed: false, percentage: 0, lastUpdated: null },
+                        'forms': { completed: false, percentage: 0, lastUpdated: null },
+                        'review': { completed: false, percentage: 0, lastUpdated: null },
+                        'publish': { completed: false, percentage: 0, lastUpdated: null },
+                        'revisions': { completed: false, percentage: 0, lastUpdated: null }
+                    });
+                    setCompletedPhases(['basic-info']);
+                }
+            }
+
             setLoading(false);
         } catch (error) {
             console.error('Error loading study design data:', error);
-            setErrors(['Failed to load study design data']);
+            setErrors(['Failed to load study design data. Please check your connection and try again.']);
             setLoading(false);
         }
-    };
-
-    // Navigate to phase
+    };    // Navigate to phase
     const handlePhaseChange = (phaseId) => {
         navigate(`/study-design/study/${studyId}/design/${phaseId}`, { replace: true });
     };
@@ -186,6 +215,22 @@ const StudyDesignDashboard = () => {
 
     // Check if phase is accessible
     const isPhaseAccessible = (phaseId) => {
+        // For development: Allow access to all phases except publish and revisions
+        // which should only be accessible after completing the design phases
+        if (['basic-info', 'arms', 'visits', 'forms', 'review'].includes(phaseId)) {
+            return true;
+        }
+
+        // For publish and revisions, check if review is completed
+        if (phaseId === 'publish') {
+            return completedPhases.includes('review');
+        }
+
+        if (phaseId === 'revisions') {
+            return completedPhases.includes('publish') || completedPhases.includes('review');
+        }
+
+        // Fallback to original logic for any other phases
         const phaseIndex = designPhases.findIndex(p => p.id === phaseId);
         if (phaseIndex === 0) return true; // First phase is always accessible
 
@@ -321,7 +366,7 @@ const StudyDesignHeader = ({ study, currentPhase, overallCompletion, onBack }) =
                         {/* Study Info */}
                         <div className="text-right">
                             <div className="text-sm font-medium text-gray-900">Version {study?.version}</div>
-                            <div className="text-xs text-gray-600">{study?.state}</div>
+                            <div className="text-xs text-gray-600">{study?.studyStatus?.name || study?.state || 'Draft'}</div>
                         </div>
                     </div>
                 </div>
@@ -444,8 +489,16 @@ const BasicInfoSummary = ({ study }) => {
                         <div className="mt-1 text-sm text-gray-900">{study?.name}</div>
                     </div>
                     <div>
+                        <label className="block text-sm font-medium text-gray-700">Protocol Number</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.protocolNumber || 'Not assigned'}</div>
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700">Study Phase</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.studyPhase}</div>
+                        <div className="mt-1 text-sm text-gray-900">{study?.studyPhase?.name || study?.studyPhase}</div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Study Status</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.studyStatus?.name || study?.studyStatus}</div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Indication</label>
@@ -453,9 +506,31 @@ const BasicInfoSummary = ({ study }) => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Principal Investigator</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.createdBy}</div>
+                        <div className="mt-1 text-sm text-gray-900">{study?.principalInvestigator}</div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Sponsor</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.sponsor}</div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Version</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.version}</div>
                     </div>
                 </div>
+
+                {study?.description && (
+                    <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700">Description</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.description}</div>
+                    </div>
+                )}
+
+                {study?.primaryObjective && (
+                    <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700">Primary Objective</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.primaryObjective}</div>
+                    </div>
+                )}
 
                 <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
                     <div className="flex items-center">

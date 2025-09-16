@@ -178,6 +178,1738 @@ INSERT INTO organization_contacts (
 
 
 
+
+
+-- Form Library Data Setup Script v3.0
+-- Creates standardized, reusable form templates for clinical trials
+-- Uses proper form_templates table structure separate from study-specific forms
+-- Updated to include structure column for organized form layout
+-- Last updated: September 14, 2025
+
+
+
+-- 1. Demographics & Baseline Forms Template
+INSERT INTO form_templates (
+    template_id, name, description, category, version, status, 
+    fields, structure, tags, usage_count, created_by, created_at
+) VALUES (
+    'DEMO-001',
+    'Subject Demographics',
+    'Comprehensive demographic data collection form capturing baseline participant information including identification, physical characteristics, and background history essential for clinical trial analysis and regulatory submissions.',
+    'Demographics',
+    '1.0',
+    'PUBLISHED',
+    '[
+        {
+            "id": "subject_initials",
+            "type": "text",
+            "label": "Subject Initials",
+            "required": true,
+            "maxLength": 3,
+            "pattern": "[A-Z]{2,3}",
+            "validation": "Must be 2-3 uppercase letters",
+            "helpText": "Enter participant initials (first, middle, last). Use XX for unknown middle initial.",
+            "section": "identification"
+        },
+        {
+            "id": "gender",
+            "type": "select",
+            "label": "Gender",
+            "required": true,
+            "options": [
+                {"value": "M", "label": "Male"},
+                {"value": "F", "label": "Female"},
+                {"value": "O", "label": "Other"},
+                {"value": "U", "label": "Prefer not to answer"}
+            ],
+            "helpText": "Biological gender as determined by the investigator",
+            "section": "demographics"
+        },
+        {
+            "id": "date_of_birth",
+            "type": "date",
+            "label": "Date of Birth",
+            "required": true,
+            "validation": "Must be valid date, minimum age 18",
+            "helpText": "Complete date of birth (DD-MMM-YYYY format preferred)",
+            "section": "demographics"
+        },
+        {
+            "id": "age_at_consent",
+            "type": "number",
+            "label": "Age at Informed Consent",
+            "required": true,
+            "min": 18,
+            "max": 120,
+            "unit": "years",
+            "helpText": "Age in completed years at time of informed consent signing",
+            "section": "demographics"
+        },
+        {
+            "id": "ethnicity",
+            "type": "select",
+            "label": "Ethnicity",
+            "required": true,
+            "options": [
+                {"value": "hispanic", "label": "Hispanic or Latino"},
+                {"value": "not_hispanic", "label": "Not Hispanic or Latino"},
+                {"value": "unknown", "label": "Unknown"},
+                {"value": "not_reported", "label": "Not Reported"}
+            ],
+            "helpText": "FDA ethnic categories for regulatory reporting",
+            "section": "demographics"
+        },
+        {
+            "id": "race",
+            "type": "multiselect",
+            "label": "Race",
+            "required": true,
+            "options": [
+                {"value": "white", "label": "White"},
+                {"value": "black", "label": "Black or African American"},
+                {"value": "asian", "label": "Asian"},
+                {"value": "native_american", "label": "American Indian or Alaska Native"},
+                {"value": "pacific_islander", "label": "Native Hawaiian or Other Pacific Islander"},
+                {"value": "other", "label": "Other"},
+                {"value": "unknown", "label": "Unknown"},
+                {"value": "not_reported", "label": "Not Reported"}
+            ],
+            "helpText": "Select all applicable race categories. Multiple selections allowed.",
+            "section": "demographics"
+        },
+        {
+            "id": "height",
+            "type": "number",
+            "label": "Height",
+            "required": true,
+            "min": 100,
+            "max": 250,
+            "step": 0.1,
+            "unit": "cm",
+            "referenceRange": "Adult: 140-200 cm typical range",
+            "helpText": "Height in centimeters (measured without shoes)",
+            "section": "physical"
+        },
+        {
+            "id": "weight",
+            "type": "number",
+            "label": "Weight",
+            "required": true,
+            "min": 30,
+            "max": 300,
+            "step": 0.1,
+            "unit": "kg",
+            "referenceRange": "Adult: 40-150 kg typical range",
+            "helpText": "Weight in kilograms (measured with minimal clothing)",
+            "section": "physical"
+        },
+        {
+            "id": "bmi",
+            "type": "calculated",
+            "label": "BMI",
+            "formula": "weight / (height/100)^2",
+            "unit": "kg/m²",
+            "referenceRange": "Normal: 18.5-24.9, Overweight: 25-29.9, Obese: ≥30",
+            "helpText": "Automatically calculated from height and weight",
+            "section": "physical"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "identification",
+                "title": "Subject Identification",
+                "description": "Basic identification information",
+                "fields": ["subject_initials"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "demographics", 
+                "title": "Demographics",
+                "description": "Basic demographic information",
+                "fields": ["gender", "date_of_birth", "age_at_consent", "ethnicity", "race"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "physical",
+                "title": "Physical Measurements", 
+                "description": "Height, weight, and calculated BMI",
+                "fields": ["height", "weight", "bmi"],
+                "layout": {"columns": 3, "style": "inline"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    'demographics,baseline,mandatory,ICH-GCP',
+    0,
+    1,
+    NOW()
+);
+
+-- 2. Adverse Events Template
+INSERT INTO form_templates (
+    template_id, name, description, category, version, status, 
+    fields, structure, tags, usage_count, created_by, created_at
+) VALUES (
+    'SAF-001',
+    'Adverse Event Report',
+    'Standardized adverse event reporting form compliant with ICH-GCP guidelines and regulatory requirements for comprehensive safety data collection and analysis.',
+    'Safety',
+    '1.0',
+    'PUBLISHED',
+    '[
+        {
+            "id": "ae_term",
+            "type": "text",
+            "label": "Adverse Event Term",
+            "required": true,
+            "maxLength": 200,
+            "helpText": "Brief descriptive term for the adverse event (use MedDRA preferred terms when possible)",
+            "section": "event_details"
+        },
+        {
+            "id": "ae_description",
+            "type": "textarea",
+            "label": "Detailed Description",
+            "required": true,
+            "maxLength": 2000,
+            "rows": 4,
+            "helpText": "Detailed narrative description of the adverse event including symptoms, timeline, and relevant clinical details",
+            "section": "event_details"
+        },
+        {
+            "id": "start_date",
+            "type": "datetime",
+            "label": "AE Start Date/Time",
+            "required": true,
+            "helpText": "Date and time when adverse event first occurred or was noticed",
+            "section": "timeline"
+        },
+        {
+            "id": "end_date",
+            "type": "datetime",
+            "label": "AE End Date/Time",
+            "required": false,
+            "helpText": "Date and time when adverse event resolved or ended (leave blank if ongoing)",
+            "section": "timeline"
+        },
+        {
+            "id": "ongoing",
+            "type": "checkbox",
+            "label": "Event Ongoing",
+            "helpText": "Check if adverse event is still ongoing at time of report",
+            "section": "timeline"
+        },
+        {
+            "id": "severity",
+            "type": "select",
+            "label": "Severity",
+            "required": true,
+            "options": [
+                {"value": "mild", "label": "Mild - Awareness of signs/symptoms, easily tolerated"},
+                {"value": "moderate", "label": "Moderate - Discomfort sufficient to cause interference with normal activities"},
+                {"value": "severe", "label": "Severe - Incapacitating, inability to work or perform normal activities"}
+            ],
+            "helpText": "Clinical severity assessment based on impact on patient functioning",
+            "section": "assessment"
+        },
+        {
+            "id": "seriousness",
+            "type": "select",
+            "label": "Serious Adverse Event",
+            "required": true,
+            "options": [
+                {"value": "no", "label": "No - Non-serious AE"},
+                {"value": "yes", "label": "Yes - Serious Adverse Event (SAE)"}
+            ],
+            "helpText": "ICH-GCP criteria: death, life-threatening, hospitalization, disability, congenital anomaly, other medically important",
+            "section": "assessment"
+        },
+        {
+            "id": "sae_criteria",
+            "type": "multiselect",
+            "label": "SAE Criteria (if applicable)",
+            "required": false,
+            "dependsOn": {"field": "seriousness", "value": "yes"},
+            "options": [
+                {"value": "death", "label": "Results in death"},
+                {"value": "life_threatening", "label": "Life-threatening"},
+                {"value": "hospitalization", "label": "Requires/prolongs hospitalization"},
+                {"value": "disability", "label": "Results in persistent/significant disability"},
+                {"value": "congenital_anomaly", "label": "Congenital anomaly/birth defect"},
+                {"value": "medically_important", "label": "Other medically important serious event"}
+            ],
+            "helpText": "Select all applicable SAE criteria",
+            "section": "assessment"
+        },
+        {
+            "id": "causality",
+            "type": "select",
+            "label": "Relationship to Study Treatment",
+            "required": true,
+            "options": [
+                {"value": "unrelated", "label": "Not Related - Clearly not related to study treatment"},
+                {"value": "unlikely", "label": "Unlikely Related - Doubtful relationship"},
+                {"value": "possible", "label": "Possibly Related - May be related"},
+                {"value": "probable", "label": "Probably Related - Likely related"},
+                {"value": "definite", "label": "Definitely Related - Clear causal relationship"}
+            ],
+            "helpText": "Investigator assessment of causal relationship to study medication",
+            "section": "assessment"
+        },
+        {
+            "id": "action_taken",
+            "type": "select",
+            "label": "Action Taken with Study Treatment",
+            "required": true,
+            "options": [
+                {"value": "none", "label": "No action taken"},
+                {"value": "dose_reduced", "label": "Study treatment dose reduced"},
+                {"value": "temporarily_stopped", "label": "Study treatment temporarily stopped"},
+                {"value": "permanently_stopped", "label": "Study treatment permanently discontinued"},
+                {"value": "not_applicable", "label": "Not applicable"}
+            ],
+            "helpText": "Action taken regarding study medication as result of this adverse event",
+            "section": "actions"
+        },
+        {
+            "id": "outcome",
+            "type": "select",
+            "label": "Outcome",
+            "required": true,
+            "options": [
+                {"value": "recovered", "label": "Recovered/Resolved"},
+                {"value": "recovering", "label": "Recovering/Resolving"},
+                {"value": "not_recovered", "label": "Not Recovered"},
+                {"value": "recovered_sequelae", "label": "Recovered with sequelae"},
+                {"value": "fatal", "label": "Fatal"},
+                {"value": "unknown", "label": "Unknown"}
+            ],
+            "helpText": "Current outcome status of the adverse event",
+            "section": "outcome"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "event_details",
+                "title": "Event Details",
+                "description": "Basic adverse event information", 
+                "fields": ["ae_term", "ae_description"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "timeline",
+                "title": "Timeline",
+                "description": "Event timing information",
+                "fields": ["start_date", "end_date", "ongoing"],
+                "layout": {"columns": 3, "style": "inline"}
+            },
+            {
+                "id": "assessment",
+                "title": "Clinical Assessment",
+                "description": "Severity and seriousness assessment",
+                "fields": ["severity", "seriousness", "sae_criteria", "causality"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "actions",
+                "title": "Actions & Outcome",
+                "description": "Treatment actions and final outcome",
+                "fields": ["action_taken", "outcome"],
+                "layout": {"columns": 2, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    'safety,adverse events,SAE,ICH-GCP,regulatory',
+    0,
+    1,
+    NOW()
+);
+
+-- 3. Laboratory Results Template
+INSERT INTO form_templates (
+    template_id, name, description, category, version, status, 
+    fields, structure, tags, usage_count, created_by, created_at
+) VALUES (
+    'LAB-001',
+    'Laboratory Results - Hematology & Chemistry',
+    'Comprehensive laboratory data collection form for hematology, clinical chemistry, and basic metabolic panels commonly required in clinical trials for safety monitoring and efficacy assessment.',
+    'Laboratory',
+    '1.0',
+    'PUBLISHED',
+    '[
+        {
+            "id": "collection_date",
+            "type": "datetime",
+            "label": "Sample Collection Date/Time",
+            "required": true,
+            "helpText": "Date and time when blood sample was collected",
+            "section": "sample_info"
+        },
+        {
+            "id": "fasting_status",
+            "type": "select",
+            "label": "Fasting Status",
+            "required": true,
+            "options": [
+                {"value": "fasting", "label": "Fasting (≥8 hours)"},
+                {"value": "non_fasting", "label": "Non-fasting"},
+                {"value": "unknown", "label": "Unknown"}
+            ],
+            "helpText": "Patient fasting status at time of sample collection",
+            "section": "sample_info"
+        },
+        {
+            "id": "hemoglobin",
+            "type": "number",
+            "label": "Hemoglobin",
+            "required": true,
+            "min": 5,
+            "max": 25,
+            "step": 0.1,
+            "unit": "g/dL",
+            "referenceRange": "Male: 14.0-17.5 g/dL, Female: 12.3-15.3 g/dL",
+            "helpText": "Hemoglobin concentration in grams per deciliter",
+            "section": "hematology"
+        },
+        {
+            "id": "hematocrit",
+            "type": "number",
+            "label": "Hematocrit",
+            "required": true,
+            "min": 15,
+            "max": 65,
+            "step": 0.1,
+            "unit": "%",
+            "referenceRange": "Male: 41.0-50.0%, Female: 36.0-44.0%",
+            "helpText": "Hematocrit percentage",
+            "section": "hematology"
+        },
+        {
+            "id": "wbc_count",
+            "type": "number",
+            "label": "White Blood Cell Count",
+            "required": true,
+            "min": 0.1,
+            "max": 50,
+            "step": 0.01,
+            "unit": "×10³/μL",
+            "referenceRange": "4.5-11.0 ×10³/μL",
+            "helpText": "Total white blood cell count",
+            "section": "hematology"
+        },
+        {
+            "id": "platelet_count",
+            "type": "number",
+            "label": "Platelet Count",
+            "required": true,
+            "min": 10,
+            "max": 2000,
+            "step": 1,
+            "unit": "×10³/μL",
+            "referenceRange": "150-450 ×10³/μL",
+            "helpText": "Platelet count",
+            "section": "hematology"
+        },
+        {
+            "id": "glucose",
+            "type": "number",
+            "label": "Glucose",
+            "required": true,
+            "min": 20,
+            "max": 800,
+            "step": 1,
+            "unit": "mg/dL",
+            "referenceRange": "Fasting: 70-100 mg/dL, Random: <200 mg/dL",
+            "helpText": "Serum or plasma glucose level",
+            "section": "chemistry"
+        },
+        {
+            "id": "creatinine",
+            "type": "number",
+            "label": "Serum Creatinine",
+            "required": true,
+            "min": 0.1,
+            "max": 15,
+            "step": 0.01,
+            "unit": "mg/dL",
+            "referenceRange": "Male: 0.74-1.35 mg/dL, Female: 0.59-1.04 mg/dL",
+            "helpText": "Serum creatinine concentration",
+            "section": "chemistry"
+        },
+        {
+            "id": "bun",
+            "type": "number",
+            "label": "Blood Urea Nitrogen (BUN)",
+            "required": true,
+            "min": 1,
+            "max": 200,
+            "step": 1,
+            "unit": "mg/dL",
+            "referenceRange": "6-24 mg/dL",
+            "helpText": "Blood urea nitrogen level",
+            "section": "chemistry"
+        },
+        {
+            "id": "alt",
+            "type": "number",
+            "label": "ALT (SGPT)",
+            "required": true,
+            "min": 1,
+            "max": 2000,
+            "step": 1,
+            "unit": "U/L",
+            "referenceRange": "Male: 10-40 U/L, Female: 7-35 U/L",
+            "helpText": "Alanine aminotransferase level",
+            "section": "chemistry"
+        },
+        {
+            "id": "ast",
+            "type": "number",
+            "label": "AST (SGOT)",
+            "required": true,
+            "min": 1,
+            "max": 2000,
+            "step": 1,
+            "unit": "U/L",
+            "referenceRange": "Male: 10-40 U/L, Female: 9-32 U/L",
+            "helpText": "Aspartate aminotransferase level",
+            "section": "chemistry"
+        },
+        {
+            "id": "total_bilirubin",
+            "type": "number",
+            "label": "Total Bilirubin",
+            "required": true,
+            "min": 0.1,
+            "max": 50,
+            "step": 0.1,
+            "unit": "mg/dL",
+            "referenceRange": "0.3-1.2 mg/dL",
+            "helpText": "Total bilirubin concentration",
+            "section": "chemistry"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "sample_info",
+                "title": "Sample Information",
+                "description": "Collection details and conditions",
+                "fields": ["collection_date", "fasting_status"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "hematology",
+                "title": "Hematology",
+                "description": "Complete blood count parameters",
+                "fields": ["hemoglobin", "hematocrit", "wbc_count", "platelet_count"],
+                "layout": {"columns": 2, "style": "grid"}
+            },
+            {
+                "id": "chemistry",
+                "title": "Clinical Chemistry",
+                "description": "Basic metabolic panel and liver function",
+                "fields": ["glucose", "creatinine", "bun", "alt", "ast", "total_bilirubin"],
+                "layout": {"columns": 3, "style": "grid"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    'laboratory,hematology,chemistry,safety,monitoring',
+    0,
+    1,
+    NOW()
+);
+
+-- 4. Vital Signs Template
+INSERT INTO form_templates (
+    template_id, name, description, category, version, status, 
+    fields, structure, tags, usage_count, created_by, created_at
+) VALUES (
+    'VIT-001',
+    'Vital Signs Assessment',
+    'Standard vital signs measurement form for comprehensive cardiovascular and physiological monitoring in clinical trials, including blood pressure, heart rate, temperature, and respiratory rate assessments.',
+    'Vital Signs',
+    '1.0',
+    'PUBLISHED',
+    '[
+        {
+            "id": "assessment_date",
+            "type": "datetime",
+            "label": "Assessment Date/Time",
+            "required": true,
+            "helpText": "Date and time when vital signs were measured",
+            "section": "timing"
+        },
+        {
+            "id": "position",
+            "type": "select",
+            "label": "Patient Position",
+            "required": true,
+            "options": [
+                {"value": "supine", "label": "Supine"},
+                {"value": "sitting", "label": "Sitting"},
+                {"value": "standing", "label": "Standing"},
+                {"value": "semi_fowler", "label": "Semi-Fowler"}
+            ],
+            "helpText": "Patient position during vital signs measurement",
+            "section": "conditions"
+        },
+        {
+            "id": "rest_period",
+            "type": "number",
+            "label": "Rest Period (minutes)",
+            "required": true,
+            "min": 0,
+            "max": 60,
+            "unit": "minutes",
+            "helpText": "Number of minutes patient rested in position before measurement",
+            "section": "conditions"
+        },
+        {
+            "id": "systolic_bp",
+            "type": "number",
+            "label": "Systolic Blood Pressure",
+            "required": true,
+            "min": 50,
+            "max": 300,
+            "unit": "mmHg",
+            "referenceRange": "Normal: <120 mmHg",
+            "helpText": "Systolic blood pressure in mmHg",
+            "section": "blood_pressure"
+        },
+        {
+            "id": "diastolic_bp",
+            "type": "number",
+            "label": "Diastolic Blood Pressure",
+            "required": true,
+            "min": 30,
+            "max": 200,
+            "unit": "mmHg",
+            "referenceRange": "Normal: <80 mmHg",
+            "helpText": "Diastolic blood pressure in mmHg",
+            "section": "blood_pressure"
+        },
+        {
+            "id": "heart_rate",
+            "type": "number",
+            "label": "Heart Rate",
+            "required": true,
+            "min": 30,
+            "max": 250,
+            "unit": "bpm",
+            "referenceRange": "Adult: 60-100 bpm",
+            "helpText": "Heart rate in beats per minute",
+            "section": "cardiac"
+        },
+        {
+            "id": "temperature",
+            "type": "number",
+            "label": "Body Temperature",
+            "required": true,
+            "min": 32,
+            "max": 45,
+            "step": 0.1,
+            "unit": "°C",
+            "referenceRange": "Normal: 36.1-37.2°C (97-99°F)",
+            "helpText": "Core body temperature in Celsius",
+            "section": "general"
+        },
+        {
+            "id": "temperature_route",
+            "type": "select",
+            "label": "Temperature Route",
+            "required": true,
+            "options": [
+                {"value": "oral", "label": "Oral"},
+                {"value": "axillary", "label": "Axillary"},
+                {"value": "tympanic", "label": "Tympanic"},
+                {"value": "temporal", "label": "Temporal"},
+                {"value": "rectal", "label": "Rectal"}
+            ],
+            "helpText": "Method used to measure body temperature",
+            "section": "general"
+        },
+        {
+            "id": "respiratory_rate",
+            "type": "number",
+            "label": "Respiratory Rate",
+            "required": true,
+            "min": 8,
+            "max": 60,
+            "unit": "breaths/min",
+            "referenceRange": "Adult: 12-20 breaths/min",
+            "helpText": "Respiratory rate in breaths per minute",
+            "section": "respiratory"
+        },
+        {
+            "id": "oxygen_saturation",
+            "type": "number",
+            "label": "Oxygen Saturation",
+            "required": false,
+            "min": 70,
+            "max": 100,
+            "unit": "%",
+            "referenceRange": "Normal: ≥95%",
+            "helpText": "Pulse oximetry oxygen saturation percentage",
+            "section": "respiratory"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "timing",
+                "title": "Assessment Details",
+                "description": "When and how measurements were taken",
+                "fields": ["assessment_date"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "conditions",
+                "title": "Measurement Conditions",
+                "description": "Patient position and preparation",
+                "fields": ["position", "rest_period"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "blood_pressure",
+                "title": "Blood Pressure",
+                "description": "Systolic and diastolic measurements",
+                "fields": ["systolic_bp", "diastolic_bp"],
+                "layout": {"columns": 2, "style": "inline"}
+            },
+            {
+                "id": "cardiac",
+                "title": "Heart Rate",
+                "description": "Cardiac measurements",
+                "fields": ["heart_rate"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "general",
+                "title": "Temperature",
+                "description": "Body temperature and measurement method",
+                "fields": ["temperature", "temperature_route"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "respiratory",
+                "title": "Respiratory",
+                "description": "Breathing rate and oxygen saturation",
+                "fields": ["respiratory_rate", "oxygen_saturation"],
+                "layout": {"columns": 2, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    'vital signs,blood pressure,cardiovascular,monitoring',
+    0,
+    1,
+    NOW()
+);
+
+-- 5. Medical History Template
+INSERT INTO form_templates (
+    template_id, name, description, category, version, status, 
+    fields, structure, tags, usage_count, created_by, created_at
+) VALUES (
+    'MED-001',
+    'Medical History & Background',
+    'Comprehensive medical history collection form capturing relevant past medical history, surgical procedures, family history, and social history information critical for clinical trial participant assessment.',
+    'Medical History',
+    '1.0',
+    'PUBLISHED',
+    '[
+        {
+            "id": "primary_indication",
+            "type": "text",
+            "label": "Primary Medical Condition",
+            "required": true,
+            "maxLength": 200,
+            "helpText": "Primary medical condition or indication for study participation",
+            "section": "primary_condition"
+        },
+        {
+            "id": "diagnosis_date",
+            "type": "date",
+            "label": "Date of Initial Diagnosis",
+            "required": true,
+            "helpText": "Date when primary condition was first diagnosed",
+            "section": "primary_condition"
+        },
+        {
+            "id": "previous_treatments",
+            "type": "textarea",
+            "label": "Previous Treatments",
+            "required": false,
+            "maxLength": 1000,
+            "rows": 4,
+            "helpText": "List all previous treatments for the primary condition including medications, procedures, and therapies",
+            "section": "primary_condition"
+        },
+        {
+            "id": "significant_medical_history",
+            "type": "multiselect",
+            "label": "Significant Medical History",
+            "required": false,
+            "options": [
+                {"value": "cardiovascular", "label": "Cardiovascular Disease"},
+                {"value": "diabetes", "label": "Diabetes Mellitus"},
+                {"value": "hypertension", "label": "Hypertension"},
+                {"value": "respiratory", "label": "Respiratory Disease"},
+                {"value": "renal", "label": "Kidney Disease"},
+                {"value": "hepatic", "label": "Liver Disease"},
+                {"value": "neurological", "label": "Neurological Disorders"},
+                {"value": "psychiatric", "label": "Psychiatric Conditions"},
+                {"value": "cancer", "label": "Cancer/Malignancy"},
+                {"value": "autoimmune", "label": "Autoimmune Disorders"},
+                {"value": "endocrine", "label": "Endocrine Disorders"},
+                {"value": "none", "label": "No Significant History"}
+            ],
+            "helpText": "Select all applicable significant medical conditions from patient history",
+            "section": "past_history"
+        },
+        {
+            "id": "surgical_history",
+            "type": "textarea",
+            "label": "Surgical History",
+            "required": false,
+            "maxLength": 1000,
+            "rows": 3,
+            "helpText": "List all previous surgical procedures with approximate dates",
+            "section": "past_history"
+        },
+        {
+            "id": "allergies",
+            "type": "textarea",
+            "label": "Allergies & Adverse Drug Reactions",
+            "required": false,
+            "maxLength": 500,
+            "rows": 3,
+            "helpText": "List all known allergies and adverse drug reactions including severity",
+            "section": "allergies"
+        },
+        {
+            "id": "no_known_allergies",
+            "type": "checkbox",
+            "label": "No Known Allergies",
+            "helpText": "Check if patient has no known allergies or adverse drug reactions",
+            "section": "allergies"
+        },
+        {
+            "id": "family_history",
+            "type": "multiselect",
+            "label": "Significant Family History",
+            "required": false,
+            "options": [
+                {"value": "heart_disease", "label": "Heart Disease"},
+                {"value": "cancer", "label": "Cancer"},
+                {"value": "diabetes", "label": "Diabetes"},
+                {"value": "stroke", "label": "Stroke"},
+                {"value": "mental_illness", "label": "Mental Illness"},
+                {"value": "genetic_disorders", "label": "Genetic Disorders"},
+                {"value": "none_significant", "label": "No Significant Family History"}
+            ],
+            "helpText": "Select applicable conditions with family history",
+            "section": "family_history"
+        },
+        {
+            "id": "smoking_status",
+            "type": "select",
+            "label": "Smoking Status",
+            "required": true,
+            "options": [
+                {"value": "never", "label": "Never Smoked"},
+                {"value": "current", "label": "Current Smoker"},
+                {"value": "former", "label": "Former Smoker"},
+                {"value": "unknown", "label": "Unknown"}
+            ],
+            "helpText": "Current smoking status",
+            "section": "social_history"
+        },
+        {
+            "id": "pack_years",
+            "type": "number",
+            "label": "Pack Years",
+            "required": false,
+            "dependsOn": {"field": "smoking_status", "value": ["current", "former"]},
+            "min": 0,
+            "max": 200,
+            "step": 0.5,
+            "helpText": "Total pack-years of smoking (packs per day × years smoked)",
+            "section": "social_history"
+        },
+        {
+            "id": "alcohol_use",
+            "type": "select",
+            "label": "Alcohol Use",
+            "required": true,
+            "options": [
+                {"value": "none", "label": "No Alcohol Use"},
+                {"value": "occasional", "label": "Occasional (1-7 drinks/week)"},
+                {"value": "moderate", "label": "Moderate (8-14 drinks/week)"},
+                {"value": "heavy", "label": "Heavy (>14 drinks/week)"},
+                {"value": "unknown", "label": "Unknown"}
+            ],
+            "helpText": "Current alcohol consumption pattern",
+            "section": "social_history"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "primary_condition",
+                "title": "Primary Medical Condition",
+                "description": "Main condition for study participation",
+                "fields": ["primary_indication", "diagnosis_date", "previous_treatments"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "past_history",
+                "title": "Past Medical History",
+                "description": "Significant medical and surgical history",
+                "fields": ["significant_medical_history", "surgical_history"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "allergies",
+                "title": "Allergies",
+                "description": "Known allergies and adverse reactions",
+                "fields": ["allergies", "no_known_allergies"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "family_history",
+                "title": "Family History",
+                "description": "Relevant family medical history",
+                "fields": ["family_history"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "social_history",
+                "title": "Social History",
+                "description": "Smoking and alcohol use patterns",
+                "fields": ["smoking_status", "pack_years", "alcohol_use"],
+                "layout": {"columns": 3, "style": "inline"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    'medical history,baseline,past history,family history,social history',
+    0,
+    1,
+    NOW()
+);
+
+-- 6. Physical Examination Template
+INSERT INTO form_templates (
+    template_id, name, description, category, version, status, 
+    fields, structure, tags, usage_count, created_by, created_at
+) VALUES (
+    'PE-001',
+    'Physical Examination',
+    'Comprehensive physical examination form for systematic clinical assessment covering all major organ systems and providing structured documentation for clinical trial baseline and follow-up evaluations.',
+    'Physical Exam',
+    '1.0',
+    'PUBLISHED',
+    '[
+        {
+            "id": "exam_date",
+            "type": "datetime",
+            "label": "Examination Date/Time",
+            "required": true,
+            "helpText": "Date and time when physical examination was performed",
+            "section": "general"
+        },
+        {
+            "id": "general_appearance",
+            "type": "select",
+            "label": "General Appearance",
+            "required": true,
+            "options": [
+                {"value": "normal", "label": "Normal - Well-appearing"},
+                {"value": "mild_distress", "label": "Mild Distress"},
+                {"value": "moderate_distress", "label": "Moderate Distress"},
+                {"value": "severe_distress", "label": "Severe Distress"},
+                {"value": "chronic_illness", "label": "Chronically Ill Appearing"}
+            ],
+            "helpText": "Overall general appearance and level of distress",
+            "section": "general"
+        },
+        {
+            "id": "heent",
+            "type": "select",
+            "label": "HEENT (Head, Eyes, Ears, Nose, Throat)",
+            "required": true,
+            "options": [
+                {"value": "normal", "label": "Normal"},
+                {"value": "abnormal", "label": "Abnormal - See Comments"},
+                {"value": "not_examined", "label": "Not Examined"}
+            ],
+            "helpText": "Head, eyes, ears, nose, and throat examination findings",
+            "section": "systems"
+        },
+        {
+            "id": "heent_comments",
+            "type": "textarea",
+            "label": "HEENT Comments",
+            "required": false,
+            "dependsOn": {"field": "heent", "value": "abnormal"},
+            "maxLength": 500,
+            "rows": 2,
+            "helpText": "Describe abnormal HEENT findings",
+            "section": "systems"
+        },
+        {
+            "id": "cardiovascular",
+            "type": "select",
+            "label": "Cardiovascular",
+            "required": true,
+            "options": [
+                {"value": "normal", "label": "Normal"},
+                {"value": "abnormal", "label": "Abnormal - See Comments"},
+                {"value": "not_examined", "label": "Not Examined"}
+            ],
+            "helpText": "Cardiovascular system examination findings",
+            "section": "systems"
+        },
+        {
+            "id": "cardiovascular_comments",
+            "type": "textarea",
+            "label": "Cardiovascular Comments",
+            "required": false,
+            "dependsOn": {"field": "cardiovascular", "value": "abnormal"},
+            "maxLength": 500,
+            "rows": 2,
+            "helpText": "Describe abnormal cardiovascular findings",
+            "section": "systems"
+        },
+        {
+            "id": "respiratory",
+            "type": "select",
+            "label": "Respiratory",
+            "required": true,
+            "options": [
+                {"value": "normal", "label": "Normal"},
+                {"value": "abnormal", "label": "Abnormal - See Comments"},
+                {"value": "not_examined", "label": "Not Examined"}
+            ],
+            "helpText": "Respiratory system examination findings",
+            "section": "systems"
+        },
+        {
+            "id": "respiratory_comments",
+            "type": "textarea",
+            "label": "Respiratory Comments",
+            "required": false,
+            "dependsOn": {"field": "respiratory", "value": "abnormal"},
+            "maxLength": 500,
+            "rows": 2,
+            "helpText": "Describe abnormal respiratory findings",
+            "section": "systems"
+        },
+        {
+            "id": "abdomen",
+            "type": "select",
+            "label": "Abdomen",
+            "required": true,
+            "options": [
+                {"value": "normal", "label": "Normal"},
+                {"value": "abnormal", "label": "Abnormal - See Comments"},
+                {"value": "not_examined", "label": "Not Examined"}
+            ],
+            "helpText": "Abdominal examination findings",
+            "section": "systems"
+        },
+        {
+            "id": "abdomen_comments",
+            "type": "textarea",
+            "label": "Abdomen Comments",
+            "required": false,
+            "dependsOn": {"field": "abdomen", "value": "abnormal"},
+            "maxLength": 500,
+            "rows": 2,
+            "helpText": "Describe abnormal abdominal findings",
+            "section": "systems"
+        },
+        {
+            "id": "neurological",
+            "type": "select",
+            "label": "Neurological",
+            "required": true,
+            "options": [
+                {"value": "normal", "label": "Normal"},
+                {"value": "abnormal", "label": "Abnormal - See Comments"},
+                {"value": "not_examined", "label": "Not Examined"}
+            ],
+            "helpText": "Neurological system examination findings",
+            "section": "systems"
+        },
+        {
+            "id": "neurological_comments",
+            "type": "textarea",
+            "label": "Neurological Comments",
+            "required": false,
+            "dependsOn": {"field": "neurological", "value": "abnormal"},
+            "maxLength": 500,
+            "rows": 2,
+            "helpText": "Describe abnormal neurological findings",
+            "section": "systems"
+        },
+        {
+            "id": "extremities",
+            "type": "select",
+            "label": "Extremities",
+            "required": true,
+            "options": [
+                {"value": "normal", "label": "Normal"},
+                {"value": "abnormal", "label": "Abnormal - See Comments"},
+                {"value": "not_examined", "label": "Not Examined"}
+            ],
+            "helpText": "Extremities examination findings",
+            "section": "systems"
+        },
+        {
+            "id": "extremities_comments",
+            "type": "textarea",
+            "label": "Extremities Comments",
+            "required": false,
+            "dependsOn": {"field": "extremities", "value": "abnormal"},
+            "maxLength": 500,
+            "rows": 2,
+            "helpText": "Describe abnormal extremities findings",
+            "section": "systems"
+        },
+        {
+            "id": "skin",
+            "type": "select",
+            "label": "Skin",
+            "required": true,
+            "options": [
+                {"value": "normal", "label": "Normal"},
+                {"value": "abnormal", "label": "Abnormal - See Comments"},
+                {"value": "not_examined", "label": "Not Examined"}
+            ],
+            "helpText": "Skin and integumentary system findings",
+            "section": "systems"
+        },
+        {
+            "id": "skin_comments",
+            "type": "textarea",
+            "label": "Skin Comments",
+            "required": false,
+            "dependsOn": {"field": "skin", "value": "abnormal"},
+            "maxLength": 500,
+            "rows": 2,
+            "helpText": "Describe abnormal skin findings",
+            "section": "systems"
+        },
+        {
+            "id": "overall_assessment",
+            "type": "textarea",
+            "label": "Overall Clinical Assessment",
+            "required": false,
+            "maxLength": 1000,
+            "rows": 3,
+            "helpText": "Summary of overall physical examination findings and clinical impressions",
+            "section": "assessment"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "general",
+                "title": "General Assessment",
+                "description": "Overall appearance and vital signs",
+                "fields": ["exam_date", "general_appearance"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "systems",
+                "title": "Systems Review",
+                "description": "Systematic examination of organ systems",
+                "fields": ["heent", "heent_comments", "cardiovascular", "cardiovascular_comments", "respiratory", "respiratory_comments", "abdomen", "abdomen_comments", "neurological", "neurological_comments", "extremities", "extremities_comments", "skin", "skin_comments"],
+                "layout": {"columns": 2, "style": "paired"}
+            },
+            {
+                "id": "assessment",
+                "title": "Clinical Assessment",
+                "description": "Overall clinical impression and summary",
+                "fields": ["overall_assessment"],
+                "layout": {"columns": 1, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    'physical examination,clinical assessment,baseline,organ systems',
+    0,
+    1,
+    NOW()
+);
+
+-- 7. Concomitant Medications Template
+INSERT INTO form_templates (
+    template_id, name, description, category, version, status, 
+    fields, structure, tags, usage_count, created_by, created_at
+) VALUES (
+    'MED-002',
+    'Concomitant Medications',
+    'Comprehensive medication history and concurrent therapy documentation form for tracking all medications, supplements, and treatments used during clinical trial participation for drug interaction assessment.',
+    'Medications',
+    '1.0',
+    'PUBLISHED',
+    '[
+        {
+            "id": "medication_name",
+            "type": "text",
+            "label": "Medication Name",
+            "required": true,
+            "maxLength": 200,
+            "helpText": "Generic or brand name of the medication (include strength if part of name)",
+            "section": "medication_info"
+        },
+        {
+            "id": "active_ingredient",
+            "type": "text",
+            "label": "Active Ingredient",
+            "required": false,
+            "maxLength": 200,
+            "helpText": "Active pharmaceutical ingredient (generic name preferred)",
+            "section": "medication_info"
+        },
+        {
+            "id": "indication",
+            "type": "text",
+            "label": "Indication",
+            "required": true,
+            "maxLength": 200,
+            "helpText": "Medical condition or reason for taking this medication",
+            "section": "medication_info"
+        },
+        {
+            "id": "dose",
+            "type": "text",
+            "label": "Dose",
+            "required": true,
+            "maxLength": 50,
+            "helpText": "Dose per administration (e.g., 10 mg, 5 mL, 1 tablet)",
+            "section": "dosing"
+        },
+        {
+            "id": "dose_unit",
+            "type": "select",
+            "label": "Dose Unit",
+            "required": true,
+            "options": [
+                {"value": "mg", "label": "mg"},
+                {"value": "mcg", "label": "mcg"},
+                {"value": "g", "label": "g"},
+                {"value": "mL", "label": "mL"},
+                {"value": "L", "label": "L"},
+                {"value": "tablet", "label": "tablet(s)"},
+                {"value": "capsule", "label": "capsule(s)"},
+                {"value": "unit", "label": "unit(s)"},
+                {"value": "drop", "label": "drop(s)"},
+                {"value": "spray", "label": "spray(s)"},
+                {"value": "patch", "label": "patch(es)"},
+                {"value": "other", "label": "Other"}
+            ],
+            "helpText": "Unit of measurement for the dose",
+            "section": "dosing"
+        },
+        {
+            "id": "frequency",
+            "type": "select",
+            "label": "Frequency",
+            "required": true,
+            "options": [
+                {"value": "once_daily", "label": "Once daily (QD)"},
+                {"value": "twice_daily", "label": "Twice daily (BID)"},
+                {"value": "three_times_daily", "label": "Three times daily (TID)"},
+                {"value": "four_times_daily", "label": "Four times daily (QID)"},
+                {"value": "every_other_day", "label": "Every other day"},
+                {"value": "weekly", "label": "Weekly"},
+                {"value": "as_needed", "label": "As needed (PRN)"},
+                {"value": "other", "label": "Other - See Comments"}
+            ],
+            "helpText": "How often the medication is taken",
+            "section": "dosing"
+        },
+        {
+            "id": "route",
+            "type": "select",
+            "label": "Route of Administration",
+            "required": true,
+            "options": [
+                {"value": "oral", "label": "Oral (PO)"},
+                {"value": "intravenous", "label": "Intravenous (IV)"},
+                {"value": "intramuscular", "label": "Intramuscular (IM)"},
+                {"value": "subcutaneous", "label": "Subcutaneous (SC)"},
+                {"value": "topical", "label": "Topical"},
+                {"value": "inhaled", "label": "Inhaled"},
+                {"value": "nasal", "label": "Nasal"},
+                {"value": "ophthalmic", "label": "Ophthalmic"},
+                {"value": "otic", "label": "Otic"},
+                {"value": "rectal", "label": "Rectal"},
+                {"value": "transdermal", "label": "Transdermal"},
+                {"value": "other", "label": "Other"}
+            ],
+            "helpText": "Route by which medication is administered",
+            "section": "administration"
+        },
+        {
+            "id": "start_date",
+            "type": "date",
+            "label": "Start Date",
+            "required": true,
+            "helpText": "Date when medication was first started",
+            "section": "timeline"
+        },
+        {
+            "id": "end_date",
+            "type": "date",
+            "label": "End Date",
+            "required": false,
+            "helpText": "Date when medication was stopped (leave blank if ongoing)",
+            "section": "timeline"
+        },
+        {
+            "id": "ongoing",
+            "type": "checkbox",
+            "label": "Ongoing",
+            "helpText": "Check if medication is still being taken",
+            "section": "timeline"
+        },
+        {
+            "id": "prescription_status",
+            "type": "select",
+            "label": "Prescription Status",
+            "required": true,
+            "options": [
+                {"value": "prescription", "label": "Prescription Medication"},
+                {"value": "otc", "label": "Over-the-Counter (OTC)"},
+                {"value": "supplement", "label": "Dietary Supplement"},
+                {"value": "herbal", "label": "Herbal/Natural Product"},
+                {"value": "medical_device", "label": "Medical Device"}
+            ],
+            "helpText": "Classification of the medication or product",
+            "section": "classification"
+        },
+        {
+            "id": "prescriber",
+            "type": "text",
+            "label": "Prescribing Physician",
+            "required": false,
+            "maxLength": 100,
+            "helpText": "Name of physician who prescribed the medication",
+            "section": "prescriber_info"
+        },
+        {
+            "id": "comments",
+            "type": "textarea",
+            "label": "Comments",
+            "required": false,
+            "maxLength": 500,
+            "rows": 3,
+            "helpText": "Additional comments about the medication, dosing adjustments, or special instructions",
+            "section": "additional_info"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "medication_info",
+                "title": "Medication Information",
+                "description": "Basic medication details and indication",
+                "fields": ["medication_name", "active_ingredient", "indication"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "dosing",
+                "title": "Dosing",
+                "description": "Dose, frequency, and units",
+                "fields": ["dose", "dose_unit", "frequency"],
+                "layout": {"columns": 3, "style": "inline"}
+            },
+            {
+                "id": "administration",
+                "title": "Route of Administration",
+                "description": "How medication is given",
+                "fields": ["route"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "timeline",
+                "title": "Timeline",
+                "description": "Start and end dates",
+                "fields": ["start_date", "end_date", "ongoing"],
+                "layout": {"columns": 3, "style": "inline"}
+            },
+            {
+                "id": "classification",
+                "title": "Classification",
+                "description": "Type of medication or product",
+                "fields": ["prescription_status"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "prescriber_info",
+                "title": "Prescriber Information",
+                "description": "Prescribing physician details",
+                "fields": ["prescriber"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "additional_info",
+                "title": "Additional Information",
+                "description": "Comments and special notes",
+                "fields": ["comments"],
+                "layout": {"columns": 1, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    'medications,concomitant,drug interactions,concurrent therapy',
+    0,
+    1,
+    NOW()
+);
+
+-- 8. Efficacy Assessment Template
+INSERT INTO form_templates (
+    template_id, name, description, category, version, status, 
+    fields, structure, tags, usage_count, created_by, created_at
+) VALUES (
+    'EFF-001',
+    'Clinical Efficacy Assessment',
+    'Standardized efficacy evaluation form for measuring primary and secondary endpoints in clinical trials, including symptom scores, functional assessments, and objective clinical measurements.',
+    'Efficacy',
+    '1.0',
+    'PUBLISHED',
+    '[
+        {
+            "id": "assessment_date",
+            "type": "datetime",
+            "label": "Assessment Date/Time",
+            "required": true,
+            "helpText": "Date and time when efficacy assessment was performed",
+            "section": "timing"
+        },
+        {
+            "id": "visit_type",
+            "type": "select",
+            "label": "Visit Type",
+            "required": true,
+            "options": [
+                {"value": "baseline", "label": "Baseline/Screening"},
+                {"value": "week_2", "label": "Week 2"},
+                {"value": "week_4", "label": "Week 4"},
+                {"value": "week_8", "label": "Week 8"},
+                {"value": "week_12", "label": "Week 12"},
+                {"value": "week_24", "label": "Week 24"},
+                {"value": "unscheduled", "label": "Unscheduled"},
+                {"value": "early_termination", "label": "Early Termination"},
+                {"value": "end_of_study", "label": "End of Study"}
+            ],
+            "helpText": "Type of study visit when assessment was performed",
+            "section": "timing"
+        },
+        {
+            "id": "primary_endpoint_score",
+            "type": "number",
+            "label": "Primary Endpoint Score",
+            "required": true,
+            "min": 0,
+            "max": 100,
+            "step": 0.1,
+            "helpText": "Primary efficacy endpoint measurement (scale 0-100)",
+            "section": "primary_endpoints"
+        },
+        {
+            "id": "primary_endpoint_change",
+            "type": "calculated",
+            "label": "Change from Baseline",
+            "formula": "current_score - baseline_score",
+            "helpText": "Calculated change from baseline in primary endpoint",
+            "section": "primary_endpoints"
+        },
+        {
+            "id": "symptom_severity",
+            "type": "select",
+            "label": "Overall Symptom Severity",
+            "required": true,
+            "options": [
+                {"value": "none", "label": "None (0)"},
+                {"value": "mild", "label": "Mild (1-3)"},
+                {"value": "moderate", "label": "Moderate (4-6)"},
+                {"value": "severe", "label": "Severe (7-9)"},
+                {"value": "very_severe", "label": "Very Severe (10)"}
+            ],
+            "helpText": "Overall severity of target symptoms",
+            "section": "symptoms"
+        },
+        {
+            "id": "functional_status",
+            "type": "select",
+            "label": "Functional Status",
+            "required": true,
+            "options": [
+                {"value": "normal", "label": "Normal Activity"},
+                {"value": "mild_limitation", "label": "Mild Activity Limitation"},
+                {"value": "moderate_limitation", "label": "Moderate Activity Limitation"},
+                {"value": "severe_limitation", "label": "Severe Activity Limitation"},
+                {"value": "unable", "label": "Unable to Perform Activities"}
+            ],
+            "helpText": "Patient functional status and ability to perform daily activities",
+            "section": "functional"
+        },
+        {
+            "id": "quality_of_life",
+            "type": "number",
+            "label": "Quality of Life Score",
+            "required": true,
+            "min": 0,
+            "max": 10,
+            "step": 0.1,
+            "helpText": "Overall quality of life score (0 = worst, 10 = best possible)",
+            "section": "quality_of_life"
+        },
+        {
+            "id": "patient_global_impression",
+            "type": "select",
+            "label": "Patient Global Impression of Change",
+            "required": true,
+            "options": [
+                {"value": "very_much_improved", "label": "Very Much Improved"},
+                {"value": "much_improved", "label": "Much Improved"},
+                {"value": "minimally_improved", "label": "Minimally Improved"},
+                {"value": "no_change", "label": "No Change"},
+                {"value": "minimally_worse", "label": "Minimally Worse"},
+                {"value": "much_worse", "label": "Much Worse"},
+                {"value": "very_much_worse", "label": "Very Much Worse"}
+            ],
+            "helpText": "Patient assessment of overall change since start of treatment",
+            "section": "global_assessments"
+        },
+        {
+            "id": "clinician_global_impression",
+            "type": "select",
+            "label": "Clinician Global Impression of Change",
+            "required": true,
+            "options": [
+                {"value": "very_much_improved", "label": "Very Much Improved"},
+                {"value": "much_improved", "label": "Much Improved"},
+                {"value": "minimally_improved", "label": "Minimally Improved"},
+                {"value": "no_change", "label": "No Change"},
+                {"value": "minimally_worse", "label": "Minimally Worse"},
+                {"value": "much_worse", "label": "Much Worse"},
+                {"value": "very_much_worse", "label": "Very Much Worse"}
+            ],
+            "helpText": "Clinician assessment of overall change since start of treatment",
+            "section": "global_assessments"
+        },
+        {
+            "id": "objective_measurement_1",
+            "type": "number",
+            "label": "Objective Measurement #1",
+            "required": false,
+            "step": 0.01,
+            "helpText": "First objective clinical measurement (define specific parameter in protocol)",
+            "section": "objective_measures"
+        },
+        {
+            "id": "objective_measurement_1_unit",
+            "type": "text",
+            "label": "Unit for Measurement #1",
+            "required": false,
+            "maxLength": 20,
+            "helpText": "Unit of measurement for objective parameter #1",
+            "section": "objective_measures"
+        },
+        {
+            "id": "objective_measurement_2",
+            "type": "number",
+            "label": "Objective Measurement #2",
+            "required": false,
+            "step": 0.01,
+            "helpText": "Second objective clinical measurement (define specific parameter in protocol)",
+            "section": "objective_measures"
+        },
+        {
+            "id": "objective_measurement_2_unit",
+            "type": "text",
+            "label": "Unit for Measurement #2",
+            "required": false,
+            "maxLength": 20,
+            "helpText": "Unit of measurement for objective parameter #2",
+            "section": "objective_measures"
+        },
+        {
+            "id": "response_criteria_met",
+            "type": "select",
+            "label": "Response Criteria Met",
+            "required": true,
+            "options": [
+                {"value": "complete_response", "label": "Complete Response"},
+                {"value": "partial_response", "label": "Partial Response"},
+                {"value": "stable_disease", "label": "Stable Disease"},
+                {"value": "progressive_disease", "label": "Progressive Disease"},
+                {"value": "not_evaluable", "label": "Not Evaluable"}
+            ],
+            "helpText": "Assessment of response based on predefined study criteria",
+            "section": "response"
+        },
+        {
+            "id": "assessment_comments",
+            "type": "textarea",
+            "label": "Assessment Comments",
+            "required": false,
+            "maxLength": 1000,
+            "rows": 4,
+            "helpText": "Additional comments about efficacy assessment, clinical observations, or notable changes",
+            "section": "comments"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "timing",
+                "title": "Assessment Timing",
+                "description": "When and why assessment was performed",
+                "fields": ["assessment_date", "visit_type"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "primary_endpoints",
+                "title": "Primary Endpoints",
+                "description": "Main efficacy measurements",
+                "fields": ["primary_endpoint_score", "primary_endpoint_change"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "symptoms",
+                "title": "Symptom Assessment",
+                "description": "Overall symptom severity",
+                "fields": ["symptom_severity"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "functional",
+                "title": "Functional Status",
+                "description": "Patient functional ability",
+                "fields": ["functional_status"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "quality_of_life",
+                "title": "Quality of Life",
+                "description": "Overall quality of life score",
+                "fields": ["quality_of_life"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "global_assessments",
+                "title": "Global Impressions",
+                "description": "Patient and clinician overall assessments",
+                "fields": ["patient_global_impression", "clinician_global_impression"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "objective_measures",
+                "title": "Objective Measurements",
+                "description": "Protocol-specific objective parameters",
+                "fields": ["objective_measurement_1", "objective_measurement_1_unit", "objective_measurement_2", "objective_measurement_2_unit"],
+                "layout": {"columns": 2, "style": "paired"}
+            },
+            {
+                "id": "response",
+                "title": "Response Assessment",
+                "description": "Overall response criteria evaluation",
+                "fields": ["response_criteria_met"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "comments",
+                "title": "Additional Comments",
+                "description": "Additional observations and notes",
+                "fields": ["assessment_comments"],
+                "layout": {"columns": 1, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    'efficacy,endpoints,clinical response,outcomes,assessment',
+    0,
+    1,
+    NOW()
+);
+
+-- Create initial version records for all templates
+INSERT INTO form_template_versions (template_id, version, version_notes, fields_snapshot, created_by)
+SELECT 
+    id,
+    version,
+    'Initial template version with structure support',
+    JSON_OBJECT(
+        'fields', fields,
+        'structure', structure
+    ),
+    created_by
+FROM form_templates;
+
+-- Summary output
+SELECT 
+    'Form Templates Created' as summary,
+    COUNT(*) as count,
+    GROUP_CONCAT(DISTINCT category ORDER BY category) as categories
+FROM form_templates;
+
+SELECT 
+    template_id,
+    name,
+    category,
+    status,
+    JSON_LENGTH(fields) as field_count,
+    created_at
+FROM form_templates
+ORDER BY category, template_id;
+
+
 -- Insert sample studies
 -- Study 1: COVID-19 Vaccine Trial
 INSERT INTO studies (id, name, description, sponsor, protocol_number, study_phase_id, study_status_id,regulatory_status_id, start_date, end_date, created_by, created_at, updated_at)
@@ -209,737 +1941,1010 @@ INSERT INTO studies (id, name, description, sponsor, protocol_number, study_phas
 VALUES (6, 'Pediatric Asthma Treatment Optimization', 'Evaluating the efficacy of a modified treatment protocol in pediatric asthma patients aged 5-12.', 
         (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'RCF-AST-201', '1', '1','1', '2023-01-10', '2023-12-20', @admin_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
--- Create study arms
--- Study 1 arm
-INSERT INTO study_arms (id, study_id, name, description) 
-VALUES (1, 1, 'Treatment Arm', 'Receives active treatment');
-
--- Study 3 arms
-INSERT INTO study_arms (id, study_id, name, description)
+-- Insert sample data for testing (optional - remove in production)
+-- Study arms for study ID 3 (matching the frontend call)
+INSERT INTO study_arms (name, description, type, sequence_number, planned_subjects, study_id, created_by, updated_by)
 VALUES 
-(2, 3, 'High Dose Arm', 'Patients receiving high dose of the investigational product'),
-(3, 3, 'Low Dose Arm', 'Patients receiving low dose of the investigational product');
+    ('Treatment Arm A', 'Primary treatment group receiving experimental drug', 'TREATMENT', 1, 150, 3, 'system', 'system'),
+    ('Control Arm', 'Control group receiving standard care', 'CONTROL', 2, 75, 3, 'system', 'system'),
+    ('Placebo Arm', 'Placebo group for comparison', 'PLACEBO', 3, 75, 3, 'system', 'system'),
+	('Treatment Arm A', 'Primary treatment group receiving experimental drug', 'TREATMENT', 1, 150, 1, 'system', 'system'),
+    ('Control Arm', 'Control group receiving standard care', 'CONTROL', 2, 75, 1, 'system', 'system'),
+    ('Placebo Arm', 'Placebo group for comparison', 'PLACEBO', 3, 75, 1, 'system', 'system'),
+	('Treatment Arm A', 'Primary treatment group receiving experimental drug', 'TREATMENT', 1, 150, 2, 'system', 'system'),
+    ('Control Arm', 'Control group receiving standard care', 'CONTROL', 2, 75, 2, 'system', 'system'),
+    ('Placebo Arm', 'Placebo group for comparison', 'PLACEBO', 3, 75, 2, 'system', 'system');
 
--- Study 4 arms
-INSERT INTO study_arms (id, study_id, name, description)
-VALUES 
-(4, 4, 'Standard of Care', 'Control arm receiving current standard of care'),
-(5, 4, 'Experimental Therapy A', 'First experimental treatment arm'),
-(6, 4, 'Experimental Therapy B', 'Second experimental treatment arm');
 
--- Study 5 arm
-INSERT INTO study_arms (id, study_id, name, description)
-VALUES (7, 5, 'Standard Medication', 'Patients receiving standard medication regimen');
+-- Insert sample interventions
+INSERT INTO study_interventions (name, description, type, dosage, frequency, route, study_arm_id, created_by, updated_by)
+SELECT 
+    'Experimental Drug XYZ', 
+    'Novel compound targeting specific pathway',
+    'DRUG',
+    '10mg',
+    'Once daily',
+    'Oral',
+    sa.id,
+    'system',
+    'system'
+FROM study_arms sa 
+WHERE sa.study_id = 3 AND sa.sequence_number = 1;
 
--- Study 6 arms
-INSERT INTO study_arms (id, study_id, name, description)
-VALUES 
-(8, 6, 'Standard Protocol', 'Control arm following standard asthma management protocol'),
-(9, 6, 'Modified Protocol', 'Experimental arm using modified treatment approach');
+INSERT INTO study_interventions (name, description, type, dosage, frequency, route, study_arm_id, created_by, updated_by)
+SELECT 
+    'Standard Care Protocol', 
+    'Current standard of care treatment',
+    'PROCEDURE',
+    NULL,
+    'As needed',
+    NULL,
+    sa.id,
+    'system',
+    'system'
+FROM study_arms sa 
+WHERE sa.study_id = 3 AND sa.sequence_number = 2;
+
+INSERT INTO study_interventions (name, description, type, dosage, frequency, route, study_arm_id, created_by, updated_by)
+SELECT 
+    'Placebo Capsule', 
+    'Inactive placebo matching active treatment',
+    'DRUG',
+    '1 capsule',
+    'Once daily',
+    'Oral',
+    sa.id,
+    'system',
+    'system'
+FROM study_arms sa 
+WHERE sa.study_id = 3 AND sa.sequence_number = 3;
+
+
+-- Insert initial data for existing studies (optional)
+-- This will create basic-info progress entries for all existing studies
+INSERT INTO study_design_progress (study_id, phase, completed, percentage, created_at, updated_at)
+SELECT 
+    id as study_id,
+    'basic-info' as phase,
+    TRUE as completed,
+    100 as percentage,
+    NOW() as created_at,
+    NOW() as updated_at
+FROM studies
+WHERE NOT EXISTS (
+    SELECT 1 FROM study_design_progress 
+    WHERE study_design_progress.study_id = studies.id 
+    AND study_design_progress.phase = 'basic-info'
+);
+
+-- Create default progress entries for other phases for existing studies
+INSERT INTO study_design_progress (study_id, phase, completed, percentage, created_at, updated_at)
+SELECT 
+    studies.id as study_id,
+    phases.phase_name as phase,
+    FALSE as completed,
+    0 as percentage,
+    NOW() as created_at,
+    NOW() as updated_at
+FROM studies
+CROSS JOIN (
+    SELECT 'arms' as phase_name
+    UNION SELECT 'visits'
+    UNION SELECT 'forms' 
+    UNION SELECT 'review'
+    UNION SELECT 'publish'
+    UNION SELECT 'revisions'
+) phases
+WHERE NOT EXISTS (
+    SELECT 1 FROM study_design_progress 
+    WHERE study_design_progress.study_id = studies.id 
+    AND study_design_progress.phase = phases.phase_name
+);
 
 -- Create visit definitions
 -- Study 1 visits
 INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
-VALUES (1, 1, 1, 'Screening Visit', 'Initial screening', 0, 'screening');
+VALUES (1, 1, 1, 'Screening Visit', 'Initial screening', 0, 'SCREENING');
 
 -- Study 3 visits - High Dose Arm
 INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
-(2, 3, 2, 'Screening', 'Initial patient assessment and eligibility screening', -14, 'screening'),
-(3, 3, 2, 'Baseline Visit', 'First treatment administration and baseline assessments', 0, 'baseline'),
-(4, 3, 2, 'Follow-up Visit 1', '30-day follow-up assessment', 30, 'follow_up');
+(2, 3, 2, 'Screening', 'Initial patient assessment and eligibility screening', -14, 'SCREENING'),
+(3, 3, 2, 'Baseline Visit', 'First treatment administration and baseline assessments', 0, 'BASELINE'),
+(4, 3, 2, 'Follow-up Visit 1', '30-day follow-up assessment', 30, 'FOLLOW_UP');
 
 -- Study 3 visits - Low Dose Arm
 INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
-(5, 3, 3, 'Screening', 'Initial patient assessment and eligibility screening', -14, 'screening'),
-(6, 3, 3, 'Baseline Visit', 'First treatment administration and baseline assessments', 0, 'baseline'),
-(7, 3, 3, 'Follow-up Visit 1', '30-day follow-up assessment', 30, 'follow_up');
+(5, 3, 3, 'Screening', 'Initial patient assessment and eligibility screening', -14, 'SCREENING'),
+(6, 3, 3, 'Baseline Visit', 'First treatment administration and baseline assessments', 0, 'BASELINE'),
+(7, 3, 3, 'Follow-up Visit 1', '30-day follow-up assessment', 30, 'FOLLOW_UP');
 
 -- Study 4 visits - Standard of Care
 INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
-(8, 4, 4, 'Enrollment', 'Patient enrollment and initial assessment', -7, 'screening'),
-(9, 4, 4, 'Baseline', 'Baseline assessments before treatment starts', 0, 'baseline');
+(8, 4, 4, 'Enrollment', 'Patient enrollment and initial assessment', -7, 'SCREENING'),
+(9, 4, 4, 'Baseline', 'Baseline assessments before treatment starts', 0, 'BASELINE');
 
 -- Study 4 visits - Experimental Therapy A
 INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
-(10, 4, 5, 'Enrollment', 'Patient enrollment and initial assessment', -7, 'screening'),
-(11, 4, 5, 'Baseline', 'Baseline assessments before treatment starts', 0, 'baseline');
+(10, 4, 5, 'Enrollment', 'Patient enrollment and initial assessment', -7, 'SCREENING'),
+(11, 4, 5, 'Baseline', 'Baseline assessments before treatment starts', 0, 'BASELINE');
 
 -- Study 4 visits - Experimental Therapy B
 INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
-(12, 4, 6, 'Enrollment', 'Patient enrollment and initial assessment', -7, 'screening'),
-(13, 4, 6, 'Baseline', 'Baseline assessments before treatment starts', 0, 'baseline');
+(12, 4, 6, 'Enrollment', 'Patient enrollment and initial assessment', -7, 'SCREENING'),
+(13, 4, 6, 'Baseline', 'Baseline assessments before treatment starts', 0, 'BASELINE');
 
 -- Study 5 visits
 INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
-(14, 5, 7, 'Initial Assessment', 'Baseline evaluation', 0, 'baseline');
+(14, 5, 7, 'Initial Assessment', 'Baseline evaluation', 0, 'BASELINE');
 
 -- Study 6 visits - Standard Protocol
 INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
-(15, 6, 8, 'Screening', 'Initial eligibility assessment', -14, 'screening'),
-(16, 6, 8, 'Month 1 Follow-up', 'First follow-up visit', 30, 'follow_up'),
-(17, 6, 8, 'Final Visit', 'End of study assessment', 90, 'follow_up');
+(15, 6, 8, 'Screening', 'Initial eligibility assessment', -14, 'SCREENING'),
+(16, 6, 8, 'Month 1 Follow-up', 'First follow-up visit', 30, 'FOLLOW_UP'),
+(17, 6, 8, 'Final Visit', 'End of study assessment', 90, 'FOLLOW_UP');
 
 -- Study 6 visits - Modified Protocol
 INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
-(18, 6, 9, 'Screening', 'Initial eligibility assessment', -14, 'screening'),
-(19, 6, 9, 'Month 1 Follow-up', 'First follow-up visit', 30, 'follow_up'),
-(20, 6, 9, 'Final Visit', 'End of study assessment', 90, 'follow_up');
+(18, 6, 9, 'Screening', 'Initial eligibility assessment', -14, 'SCREENING'),
+(19, 6, 9, 'Month 1 Follow-up', 'First follow-up visit', 30, 'FOLLOW_UP'),
+(20, 6, 9, 'Final Visit', 'End of study assessment', 90, 'FOLLOW_UP');
 
--- Create form definitions with proper fields JSON
--- Study 1 forms
-INSERT INTO form_definitions (id, study_id, name, description, form_type, fields, created_by)
-VALUES (1, 1, 'Demographics Form', 'Basic patient information', 'standard', 
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'field_1',
-                'label', 'First Name',
-                'type', 'text',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'field_2',
-                'label', 'Last Name',
-                'type', 'text',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'field_3',
-                'label', 'Date of Birth',
-                'type', 'date',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'field_4',
-                'label', 'Gender',
-                'type', 'select',
-                'options', JSON_ARRAY('Male', 'Female', 'Other'),
-                'required', true
-            )
-        ),
-        @admin_user_id);
 
--- Study 3 forms
-INSERT INTO form_definitions (id, study_id, name, description, form_type, fields, created_by)
-VALUES 
--- High Dose Arm - Screening Visit forms
-(2, 3, 'Eligibility Checklist', 'Inclusion/exclusion criteria verification', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'inc_1',
-                'label', 'Age 55 or older',
-                'type', 'checkbox',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'inc_2',
-                'label', 'Confirmed early-stage Alzheimer\'s',
-                'type', 'checkbox',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'exc_1',
-                'label', 'History of stroke',
-                'type', 'checkbox',
-                'required', true
-            )
-        ),
-        @admin_user_id),
-        
-(3, 3, 'Medical History', 'Complete medical history documentation', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'med_1',
-                'label', 'Previous Medications',
-                'type', 'textarea',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'med_2',
-                'label', 'Known Allergies',
-                'type', 'textarea',
-                'required', false
-            ),
-            JSON_OBJECT(
-                'id', 'med_3',
-                'label', 'Past Surgeries',
-                'type', 'textarea',
-                'required', false
-            )
-        ),
-        @admin_user_id),
-        
-(4, 3, 'Cognitive Assessment', 'Baseline cognitive function measurements', 'custom',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'cog_1',
-                'label', 'MMSE Score',
-                'type', 'number',
-                'min', 0,
-                'max', 30,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'cog_2',
-                'label', 'Clock Drawing Test',
-                'type', 'select',
-                'options', JSON_ARRAY('Normal', 'Mildly Impaired', 'Moderately Impaired', 'Severely Impaired'),
-                'required', true
-            )
-        ),
-        @admin_user_id),
+-- Study 1 - Demographics form based on DEMO-001 template
+INSERT INTO form_definitions (
+    study_id, name, description, form_type, version, fields, structure, 
+    template_id, template_version, tags, created_by, created_at
+) VALUES (
+    1, 
+    'Study-Specific Demographics', 
+    'COVID-19 vaccine trial demographics form adapted from global template with study-specific modifications',
+    'Demographics',
+    '1.0',
+    '[
+        {
+            "id": "subject_initials",
+            "type": "text",
+            "label": "Subject Initials",
+            "required": true,
+            "maxLength": 3,
+            "pattern": "[A-Z]{2,3}",
+            "validation": "Must be 2-3 uppercase letters",
+            "helpText": "Enter participant initials (first, middle, last). Use XX for unknown middle initial.",
+            "section": "identification"
+        },
+        {
+            "id": "gender",
+            "type": "select",
+            "label": "Gender",
+            "required": true,
+            "options": [
+                {"value": "M", "label": "Male"},
+                {"value": "F", "label": "Female"},
+                {"value": "O", "label": "Other"},
+                {"value": "U", "label": "Prefer not to answer"}
+            ],
+            "helpText": "Biological gender as determined by the investigator",
+            "section": "demographics"
+        },
+        {
+            "id": "date_of_birth",
+            "type": "date",
+            "label": "Date of Birth",
+            "required": true,
+            "validation": "Must be valid date, minimum age 18",
+            "helpText": "Complete date of birth (DD-MMM-YYYY format preferred)",
+            "section": "demographics"
+        },
+        {
+            "id": "age_at_consent",
+            "type": "number",
+            "label": "Age at Informed Consent",
+            "required": true,
+            "min": 18,
+            "max": 120,
+            "unit": "years",
+            "helpText": "Age in completed years at time of informed consent signing",
+            "section": "demographics"
+        },
+        {
+            "id": "covid_vaccination_history",
+            "type": "select",
+            "label": "Previous COVID-19 Vaccination",
+            "required": true,
+            "options": [
+                {"value": "none", "label": "No previous COVID-19 vaccines"},
+                {"value": "partial", "label": "Incomplete vaccination series"},
+                {"value": "complete", "label": "Complete vaccination series"},
+                {"value": "boosted", "label": "Complete series + booster(s)"}
+            ],
+            "helpText": "COVID-19 vaccination history specific to this study",
+            "section": "study_specific"
+        },
+        {
+            "id": "covid_infection_history",
+            "type": "select",
+            "label": "Previous COVID-19 Infection",
+            "required": true,
+            "options": [
+                {"value": "none", "label": "No known COVID-19 infection"},
+                {"value": "confirmed", "label": "Laboratory-confirmed COVID-19"},
+                {"value": "suspected", "label": "Suspected COVID-19 (not confirmed)"},
+                {"value": "unknown", "label": "Unknown/uncertain"}
+            ],
+            "helpText": "History of COVID-19 infection prior to study enrollment",
+            "section": "study_specific"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "identification",
+                "title": "Subject Identification",
+                "description": "Basic identification information",
+                "fields": ["subject_initials"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "demographics", 
+                "title": "Demographics",
+                "description": "Basic demographic information",
+                "fields": ["gender", "date_of_birth", "age_at_consent"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "study_specific",
+                "title": "COVID-19 Study Specific",
+                "description": "COVID-19 vaccination and infection history",
+                "fields": ["covid_vaccination_history", "covid_infection_history"],
+                "layout": {"columns": 2, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    (SELECT id FROM form_templates WHERE template_id = 'DEMO-001'),
+    '1.0',
+    'demographics,covid-19,baseline,study-specific',
+    (SELECT created_by FROM studies WHERE id = 1),
+    NOW()
+);
 
--- High Dose Arm - Baseline Visit forms
-(5, 3, 'Vital Signs', 'Temperature, blood pressure, heart rate, etc.', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'vs_1',
-                'label', 'Temperature (°C)',
-                'type', 'number',
-                'step', 0.1,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'vs_2',
-                'label', 'Systolic BP (mmHg)',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'vs_3',
-                'label', 'Diastolic BP (mmHg)',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'vs_4',
-                'label', 'Heart Rate (bpm)',
-                'type', 'number',
-                'required', true
-            )
-        ),
-        @admin_user_id),
-        
-(6, 3, 'Medication Administration', 'Details of study medication administration', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'med_adm_1',
-                'label', 'Medication Lot Number',
-                'type', 'text',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'med_adm_2',
-                'label', 'Dose Administered',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'med_adm_3',
-                'label', 'Administration Time',
-                'type', 'time',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'med_adm_4',
-                'label', 'Administered by',
-                'type', 'text',
-                'required', true
-            )
-        ),
-        @admin_user_id),
+-- Study 1 - Adverse Events form based on SAF-001 template
+INSERT INTO form_definitions (
+    study_id, name, description, form_type, version, fields, structure,
+    template_id, template_version, tags, created_by, created_at
+) VALUES (
+    1,
+    'COVID-19 Vaccine Adverse Events',
+    'Adverse event reporting form specific to COVID-19 vaccine trial with vaccine-specific fields',
+    'Safety',
+    '1.0',
+    '[
+        {
+            "id": "ae_term",
+            "type": "text",
+            "label": "Adverse Event Term",
+            "required": true,
+            "maxLength": 200,
+            "helpText": "Brief descriptive term for the adverse event (use MedDRA preferred terms when possible)",
+            "section": "event_details"
+        },
+        {
+            "id": "ae_description",
+            "type": "textarea",
+            "label": "Detailed Description",
+            "required": true,
+            "maxLength": 2000,
+            "rows": 4,
+            "helpText": "Detailed narrative description of the adverse event including symptoms, timeline, and relevant clinical details",
+            "section": "event_details"
+        },
+        {
+            "id": "onset_after_vaccination",
+            "type": "number",
+            "label": "Hours After Vaccination",
+            "required": true,
+            "min": 0,
+            "max": 720,
+            "unit": "hours",
+            "helpText": "Number of hours between vaccination and AE onset",
+            "section": "vaccine_specific"
+        },
+        {
+            "id": "injection_site_reaction",
+            "type": "checkbox",
+            "label": "Injection Site Reaction",
+            "helpText": "Check if this AE is related to injection site",
+            "section": "vaccine_specific"
+        },
+        {
+            "id": "severity",
+            "type": "select",
+            "label": "Severity",
+            "required": true,
+            "options": [
+                {"value": "mild", "label": "Mild - Awareness of signs/symptoms, easily tolerated"},
+                {"value": "moderate", "label": "Moderate - Discomfort sufficient to cause interference with normal activities"},
+                {"value": "severe", "label": "Severe - Incapacitating, inability to work or perform normal activities"}
+            ],
+            "helpText": "Clinical severity assessment based on impact on patient functioning",
+            "section": "assessment"
+        },
+        {
+            "id": "causality",
+            "type": "select",
+            "label": "Relationship to Study Vaccine",
+            "required": true,
+            "options": [
+                {"value": "unrelated", "label": "Not Related - Clearly not related to study vaccine"},
+                {"value": "unlikely", "label": "Unlikely Related - Doubtful relationship"},
+                {"value": "possible", "label": "Possibly Related - May be related"},
+                {"value": "probable", "label": "Probably Related - Likely related"},
+                {"value": "definite", "label": "Definitely Related - Clear causal relationship"}
+            ],
+            "helpText": "Investigator assessment of causal relationship to study vaccine",
+            "section": "assessment"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "event_details",
+                "title": "Event Details",
+                "description": "Basic adverse event information", 
+                "fields": ["ae_term", "ae_description"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "vaccine_specific",
+                "title": "Vaccine-Specific Information",
+                "description": "COVID-19 vaccine specific details",
+                "fields": ["onset_after_vaccination", "injection_site_reaction"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "assessment",
+                "title": "Clinical Assessment",
+                "description": "Severity and causality assessment",
+                "fields": ["severity", "causality"],
+                "layout": {"columns": 2, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    (SELECT id FROM form_templates WHERE template_id = 'SAF-001'),
+    '1.0',
+    'safety,adverse events,covid-19,vaccine-specific',
+    (SELECT created_by FROM studies WHERE id = 1),
+    NOW()
+);
 
--- High Dose Arm - Follow-up Visit forms
-(7, 3, 'Adverse Events', 'Documentation of any adverse events', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'ae_1',
-                'label', 'Any Adverse Events?',
-                'type', 'radio',
-                'options', JSON_ARRAY('Yes', 'No'),
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'ae_2',
-                'label', 'Description',
-                'type', 'textarea',
-                'required', false
-            ),
-            JSON_OBJECT(
-                'id', 'ae_3',
-                'label', 'Severity',
-                'type', 'select',
-                'options', JSON_ARRAY('Mild', 'Moderate', 'Severe', 'Life-threatening'),
-                'required', false
-            ),
-            JSON_OBJECT(
-                'id', 'ae_4',
-                'label', 'Relation to Study Treatment',
-                'type', 'select',
-                'options', JSON_ARRAY('Not Related', 'Unlikely', 'Possible', 'Probable', 'Definite'),
-                'required', false
-            )
-        ),
-        @admin_user_id),
-        
-(8, 3, 'Follow-up Cognitive Assessment', 'Repeat cognitive function measurements', 'custom',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'cog_f_1',
-                'label', 'MMSE Score',
-                'type', 'number',
-                'min', 0,
-                'max', 30,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'cog_f_2',
-                'label', 'Clock Drawing Test',
-                'type', 'select',
-                'options', JSON_ARRAY('Normal', 'Mildly Impaired', 'Moderately Impaired', 'Severely Impaired'),
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'cog_f_3',
-                'label', 'Change from Baseline',
-                'type', 'select',
-                'options', JSON_ARRAY('Improved', 'Stable', 'Declined'),
-                'required', true
-            )
-        ),
-        @admin_user_id),
+-- ========================================
+-- Study 3: Alzheimer's Disease Intervention Forms
+-- ========================================
 
--- Study 4 forms - Standard of Care - Enrollment
-(9, 4, 'Patient Demographics', 'Basic patient information collection', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'pd_1',
-                'label', 'Patient Age',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'pd_2',
-                'label', 'Gender',
-                'type', 'select',
-                'options', JSON_ARRAY('Male', 'Female', 'Other'),
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'pd_3',
-                'label', 'Ethnicity',
-                'type', 'select',
-                'options', JSON_ARRAY('Hispanic or Latino', 'Not Hispanic or Latino', 'Unknown'),
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'pd_4',
-                'label', 'Race',
-                'type', 'select',
-                'options', JSON_ARRAY('White', 'Black or African American', 'Asian', 'American Indian/Alaska Native', 'Native Hawaiian/Pacific Islander', 'Other'),
-                'required', true
-            )
-        ),
-        @admin_user_id),
-        
-(10, 4, 'Disease History', 'Detailed history of RA progression and treatments', 'custom',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'ra_1',
-                'label', 'Year of RA Diagnosis',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'ra_2',
-                'label', 'Previous RA Medications',
-                'type', 'textarea',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'ra_3',
-                'label', 'Affected Joints',
-                'type', 'textarea',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'ra_4',
-                'label', 'Family History of RA',
-                'type', 'radio',
-                'options', JSON_ARRAY('Yes', 'No', 'Unknown'),
-                'required', true
-            )
-        ),
-        @admin_user_id),
+-- Study 3 - Cognitive Assessment form (custom for Alzheimer's study)
+INSERT INTO form_definitions (
+    study_id, name, description, form_type, version, fields, structure,
+    template_id, template_version, tags, created_by, created_at
+) VALUES (
+    3,
+    'Alzheimer''s Cognitive Assessment Battery',
+    'Comprehensive cognitive assessment battery specifically designed for Alzheimer''s disease intervention study',
+    'Efficacy',
+    '1.0',
+    '[
+        {
+            "id": "mmse_score",
+            "type": "number",
+            "label": "MMSE Total Score",
+            "required": true,
+            "min": 0,
+            "max": 30,
+            "helpText": "Mini-Mental State Examination total score (0-30)",
+            "section": "cognitive_tests"
+        },
+        {
+            "id": "adas_cog_score",
+            "type": "number",
+            "label": "ADAS-Cog Score",
+            "required": true,
+            "min": 0,
+            "max": 70,
+            "step": 0.5,
+            "helpText": "Alzheimer Disease Assessment Scale - Cognitive subscale score",
+            "section": "cognitive_tests"
+        },
+        {
+            "id": "clock_drawing_test",
+            "type": "select",
+            "label": "Clock Drawing Test",
+            "required": true,
+            "options": [
+                {"value": "normal", "label": "Normal (4 points)"},
+                {"value": "mild_impairment", "label": "Mild Impairment (3 points)"},
+                {"value": "moderate_impairment", "label": "Moderate Impairment (2 points)"},
+                {"value": "severe_impairment", "label": "Severe Impairment (0-1 points)"}
+            ],
+            "helpText": "Clock drawing test assessment",
+            "section": "cognitive_tests"
+        },
+        {
+            "id": "verbal_fluency_score",
+            "type": "number",
+            "label": "Verbal Fluency Score",
+            "required": true,
+            "min": 0,
+            "max": 50,
+            "helpText": "Number of words generated in verbal fluency test",
+            "section": "cognitive_tests"
+        },
+        {
+            "id": "functional_assessment",
+            "type": "select",
+            "label": "Functional Assessment (FAQ)",
+            "required": true,
+            "options": [
+                {"value": "independent", "label": "Independent (0-8)"},
+                {"value": "mild_dependence", "label": "Mild Dependence (9-15)"},
+                {"value": "moderate_dependence", "label": "Moderate Dependence (16-23)"},
+                {"value": "severe_dependence", "label": "Severe Dependence (24-30)"}
+            ],
+            "helpText": "Functional Activities Questionnaire assessment",
+            "section": "functional_assessment"
+        },
+        {
+            "id": "caregiver_burden",
+            "type": "number",
+            "label": "Caregiver Burden Score",
+            "required": false,
+            "min": 0,
+            "max": 88,
+            "helpText": "Zarit Burden Interview score (if applicable)",
+            "section": "caregiver_assessment"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "cognitive_tests",
+                "title": "Cognitive Test Battery",
+                "description": "Standardized cognitive assessments",
+                "fields": ["mmse_score", "adas_cog_score", "clock_drawing_test", "verbal_fluency_score"],
+                "layout": {"columns": 2, "style": "grid"}
+            },
+            {
+                "id": "functional_assessment",
+                "title": "Functional Assessment",
+                "description": "Activities of daily living evaluation",
+                "fields": ["functional_assessment"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "caregiver_assessment",
+                "title": "Caregiver Assessment",
+                "description": "Caregiver burden evaluation",
+                "fields": ["caregiver_burden"],
+                "layout": {"columns": 1, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    NULL,
+    NULL,
+    'cognitive assessment,alzheimers,efficacy,neuropsychological',
+    (SELECT created_by FROM studies WHERE id = 3),
+    NOW()
+);
 
--- Study 4 forms - Standard of Care - Baseline
-(11, 4, 'Joint Assessment', 'Comprehensive joint evaluation', 'custom',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'ja_1',
-                'label', 'Tender Joint Count (0-28)',
-                'type', 'number',
-                'min', 0,
-                'max', 28,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'ja_2',
-                'label', 'Swollen Joint Count (0-28)',
-                'type', 'number',
-                'min', 0,
-                'max', 28,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'ja_3',
-                'label', 'DAS28-ESR Score',
-                'type', 'number',
-                'step', 0.01,
-                'required', true
-            )
-        ),
-        @admin_user_id),
-        
-(12, 4, 'Quality of Life Questionnaire', 'Patient-reported quality of life measures', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'qol_1',
-                'label', 'Overall Health Rating (0-10)',
-                'type', 'number',
-                'min', 0,
-                'max', 10,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'qol_2',
-                'label', 'Difficulty with Daily Activities',
-                'type', 'select',
-                'options', JSON_ARRAY('None', 'Mild', 'Moderate', 'Severe', 'Unable to perform'),
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'qol_3',
-                'label', 'Pain Impact on Sleep',
-                'type', 'select',
-                'options', JSON_ARRAY('None', 'Mild', 'Moderate', 'Severe'),
-                'required', true
-            )
-        ),
-        @admin_user_id),
-        
-(13, 4, 'Pain Assessment', 'Standardized pain scale evaluation', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'pain_1',
-                'label', 'Pain Level (0-10)',
-                'type', 'number',
-                'min', 0,
-                'max', 10,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'pain_2',
-                'label', 'Pain Character',
-                'type', 'select',
-                'options', JSON_ARRAY('Dull', 'Sharp', 'Burning', 'Throbbing', 'Stabbing'),
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'pain_3',
-                'label', 'Pain Frequency',
-                'type', 'select',
-                'options', JSON_ARRAY('Constant', 'Intermittent', 'Occasional', 'Rare'),
-                'required', true
-            )
-        ),
-        @admin_user_id),
+-- Study 3 - Drug Administration Log
+INSERT INTO form_definitions (
+    study_id, name, description, form_type, version, fields, structure,
+    template_id, template_version, tags, created_by, created_at
+) VALUES (
+    3,
+    'Alzheimer''s Study Drug Administration Log',
+    'Detailed drug administration tracking for Alzheimer''s disease intervention study',
+    'Drug Administration',
+    '1.0',
+    '[
+        {
+            "id": "administration_date",
+            "type": "datetime",
+            "label": "Administration Date/Time",
+            "required": true,
+            "helpText": "Date and time when study drug was administered",
+            "section": "administration_details"
+        },
+        {
+            "id": "dose_level",
+            "type": "select",
+            "label": "Dose Level",
+            "required": true,
+            "options": [
+                {"value": "low_dose", "label": "Low Dose (5mg)"},
+                {"value": "high_dose", "label": "High Dose (10mg)"}
+            ],
+            "helpText": "Study drug dose level as per randomization",
+            "section": "administration_details"
+        },
+        {
+            "id": "drug_lot_number",
+            "type": "text",
+            "label": "Drug Lot Number",
+            "required": true,
+            "maxLength": 50,
+            "helpText": "Lot number of study drug administered",
+            "section": "drug_accountability"
+        },
+        {
+            "id": "expiry_date",
+            "type": "date",
+            "label": "Drug Expiry Date",
+            "required": true,
+            "helpText": "Expiry date of the drug lot used",
+            "section": "drug_accountability"
+        },
+        {
+            "id": "administration_method",
+            "type": "select",
+            "label": "Route of Administration",
+            "required": true,
+            "options": [
+                {"value": "oral", "label": "Oral"},
+                {"value": "iv", "label": "Intravenous"},
+                {"value": "im", "label": "Intramuscular"}
+            ],
+            "helpText": "Method of drug administration",
+            "section": "administration_details"
+        },
+        {
+            "id": "administered_by",
+            "type": "text",
+            "label": "Administered By",
+            "required": true,
+            "maxLength": 100,
+            "helpText": "Name and title of person who administered the drug",
+            "section": "administration_details"
+        },
+        {
+            "id": "compliance_assessment",
+            "type": "select",
+            "label": "Patient Compliance",
+            "required": true,
+            "options": [
+                {"value": "full_dose", "label": "Full Dose Taken"},
+                {"value": "partial_dose", "label": "Partial Dose Taken"},
+                {"value": "refused", "label": "Dose Refused"},
+                {"value": "vomited", "label": "Vomited Within 30 Minutes"}
+            ],
+            "helpText": "Assessment of patient compliance with drug administration",
+            "section": "compliance"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "administration_details",
+                "title": "Administration Details",
+                "description": "Drug administration information",
+                "fields": ["administration_date", "dose_level", "administration_method", "administered_by"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "drug_accountability",
+                "title": "Drug Accountability",
+                "description": "Drug lot and accountability information",
+                "fields": ["drug_lot_number", "expiry_date"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "compliance",
+                "title": "Compliance Assessment",
+                "description": "Patient compliance evaluation",
+                "fields": ["compliance_assessment"],
+                "layout": {"columns": 1, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    NULL,
+    NULL,
+    'drug administration,compliance,alzheimers,accountability',
+    (SELECT created_by FROM studies WHERE id = 3),
+    NOW()
+);
 
--- Study 5 forms
-(14, 5, 'Blood Pressure Log', 'Daily blood pressure recording form', 'custom',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'bp_1',
-                'label', 'Systolic BP (mmHg)',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'bp_2',
-                'label', 'Diastolic BP (mmHg)',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'bp_3',
-                'label', 'Time of Measurement',
-                'type', 'time',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'bp_4',
-                'label', 'Position',
-                'type', 'select',
-                'options', JSON_ARRAY('Sitting', 'Standing', 'Lying'),
-                'required', true
-            )
-        ),
-        @admin_user_id),
-        
-(15, 5, 'Medication History', 'Current and previous medications', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'med_hist_1',
-                'label', 'Current Antihypertensive Medications',
-                'type', 'textarea',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'med_hist_2',
-                'label', 'Medication Changes in Last 6 Months',
-                'type', 'textarea',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'med_hist_3',
-                'label', 'Medication Adherence',
-                'type', 'select',
-                'options', JSON_ARRAY('Excellent', 'Good', 'Fair', 'Poor'),
-                'required', true
-            )
-        ),
-        @admin_user_id),
+-- ========================================
+-- Study 4: Rheumatoid Arthritis Comparative Therapy Forms
+-- ========================================
 
--- Study 6 forms - Standard Protocol - Screening
-(16, 6, 'Asthma History', 'Detailed asthma history documentation', 'custom',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'ast_1',
-                'label', 'Age at Diagnosis',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'ast_2',
-                'label', 'Triggers',
-                'type', 'checkbox',
-                'options', JSON_ARRAY('Exercise', 'Allergens', 'Cold air', 'Respiratory infections', 'Other'),
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'ast_3',
-                'label', 'Previous Hospitalizations',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'ast_4',
-                'label', 'Family History of Asthma',
-                'type', 'radio',
-                'options', JSON_ARRAY('Yes', 'No', 'Unknown'),
-                'required', true
-            )
-        ),
-        @admin_user_id),
-        
-(17, 6, 'Pulmonary Function Test', 'Baseline lung function assessment', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'pft_1',
-                'label', 'FEV1 (L)',
-                'type', 'number',
-                'step', 0.01,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'pft_2',
-                'label', 'FEV1 % Predicted',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'pft_3',
-                'label', 'FVC (L)',
-                'type', 'number',
-                'step', 0.01,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'pft_4',
-                'label', 'FEV1/FVC Ratio',
-                'type', 'number',
-                'step', 0.01,
-                'required', true
-            )
-        ),
-        @admin_user_id),
+-- Study 4 - Joint Assessment form based on efficacy template
+INSERT INTO form_definitions (
+    study_id, name, description, form_type, version, fields, structure,
+    template_id, template_version, tags, created_by, created_at
+) VALUES (
+    4,
+    'Rheumatoid Arthritis Joint Assessment',
+    'Comprehensive joint assessment for rheumatoid arthritis comparative therapy trial',
+    'Efficacy',
+    '1.0',
+    '[
+        {
+            "id": "assessment_date",
+            "type": "datetime",
+            "label": "Assessment Date/Time",
+            "required": true,
+            "helpText": "Date and time when joint assessment was performed",
+            "section": "timing"
+        },
+        {
+            "id": "tender_joint_count",
+            "type": "number",
+            "label": "Tender Joint Count (0-28)",
+            "required": true,
+            "min": 0,
+            "max": 28,
+            "helpText": "Number of tender joints out of 28 assessed joints",
+            "section": "joint_counts"
+        },
+        {
+            "id": "swollen_joint_count",
+            "type": "number",
+            "label": "Swollen Joint Count (0-28)",
+            "required": true,
+            "min": 0,
+            "max": 28,
+            "helpText": "Number of swollen joints out of 28 assessed joints",
+            "section": "joint_counts"
+        },
+        {
+            "id": "das28_esr",
+            "type": "number",
+            "label": "DAS28-ESR Score",
+            "required": true,
+            "min": 0,
+            "max": 10,
+            "step": 0.01,
+            "helpText": "Disease Activity Score 28 with ESR calculation",
+            "section": "composite_scores"
+        },
+        {
+            "id": "cdai_score",
+            "type": "number",
+            "label": "CDAI Score",
+            "required": true,
+            "min": 0,
+            "max": 76,
+            "step": 0.1,
+            "helpText": "Clinical Disease Activity Index score",
+            "section": "composite_scores"
+        },
+        {
+            "id": "patient_pain_vas",
+            "type": "number",
+            "label": "Patient Pain VAS (0-100)",
+            "required": true,
+            "min": 0,
+            "max": 100,
+            "helpText": "Patient assessment of pain on 100mm visual analog scale",
+            "section": "patient_assessments"
+        },
+        {
+            "id": "patient_global_vas",
+            "type": "number",
+            "label": "Patient Global Assessment VAS (0-100)",
+            "required": true,
+            "min": 0,
+            "max": 100,
+            "helpText": "Patient global assessment of disease activity on 100mm VAS",
+            "section": "patient_assessments"
+        },
+        {
+            "id": "physician_global_vas",
+            "type": "number",
+            "label": "Physician Global Assessment VAS (0-100)",
+            "required": true,
+            "min": 0,
+            "max": 100,
+            "helpText": "Physician global assessment of disease activity on 100mm VAS",
+            "section": "physician_assessment"
+        },
+        {
+            "id": "morning_stiffness_duration",
+            "type": "number",
+            "label": "Morning Stiffness Duration (minutes)",
+            "required": false,
+            "min": 0,
+            "max": 1440,
+            "unit": "minutes",
+            "helpText": "Duration of morning stiffness in minutes",
+            "section": "symptoms"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "timing",
+                "title": "Assessment Timing",
+                "description": "When assessment was performed",
+                "fields": ["assessment_date"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "joint_counts",
+                "title": "Joint Counts",
+                "description": "Tender and swollen joint assessments",
+                "fields": ["tender_joint_count", "swollen_joint_count"],
+                "layout": {"columns": 2, "style": "inline"}
+            },
+            {
+                "id": "composite_scores",
+                "title": "Disease Activity Scores",
+                "description": "Composite disease activity measures",
+                "fields": ["das28_esr", "cdai_score"],
+                "layout": {"columns": 2, "style": "inline"}
+            },
+            {
+                "id": "patient_assessments",
+                "title": "Patient Assessments",
+                "description": "Patient-reported measures",
+                "fields": ["patient_pain_vas", "patient_global_vas"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "physician_assessment",
+                "title": "Physician Assessment",
+                "description": "Physician global assessment",
+                "fields": ["physician_global_vas"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "symptoms",
+                "title": "Additional Symptoms",
+                "description": "Other RA-related symptoms",
+                "fields": ["morning_stiffness_duration"],
+                "layout": {"columns": 1, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    (SELECT id FROM form_templates WHERE template_id = 'EFF-001'),
+    '1.0',
+    'efficacy,rheumatoid arthritis,joint assessment,disease activity',
+    (SELECT created_by FROM studies WHERE id = 4),
+    NOW()
+);
 
--- Study 6 forms - Standard Protocol - Month 1 Follow-up
-(18, 6, 'Symptom Diary Review', 'Analysis of patient-recorded symptoms', 'custom',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'sym_1',
-                'label', 'Days with Symptoms',
-                'type', 'number',
-                'min', 0,
-                'max', 30,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'sym_2',
-                'label', 'Rescue Medication Use (days)',
-                'type', 'number',
-                'min', 0,
-                'max', 30,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'sym_3',
-                'label', 'Night Awakenings',
-                'type', 'number',
-                'min', 0,
-                'required', true
-            )
-        ),
-        @admin_user_id),
-        
-(19, 6, 'Medication Adherence', 'Assessment of treatment compliance', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'adh_1',
-                'label', 'Missed Doses',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'adh_2',
-                'label', 'Reason for Missed Doses',
-                'type', 'select',
-                'options', JSON_ARRAY('Forgot', 'Side effects', 'Felt better', 'Other'),
-                'required', false
-            ),
-            JSON_OBJECT(
-                'id', 'adh_3',
-                'label', 'Adherence Rating',
-                'type', 'select',
-                'options', JSON_ARRAY('Excellent', 'Good', 'Fair', 'Poor'),
-                'required', true
-            )
-        ),
-        @admin_user_id),
-        
-(20, 6, 'Quality of Life Assessment', 'Pediatric quality of life questionnaire', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'qol_p_1',
-                'label', 'School Attendance (days missed)',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'qol_p_2',
-                'label', 'Activity Limitations',
-                'type', 'select',
-                'options', JSON_ARRAY('None', 'Mild', 'Moderate', 'Severe'),
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'qol_p_3',
-                'label', 'Sleep Disturbance',
-                'type', 'select',
-                'options', JSON_ARRAY('None', 'Mild', 'Moderate', 'Severe'),
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'qol_p_4',
-                'label', 'Overall Quality of Life (1-10)',
-                'type', 'number',
-                'min', 1,
-                'max', 10,
-                'required', true
-            )
-        ),
-        @admin_user_id),
+-- ========================================
+-- Study 6: Pediatric Asthma Treatment Forms
+-- ========================================
 
--- Study 6 forms - Standard Protocol - Final Visit
-(21, 6, 'Final Pulmonary Function', 'Final lung function assessment', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'fpft_1',
-                'label', 'FEV1 (L)',
-                'type', 'number',
-                'step', 0.01,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'fpft_2',
-                'label', 'FEV1 % Predicted',
-                'type', 'number',
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'fpft_3',
-                'label', 'FVC (L)',
-                'type', 'number',
-                'step', 0.01,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'fpft_4',
-                'label', 'FEV1/FVC Ratio',
-                'type', 'number',
-                'step', 0.01,
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'fpft_5',
-                'label', 'Change from Baseline',
-                'type', 'select',
-                'options', JSON_ARRAY('Improved', 'Stable', 'Declined'),
-                'required', true
-            )
-        ),
-        @admin_user_id),
-        
-(22, 6, 'Study Completion Form', 'Study conclusion documentation', 'standard',
-        JSON_ARRAY(
-            JSON_OBJECT(
-                'id', 'comp_1',
-                'label', 'Study Completion Status',
-                'type', 'select',
-                'options', JSON_ARRAY('Completed', 'Discontinued'),
-                'required', true
-            ),
-            JSON_OBJECT(
-                'id', 'comp_2',
-                'label', 'Reason for Discontinuation',
-                'type', 'select',
-                'options', JSON_ARRAY('N/A', 'Adverse Event', 'Withdrawal of Consent', 'Lost to Follow-up', 'Protocol Violation', 'Other'),
-                'required', false
-            ),
-            JSON_OBJECT(
-                'id', 'comp_3',
-                'label', 'Investigator Comments',
-                'type', 'textarea',
-                'required', false
-            )
-        ),
-        @admin_user_id);
+-- Study 6 - Pediatric Asthma Control Assessment
+INSERT INTO form_definitions (
+    study_id, name, description, form_type, version, fields, structure,
+    template_id, template_version, tags, created_by, created_at
+) VALUES (
+    6,
+    'Pediatric Asthma Control Test (ACT)',
+    'Age-appropriate asthma control assessment for pediatric patients (ages 5-12)',
+    'Efficacy',
+    '1.0',
+    '[
+        {
+            "id": "assessment_date",
+            "type": "date",
+            "label": "Assessment Date",
+            "required": true,
+            "helpText": "Date when asthma control assessment was performed",
+            "section": "timing"
+        },
+        {
+            "id": "completed_by",
+            "type": "select",
+            "label": "Assessment Completed By",
+            "required": true,
+            "options": [
+                {"value": "parent_guardian", "label": "Parent/Guardian"},
+                {"value": "child_with_help", "label": "Child with Parent/Guardian Help"},
+                {"value": "child_alone", "label": "Child Independently (age ≥7)"}
+            ],
+            "helpText": "Who completed the assessment",
+            "section": "timing"
+        },
+        {
+            "id": "asthma_symptoms_frequency",
+            "type": "select",
+            "label": "How often did your child have asthma symptoms during the day?",
+            "required": true,
+            "options": [
+                {"value": "never", "label": "Never", "score": 5},
+                {"value": "once_or_less", "label": "Once a month or less", "score": 4},
+                {"value": "few_times_month", "label": "A few times a month", "score": 3},
+                {"value": "few_times_week", "label": "A few times a week", "score": 2},
+                {"value": "every_day", "label": "Every day", "score": 1}
+            ],
+            "helpText": "Frequency of daytime asthma symptoms",
+            "section": "symptom_control"
+        },
+        {
+            "id": "activity_limitation",
+            "type": "select",
+            "label": "How often did asthma keep your child from playing, sports, or other activities?",
+            "required": true,
+            "options": [
+                {"value": "never", "label": "Never", "score": 5},
+                {"value": "once_or_less", "label": "Once a month or less", "score": 4},
+                {"value": "few_times_month", "label": "A few times a month", "score": 3},
+                {"value": "few_times_week", "label": "A few times a week", "score": 2},
+                {"value": "every_day", "label": "Every day", "score": 1}
+            ],
+            "helpText": "Impact on physical activities and play",
+            "section": "functional_impact"
+        },
+        {
+            "id": "nighttime_symptoms",
+            "type": "select",
+            "label": "How often did your child cough or have trouble sleeping due to asthma?",
+            "required": true,
+            "options": [
+                {"value": "never", "label": "Never", "score": 5},
+                {"value": "once_or_less", "label": "Once a month or less", "score": 4},
+                {"value": "few_times_month", "label": "A few times a month", "score": 3},
+                {"value": "few_times_week", "label": "A few times a week", "score": 2},
+                {"value": "every_day", "label": "Every day", "score": 1}
+            ],
+            "helpText": "Frequency of nighttime symptoms",
+            "section": "symptom_control"
+        },
+        {
+            "id": "rescue_medication_use",
+            "type": "select",
+            "label": "How often did your child use rescue inhaler or take breathing treatments?",
+            "required": true,
+            "options": [
+                {"value": "never", "label": "Never", "score": 5},
+                {"value": "once_or_less", "label": "Once a month or less", "score": 4},
+                {"value": "few_times_month", "label": "A few times a month", "score": 3},
+                {"value": "few_times_week", "label": "A few times a week", "score": 2},
+                {"value": "every_day", "label": "Every day", "score": 1}
+            ],
+            "helpText": "Frequency of rescue medication use",
+            "section": "medication_use"
+        },
+        {
+            "id": "asthma_control_rating",
+            "type": "select",
+            "label": "How would you rate your child''s asthma control?",
+            "required": true,
+            "options": [
+                {"value": "very_well_controlled", "label": "Very well controlled", "score": 5},
+                {"value": "well_controlled", "label": "Well controlled", "score": 4},
+                {"value": "somewhat_controlled", "label": "Somewhat controlled", "score": 3},
+                {"value": "poorly_controlled", "label": "Poorly controlled", "score": 2},
+                {"value": "not_controlled", "label": "Not controlled at all", "score": 1}
+            ],
+            "helpText": "Overall assessment of asthma control",
+            "section": "overall_assessment"
+        },
+        {
+            "id": "total_act_score",
+            "type": "calculated",
+            "label": "Total ACT Score",
+            "formula": "Sum of all scored responses (5-25)",
+            "helpText": "Total ACT score: ≥20 = well controlled, <20 = poorly controlled",
+            "section": "scoring"
+        }
+    ]',
+    '{
+        "sections": [
+            {
+                "id": "timing",
+                "title": "Assessment Information",
+                "description": "When and by whom assessment was completed",
+                "fields": ["assessment_date", "completed_by"],
+                "layout": {"columns": 2, "style": "standard"}
+            },
+            {
+                "id": "symptom_control",
+                "title": "Symptom Control",
+                "description": "Frequency of asthma symptoms",
+                "fields": ["asthma_symptoms_frequency", "nighttime_symptoms"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "functional_impact",
+                "title": "Functional Impact",
+                "description": "Impact on activities and daily life",
+                "fields": ["activity_limitation"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "medication_use",
+                "title": "Rescue Medication Use",
+                "description": "Frequency of rescue inhaler use",
+                "fields": ["rescue_medication_use"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "overall_assessment",
+                "title": "Overall Control Assessment",
+                "description": "Global asthma control rating",
+                "fields": ["asthma_control_rating"],
+                "layout": {"columns": 1, "style": "standard"}
+            },
+            {
+                "id": "scoring",
+                "title": "ACT Score",
+                "description": "Calculated total score",
+                "fields": ["total_act_score"],
+                "layout": {"columns": 1, "style": "standard"}
+            }
+        ],
+        "layout": {
+            "type": "sections",
+            "orientation": "vertical",
+            "spacing": "normal"
+        }
+    }',
+    (SELECT id FROM form_templates WHERE template_id = 'EFF-001'),
+    '1.0',
+    'efficacy,pediatric,asthma,control assessment,ACT',
+    (SELECT created_by FROM studies WHERE id = 6),
+    NOW()
+);
+
+-- ========================================
+-- Create Form Versions for All Study Forms
+-- ========================================
+
+-- Create initial version records for all newly created study-specific forms
+INSERT INTO form_versions (form_id, version, version_notes, created_by, created_at)
+SELECT 
+    fd.id,
+    fd.version,
+    'Initial study-specific form version with structure support',
+    fd.created_by,
+    fd.created_at
+FROM form_definitions fd
+WHERE fd.created_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)  -- Only for forms just created
+AND fd.structure IS NOT NULL;
+
 
 -- Associate forms with visits
 -- Study 1
-INSERT INTO visit_forms (visit_definition_id, form_definition_id, sequence_number, is_required)
+INSERT INTO visit_forms (visit_definition_id, form_definition_id, display_order, is_required)
 VALUES (1, 1, 1, true);
 
 -- Study 3 - High Dose Arm
-INSERT INTO visit_forms (visit_definition_id, form_definition_id, sequence_number, is_required)
+INSERT INTO visit_forms (visit_definition_id, form_definition_id, display_order, is_required)
 VALUES 
 -- Screening visit forms
 (2, 2, 1, true),
@@ -947,13 +2952,10 @@ VALUES
 (2, 4, 3, true),
 -- Baseline visit forms
 (3, 5, 1, true),
-(3, 6, 2, true),
--- Follow-up visit forms
-(4, 7, 1, true),
-(4, 8, 2, true);
+(3, 6, 2, true);
 
 -- Study 3 - Low Dose Arm (uses same form definitions as High Dose Arm)
-INSERT INTO visit_forms (visit_definition_id, form_definition_id, sequence_number, is_required)
+INSERT INTO visit_forms (visit_definition_id, form_definition_id, display_order, is_required)
 VALUES 
 -- Screening visit forms
 (5, 2, 1, true),
@@ -961,77 +2963,9 @@ VALUES
 (5, 4, 3, true),
 -- Baseline visit forms
 (6, 5, 1, true),
-(6, 6, 2, true),
--- Follow-up visit forms
-(7, 7, 1, true),
-(7, 8, 2, true);
+(6, 6, 2, true);
 
--- Study 4 - Standard of Care
-INSERT INTO visit_forms (visit_definition_id, form_definition_id, sequence_number, is_required)
-VALUES 
--- Enrollment forms
-(8, 9, 1, true),
-(8, 10, 2, true),
--- Baseline forms
-(9, 11, 1, true),
-(9, 12, 2, true),
-(9, 13, 3, true);
 
--- Study 4 - Experimental Therapy A (uses same form definitions as Standard of Care)
-INSERT INTO visit_forms (visit_definition_id, form_definition_id, sequence_number, is_required)
-VALUES 
--- Enrollment forms
-(10, 9, 1, true),
-(10, 10, 2, true),
--- Baseline forms
-(11, 11, 1, true),
-(11, 12, 2, true),
-(11, 13, 3, true);
-
--- Study 4 - Experimental Therapy B (uses same form definitions as Standard of Care)
-INSERT INTO visit_forms (visit_definition_id, form_definition_id, sequence_number, is_required)
-VALUES 
--- Enrollment forms
-(12, 9, 1, true),
-(12, 10, 2, true),
--- Baseline forms
-(13, 11, 1, true),
-(13, 12, 2, true),
-(13, 13, 3, true);
-
--- Study 5
-INSERT INTO visit_forms (visit_definition_id, form_definition_id, sequence_number, is_required)
-VALUES 
-(14, 14, 1, true),
-(14, 15, 2, true);
-
--- Study 6 - Standard Protocol
-INSERT INTO visit_forms (visit_definition_id, form_definition_id, sequence_number, is_required)
-VALUES 
--- Screening visit forms
-(15, 16, 1, true),
-(15, 17, 2, true),
--- Month 1 Follow-up forms
-(16, 18, 1, true),
-(16, 19, 2, true),
-(16, 20, 3, true),
--- Final Visit forms
-(17, 21, 1, true),
-(17, 22, 2, true);
-
--- Study 6 - Modified Protocol (uses same form definitions as Standard Protocol)
-INSERT INTO visit_forms (visit_definition_id, form_definition_id, sequence_number, is_required)
-VALUES 
--- Screening visit forms
-(18, 16, 1, true),
-(18, 17, 2, true),
--- Month 1 Follow-up forms
-(19, 18, 1, true),
-(19, 19, 2, true),
-(19, 20, 3, true),
--- Final Visit forms
-(20, 21, 1, true),
-(20, 22, 2, true);
 
 -- Create organization relationships with studies
 INSERT INTO organization_studies (organization_id, study_id, role, start_date, end_date, created_at, updated_at)

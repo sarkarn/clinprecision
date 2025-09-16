@@ -206,6 +206,17 @@ public class GatewayRoutesConfig {
                     )
                     .uri("lb://study-design-ws")
                 )
+                
+                // Study Design Service - Direct routes for studies, arms, and visits (no auth required)
+                .route("study-design-direct", r -> r
+                    .path("/studies/**", "/arms/**", "/api/studies/**", "/api/arms/**", "/api/visits/**")
+                    .and()
+                    .method("GET","POST","PUT","DELETE","PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                    )
+                    .uri("lb://study-design-ws")
+                )
                 .build();
     }
 }

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Bell, ListTodo } from 'lucide-react';
+import { Bell, ListTodo, Mail } from 'lucide-react';
 import Logout from "../login/Logout";
 import { useAuth } from "../login/AuthContext";
 
@@ -69,6 +69,17 @@ export default function TopNavigationHeader({
                             {/* Notification badge */}
                             <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                                 3
+                            </span>
+                        </button>
+                    </div>
+
+                    {/* Email Icon */}
+                    <div className="relative">
+                        <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                            <Mail size={20} />
+                            {/* Email badge */}
+                            <span className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                                7
                             </span>
                         </button>
                     </div>

@@ -7,11 +7,14 @@ import com.clinprecision.studydesignservice.dto.StudyStatusDto;
 import com.clinprecision.studydesignservice.dto.RegulatoryStatusDto;
 import com.clinprecision.studydesignservice.dto.StudyPhaseDto;
 import com.clinprecision.studydesignservice.dto.StudyDashboardMetricsDto;
+import com.clinprecision.studydesignservice.dto.DesignProgressResponseDto;
+import com.clinprecision.studydesignservice.dto.DesignProgressUpdateRequestDto;
 import com.clinprecision.studydesignservice.service.StudyService;
 import com.clinprecision.studydesignservice.service.StudyStatusService;
 import com.clinprecision.studydesignservice.service.RegulatoryStatusService;
 import com.clinprecision.studydesignservice.service.StudyPhaseService;
 import com.clinprecision.studydesignservice.service.StudyDashboardService;
+import com.clinprecision.studydesignservice.service.DesignProgressService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,17 +41,20 @@ public class StudyController {
     private final RegulatoryStatusService regulatoryStatusService;
     private final StudyPhaseService studyPhaseService;
     private final StudyDashboardService studyDashboardService;
+    private final DesignProgressService designProgressService;
     
     public StudyController(StudyService studyService, 
                           StudyStatusService studyStatusService,
                           RegulatoryStatusService regulatoryStatusService,
                           StudyPhaseService studyPhaseService,
-                          StudyDashboardService studyDashboardService) {
+                          StudyDashboardService studyDashboardService,
+                          DesignProgressService designProgressService) {
         this.studyService = studyService;
         this.studyStatusService = studyStatusService;
         this.regulatoryStatusService = regulatoryStatusService;
         this.studyPhaseService = studyPhaseService;
         this.studyDashboardService = studyDashboardService;
+        this.designProgressService = designProgressService;
     }
     
     /**
@@ -199,6 +205,85 @@ public class StudyController {
             // Return empty metrics in case of error
             StudyDashboardMetricsDto fallbackMetrics = new StudyDashboardMetricsDto(0L, 0L, 0L, 0L);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(fallbackMetrics);
+        }
+    }
+
+    /**
+     * Get design progress for a study
+     * GET /api/studies/{id}/design-progress
+     */
+    @GetMapping("/{id}/design-progress")
+    public ResponseEntity<DesignProgressResponseDto> getDesignProgress(@PathVariable Long id) {
+        logger.info("GET /api/studies/{}/design-progress - Fetching design progress", id);
+        
+        try {
+            DesignProgressResponseDto response = designProgressService.getDesignProgress(id);
+            
+            logger.info("Design progress fetched successfully for study {} with overall completion: {}%", 
+                       id, response.getOverallCompletion());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            logger.error("Study not found: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+            
+        } catch (Exception e) {
+            logger.error("Error fetching design progress for study {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Update design progress for a study
+     * PUT /api/studies/{id}/design-progress
+     */
+    @PutMapping("/{id}/design-progress")
+    public ResponseEntity<DesignProgressResponseDto> updateDesignProgress(
+            @PathVariable Long id, 
+            @Valid @RequestBody DesignProgressUpdateRequestDto request) {
+        logger.info("PUT /api/studies/{}/design-progress - Updating design progress", id);
+        
+        try {
+            DesignProgressResponseDto response = designProgressService.updateDesignProgress(id, request);
+            
+            logger.info("Design progress updated successfully for study {} with overall completion: {}%", 
+                       id, response.getOverallCompletion());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid request: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+            
+        } catch (Exception e) {
+            logger.error("Error updating design progress for study {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Initialize design progress for a study
+     * POST /api/studies/{id}/design-progress/initialize
+     */
+    @PostMapping("/{id}/design-progress/initialize")
+    public ResponseEntity<DesignProgressResponseDto> initializeDesignProgress(@PathVariable Long id) {
+        logger.info("POST /api/studies/{}/design-progress/initialize - Initializing design progress", id);
+        
+        try {
+            DesignProgressResponseDto response = designProgressService.initializeDesignProgress(id);
+            
+            logger.info("Design progress initialized successfully for study {}", id);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            
+        } catch (IllegalArgumentException e) {
+            logger.error("Study not found: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+            
+        } catch (Exception e) {
+            logger.error("Error initializing design progress for study {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

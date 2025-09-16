@@ -256,6 +256,7 @@ public class FormDefinitionService {
         requestDto.setTemplateVersion(template.getVersion());
         requestDto.setTags(template.getTags());
         requestDto.setFields(template.getFields());
+        requestDto.setStructure(template.getStructure()); // Add structure from template
         
         return createFormDefinition(requestDto);
     }

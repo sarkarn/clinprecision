@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, Users, Target, Shuffle } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
+import StudyDesignService from '../../../../services/StudyDesignService';
+import StudyService from '../../../../services/StudyService';
 
 /**
  * Study Arms Designer Component
@@ -18,7 +20,8 @@ const StudyArmsDesigner = () => {
     const [randomizationStrategy, setRandomizationStrategy] = useState({
         type: 'SIMPLE',
         blockSize: 4,
-        stratificationFactors: []
+        stratificationFactors: [],
+        allocationRatios: {} // Object to store arm ID -> ratio mapping
     });
     const [loading, setLoading] = useState(true);
     const [errors, setErrors] = useState([]);
@@ -32,55 +35,33 @@ const StudyArmsDesigner = () => {
     const loadStudyData = async () => {
         try {
             setLoading(true);
-            // Mock data for now - replace with actual API call
-            const mockStudy = {
-                id: studyId,
-                name: 'Phase III Oncology Trial - Advanced NSCLC',
-                state: 'DESIGN',
-                arms: [
-                    {
-                        id: 'ARM-001',
-                        name: 'Treatment Arm A',
-                        description: 'Active drug 10mg daily',
-                        type: 'TREATMENT',
-                        sequence: 1,
-                        plannedSubjects: 150,
-                        interventions: [
-                            {
-                                id: 'INT-001',
-                                type: 'DRUG',
-                                name: 'Study Drug XYZ',
-                                dosage: '10mg',
-                                frequency: 'Daily',
-                                route: 'Oral'
-                            }
-                        ]
-                    },
-                    {
-                        id: 'ARM-002',
-                        name: 'Control Arm',
-                        description: 'Placebo matching study drug',
-                        type: 'PLACEBO',
-                        sequence: 2,
-                        plannedSubjects: 150,
-                        interventions: [
-                            {
-                                id: 'INT-002',
-                                type: 'DRUG',
-                                name: 'Placebo',
-                                dosage: '10mg',
-                                frequency: 'Daily',
-                                route: 'Oral'
-                            }
-                        ]
-                    }
-                ]
-            };
 
-            setStudy(mockStudy);
-            setStudyArms(mockStudy.arms || []);
-            if (mockStudy.arms && mockStudy.arms.length > 0) {
-                setSelectedArm(mockStudy.arms[0]);
+            // Load actual data from backend APIs
+            const [studyData, studyArmsData] = await Promise.all([
+                StudyService.getStudyById(studyId),
+                StudyDesignService.getStudyArms(studyId)
+            ]);
+
+            setStudy(studyData);
+
+            // Ensure each arm has an interventions array
+            const armsWithInterventions = (studyArmsData || []).map(arm => ({
+                ...arm,
+                interventions: arm.interventions || []
+            }));
+            setStudyArms(armsWithInterventions);
+
+            // Initialize allocation ratios - default to 1:1 for all arms
+            if (armsWithInterventions && armsWithInterventions.length > 0) {
+                const initialRatios = {};
+                armsWithInterventions.forEach(arm => {
+                    initialRatios[arm.id] = 1;
+                });
+                setRandomizationStrategy(prev => ({
+                    ...prev,
+                    allocationRatios: initialRatios
+                }));
+                setSelectedArm(armsWithInterventions[0]);
             }
             setLoading(false);
         } catch (error) {
@@ -91,49 +72,98 @@ const StudyArmsDesigner = () => {
     };
 
     // Add new study arm
-    const handleAddArm = () => {
-        const newArm = {
-            id: `ARM-${String(studyArms.length + 1).padStart(3, '0')}`,
-            name: `Arm ${studyArms.length + 1}`,
-            description: '',
-            type: 'TREATMENT',
-            sequence: studyArms.length + 1,
-            plannedSubjects: 0,
-            interventions: []
-        };
+    const handleAddArm = async () => {
+        try {
+            const newArm = {
+                name: `Arm ${studyArms.length + 1}`,
+                description: '',
+                type: 'TREATMENT',
+                sequence: studyArms.length + 1,
+                plannedSubjects: 0,
+                interventions: []
+            };
 
-        const updatedArms = [...studyArms, newArm];
-        setStudyArms(updatedArms);
-        setSelectedArm(newArm);
-        setIsDirty(true);
+            const createdArm = await StudyDesignService.createStudyArm(studyId, newArm);
+            const updatedArms = [...studyArms, createdArm];
+            setStudyArms(updatedArms);
+
+            // Initialize allocation ratio for new arm
+            setRandomizationStrategy(prev => ({
+                ...prev,
+                allocationRatios: {
+                    ...prev.allocationRatios,
+                    [createdArm.id]: 1
+                }
+            }));
+
+            setSelectedArm(createdArm);
+            setIsDirty(true);
+        } catch (error) {
+            console.error('Error creating study arm:', error);
+            setErrors(['Failed to create study arm']);
+        }
     };
 
     // Update study arm
-    const handleUpdateArm = (armId, updates) => {
-        const updatedArms = studyArms.map(arm =>
-            arm.id === armId ? { ...arm, ...updates } : arm
-        );
-        setStudyArms(updatedArms);
-        if (selectedArm && selectedArm.id === armId) {
-            setSelectedArm({ ...selectedArm, ...updates });
+    const handleUpdateArm = async (armId, updates) => {
+        try {
+            const updatedArm = await StudyDesignService.updateStudyArm(armId, updates);
+            const updatedArms = studyArms.map(arm =>
+                arm.id === armId ? updatedArm : arm
+            );
+            setStudyArms(updatedArms);
+            if (selectedArm && selectedArm.id === armId) {
+                setSelectedArm(updatedArm);
+            }
+            setIsDirty(true);
+        } catch (error) {
+            console.error('Error updating study arm:', error);
+            setErrors(['Failed to update study arm']);
         }
-        setIsDirty(true);
     };
 
     // Delete study arm
-    const handleDeleteArm = (armId) => {
+    const handleDeleteArm = async (armId) => {
         if (window.confirm('Are you sure you want to delete this arm? This action cannot be undone.')) {
-            const updatedArms = studyArms.filter(arm => arm.id !== armId);
-            setStudyArms(updatedArms);
-            if (selectedArm && selectedArm.id === armId) {
-                setSelectedArm(updatedArms.length > 0 ? updatedArms[0] : null);
+            try {
+                await StudyDesignService.deleteStudyArm(armId);
+                const updatedArms = studyArms.filter(arm => arm.id !== armId);
+                setStudyArms(updatedArms);
+
+                // Remove allocation ratio for deleted arm
+                setRandomizationStrategy(prev => {
+                    const { [armId]: removed, ...remainingRatios } = prev.allocationRatios;
+                    return { ...prev, allocationRatios: remainingRatios };
+                });
+
+                if (selectedArm && selectedArm.id === armId) {
+                    setSelectedArm(updatedArms.length > 0 ? updatedArms[0] : null);
+                }
+                setIsDirty(true);
+            } catch (error) {
+                console.error('Error deleting study arm:', error);
+                setErrors(['Failed to delete study arm']);
             }
-            setIsDirty(true);
         }
+    };
+
+    // Update allocation ratio for a specific arm
+    const handleAllocationRatioChange = (armId, ratio) => {
+        setRandomizationStrategy(prev => ({
+            ...prev,
+            allocationRatios: {
+                ...prev.allocationRatios,
+                [armId]: parseInt(ratio) || 1
+            }
+        }));
+        setIsDirty(true);
     };
 
     // Add intervention to arm
     const handleAddIntervention = (armId) => {
+        const arm = studyArms.find(a => a.id === armId);
+        if (!arm) return;
+
         const newIntervention = {
             id: `INT-${Date.now()}`,
             type: 'DRUG',
@@ -144,7 +174,7 @@ const StudyArmsDesigner = () => {
         };
 
         handleUpdateArm(armId, {
-            interventions: [...(selectedArm?.interventions || []), newIntervention]
+            interventions: [...(arm.interventions || []), newIntervention]
         });
     };
 
@@ -324,8 +354,8 @@ const StudyArmsDesigner = () => {
                                             <p className="text-sm text-gray-600 mt-1">{arm.description}</p>
                                             <div className="flex items-center mt-2 space-x-4">
                                                 <span className={`px-2 py-1 text-xs rounded-full ${arm.type === 'TREATMENT' ? 'bg-green-100 text-green-800' :
-                                                        arm.type === 'PLACEBO' ? 'bg-yellow-100 text-yellow-800' :
-                                                            'bg-gray-100 text-gray-800'
+                                                    arm.type === 'PLACEBO' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-gray-100 text-gray-800'
                                                     }`}>
                                                     {arm.type}
                                                 </span>
@@ -391,6 +421,7 @@ const StudyArmsDesigner = () => {
                 strategy={randomizationStrategy}
                 onChange={setRandomizationStrategy}
                 studyArms={studyArms}
+                onAllocationRatioChange={handleAllocationRatioChange}
             />
         </div>
     );
@@ -607,7 +638,7 @@ const ArmDetailsPanel = ({
 };
 
 // Randomization Panel Component
-const RandomizationPanel = ({ strategy, onChange, studyArms }) => {
+const RandomizationPanel = ({ strategy, onChange, studyArms, onAllocationRatioChange }) => {
     const randomizationTypes = [
         { value: 'SIMPLE', label: 'Simple Randomization', description: 'Basic random assignment' },
         { value: 'BLOCK', label: 'Block Randomization', description: 'Randomization in blocks' },
@@ -673,8 +704,14 @@ const RandomizationPanel = ({ strategy, onChange, studyArms }) => {
                                             <div className="text-xs text-gray-500 mb-1">{arm.name}</div>
                                             <input
                                                 type="number"
-                                                value={1}
-                                                className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                                                value={strategy.allocationRatios?.[arm.id] || 1}
+                                                onChange={(e) => {
+                                                    if (onAllocationRatioChange) {
+                                                        onAllocationRatioChange(arm.id, e.target.value);
+                                                    }
+                                                }}
+                                                readOnly={!onAllocationRatioChange}
+                                                className={`w-16 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${!onAllocationRatioChange ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                                                 min="1"
                                             />
                                         </div>
