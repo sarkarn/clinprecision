@@ -144,7 +144,7 @@ class StudyDesignService {
     // Design Progress Tracking
     async getDesignProgress(studyId) {
         try {
-            const response = await ApiService.get(`/studies/${studyId}/design-progress`);
+            const response = await ApiService.get(`/api/studies/${studyId}/design-progress`);
             return response.data;
         } catch (error) {
             console.error('Error fetching design progress:', error);
@@ -154,7 +154,7 @@ class StudyDesignService {
 
     async updateDesignProgress(studyId, progressData) {
         try {
-            const response = await ApiService.put(`/studies/${studyId}/design-progress`, progressData);
+            const response = await ApiService.put(`/api/studies/${studyId}/design-progress`, progressData);
             return response.data;
         } catch (error) {
             console.error('Error updating design progress:', error);
@@ -164,7 +164,7 @@ class StudyDesignService {
 
     async initializeDesignProgress(studyId) {
         try {
-            const response = await ApiService.post(`/studies/${studyId}/design-progress/initialize`);
+            const response = await ApiService.post(`/api/studies/${studyId}/design-progress/initialize`);
             return response.data;
         } catch (error) {
             console.error('Error initializing design progress:', error);

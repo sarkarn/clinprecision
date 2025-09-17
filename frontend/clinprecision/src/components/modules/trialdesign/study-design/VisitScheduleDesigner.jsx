@@ -4,10 +4,11 @@ import { Calendar, Clock, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Activit
 import { Alert, Button } from '../components/UIComponents';
 import VisitService from '../../../../services/VisitService';
 import StudyService from '../../../../services/StudyService';
+import StudyDesignService from '../../../../services/StudyDesignService';
 
 /**
  * Visit Schedule Designer Component
- * Manages study visits, procedures, and timeline
+ * Manages study visits and timeline (procedures managed separately)
  */
 const VisitScheduleDesigner = () => {
     const { studyId } = useParams();
@@ -17,7 +18,6 @@ const VisitScheduleDesigner = () => {
     const [study, setStudy] = useState(null);
     const [visits, setVisits] = useState([]);
     const [selectedVisit, setSelectedVisit] = useState(null);
-    const [procedures, setProcedures] = useState([]);
     const [timelineView, setTimelineView] = useState('weeks'); // 'days', 'weeks', 'months'
     const [loading, setLoading] = useState(true);
     const [errors, setErrors] = useState([]);
@@ -53,7 +53,6 @@ const VisitScheduleDesigner = () => {
                     description: visit.description || ''
                 },
                 isRequired: visit.isRequired !== false,
-                procedures: visit.visitForms ? visit.visitForms.map(vf => vf.formDefinition?.id) || [] : [],
                 forms: visit.visitForms || [],
                 armId: visit.armId,
                 studyId: visit.studyId,
@@ -66,25 +65,6 @@ const VisitScheduleDesigner = () => {
             }));
 
             setVisits(transformedVisits);
-
-            // Set default procedures - could be loaded from a procedures API if available
-            setProcedures([
-                { id: 'informed_consent', name: 'Informed Consent', category: 'Regulatory', duration: 30 },
-                { id: 'medical_history', name: 'Medical History', category: 'Assessment', duration: 15 },
-                { id: 'physical_exam', name: 'Physical Examination', category: 'Assessment', duration: 20 },
-                { id: 'lab_work', name: 'Laboratory Tests', category: 'Laboratory', duration: 15 },
-                { id: 'vital_signs', name: 'Vital Signs', category: 'Assessment', duration: 10 },
-                { id: 'ecg', name: 'ECG', category: 'Cardiac', duration: 15 },
-                { id: 'randomization', name: 'Randomization', category: 'Regulatory', duration: 10 },
-                { id: 'drug_dispensing', name: 'Drug Dispensing', category: 'Drug Management', duration: 10 },
-                { id: 'safety_assessment', name: 'Safety Assessment', category: 'Assessment', duration: 20 },
-                { id: 'adverse_events', name: 'Adverse Events Review', category: 'Safety', duration: 15 },
-                { id: 'efficacy_assessment', name: 'Efficacy Assessment', category: 'Assessment', duration: 25 },
-                { id: 'imaging', name: 'Imaging (CT/MRI)', category: 'Imaging', duration: 60 },
-                { id: 'final_assessment', name: 'Final Assessment', category: 'Assessment', duration: 30 },
-                { id: 'drug_return', name: 'Drug Return', category: 'Drug Management', duration: 10 },
-                { id: 'survival_follow_up', name: 'Survival Follow-up', category: 'Follow-up', duration: 15 }
-            ]);
 
             if (transformedVisits && transformedVisits.length > 0) {
                 setSelectedVisit(transformedVisits[0]);
@@ -112,7 +92,9 @@ const VisitScheduleDesigner = () => {
                 studyId: parseInt(studyId)
             };
 
-            const createdVisit = await VisitService.createVisit(studyId, newVisitData);
+            // Create visit without arm association initially
+            // The user can associate it with specific arms later if needed
+            const createdVisit = await VisitService.createVisit(studyId, null, newVisitData);
 
             // Transform to frontend format
             const transformedVisit = {
@@ -127,7 +109,6 @@ const VisitScheduleDesigner = () => {
                     description: createdVisit.description || ''
                 },
                 isRequired: createdVisit.isRequired !== false,
-                procedures: [],
                 forms: [],
                 armId: createdVisit.armId,
                 studyId: createdVisit.studyId,
@@ -174,7 +155,7 @@ const VisitScheduleDesigner = () => {
                 }
             }
 
-            const updatedVisit = await VisitService.updateVisit(visitId, backendUpdates);
+            const updatedVisit = await VisitService.updateVisit(studyId, visitId, backendUpdates);
 
             // Transform the response back to frontend format
             const transformedVisit = {
@@ -189,7 +170,6 @@ const VisitScheduleDesigner = () => {
                     description: updatedVisit.description || ''
                 },
                 isRequired: updatedVisit.isRequired !== false,
-                procedures: updatedVisit.visitForms ? updatedVisit.visitForms.map(vf => vf.formDefinition?.id) || [] : [],
                 forms: updatedVisit.visitForms || [],
                 armId: updatedVisit.armId,
                 studyId: updatedVisit.studyId,
@@ -219,7 +199,7 @@ const VisitScheduleDesigner = () => {
     const handleDeleteVisit = async (visitId) => {
         if (window.confirm('Are you sure you want to delete this visit? This action cannot be undone.')) {
             try {
-                await VisitService.deleteVisit(visitId);
+                await VisitService.deleteVisit(studyId, visitId);
                 const updatedVisits = visits.filter(visit => visit.id !== visitId);
                 setVisits(updatedVisits);
                 if (selectedVisit && selectedVisit.id === visitId) {
@@ -233,23 +213,8 @@ const VisitScheduleDesigner = () => {
         }
     };
 
-    // Add procedure to visit
-    const handleAddProcedure = (visitId, procedureId) => {
-        const visit = visits.find(v => v.id === visitId);
-        if (visit && !visit.procedures.includes(procedureId)) {
-            const updatedProcedures = [...visit.procedures, procedureId];
-            handleUpdateVisit(visitId, { procedures: updatedProcedures });
-        }
-    };
-
-    // Remove procedure from visit
-    const handleRemoveProcedure = (visitId, procedureId) => {
-        const visit = visits.find(v => v.id === visitId);
-        if (visit) {
-            const updatedProcedures = visit.procedures.filter(p => p !== procedureId);
-            handleUpdateVisit(visitId, { procedures: updatedProcedures });
-        }
-    };
+    // Note: Procedure management moved to separate VisitForm endpoints
+    // Use VisitFormService to manage visit-form associations separately
 
     // Calculate visit day from window
     const getVisitDay = (visit) => {
@@ -276,6 +241,19 @@ const VisitScheduleDesigner = () => {
 
             // Mock save - replace with actual API call
             console.log('Saving visit schedule:', { studyId, visits });
+
+            // Update design progress to indicate visits phase is completed
+            await StudyDesignService.updateDesignProgress(studyId, {
+                progressData: {
+                    visits: {
+                        phase: 'visits',
+                        completed: true,
+                        percentage: 100,
+                        notes: 'Visit schedule configuration completed'
+                    }
+                }
+            });
+
             setIsDirty(false);
             setErrors([]);
         } catch (error) {
@@ -292,19 +270,13 @@ const VisitScheduleDesigner = () => {
             errors.push('At least one visit is required');
         }
 
-        // Check for baseline visit
-        const hasBaseline = visits.some(v => v.type === 'BASELINE');
-        if (!hasBaseline) {
-            errors.push('A baseline visit is required');
-        }
+        // Note: Baseline visit requirement removed - studies can be flexible in visit types
 
         visits.forEach((visit, index) => {
             if (!visit.name.trim()) {
                 errors.push(`Visit ${index + 1}: Name is required`);
             }
-            if (visit.procedures.length === 0) {
-                errors.push(`Visit ${index + 1}: At least one procedure is required`);
-            }
+            // Note: Procedure validation moved to separate form assignment step
         });
 
         return errors;
@@ -327,7 +299,7 @@ const VisitScheduleDesigner = () => {
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Visit Schedule Design</h1>
                         <p className="text-gray-600 mt-1">
-                            Configure study visits, procedures, and timeline for {study?.name}
+                            Configure study visits and timeline for {study?.name}
                         </p>
                     </div>
                     <div className="flex space-x-3">
@@ -359,13 +331,6 @@ const VisitScheduleDesigner = () => {
                             <span className="text-sm font-medium text-green-900">Study Duration</span>
                         </div>
                         <div className="text-2xl font-bold text-green-900 mt-1">{study?.duration || 0}w</div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                        <div className="flex items-center">
-                            <Activity className="h-5 w-5 text-purple-600 mr-2" />
-                            <span className="text-sm font-medium text-purple-900">Procedures</span>
-                        </div>
-                        <div className="text-2xl font-bold text-purple-900 mt-1">{procedures.length}</div>
                     </div>
                     <div className="bg-orange-50 p-4 rounded-lg">
                         <div className="flex items-center">
@@ -452,10 +417,7 @@ const VisitScheduleDesigner = () => {
                     {selectedVisit ? (
                         <VisitDetailsPanel
                             visit={selectedVisit}
-                            procedures={procedures}
                             onUpdate={(updates) => handleUpdateVisit(selectedVisit.id, updates)}
-                            onAddProcedure={(procedureId) => handleAddProcedure(selectedVisit.id, procedureId)}
-                            onRemoveProcedure={(procedureId) => handleRemoveProcedure(selectedVisit.id, procedureId)}
                         />
                     ) : (
                         <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
@@ -581,9 +543,6 @@ const VisitListItem = ({ visit, isSelected, onClick, onDelete }) => {
                             Day {getVisitDay(visit)}
                         </span>
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">
-                        {visit.procedures.length} procedures
-                    </div>
                 </div>
                 <button
                     onClick={(e) => {
@@ -600,7 +559,7 @@ const VisitListItem = ({ visit, isSelected, onClick, onDelete }) => {
 };
 
 // Visit Details Panel Component
-const VisitDetailsPanel = ({ visit, procedures, onUpdate, onAddProcedure, onRemoveProcedure }) => {
+const VisitDetailsPanel = ({ visit, onUpdate }) => {
     const visitTypes = [
         { value: 'SCREENING', label: 'Screening' },
         { value: 'BASELINE', label: 'Baseline' },
@@ -610,8 +569,6 @@ const VisitDetailsPanel = ({ visit, procedures, onUpdate, onAddProcedure, onRemo
         { value: 'SAFETY_FOLLOW_UP', label: 'Safety Follow-up' },
         { value: 'UNSCHEDULED', label: 'Unscheduled' }
     ];
-
-    const procedureCategories = [...new Set(procedures.map(p => p.category))];
 
     // Defensive check: ensure visit.window exists with proper structure
     if (!visit || !visit.window || !Array.isArray(visit.window.days)) {
@@ -720,102 +677,19 @@ const VisitDetailsPanel = ({ visit, procedures, onUpdate, onAddProcedure, onRemo
                 </div>
             </div>
 
-            {/* Procedures */}
-            <ProceduresSection
-                visit={visit}
-                procedures={procedures}
-                procedureCategories={procedureCategories}
-                onAddProcedure={onAddProcedure}
-                onRemoveProcedure={onRemoveProcedure}
-            />
-        </div>
-    );
-};
-
-// Procedures Section Component
-const ProceduresSection = ({ visit, procedures, procedureCategories, onAddProcedure, onRemoveProcedure }) => {
-    const [selectedCategory, setSelectedCategory] = useState('');
-
-    const assignedProcedures = procedures.filter(p => visit.procedures.includes(p.id));
-    const availableProcedures = procedures.filter(p => !visit.procedures.includes(p.id));
-    const filteredProcedures = selectedCategory
-        ? availableProcedures.filter(p => p.category === selectedCategory)
-        : availableProcedures;
-
-    const totalDuration = assignedProcedures.reduce((total, p) => total + p.duration, 0);
-
-    return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-                <div>
-                    <h4 className="text-md font-medium text-gray-900">Visit Procedures</h4>
-                    <p className="text-sm text-gray-500">
-                        {assignedProcedures.length} procedures • ~{totalDuration} minutes
-                    </p>
-                </div>
-            </div>
-
-            {/* Assigned Procedures */}
-            <div className="mb-6">
-                <h5 className="text-sm font-medium text-gray-700 mb-2">Assigned Procedures</h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {assignedProcedures.map(procedure => (
-                        <div key={procedure.id} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div>
-                                <div className="font-medium text-blue-900">{procedure.name}</div>
-                                <div className="text-sm text-blue-700">{procedure.category} • {procedure.duration}min</div>
-                            </div>
-                            <button
-                                onClick={() => onRemoveProcedure(procedure.id)}
-                                className="text-red-600 hover:text-red-800 p-1"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </button>
+            {/* Note: Form/Procedure management moved to separate VisitForm workflow */}
+            <div className="p-6 border-t border-gray-200">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                        <FileText className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+                        <div>
+                            <h4 className="text-sm font-medium text-blue-900 mb-1">Forms & Procedures</h4>
+                            <p className="text-sm text-blue-700">
+                                Visit forms and procedures are managed in a separate step of the study design workflow.
+                                Complete the visit schedule design first, then proceed to form assignment.
+                            </p>
                         </div>
-                    ))}
-                    {assignedProcedures.length === 0 && (
-                        <div className="md:col-span-2 text-center py-4 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                            No procedures assigned to this visit
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Available Procedures */}
-            <div>
-                <div className="flex justify-between items-center mb-2">
-                    <h5 className="text-sm font-medium text-gray-700">Available Procedures</h5>
-                    <select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="text-sm border border-gray-300 rounded-md px-2 py-1"
-                    >
-                        <option value="">All Categories</option>
-                        {procedureCategories.map(category => (
-                            <option key={category} value={category}>{category}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                    {filteredProcedures.map(procedure => (
-                        <div key={procedure.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                            <div>
-                                <div className="font-medium text-gray-900">{procedure.name}</div>
-                                <div className="text-sm text-gray-600">{procedure.category} • {procedure.duration}min</div>
-                            </div>
-                            <button
-                                onClick={() => onAddProcedure(procedure.id)}
-                                className="text-blue-600 hover:text-blue-800 p-1"
-                            >
-                                <Plus className="h-4 w-4" />
-                            </button>
-                        </div>
-                    ))}
-                    {filteredProcedures.length === 0 && (
-                        <div className="md:col-span-2 text-center py-4 text-gray-500">
-                            No available procedures in this category
-                        </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>

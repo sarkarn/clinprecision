@@ -48,16 +48,21 @@ class VisitService {
   /**
    * Create a new visit for a study
    * @param {string} studyId - The ID of the study
-   * @param {string} armId - The ID of the arm
+   * @param {string} armId - The ID of the arm (optional, for future use)
    * @param {Object} visitData - The visit data to create
    * @returns {Promise<Object>} Promise that resolves to the created visit
    */
   async createVisit(studyId, armId, visitData) {
     try {
-      const response = await ApiService.post(`${API_PATH}/${studyId}/arms/${armId}/visits`, visitData);
+      // The backend uses /api/studies/{studyId}/visits for creating visits
+      // armId can be included in visitData if needed for arm association
+      if (armId && !visitData.armId) {
+        visitData.armId = armId;
+      }
+      const response = await ApiService.post(`${API_PATH}/${studyId}/visits`, visitData);
       return response.data;
     } catch (error) {
-      console.error(`Error creating visit for study ${studyId}, arm ${armId}:`, error);
+      console.error(`Error creating visit for study ${studyId}:`, error);
       throw error;
     }
   }
@@ -135,7 +140,8 @@ class VisitService {
    */
   async getVisitsByArm(studyId, armId) {
     try {
-      const response = await ApiService.get(`${API_PATH}/${studyId}/arms/${armId}/visits`);
+      // Use query parameter to filter visits by arm
+      const response = await ApiService.get(`${API_PATH}/${studyId}/visits?armId=${armId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching visits for arm ${armId} in study ${studyId}:`, error);
@@ -152,7 +158,9 @@ class VisitService {
    */
   async addVisitToArm(studyId, armId, visitId) {
     try {
-      const response = await ApiService.post(`${API_PATH}/${studyId}/arms/${armId}/visits/${visitId}`);
+      // Update the visit to associate it with the arm
+      const visitData = { armId: armId };
+      const response = await ApiService.put(`${API_PATH}/${studyId}/visits/${visitId}`, visitData);
       return response.data;
     } catch (error) {
       console.error(`Error adding visit ${visitId} to arm ${armId} in study ${studyId}:`, error);
@@ -169,7 +177,9 @@ class VisitService {
    */
   async removeVisitFromArm(studyId, armId, visitId) {
     try {
-      const response = await ApiService.delete(`${API_PATH}/${studyId}/arms/${armId}/visits/${visitId}`);
+      // Update the visit to remove arm association (set armId to null)
+      const visitData = { armId: null };
+      const response = await ApiService.put(`${API_PATH}/${studyId}/visits/${visitId}`, visitData);
       return response.data;
     } catch (error) {
       console.error(`Error removing visit ${visitId} from arm ${armId} in study ${studyId}:`, error);

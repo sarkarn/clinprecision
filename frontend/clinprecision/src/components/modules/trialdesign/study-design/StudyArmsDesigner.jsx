@@ -308,6 +308,24 @@ const StudyArmsDesigner = () => {
 
             setIsDirty(false);
             setErrors([]);
+
+            // Update design progress to reflect completion
+            try {
+                await StudyDesignService.updateDesignProgress(studyId, {
+                    progressData: {
+                        arms: {
+                            phase: 'arms',
+                            completed: true,
+                            percentage: 100,
+                            notes: 'Study arms configuration completed'
+                        }
+                    }
+                });
+                console.log('Arms design progress updated successfully');
+            } catch (progressError) {
+                console.warn('Failed to update arms design progress:', progressError);
+                // Don't fail the save operation if progress update fails
+            }
             console.log('Successfully saved study arms');
         } catch (error) {
             console.error('Error saving study arms:', error);

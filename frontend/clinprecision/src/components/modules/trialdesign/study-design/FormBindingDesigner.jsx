@@ -5,6 +5,7 @@ import { Alert, Button } from '../components/UIComponents';
 import VisitService from '../../../../services/VisitService';
 import StudyService from '../../../../services/StudyService';
 import StudyFormService from '../../../../services/StudyFormService';
+import StudyDesignService from '../../../../services/StudyDesignService';
 
 // Helper function to get field count from form
 const getFieldCount = (form) => {
@@ -156,6 +157,19 @@ const FormBindingDesigner = () => {
 
             // Mock save - replace with actual API call
             console.log('Saving form bindings:', { studyId, bindings });
+
+            // Update design progress to indicate forms phase is completed
+            await StudyDesignService.updateDesignProgress(studyId, {
+                progressData: {
+                    forms: {
+                        phase: 'forms',
+                        completed: true,
+                        percentage: 100,
+                        notes: 'Form binding configuration completed'
+                    }
+                }
+            });
+
             setIsDirty(false);
             setErrors([]);
         } catch (error) {

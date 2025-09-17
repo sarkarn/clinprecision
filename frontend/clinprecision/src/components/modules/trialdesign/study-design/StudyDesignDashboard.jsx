@@ -106,6 +106,13 @@ const StudyDesignDashboard = () => {
         loadStudyData();
     }, [studyId]);
 
+    // Reload progress when navigating between phases to show updated status
+    useEffect(() => {
+        if (studyId) {
+            loadDesignProgress();
+        }
+    }, [location.pathname, studyId]);
+
     // Update current phase when route changes
     useEffect(() => {
         const newPhase = getCurrentPhaseFromUrl();
@@ -186,7 +193,28 @@ const StudyDesignDashboard = () => {
             setErrors(['Failed to load study design data. Please check your connection and try again.']);
             setLoading(false);
         }
-    };    // Navigate to phase
+    };
+
+    // Load only design progress (for updates without full reload)
+    const loadDesignProgress = async () => {
+        try {
+            const designProgressResponse = await StudyDesignService.getDesignProgress(studyId);
+            const progressData = designProgressResponse.progressData || designProgressResponse;
+            setDesignProgress(progressData);
+
+            // Update completed phases
+            const completed = Object.entries(progressData).filter(
+                ([_, progress]) => progress && progress.completed
+            ).map(([phaseId, _]) => phaseId);
+            setCompletedPhases(completed);
+
+            console.info('Design progress refreshed for study', studyId);
+        } catch (error) {
+            console.warn('Failed to refresh design progress:', error);
+        }
+    };
+
+    // Navigate to phase
     const handlePhaseChange = (phaseId) => {
         navigate(`/study-design/study/${studyId}/design/${phaseId}`, { replace: true });
     };
@@ -601,10 +629,6 @@ const StudyReviewPanel = ({ study, designProgress }) => {
                         <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
                             <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
                             <span className="text-sm text-green-900">Visit schedule is properly configured</span>
-                        </div>
-                        <div className="flex items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <AlertCircle className="h-5 w-5 text-yellow-500 mr-3" />
-                            <span className="text-sm text-yellow-900">Some forms are not bound to visits</span>
                         </div>
                     </div>
                 </div>
