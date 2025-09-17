@@ -137,6 +137,10 @@ public class StudyArmService {
         
         // Handle interventions if provided
         if (request.getInterventions() != null) {
+            log.debug("Processing {} interventions for study arm ID: {}", request.getInterventions().size(), studyArmId);
+            for (StudyInterventionUpdateRequestDto intervention : request.getInterventions()) {
+                log.debug("Intervention: ID={}, Name={}, Type={}", intervention.getId(), intervention.getName(), intervention.getType());
+            }
             updateStudyArmInterventions(studyArm, request.getInterventions());
         }
         
@@ -259,19 +263,33 @@ public class StudyArmService {
         
         // Add/update interventions
         for (StudyInterventionUpdateRequestDto interventionDto : interventionUpdates) {
-            if (interventionDto.isNewIntervention()) {
-                // Create new intervention
-                StudyInterventionEntity newIntervention = createInterventionFromDto(interventionDto, studyArm.getId());
-                studyArm.addIntervention(newIntervention);
-            } else {
-                // Update existing intervention
-                Long interventionId = Long.parseLong(interventionDto.getId());
-                StudyInterventionEntity existingIntervention = interventionRepository.findByIdAndStudyArmId(interventionId, studyArm.getId())
-                        .orElseThrow(() -> new RuntimeException("Intervention not found: " + interventionId));
-                
-                updateInterventionFromDto(existingIntervention, interventionDto);
-                studyArm.addIntervention(existingIntervention);
+            StudyInterventionEntity intervention = null;
+            
+            // Try to find existing intervention if ID looks like a database ID
+            if (interventionDto.getId() != null && !interventionDto.isNewIntervention()) {
+                try {
+                    Long interventionId = Long.parseLong(interventionDto.getId());
+                    intervention = interventionRepository.findByIdAndStudyArmId(interventionId, studyArm.getId())
+                            .orElse(null);
+                    
+                    if (intervention != null) {
+                        log.debug("Updating existing intervention ID: {}", interventionId);
+                        updateInterventionFromDto(intervention, interventionDto);
+                    } else {
+                        log.debug("Intervention ID {} not found, treating as new intervention", interventionId);
+                    }
+                } catch (NumberFormatException e) {
+                    log.debug("Invalid intervention ID format: {}, treating as new intervention", interventionDto.getId());
+                }
             }
+            
+            // If no existing intervention found, create new one
+            if (intervention == null) {
+                log.debug("Creating new intervention for study arm ID: {}", studyArm.getId());
+                intervention = createInterventionFromDto(interventionDto, studyArm.getId());
+            }
+            
+            studyArm.addIntervention(intervention);
         }
         
         log.debug("Updated interventions for study arm ID: {}", studyArm.getId());

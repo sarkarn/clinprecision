@@ -5,7 +5,31 @@
 
 USE clinprecisiondb;
 
-
+-- Create study_design_progress table
+CREATE TABLE study_design_progress (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    phase VARCHAR(50) NOT NULL,
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
+    percentage INT NOT NULL DEFAULT 0 CHECK (percentage >= 0 AND percentage <= 100),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT,
+    
+    -- Constraints
+    UNIQUE KEY unique_study_phase (study_id, phase),
+    FOREIGN KEY fk_design_progress_study (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    FOREIGN KEY fk_design_progress_created_by (created_by) REFERENCES users(id),
+    FOREIGN KEY fk_design_progress_updated_by (updated_by) REFERENCES users(id),
+    
+    -- Indexes for performance
+    INDEX idx_design_progress_study_id (study_id),
+    INDEX idx_design_progress_phase (phase),
+    INDEX idx_design_progress_completed (completed),
+    INDEX idx_design_progress_updated_at (updated_at)
+);
 
 -- Add comments to table and columns
 ALTER TABLE study_design_progress COMMENT = 'Tracks progress of study design phases';

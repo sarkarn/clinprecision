@@ -1,0 +1,19 @@
+{
+    "name": "Test Arm with Interventions",
+    "interventions": [
+        {
+            "id": "1",
+            "name": "Test Drug",
+            "type": "DRUG",
+            "dosage": "10mg",
+            "frequency": "Daily",
+            "route": "Oral"
+        },
+        {
+            "id": "2",
+            "name": "Test Procedure",
+            "type": "PROCEDURE",
+            "description": "Test procedure description"
+        }
+    ]
+}
