@@ -131,7 +131,10 @@ const CRFBuilderIntegration = () => {
                 setLoading(false);
             } catch (err) {
                 console.error("Error loading form data:", err);
-                setError("Failed to load form data. Please try again.");
+                const errorMessage = err.response && err.response.status === 404
+                    ? `Form not found (ID: ${formId}). The form may have been deleted or you may not have permission to access it.`
+                    : `Failed to load form data: ${err.message || 'Unknown error'}. Please try again.`;
+                setError(errorMessage);
                 setLoading(false);
             }
         };
@@ -242,13 +245,18 @@ const CRFBuilderIntegration = () => {
             // Show success message
             alert('Form saved successfully!');
 
-            // Navigate to form list or stay on form
+            // For new forms, update the URL without navigation to avoid reload
             if (!formId) {
-                // If this was a new form, navigate to the builder page with the new ID
+                // Update the URL to reflect the new form ID without causing navigation
                 const builderPath = isStudyContext
                     ? `/study-design/study/${studyId}/forms/builder/${savedForm.id}`
                     : `/study-design/forms/builder/${savedForm.id}`;
-                navigate(builderPath);
+
+                // Use window.history.replaceState to update URL without reload
+                window.history.replaceState(null, '', builderPath);
+
+                // The component will continue working with the savedForm data we already have
+                // No need to reload or re-fetch the form data
             }
 
         } catch (err) {

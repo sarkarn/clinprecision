@@ -7,6 +7,8 @@ import {
     Zap,
     Users,
     BarChart3,
+    BarChart2,
+    Repeat,
     CheckCircle,
     Globe,
     Clock,
@@ -69,9 +71,14 @@ export default function Login() {
 
     const features = [
         {
-            icon: <Shield className="h-6 w-6" />,
-            title: "FDA 21 CFR Part 11 Compliant",
-            description: "Built for regulatory compliance from the ground up"
+            title: "AI-Driven Protocol Deviation Review",
+            description: "Leverage advanced AI to automatically detect, flag, and explain protocol deviations—reducing risk and accelerating study timelines.",
+            icon: <Zap className="h-6 w-6" />,
+        },
+        {
+            title: "AI-Powered Medical Coding",
+            description: "Automate and standardize medical coding with intelligent suggestions, improving accuracy and compliance.",
+            icon: <BarChart2 className="h-6 w-6" />,
         },
         {
             icon: <Zap className="h-6 w-6" />,
@@ -79,15 +86,10 @@ export default function Login() {
             description: "Streamlined workflows that accelerate your trials"
         },
         {
-            icon: <Users className="h-6 w-6" />,
-            title: "Global Site Management",
-            description: "Manage multi-site trials across continents"
+            title: "Secure & Compliant",
+            description: "HIPAA, GDPR, and SOC 2 Type II, FDA 21 CFR Part 11 compliant for peace of mind.",
+            icon: <Shield className="h-6 w-6" />,
         },
-        {
-            icon: <BarChart3 className="h-6 w-6" />,
-            title: "Real-time Analytics",
-            description: "Live dashboards for enrollment and safety data"
-        }
     ];
 
     const stats = [

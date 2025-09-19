@@ -262,6 +262,174 @@ export const getStudyById = async (studyId) => {
 };
 
 /**
+ * Get study overview data for dashboard
+ * @param {number} studyId Study ID
+ * @returns {Promise<Object>} Promise that resolves to the study overview data
+ */
+export const getStudyOverview = async (studyId) => {
+  try {
+    console.log('Fetching study overview for ID:', studyId);
+    const response = await ApiService.get(`${API_PATH}/${studyId}/overview`);
+    
+    if (response?.data) {
+      console.log('Study overview data received:', response.data);
+      
+      // Map backend response to frontend format for dashboard
+      const overviewData = {
+        id: response.data.id,
+        title: response.data.title || response.data.name || 'Untitled Study',
+        protocol: response.data.protocol || `Protocol: ${response.data.protocolNumber || 'Not Assigned'}`,
+        version: response.data.version || '1.0',
+        versionStatus: response.data.versionStatus || 'DRAFT',
+        status: response.data.status || 'ACTIVE',
+        phase: response.data.phase || 'Phase I',
+        indication: response.data.indication || 'Not specified',
+        therapeuticArea: response.data.therapeuticArea || 'General Medicine',
+        sponsor: response.data.sponsor || 'Unknown Sponsor',
+        principalInvestigator: response.data.principalInvestigator || 'Not assigned',
+        studyCoordinator: response.data.studyCoordinator || 'Not assigned',
+        sites: response.data.totalSites || response.data.sites || 0,
+        activeSites: response.data.activeSites || response.data.sites || 0,
+        plannedSubjects: response.data.plannedSubjects || 0,
+        enrolledSubjects: response.data.enrolledSubjects || 0,
+        screenedSubjects: response.data.screenedSubjects || 0,
+        randomizedSubjects: response.data.randomizedSubjects || 0,
+        completedSubjects: response.data.completedSubjects || 0,
+        withdrawnSubjects: response.data.withdrawnSubjects || 0,
+        startDate: response.data.startDate,
+        estimatedCompletion: response.data.estimatedCompletionDate || response.data.endDate,
+        lastModified: response.data.updatedAt || response.data.lastModified,
+        modifiedBy: response.data.modifiedBy || 'Unknown',
+        description: response.data.description || 'No description available',
+        primaryEndpoint: response.data.primaryEndpoint || 'Not specified',
+        secondaryEndpoints: parseJsonField(response.data.secondaryEndpoints, []),
+        inclusionCriteria: parseJsonField(response.data.inclusionCriteria, []),
+        exclusionCriteria: parseJsonField(response.data.exclusionCriteria, []),
+        timeline: parseJsonField(response.data.timeline, {}),
+        amendments: [], // Will be populated from amendments API
+        documents: [], // Will be populated from documents API
+        metrics: {
+          enrollmentRate: response.data.enrollmentRate || 0,
+          screeningSuccessRate: response.data.screeningSuccessRate || 0,
+          retentionRate: calculateRetentionRate(response.data),
+          complianceRate: 94.8, // Default - this would come from forms/compliance API
+          queryRate: response.data.queriesOpen || 0
+        },
+        recentActivities: parseJsonField(response.data.recentActivities, [])
+      };
+      
+      console.log('Mapped overview data:', overviewData);
+      return overviewData;
+    }
+    
+    throw new Error('No data received from backend');
+    
+  } catch (error) {
+    console.error('Error fetching study overview:', error);
+    
+    // Fallback to basic study data if overview endpoint fails
+    console.log('Falling back to basic study data...');
+    try {
+      const basicStudy = await getStudyById(studyId);
+      return mapBasicStudyToOverview(basicStudy);
+    } catch (fallbackError) {
+      console.error('Fallback to basic study data also failed:', fallbackError);
+      throw error; // Re-throw original error
+    }
+  }
+};
+
+/**
+ * Helper function to parse JSON fields safely
+ * @param {string|Array|Object} field The field to parse
+ * @param {*} defaultValue Default value if parsing fails
+ * @returns {*} Parsed value or default
+ */
+const parseJsonField = (field, defaultValue) => {
+  if (!field) return defaultValue;
+  
+  // If already an object/array, return as-is
+  if (typeof field === 'object') return field;
+  
+  // If string, try to parse as JSON
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field);
+    } catch (e) {
+      console.warn('Failed to parse JSON field:', field);
+      return defaultValue;
+    }
+  }
+  
+  return defaultValue;
+};
+
+/**
+ * Calculate retention rate from study data
+ * @param {Object} studyData Study data from backend
+ * @returns {number} Retention rate percentage
+ */
+const calculateRetentionRate = (studyData) => {
+  const enrolled = studyData.enrolledSubjects || 0;
+  const withdrawn = studyData.withdrawnSubjects || 0;
+  
+  if (enrolled === 0) return 0;
+  
+  const retained = enrolled - withdrawn;
+  return Math.round((retained / enrolled) * 100 * 10) / 10; // Round to 1 decimal
+};
+
+/**
+ * Map basic study data to overview format (fallback function)
+ * @param {Object} basicStudy Basic study data
+ * @returns {Object} Overview format data
+ */
+const mapBasicStudyToOverview = (basicStudy) => {
+  return {
+    id: basicStudy.id,
+    title: basicStudy.name || basicStudy.title || 'Untitled Study',
+    protocol: `Protocol: ${basicStudy.protocolNumber || 'Not Assigned'}`,
+    version: basicStudy.version || '1.0',
+    versionStatus: 'DRAFT',
+    status: basicStudy.status || 'ACTIVE',
+    phase: basicStudy.phase || 'Phase I',
+    indication: basicStudy.indication || 'Not specified',
+    therapeuticArea: 'General Medicine',
+    sponsor: basicStudy.sponsor || 'Unknown Sponsor',
+    principalInvestigator: basicStudy.principalInvestigator || 'Not assigned',
+    studyCoordinator: 'Not assigned',
+    sites: basicStudy.sites || 0,
+    activeSites: basicStudy.sites || 0,
+    plannedSubjects: basicStudy.plannedSubjects || 0,
+    enrolledSubjects: basicStudy.enrolledSubjects || 0,
+    screenedSubjects: 0,
+    randomizedSubjects: 0,
+    completedSubjects: 0,
+    withdrawnSubjects: 0,
+    startDate: basicStudy.startDate,
+    estimatedCompletion: basicStudy.endDate,
+    lastModified: basicStudy.updatedAt,
+    modifiedBy: 'Unknown',
+    description: basicStudy.description || 'No description available',
+    primaryEndpoint: basicStudy.primaryObjective || 'Not specified',
+    secondaryEndpoints: [],
+    inclusionCriteria: [],
+    exclusionCriteria: [],
+    timeline: {},
+    amendments: [],
+    documents: [],
+    metrics: {
+      enrollmentRate: 0,
+      screeningSuccessRate: 0,
+      retentionRate: 0,
+      complianceRate: 0,
+      queryRate: 0
+    },
+    recentActivities: []
+  };
+};
+
+/**
  * Update study
  * @param {number} studyId Study ID
  * @param {Object} studyData Study data to update
@@ -587,6 +755,7 @@ const getFallbackMetrics = () => {
 const StudyService = {
   getStudies,
   getStudyById,
+  getStudyOverview,
   registerStudy,
   updateStudy,
   deleteStudy,

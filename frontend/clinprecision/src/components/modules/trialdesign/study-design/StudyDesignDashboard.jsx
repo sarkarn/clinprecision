@@ -576,21 +576,39 @@ const BasicInfoSummary = ({ study }) => {
     );
 };
 
-// Study Review Panel Component (placeholder)
+
+// Study Review Panel Component with completion button
 const StudyReviewPanel = ({ study, designProgress }) => {
+    const [marking, setMarking] = React.useState(false);
+    const [error, setError] = React.useState("");
     const completedPhases = Object.entries(designProgress).filter(
         ([_, progress]) => progress.completed
     );
-
     const pendingPhases = Object.entries(designProgress).filter(
         ([_, progress]) => !progress.completed
     );
-
+    const { studyId } = useParams();
+    // Import loadDesignProgress from parent scope if possible, else reload page
+    const handleMarkReviewComplete = async () => {
+        setMarking(true);
+        setError("");
+        try {
+            await StudyDesignService.updateDesignProgress(studyId, {
+                progressData: {
+                    review: { phase: "review", completed: true, percentage: 100 }
+                }
+            });
+            window.location.reload(); // Or call loadDesignProgress if available
+        } catch (e) {
+            setError("Failed to mark review as complete. Please try again.");
+        } finally {
+            setMarking(false);
+        }
+    };
     return (
         <div className="space-y-6">
             <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Study Design Review</h3>
-
                 {/* Completion Summary */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
@@ -604,7 +622,6 @@ const StudyReviewPanel = ({ study, designProgress }) => {
                             ))}
                         </div>
                     </div>
-
                     <div>
                         <h4 className="font-medium text-gray-900 mb-3">Pending Sections</h4>
                         <div className="space-y-2">
@@ -617,7 +634,6 @@ const StudyReviewPanel = ({ study, designProgress }) => {
                         </div>
                     </div>
                 </div>
-
                 {/* Validation Results */}
                 <div className="border-t border-gray-200 pt-6">
                     <h4 className="font-medium text-gray-900 mb-3">Validation Status</h4>
@@ -631,6 +647,17 @@ const StudyReviewPanel = ({ study, designProgress }) => {
                             <span className="text-sm text-green-900">Visit schedule is properly configured</span>
                         </div>
                     </div>
+                </div>
+                {/* Mark Review Complete Button */}
+                <div className="pt-6 flex flex-col items-end">
+                    {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+                    <button
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded shadow disabled:opacity-50"
+                        onClick={handleMarkReviewComplete}
+                        disabled={marking}
+                    >
+                        {marking ? "Marking..." : "Finish Review & Continue"}
+                    </button>
                 </div>
             </div>
         </div>

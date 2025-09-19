@@ -33,6 +33,34 @@ public class StudyResponseDto {
     private Integer amendments;
     private Long modifiedBy;
     
+    // Additional fields for Study Overview Dashboard
+    private String title; // Alias for name (for frontend compatibility)
+    private String protocol; // Alias for protocolNumber
+    private String versionStatus; // Status of current version (DRAFT, APPROVED, etc.)
+    private String therapeuticArea; // Medical specialty/therapeutic area
+    private String studyCoordinator; // Study coordinator name
+    private Integer activeSites; // Number of active sites
+    private Integer screenedSubjects; // Number of screened subjects
+    private Integer randomizedSubjects; // Number of randomized subjects  
+    private Integer completedSubjects; // Number of completed subjects
+    private Integer withdrawnSubjects; // Number of withdrawn subjects
+    private LocalDate estimatedCompletion; // Estimated study completion date
+    private String primaryEndpoint; // Primary endpoint description
+    private String secondaryEndpoints; // Secondary endpoints (JSON array as string)
+    private String inclusionCriteria; // Inclusion criteria (JSON array as string)
+    private String exclusionCriteria; // Exclusion criteria (JSON array as string)
+    private String timeline; // Study timeline information (JSON object as string)
+    
+    // Study metrics
+    private Double enrollmentRate; // Enrollment rate percentage
+    private Double screeningSuccessRate; // Screening success rate percentage
+    private Double retentionRate; // Subject retention rate percentage
+    private Double complianceRate; // Protocol compliance rate percentage
+    private Double queryRate; // Data query rate percentage
+    
+    // Recent activities (JSON array as string)
+    private String recentActivities;
+    
     // Lookup table references (instead of simple strings)
     private StudyStatusDto studyStatus;
     private RegulatoryStatusDto regulatoryStatus;
@@ -309,5 +337,182 @@ public class StudyResponseDto {
     
     public void setOrganizations(List<OrganizationStudyDto> organizations) {
         this.organizations = organizations;
+    }
+    
+    // Getters and Setters for new overview fields
+    public String getTitle() {
+        return title;
+    }
+    
+    public void setTitle(String title) {
+        this.title = title;
+    }
+    
+    public String getProtocol() {
+        return protocol;
+    }
+    
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+    
+    public String getVersionStatus() {
+        return versionStatus;
+    }
+    
+    public void setVersionStatus(String versionStatus) {
+        this.versionStatus = versionStatus;
+    }
+    
+    public String getTherapeuticArea() {
+        return therapeuticArea;
+    }
+    
+    public void setTherapeuticArea(String therapeuticArea) {
+        this.therapeuticArea = therapeuticArea;
+    }
+    
+    public String getStudyCoordinator() {
+        return studyCoordinator;
+    }
+    
+    public void setStudyCoordinator(String studyCoordinator) {
+        this.studyCoordinator = studyCoordinator;
+    }
+    
+    public Integer getActiveSites() {
+        return activeSites;
+    }
+    
+    public void setActiveSites(Integer activeSites) {
+        this.activeSites = activeSites;
+    }
+    
+    public Integer getScreenedSubjects() {
+        return screenedSubjects;
+    }
+    
+    public void setScreenedSubjects(Integer screenedSubjects) {
+        this.screenedSubjects = screenedSubjects;
+    }
+    
+    public Integer getRandomizedSubjects() {
+        return randomizedSubjects;
+    }
+    
+    public void setRandomizedSubjects(Integer randomizedSubjects) {
+        this.randomizedSubjects = randomizedSubjects;
+    }
+    
+    public Integer getCompletedSubjects() {
+        return completedSubjects;
+    }
+    
+    public void setCompletedSubjects(Integer completedSubjects) {
+        this.completedSubjects = completedSubjects;
+    }
+    
+    public Integer getWithdrawnSubjects() {
+        return withdrawnSubjects;
+    }
+    
+    public void setWithdrawnSubjects(Integer withdrawnSubjects) {
+        this.withdrawnSubjects = withdrawnSubjects;
+    }
+    
+    public LocalDate getEstimatedCompletion() {
+        return estimatedCompletion;
+    }
+    
+    public void setEstimatedCompletion(LocalDate estimatedCompletion) {
+        this.estimatedCompletion = estimatedCompletion;
+    }
+    
+    public String getPrimaryEndpoint() {
+        return primaryEndpoint;
+    }
+    
+    public void setPrimaryEndpoint(String primaryEndpoint) {
+        this.primaryEndpoint = primaryEndpoint;
+    }
+    
+    public String getSecondaryEndpoints() {
+        return secondaryEndpoints;
+    }
+    
+    public void setSecondaryEndpoints(String secondaryEndpoints) {
+        this.secondaryEndpoints = secondaryEndpoints;
+    }
+    
+    public String getInclusionCriteria() {
+        return inclusionCriteria;
+    }
+    
+    public void setInclusionCriteria(String inclusionCriteria) {
+        this.inclusionCriteria = inclusionCriteria;
+    }
+    
+    public String getExclusionCriteria() {
+        return exclusionCriteria;
+    }
+    
+    public void setExclusionCriteria(String exclusionCriteria) {
+        this.exclusionCriteria = exclusionCriteria;
+    }
+    
+    public String getTimeline() {
+        return timeline;
+    }
+    
+    public void setTimeline(String timeline) {
+        this.timeline = timeline;
+    }
+    
+    public Double getEnrollmentRate() {
+        return enrollmentRate;
+    }
+    
+    public void setEnrollmentRate(Double enrollmentRate) {
+        this.enrollmentRate = enrollmentRate;
+    }
+    
+    public Double getScreeningSuccessRate() {
+        return screeningSuccessRate;
+    }
+    
+    public void setScreeningSuccessRate(Double screeningSuccessRate) {
+        this.screeningSuccessRate = screeningSuccessRate;
+    }
+    
+    public Double getRetentionRate() {
+        return retentionRate;
+    }
+    
+    public void setRetentionRate(Double retentionRate) {
+        this.retentionRate = retentionRate;
+    }
+    
+    public Double getComplianceRate() {
+        return complianceRate;
+    }
+    
+    public void setComplianceRate(Double complianceRate) {
+        this.complianceRate = complianceRate;
+    }
+    
+    public Double getQueryRate() {
+        return queryRate;
+    }
+    
+    public void setQueryRate(Double queryRate) {
+        this.queryRate = queryRate;
+    }
+    
+    public String getRecentActivities() {
+        return recentActivities;
+    }
+    
+    public void setRecentActivities(String recentActivities) {
+        this.recentActivities = recentActivities;
     }
 }

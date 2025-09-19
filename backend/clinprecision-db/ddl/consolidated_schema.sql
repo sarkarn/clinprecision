@@ -296,6 +296,35 @@ CREATE TABLE studies (
 	study_status_id BIGINT NULL COMMENT 'References study_status.id',
     regulatory_status_id BIGINT NULL COMMENT 'References regulatory_status.id',
     study_phase_id BIGINT NULL COMMENT 'References study_phase.id',
+	therapeutic_area VARCHAR(255) COMMENT 'Therapeutic area or medical specialty',
+	study_coordinator VARCHAR(255) COMMENT 'Study coordinator name',
+	active_sites INTEGER DEFAULT 0 COMMENT 'Number of active study sites',
+	total_sites INTEGER DEFAULT 0 COMMENT 'Total number of study sites',
+	screened_subjects INTEGER DEFAULT 0 COMMENT 'Number of screened subjects',
+	randomized_subjects INTEGER DEFAULT 0 COMMENT 'Number of randomized subjects',
+	completed_subjects INTEGER DEFAULT 0 COMMENT 'Number of subjects who completed the study',
+	withdrawn_subjects INTEGER DEFAULT 0 COMMENT 'Number of withdrawn subjects',
+	enrollment_rate DECIMAL(5,2) COMMENT 'Enrollment rate percentage',
+	screening_success_rate DECIMAL(5,2) COMMENT 'Screening success rate percentage',
+	first_patient_in_date DATE COMMENT 'Date of first patient enrollment',
+	last_patient_in_date DATE COMMENT 'Date of last patient enrollment',
+	estimated_completion_date DATE COMMENT 'Estimated study completion date',
+	primary_endpoint TEXT COMMENT 'Primary endpoint description',
+	secondary_endpoints JSON COMMENT 'JSON array of secondary endpoints',
+	inclusion_criteria JSON COMMENT 'JSON array of inclusion criteria',
+	exclusion_criteria JSON COMMENT 'JSON array of exclusion criteria',
+	recent_activities JSON COMMENT 'JSON array of recent study activities',
+	timeline JSON COMMENT 'JSON object containing study timeline data',
+	study_duration_weeks INTEGER COMMENT 'Planned study duration in weeks',
+	data_lock_date DATE COMMENT 'Date when data was locked',
+	database_lock_status ENUM('open', 'soft_lock', 'hard_lock') DEFAULT 'open' COMMENT 'Database lock status',
+	monitoring_visits_completed INTEGER DEFAULT 0 COMMENT 'Number of monitoring visits completed',
+	adverse_events_reported INTEGER DEFAULT 0 COMMENT 'Number of adverse events reported',
+	protocol_deviations INTEGER DEFAULT 0 COMMENT 'Number of protocol deviations',
+	queries_open INTEGER DEFAULT 0 COMMENT 'Number of open data queries',
+	queries_resolved INTEGER DEFAULT 0 COMMENT 'Number of resolved data queries',
+	sdv_percentage DECIMAL(5,2) COMMENT 'Source data verification percentage',
+	recruitment_status ENUM('not_started', 'recruiting', 'completed', 'suspended') DEFAULT 'not_started' COMMENT 'Patient recruitment status',
     metadata JSON,
     created_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -323,7 +352,7 @@ CREATE TABLE study_versions (
 CREATE TABLE study_design_progress (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Primary key',
     study_id BIGINT NOT NULL COMMENT 'Foreign key to studies table',
-    phase VARCHAR(50) NOT NULL 'Design phase name (basic-info, arms, visits, forms, review, publish, revisions)',
+    phase VARCHAR(50) NOT NULL COMMENT 'Design phase name (basic-info, arms, visits, forms, review, publish, revisions)',
     completed BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Whether this phase is completed',
     percentage INT NOT NULL DEFAULT 0 CHECK (percentage >= 0 AND percentage <= 100) COMMENT 'Completion percentage (0-100)',
     notes TEXT COMMENT 'Optional notes about the phase progress',
@@ -354,6 +383,58 @@ CREATE TABLE organization_studies (
     FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
     UNIQUE KEY (organization_id, study_id, role)
 );
+
+-- Study Documents Table (MVP Version)
+CREATE TABLE study_documents (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL COMMENT 'Reference to studies table',
+    name VARCHAR(255) NOT NULL COMMENT 'Display name of the document',
+    document_type VARCHAR(50) NOT NULL COMMENT 'Type of document (Protocol, ICF, IB, CRF, etc.)',
+    file_name VARCHAR(255) NOT NULL COMMENT 'Original filename',
+    file_path VARCHAR(500) NOT NULL COMMENT 'Path to stored file',
+    file_size BIGINT NOT NULL COMMENT 'File size in bytes',
+    mime_type VARCHAR(100) COMMENT 'MIME type of the file',
+    version VARCHAR(50) DEFAULT '1.0' COMMENT 'Document version',
+    status ENUM('DRAFT', 'CURRENT', 'SUPERSEDED', 'ARCHIVED') DEFAULT 'CURRENT' COMMENT 'Document status',
+    description TEXT COMMENT 'Document description',
+    uploaded_by BIGINT NOT NULL COMMENT 'User who uploaded the document',
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Upload timestamp',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Record creation timestamp',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Record update timestamp',
+    
+    -- Foreign key constraints
+    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    FOREIGN KEY (uploaded_by) REFERENCES users(id),
+    
+    -- Indexes for performance
+    INDEX idx_study_documents_study_id (study_id),
+    INDEX idx_study_documents_type (document_type),
+    INDEX idx_study_documents_status (status),
+    INDEX idx_study_documents_uploaded_at (uploaded_at)
+) COMMENT 'Store study documents and their metadata';
+
+-- Document audit trail for tracking changes
+CREATE TABLE study_document_audit (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    document_id BIGINT NOT NULL COMMENT 'Reference to study_documents table',
+    action_type ENUM('UPLOAD', 'DOWNLOAD', 'UPDATE', 'DELETE', 'STATUS_CHANGE') NOT NULL COMMENT 'Type of action performed',
+    old_values JSON COMMENT 'Previous values (for updates)',
+    new_values JSON COMMENT 'New values (for updates)',
+    performed_by BIGINT NOT NULL COMMENT 'User who performed the action',
+    performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'When the action was performed',
+    ip_address VARCHAR(45) COMMENT 'IP address of the user',
+    user_agent TEXT COMMENT 'Browser/client information',
+    notes TEXT COMMENT 'Additional notes about the action',
+    
+    -- Foreign key constraints
+    FOREIGN KEY (document_id) REFERENCES study_documents(id) ON DELETE CASCADE,
+    FOREIGN KEY (performed_by) REFERENCES users(id),
+    
+    -- Indexes for performance
+    INDEX idx_document_audit_document_id (document_id),
+    INDEX idx_document_audit_performed_at (performed_at),
+    INDEX idx_document_audit_action_type (action_type)
+) COMMENT 'Audit trail for document management actions';
 
 -- Study arms
 CREATE TABLE study_arms (
@@ -816,136 +897,13 @@ CREATE INDEX idx_design_progress_study_id ON study_design_progress (study_id);
 CREATE INDEX idx_design_progress_phase ON study_design_progress (phase);
 CREATE INDEX idx_design_progress_completed ON study_design_progress (completed);
 CREATE INDEX idx_design_progress_updated_at ON study_design_progress (updated_at);
+CREATE INDEX idx_studies_therapeutic_area ON studies(therapeutic_area);
+CREATE INDEX idx_studies_study_coordinator ON studies(study_coordinator);
+CREATE INDEX idx_studies_enrollment_rate ON studies(enrollment_rate);
+CREATE INDEX idx_studies_recruitment_status ON studies(recruitment_status);
+CREATE INDEX idx_studies_database_lock_status ON studies(database_lock_status);
+CREATE INDEX idx_studies_first_patient_in ON studies(first_patient_in_date);
+CREATE INDEX idx_studies_estimated_completion ON studies(estimated_completion_date);
 
 
--- Insert default user types
-
-
--- Remaining role-authority assignments can be added as needed
-
--- Define triggers for form data history
-DELIMITER //
-
-CREATE TRIGGER after_form_data_update
-AFTER UPDATE ON form_data
-FOR EACH ROW
-BEGIN
-  DECLARE change_type VARCHAR(20);
-  
-  IF OLD.status != NEW.status THEN
-    IF NEW.status = 'signed' THEN
-      SET change_type = 'sign';
-    ELSEIF NEW.status = 'locked' THEN
-      SET change_type = 'lock';
-    ELSEIF OLD.status = 'locked' AND NEW.status != 'locked' THEN
-      SET change_type = 'unlock';
-    ELSE
-      SET change_type = 'update';
-    END IF;
-  ELSEIF OLD.form_definition_id != NEW.form_definition_id OR OLD.form_version != NEW.form_version THEN
-    SET change_type = 'version_upgrade';
-  ELSE
-    SET change_type = 'update';
-  END IF;
-  
-  INSERT INTO form_data_history (
-    id, form_data_id, subject_id, subject_visit_id, 
-    form_definition_id, form_version, status, data,
-    changed_by, change_timestamp, change_type, change_reason
-  )
-  VALUES (
-    UUID(), NEW.id, NEW.subject_id, NEW.subject_visit_id,
-    NEW.form_definition_id, NEW.form_version, NEW.status, NEW.data,
-    NEW.updated_by, NOW(), change_type, NEW.entry_reason
-  );
-END //
-
-CREATE TRIGGER after_form_data_insert
-AFTER INSERT ON form_data
-FOR EACH ROW
-BEGIN
-  INSERT INTO form_data_history (
-    id, form_data_id, subject_id, subject_visit_id, 
-    form_definition_id, form_version, status, data,
-    changed_by, change_timestamp, change_type, change_reason
-  )
-  VALUES (
-    UUID(), NEW.id, NEW.subject_id, NEW.subject_visit_id,
-    NEW.form_definition_id, NEW.form_version, NEW.status, NEW.data,
-    NEW.created_by, NOW(), 'create', NEW.entry_reason
-  );
-END //
-
--- Create a view for easy progress reporting
-CREATE VIEW v_study_design_progress_summary AS
-SELECT 
-    s.id as study_id,
-    s.name as study_name,
-    COUNT(sdp.id) as total_phases,
-    SUM(CASE WHEN sdp.completed = TRUE THEN 1 ELSE 0 END) as completed_phases,
-    ROUND(AVG(sdp.percentage), 2) as overall_completion_percentage,
-    MAX(sdp.updated_at) as last_progress_update
-FROM studies s
-LEFT JOIN study_design_progress sdp ON s.id = sdp.study_id
-GROUP BY s.id, s.name;
-
--- Grant permissions (adjust as needed for your user)
-GRANT SELECT, INSERT, UPDATE, DELETE ON study_design_progress TO 'clinprecadmin'@'localhost';
-GRANT SELECT ON v_study_design_progress_summary TO 'clinprecadmin'@'localhost';
-
--- Add some helpful stored procedures
-DELIMITER //
-
--- Procedure to initialize design progress for a new study
-CREATE PROCEDURE InitializeStudyDesignProgress(IN p_study_id BIGINT)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-    
-    START TRANSACTION;
-    
-    -- Insert basic-info as completed (since study creation is done)
-    INSERT INTO study_design_progress (study_id, phase, completed, percentage)
-    VALUES (p_study_id, 'basic-info', TRUE, 100)
-    ON DUPLICATE KEY UPDATE 
-        completed = TRUE, 
-        percentage = 100,
-        updated_at = NOW();
-    
-    -- Insert other phases as not completed
-    INSERT INTO study_design_progress (study_id, phase, completed, percentage)
-    VALUES 
-        (p_study_id, 'arms', FALSE, 0),
-        (p_study_id, 'visits', FALSE, 0),
-        (p_study_id, 'forms', FALSE, 0),
-        (p_study_id, 'review', FALSE, 0),
-        (p_study_id, 'publish', FALSE, 0),
-        (p_study_id, 'revisions', FALSE, 0)
-    ON DUPLICATE KEY UPDATE 
-        updated_at = NOW();
-    
-    COMMIT;
-END //
-
--- Procedure to mark a phase as completed
-CREATE PROCEDURE MarkPhaseCompleted(IN p_study_id BIGINT, IN p_phase VARCHAR(50), IN p_percentage INT)
-BEGIN
-    UPDATE study_design_progress 
-    SET completed = TRUE, 
-        percentage = COALESCE(p_percentage, 100),
-        updated_at = NOW()
-    WHERE study_id = p_study_id AND phase = p_phase;
-END //
-
-DELIMITER ;
-
--- Grant execute permissions on procedures
-GRANT EXECUTE ON PROCEDURE InitializeStudyDesignProgress TO 'clinprecadmin'@'localhost';
-GRANT EXECUTE ON PROCEDURE MarkPhaseCompleted TO 'clinprecadmin'@'localhost';
-
--- Migration completed successfully
-SELECT 'Study design progress table migration completed successfully' AS message;
 

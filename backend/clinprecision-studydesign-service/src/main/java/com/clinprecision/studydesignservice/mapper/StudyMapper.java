@@ -172,6 +172,30 @@ public class StudyMapper {
                 .collect(Collectors.toList()));
         }
         
+        // Map new overview fields
+        dto.setTitle(entity.getName()); // Alias for frontend compatibility
+        dto.setProtocol(entity.getProtocolNumber()); // Alias for frontend compatibility
+        dto.setVersionStatus(entity.getIsLocked() != null && entity.getIsLocked() ? "LOCKED" : "APPROVED"); // Simple version status logic
+        dto.setTherapeuticArea(entity.getTherapeuticArea());
+        dto.setStudyCoordinator(entity.getStudyCoordinator());
+        dto.setActiveSites(entity.getActiveSites());
+        dto.setScreenedSubjects(entity.getScreenedSubjects());
+        dto.setRandomizedSubjects(entity.getRandomizedSubjects());
+        dto.setCompletedSubjects(entity.getCompletedSubjects());
+        dto.setWithdrawnSubjects(entity.getWithdrawnSubjects());
+        dto.setEstimatedCompletion(entity.getEstimatedCompletion());
+        dto.setPrimaryEndpoint(entity.getPrimaryEndpoint());
+        dto.setSecondaryEndpoints(entity.getSecondaryEndpoints());
+        dto.setInclusionCriteria(entity.getInclusionCriteria());
+        dto.setExclusionCriteria(entity.getExclusionCriteria());
+        dto.setTimeline(entity.getTimeline());
+        dto.setEnrollmentRate(entity.getEnrollmentRate());
+        dto.setScreeningSuccessRate(entity.getScreeningSuccessRate());
+        dto.setRetentionRate(entity.getRetentionRate());
+        dto.setComplianceRate(entity.getComplianceRate());
+        dto.setQueryRate(entity.getQueryRate());
+        dto.setRecentActivities(entity.getRecentActivities());
+        
         return dto;
     }
     

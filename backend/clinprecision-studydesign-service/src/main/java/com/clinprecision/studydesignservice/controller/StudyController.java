@@ -1,3 +1,7 @@
+// ...existing code...
+// ...existing code...
+
+// ...existing code...
 package com.clinprecision.studydesignservice.controller;
 
 import com.clinprecision.studydesignservice.dto.StudyCreateRequestDto;
@@ -82,6 +86,20 @@ public class StudyController {
         StudyResponseDto response = studyService.getStudyById(id);
         
         logger.info("Study fetched successfully: {}", response.getName());
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Get study overview data for dashboard
+     * GET /api/studies/{id}/overview
+     */
+    @GetMapping("/{id}/overview")
+    public ResponseEntity<StudyResponseDto> getStudyOverview(@PathVariable Long id) {
+        logger.info("GET /api/studies/{}/overview - Fetching study overview", id);
+        
+        StudyResponseDto response = studyService.getStudyOverview(id);
+        
+        logger.info("Study overview fetched successfully: {}", response.getName());
         return ResponseEntity.ok(response);
     }
     
@@ -283,6 +301,26 @@ public class StudyController {
             
         } catch (Exception e) {
             logger.error("Error initializing design progress for study {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Publish a study (set status to ACTIVE)
+     * PATCH /api/studies/{id}/publish
+     */
+    @PatchMapping("/{id}/publish")
+    public ResponseEntity<StudyResponseDto> publishStudy(@PathVariable Long id) {
+        logger.info("PATCH /api/studies/{}/publish - Publishing study", id);
+        try {
+            StudyResponseDto response = studyService.publishStudy(id);
+            logger.info("Study {} published successfully", id);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            logger.error("Error publishing study {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            logger.error("Unexpected error publishing study {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

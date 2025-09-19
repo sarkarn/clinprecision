@@ -1,0 +1,256 @@
+version: '3.8'
+
+services:
+  # Database
+  mysql:
+    image: mysql:8.0
+    container_name: clinprecision-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: clinprecision
+      MYSQL_USER: clinprecision
+      MYSQL_PASSWORD: clinprecision123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/clinprecision-db/ddl:/docker-entrypoint-initdb.d/01-schema
+      - ./backend/clinprecision-db/data:/docker-entrypoint-initdb.d/02-data
+    networks:
+      - clinprecision-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  # Discovery Service (Eureka Server)
+  discovery-service:
+    build: 
+      context: ./backend/clinprecision-discovery-service
+      dockerfile: Dockerfile
+    container_name: clinprecision-discovery
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka/
+    networks:
+      - clinprecision-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Configuration Service
+  config-service:
+    build: 
+      context: ./backend/clinprecision-config-service
+      dockerfile: Dockerfile
+    container_name: clinprecision-config
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka/
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+    networks:
+      - clinprecision-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # API Gateway
+  apigateway-service:
+    build: 
+      context: ./backend/clinprecision-apigateway-service
+      dockerfile: Dockerfile
+    container_name: clinprecision-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_CLOUD_CONFIG_URI=http://config-service:8888
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    networks:
+      - clinprecision-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Admin Service
+  admin-service:
+    build: 
+      context: ./backend/clinprecision-admin-service
+      dockerfile: dockerfile
+    container_name: clinprecision-admin
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_SERVICE_PORT:-8081}:${ADMIN_SERVICE_INTERNAL_PORT:-8080}"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/clinprecision
+      - SPRING_DATASOURCE_USERNAME=clinprecision
+      - SPRING_DATASOURCE_PASSWORD=clinprecision123
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_CLOUD_CONFIG_URI=http://config-service:8888
+      - SERVER_PORT=${ADMIN_SERVICE_INTERNAL_PORT:-8080}
+      - EUREKA_INSTANCE_NON_SECURE_PORT=${ADMIN_SERVICE_INTERNAL_PORT:-8080}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    networks:
+      - clinprecision-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${ADMIN_SERVICE_INTERNAL_PORT:-8080}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # User Service
+  user-service:
+    build: 
+      context: ./backend/clinprecision-user-service
+      dockerfile: dockerfile
+    container_name: clinprecision-user
+    restart: unless-stopped
+    ports:
+      - "${USER_SERVICE_PORT:-8082}:${USER_SERVICE_INTERNAL_PORT:-8080}"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/clinprecision
+      - SPRING_DATASOURCE_USERNAME=clinprecision
+      - SPRING_DATASOURCE_PASSWORD=clinprecision123
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_CLOUD_CONFIG_URI=http://config-service:8888
+      - SERVER_PORT=${USER_SERVICE_INTERNAL_PORT:-8080}
+      - EUREKA_INSTANCE_NON_SECURE_PORT=${USER_SERVICE_INTERNAL_PORT:-8080}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    networks:
+      - clinprecision-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${USER_SERVICE_INTERNAL_PORT:-8080}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Study Design Service
+  studydesign-service:
+    build: 
+      context: ./backend/clinprecision-studydesign-service
+      dockerfile: Dockerfile
+    container_name: clinprecision-studydesign
+    restart: unless-stopped
+    ports:
+      - "${STUDYDESIGN_SERVICE_PORT:-8083}:${STUDYDESIGN_SERVICE_INTERNAL_PORT:-8080}"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/clinprecision
+      - SPRING_DATASOURCE_USERNAME=clinprecision
+      - SPRING_DATASOURCE_PASSWORD=clinprecision123
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_CLOUD_CONFIG_URI=http://config-service:8888
+      - SERVER_PORT=${STUDYDESIGN_SERVICE_INTERNAL_PORT:-8080}
+      - EUREKA_INSTANCE_NON_SECURE_PORT=${STUDYDESIGN_SERVICE_INTERNAL_PORT:-8080}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    networks:
+      - clinprecision-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${STUDYDESIGN_SERVICE_INTERNAL_PORT:-8080}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Data Capture Service
+  datacapture-service:
+    build: 
+      context: ./backend/clinprecision-datacapture-service
+      dockerfile: Dockerfile
+    container_name: clinprecision-datacapture
+    restart: unless-stopped
+    ports:
+      - "${DATACAPTURE_SERVICE_PORT:-8084}:${DATACAPTURE_SERVICE_INTERNAL_PORT:-8080}"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/clinprecision
+      - SPRING_DATASOURCE_USERNAME=clinprecision
+      - SPRING_DATASOURCE_PASSWORD=clinprecision123
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_CLOUD_CONFIG_URI=http://config-service:8888
+      - SERVER_PORT=${DATACAPTURE_SERVICE_INTERNAL_PORT:-8080}
+      - EUREKA_INSTANCE_NON_SECURE_PORT=${DATACAPTURE_SERVICE_INTERNAL_PORT:-8080}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    networks:
+      - clinprecision-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${DATACAPTURE_SERVICE_INTERNAL_PORT:-8080}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Frontend React Application
+  frontend:
+    build: 
+      context: ./frontend/clinprecision
+      dockerfile: Dockerfile
+    container_name: clinprecision-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8080
+    depends_on:
+      apigateway-service:
+        condition: service_healthy
+    networks:
+      - clinprecision-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  clinprecision-network:
+    driver: bridge

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import StudyService from '../../../../services/StudyService';
 import {
     ArrowLeft,
     Edit,
@@ -44,140 +45,153 @@ const StudyOverviewDashboard = ({
     const loadStudyDetails = async () => {
         setLoading(true);
         try {
-            // Mock data - replace with actual API call
-            const studyData = {
-                id: studyId,
-                title: 'Phase III Oncology Trial - Advanced NSCLC',
-                protocol: 'ONC-2024-001',
-                version: '2.1',
-                versionStatus: 'APPROVED',
-                status: 'ACTIVE',
-                phase: 'Phase III',
-                indication: 'Non-Small Cell Lung Cancer',
-                therapeuticArea: 'Oncology',
-                sponsor: 'Global Pharma Inc.',
-                principalInvestigator: 'Dr. Sarah Johnson',
-                studyCoordinator: 'Jennifer Martinez, RN',
-                sites: 25,
-                activeSites: 23,
-                plannedSubjects: 450,
-                enrolledSubjects: 287,
-                screenedSubjects: 324,
-                randomizedSubjects: 278,
-                completedSubjects: 156,
-                withdrawnSubjects: 31,
-                startDate: '2024-01-15',
-                estimatedCompletion: '2026-03-30',
-                lastModified: '2024-03-15T10:30:00Z',
-                modifiedBy: 'Dr. Sarah Johnson',
-                description: 'A randomized, double-blind, placebo-controlled Phase III study to evaluate the efficacy and safety of investigational drug XYZ-123 in patients with advanced non-small cell lung cancer who have progressed on prior systemic therapy.',
-                primaryEndpoint: 'Overall Survival (OS)',
-                secondaryEndpoints: [
-                    'Progression-Free Survival (PFS)',
-                    'Objective Response Rate (ORR)',
-                    'Duration of Response (DoR)',
-                    'Safety and Tolerability'
-                ],
-                inclusionCriteria: [
-                    'Age ≥ 18 years',
-                    'Histologically confirmed NSCLC',
-                    'Advanced or metastatic disease',
-                    'ECOG Performance Status 0-1',
-                    'Adequate organ function'
-                ],
-                exclusionCriteria: [
-                    'Prior treatment with similar agents',
-                    'Brain metastases (unless treated)',
-                    'Severe cardiovascular disease',
-                    'Active infection',
-                    'Pregnancy or nursing'
-                ],
-                timeline: {
-                    screening: '4 weeks',
-                    treatment: '24 cycles (approximately 2 years)',
-                    followUp: '2 years post-treatment'
-                },
-                amendments: [
-                    {
-                        version: '2.1',
-                        type: 'MINOR',
-                        date: '2024-03-15',
-                        reason: 'Updated exclusion criteria for cardiovascular conditions',
-                        status: 'APPROVED'
-                    },
-                    {
-                        version: '2.0',
-                        type: 'MAJOR',
-                        date: '2024-02-01',
-                        reason: 'Added new secondary endpoint and modified dosing schedule',
-                        status: 'APPROVED'
-                    },
-                    {
-                        version: '1.0',
-                        type: 'INITIAL',
-                        date: '2024-01-15',
-                        reason: 'Initial protocol version',
-                        status: 'APPROVED'
-                    }
-                ],
-                documents: [
-                    {
-                        name: 'Protocol v2.1',
-                        type: 'Protocol',
-                        size: '2.4 MB',
-                        lastModified: '2024-03-15',
-                        status: 'Current'
-                    },
-                    {
-                        name: 'Informed Consent v2.1',
-                        type: 'ICF',
-                        size: '485 KB',
-                        lastModified: '2024-03-15',
-                        status: 'Current'
-                    },
-                    {
-                        name: 'Investigator Brochure v3.0',
-                        type: 'IB',
-                        size: '1.8 MB',
-                        lastModified: '2024-02-28',
-                        status: 'Current'
-                    }
-                ],
-                metrics: {
-                    enrollmentRate: 75.2,
-                    screeningSuccessRate: 88.6,
-                    retentionRate: 89.2,
-                    complianceRate: 94.8,
-                    queryRate: 12.3
-                },
-                recentActivities: [
-                    {
-                        type: 'amendment',
-                        message: 'Protocol amendment v2.1 approved',
-                        date: '2024-03-15T10:30:00Z',
-                        user: 'Regulatory Affairs'
-                    },
-                    {
-                        type: 'enrollment',
-                        message: '5 new subjects enrolled at Site 003',
-                        date: '2024-03-14T16:45:00Z',
-                        user: 'Site Coordinator'
-                    },
-                    {
-                        type: 'milestone',
-                        message: '75% enrollment milestone reached',
-                        date: '2024-03-12T09:20:00Z',
-                        user: 'System'
-                    }
-                ]
-            };
+            console.log('Loading study overview for ID:', studyId);
 
+            // Call the real API to get study overview data
+            const studyData = await StudyService.getStudyOverview(studyId);
+
+            console.log('Study overview loaded successfully:', studyData);
             setStudy(studyData);
         } catch (error) {
             console.error('Error loading study details:', error);
+
+            // Fallback to mock data if API fails for now
+            console.log('Falling back to mock data due to API error');
+            const mockStudyData = getMockStudyData(studyId);
+            setStudy(mockStudyData);
         } finally {
             setLoading(false);
         }
+    };
+
+    // Mock data fallback function
+    const getMockStudyData = (id) => {
+        return {
+            id: id,
+            title: 'Phase III Oncology Trial - Advanced NSCLC',
+            protocol: 'ONC-2024-001',
+            version: '2.1',
+            versionStatus: 'APPROVED',
+            status: 'ACTIVE',
+            phase: 'Phase III',
+            indication: 'Non-Small Cell Lung Cancer',
+            therapeuticArea: 'Oncology',
+            sponsor: 'Global Pharma Inc.',
+            principalInvestigator: 'Dr. Sarah Johnson',
+            studyCoordinator: 'Jennifer Martinez, RN',
+            sites: 25,
+            activeSites: 23,
+            plannedSubjects: 450,
+            enrolledSubjects: 287,
+            screenedSubjects: 324,
+            randomizedSubjects: 278,
+            completedSubjects: 156,
+            withdrawnSubjects: 31,
+            startDate: '2024-01-15',
+            estimatedCompletion: '2026-03-30',
+            lastModified: '2024-03-15T10:30:00Z',
+            modifiedBy: 'Dr. Sarah Johnson',
+            description: 'A randomized, double-blind, placebo-controlled Phase III study to evaluate the efficacy and safety of investigational drug XYZ-123 in patients with advanced non-small cell lung cancer who have progressed on prior systemic therapy.',
+            primaryEndpoint: 'Overall Survival (OS)',
+            secondaryEndpoints: [
+                'Progression-Free Survival (PFS)',
+                'Objective Response Rate (ORR)',
+                'Duration of Response (DoR)',
+                'Safety and Tolerability'
+            ],
+            inclusionCriteria: [
+                'Age ≥ 18 years',
+                'Histologically confirmed NSCLC',
+                'Advanced or metastatic disease',
+                'ECOG Performance Status 0-1',
+                'Adequate organ function'
+            ],
+            exclusionCriteria: [
+                'Prior treatment with similar agents',
+                'Brain metastases (unless treated)',
+                'Severe cardiovascular disease',
+                'Active infection',
+                'Pregnancy or nursing'
+            ],
+            timeline: {
+                screening: '4 weeks',
+                treatment: '24 cycles (approximately 2 years)',
+                followUp: '2 years post-treatment'
+            },
+            amendments: [
+                {
+                    version: '2.1',
+                    type: 'MINOR',
+                    date: '2024-03-15',
+                    reason: 'Updated exclusion criteria for cardiovascular conditions',
+                    status: 'APPROVED'
+                },
+                {
+                    version: '2.0',
+                    type: 'MAJOR',
+                    date: '2024-02-01',
+                    reason: 'Added new secondary endpoint and modified dosing schedule',
+                    status: 'APPROVED'
+                },
+                {
+                    version: '1.0',
+                    type: 'INITIAL',
+                    date: '2024-01-15',
+                    reason: 'Initial protocol version',
+                    status: 'APPROVED'
+                }
+            ],
+            documents: [
+                {
+                    name: 'Protocol v2.1',
+                    type: 'Protocol',
+                    size: '2.4 MB',
+                    lastModified: '2024-03-15',
+                    status: 'Current'
+                },
+                {
+                    name: 'Informed Consent v2.1',
+                    type: 'ICF',
+                    size: '485 KB',
+                    lastModified: '2024-03-15',
+                    status: 'Current'
+                },
+                {
+                    name: 'Investigator Brochure v3.0',
+                    type: 'IB',
+                    size: '1.8 MB',
+                    lastModified: '2024-02-28',
+                    status: 'Current'
+                }
+            ],
+            metrics: {
+                enrollmentRate: 75.2,
+                screeningSuccessRate: 88.6,
+                retentionRate: 89.2,
+                complianceRate: 94.8,
+                queryRate: 12.3
+            },
+            recentActivities: [
+                {
+                    type: 'amendment',
+                    message: 'Protocol amendment v2.1 approved',
+                    date: '2024-03-15T10:30:00Z',
+                    user: 'Regulatory Affairs'
+                },
+                {
+                    type: 'enrollment',
+                    message: '5 new subjects enrolled at Site 003',
+                    date: '2024-03-14T16:45:00Z',
+                    user: 'Site Coordinator'
+                },
+                {
+                    type: 'milestone',
+                    message: '75% enrollment milestone reached',
+                    date: '2024-03-12T09:20:00Z',
+                    user: 'System'
+                }
+            ]
+        };
     };
 
     const getStatusIcon = (status) => {

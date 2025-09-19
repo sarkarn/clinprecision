@@ -1,4 +1,4 @@
-# Multi-stage build for Java Spring Boot application
+# Multi-stage build for Java Spring Boot Config Server
 FROM openjdk:21-jdk-slim AS build
 
 # Set working directory
@@ -33,12 +33,12 @@ RUN groupadd -r spring && useradd -r -g spring spring
 RUN chown -R spring:spring /app
 USER spring
 
-# Expose port (will use dynamic port from SERVER_PORT env var)
-EXPOSE ${SERVER_PORT:-8080}
+# Expose port for Config Server
+EXPOSE 8888
 
-# Health check (use dynamic port)
+# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${SERVER_PORT:-8080}/actuator/health || exit 1
+    CMD curl -f http://localhost:8888/actuator/health || exit 1
 
 # Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"] 
+ENTRYPOINT ["java", "-jar", "app.jar"]
