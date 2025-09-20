@@ -17,6 +17,21 @@ const CRFBuilderIntegration = () => {
     const isStudyContext = !!studyId;
     const formService = isStudyContext ? StudyFormService : FormService;
 
+    // DEBUG: Log URL parameters and context detection on component mount
+    useEffect(() => {
+        console.log('=== CRF BUILDER COMPONENT MOUNTED ===');
+        console.log('URL Parameters extracted:', { formId, versionId, studyId });
+        console.log('Context Detection Result:', {
+            isStudyContext,
+            studyIdExists: !!studyId,
+            studyIdValue: studyId,
+            studyIdType: typeof studyId
+        });
+        console.log('Selected service:', isStudyContext ? 'StudyFormService' : 'FormService');
+        console.log('Current URL:', window.location.href);
+        console.log('Current pathname:', window.location.pathname);
+    }, [formId, versionId, studyId, isStudyContext]);
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [form, setForm] = useState(null);
@@ -207,6 +222,11 @@ const CRFBuilderIntegration = () => {
             setSaving(true);
             setError(null);
 
+            console.log('=== CRF BUILDER SAVE FORM DEBUG ===');
+            console.log('URL Parameters:', { formId, studyId, versionId });
+            console.log('Context Detection:', { isStudyContext, studyId });
+            console.log('Form metadata received:', formMetadata);
+
             const formData = {
                 name: formMetadata?.name || form?.name || 'Untitled Form',
                 description: formMetadata?.description || form?.description || '',
@@ -218,29 +238,71 @@ const CRFBuilderIntegration = () => {
                 templateId: form?.templateId || null
             };
 
+            console.log('Base form data prepared:', formData);
+
             let savedForm;
             if (formId) {
+                console.log('=== UPDATING EXISTING FORM ===');
+                console.log('Form ID:', formId);
                 // Update existing form using appropriate service
                 if (isStudyContext) {
+                    console.log('Using StudyFormService.updateStudyForm()');
                     savedForm = await StudyFormService.updateStudyForm(formId, formData);
                 } else {
+                    console.log('Using FormService.updateForm()');
                     savedForm = await FormService.updateForm(formId, formData);
                 }
             } else {
+                console.log('=== CREATING NEW FORM ===');
+                console.log('Evaluating context condition: isStudyContext && studyId');
+                console.log('isStudyContext =', isStudyContext, '(type:', typeof isStudyContext, ')');
+                console.log('studyId =', studyId, '(type:', typeof studyId, ')');
+                console.log('Condition result:', isStudyContext && studyId);
+
                 // Create new form using appropriate service
                 if (isStudyContext && studyId) {
+                    console.log('*** CONDITION TRUE: STUDY CONTEXT PATH ***');
+                    console.log('STUDY CONTEXT DETECTED - Creating study-specific form');
+                    console.log('studyId value:', studyId, 'type:', typeof studyId);
+                    console.log('isStudyContext value:', isStudyContext);
+
+                    // EXPLICIT CHECK: If we're in study context, DO NOT call FormService
+                    if (!isStudyContext || !studyId) {
+                        throw new Error('CRITICAL ERROR: Study context detected but missing studyId or isStudyContext is false');
+                    }
+
                     const studyFormData = {
                         ...formData,
                         studyId: parseInt(studyId)
                     };
+                    console.log('Study form data being sent:', studyFormData);
+                    console.log('*** CALLING StudyFormService.createStudyForm() ***');
+                    console.log('API endpoint should be: /study-design-ws/api/form-definitions');
+                    console.log('Expected backend controller: FormDefinitionController');
+
+                    // Add a marker to track this call
+                    window.lastFormCreationCall = 'StudyFormService.createStudyForm';
                     savedForm = await StudyFormService.createStudyForm(studyFormData);
                 } else {
+                    console.log('*** CONDITION FALSE: LIBRARY CONTEXT PATH ***');
+                    console.log('LIBRARY CONTEXT DETECTED - Creating library/template form');
+                    console.log('studyId value:', studyId, 'isStudyContext:', isStudyContext);
+                    console.log('*** CALLING FormService.createForm() ***');
+                    console.log('API endpoint should be: /study-design-ws/api/form-templates');
+                    console.log('Expected backend controller: FormTemplateController');
+
+                    // Add a marker to track this call
+                    window.lastFormCreationCall = 'FormService.createForm';
                     savedForm = await FormService.createForm(formData);
                 }
             }
 
             setForm(savedForm);
             setChanges(false);
+
+            console.log('=== FORM SAVE SUCCESSFUL ===');
+            console.log('Saved form response:', savedForm);
+            console.log('Form saved to:', isStudyContext ? 'STUDY-SPECIFIC' : 'LIBRARY');
 
             // Show success message
             alert('Form saved successfully!');
@@ -251,6 +313,8 @@ const CRFBuilderIntegration = () => {
                 const builderPath = isStudyContext
                     ? `/study-design/study/${studyId}/forms/builder/${savedForm.id}`
                     : `/study-design/forms/builder/${savedForm.id}`;
+
+                console.log('Updating URL to:', builderPath);
 
                 // Use window.history.replaceState to update URL without reload
                 window.history.replaceState(null, '', builderPath);
@@ -870,9 +934,11 @@ const CRFBuilderIntegration = () => {
             };
 
             if (!formId) {
+                console.log('*** handleSave: Creating new form ***');
+                console.log('Context check: isStudyContext =', isStudyContext, ', studyId =', studyId);
+
                 // Create new form
                 const newFormData = {
-                    templateId: form?.templateId || `FORM-${Date.now()}`, // Backend requires templateId
                     name: form?.name || "New Form",
                     description: form?.description || "Form created with CRF Builder",
                     category: form?.type || form?.category || "Custom", // Map type to category
@@ -886,12 +952,40 @@ const CRFBuilderIntegration = () => {
                 };
 
                 let result;
-                if (selectedTemplate && form?.templateId) {
-                    // Create from template
-                    result = await FormService.createFormFromTemplate(form.templateId, newFormData);
+                if (isStudyContext && studyId) {
+                    console.log('*** handleSave: STUDY CONTEXT - Using StudyFormService ***');
+                    // Add studyId for study-specific forms
+                    const studyFormData = {
+                        ...newFormData,
+                        studyId: parseInt(studyId),
+                        // For study forms, templateId should be null for new forms or a valid Long for template-based forms
+                        templateId: (selectedTemplate && form?.templateId && !isNaN(form.templateId)) ? parseInt(form.templateId) : null
+                    };
+
+                    console.log('Study form data being sent:', studyFormData);
+
+                    if (selectedTemplate && form?.templateId && !isNaN(form.templateId)) {
+                        // Create from template - templateId should be a valid Long
+                        result = await StudyFormService.createStudyFormFromTemplate(studyId, parseInt(form.templateId), studyFormData.name, studyFormData);
+                    } else {
+                        // Create from scratch - templateId should be null
+                        result = await StudyFormService.createStudyForm(studyFormData);
+                    }
                 } else {
-                    // Create from scratch
-                    result = await FormService.createForm(newFormData);
+                    console.log('*** handleSave: LIBRARY CONTEXT - Using FormService ***');
+                    // For library/template forms, we need a string templateId
+                    const libraryFormData = {
+                        ...newFormData,
+                        templateId: form?.templateId || `FORM-${Date.now()}` // String ID for templates
+                    };
+
+                    if (selectedTemplate && form?.templateId) {
+                        // Create from template
+                        result = await FormService.createFormFromTemplate(form.templateId, libraryFormData);
+                    } else {
+                        // Create from scratch
+                        result = await FormService.createForm(libraryFormData);
+                    }
                 }
 
                 alert("Form created successfully!");

@@ -5,6 +5,8 @@ import com.clinprecision.studydesignservice.dto.FormDefinitionDto;
 import com.clinprecision.studydesignservice.entity.FormDefinitionEntity;
 import com.clinprecision.studydesignservice.service.FormDefinitionService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,8 @@ import java.util.List;
 @RequestMapping("/api/form-definitions")
 public class FormDefinitionController {
     
+    private static final Logger logger = LoggerFactory.getLogger(FormDefinitionController.class);
+    
     private final FormDefinitionService formDefinitionService;
     
     @Autowired
@@ -33,8 +37,19 @@ public class FormDefinitionController {
      */
     @PostMapping
     public ResponseEntity<FormDefinitionDto> createFormDefinition(@Valid @RequestBody FormDefinitionCreateRequestDto requestDto) {
-        FormDefinitionDto createdForm = formDefinitionService.createFormDefinition(requestDto);
-        return new ResponseEntity<>(createdForm, HttpStatus.CREATED);
+        logger.info("POST /api/form-definitions - Creating form definition");
+        logger.info("Request data: studyId={}, name='{}', formType='{}', status='{}'", 
+                   requestDto.getStudyId(), requestDto.getName(), requestDto.getFormType(), requestDto.getStatus());
+        logger.debug("Full request data: {}", requestDto);
+        
+        try {
+            FormDefinitionDto createdForm = formDefinitionService.createFormDefinition(requestDto);
+            logger.info("Form definition created successfully with ID: {}", createdForm.getId());
+            return new ResponseEntity<>(createdForm, HttpStatus.CREATED);
+        } catch (Exception e) {
+            logger.error("Error creating form definition: {}", e.getMessage(), e);
+            throw e;
+        }
     }
     
     /**

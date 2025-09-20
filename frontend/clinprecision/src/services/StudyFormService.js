@@ -45,20 +45,42 @@ class StudyFormService {
    */
   async createStudyForm(formData) {
     try {
+      console.log('*** StudyFormService.createStudyForm() ENTRY POINT ***');
+      console.log('StudyFormService.createStudyForm() called with data:', formData);
+      console.log('This should call FormDefinitionController, NOT FormTemplateController');
+      
       const enhancedFormData = {
         ...formData,
+        // Map frontend field names to backend DTO field names
+        formType: formData.type || formData.formType || 'General',  // Map 'type' to 'formType'
+        structure: formData.formDefinition || formData.structure || '{}',  // Map 'formDefinition' to 'structure'
         // Ensure required fields for form_definitions table
         fields: formData.fields || '[]',
-        structure: formData.structure || '{}',
         version: formData.version || '1.0',
         isLatestVersion: true,
-        status: formData.status || 'DRAFT'
+        status: formData.status || 'DRAFT',
+        // Ensure templateId is either null or a valid Long
+        templateId: (formData.templateId && !isNaN(formData.templateId)) ? parseInt(formData.templateId) : null
       };
 
+      console.log('Enhanced form data being sent to API:', enhancedFormData);
+      console.log('*** API endpoint:', FORM_DEFINITIONS_PATH);
+      console.log('*** Full URL will be: API_BASE_URL + FORM_DEFINITIONS_PATH');
+      console.log('*** Expected: http://localhost:8083/study-design-ws/api/form-definitions');
+      console.log('*** This should route to FormDefinitionController.createFormDefinition()');
+      
       const response = await ApiService.post(FORM_DEFINITIONS_PATH, enhancedFormData);
+      console.log('*** StudyFormService API response received:', response.data);
+      console.log('*** StudyFormService.createStudyForm() COMPLETED SUCCESSFULLY ***');
       return response.data;
     } catch (error) {
       console.error('Error creating study form:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       throw error;
     }
   }

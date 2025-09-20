@@ -50,6 +50,10 @@ class FormService {
    */
   async createForm(formData) {
     try {
+      console.log('*** FormService.createForm() ENTRY POINT ***');
+      console.log('This should call FormTemplateController, NOT FormDefinitionController');
+      console.log('FormService.createForm() called with data:', formData);
+      
       // Add fields property if not present (required by database)
       const enhancedFormData = {
         ...formData,
@@ -59,8 +63,15 @@ class FormService {
         formDefinition: formData.formDefinition || '{}',
       };
       
+      console.log('*** API endpoint:', API_PATH);
+      console.log('*** Full URL will be: API_BASE_URL + API_PATH');
+      console.log('*** Expected: http://localhost:8083/study-design-ws/api/form-templates');
+      console.log('*** This should route to FormTemplateController.createFormTemplate()');
+      
       try {
         const response = await ApiService.post(API_PATH, enhancedFormData);
+        console.log('*** FormService API response received:', response.data);
+        console.log('*** FormService.createForm() COMPLETED SUCCESSFULLY ***');
         return response.data;
       } catch (error) {
         // If we get a server error, create a mock form with a temporary ID

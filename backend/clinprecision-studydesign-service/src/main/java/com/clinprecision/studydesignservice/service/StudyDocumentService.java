@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
+
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
@@ -267,14 +269,71 @@ public class StudyDocumentService {
     public DocumentStatistics getDocumentStatistics(Long studyId) {
         logger.info("Getting document statistics for study: {}", studyId);
         
-        Object[] stats = documentRepository.getDocumentStatistics(studyId);
+        try {
+            Object[] stats = documentRepository.getDocumentStatistics(studyId);
+            
+            // Debug logging to understand what we're getting
+            logger.debug("Statistics query returned: {} elements", stats != null ? stats.length : "null");
+            if (stats != null) {
+                for (int i = 0; i < stats.length; i++) {
+                    Object stat = stats[i];
+                    logger.debug("stats[{}] = {} (type: {})", i, stat, 
+                               stat != null ? stat.getClass().getSimpleName() : "null");
+                }
+            }
+            
+            if (stats == null || stats.length < 4) {
+                logger.warn("Unexpected statistics result for study {}: {}", studyId, 
+                          stats != null ? Arrays.toString(stats) : "null");
+                // Return default statistics
+                return new DocumentStatistics(0L, 0L, 0L, 0L);
+            }
+            
+            // Safely convert each element
+            Long totalCount = convertToLong(stats[0], "total count");
+            Long totalSize = convertToLong(stats[1], "total size"); 
+            Long currentCount = convertToLong(stats[2], "current count");
+            Long draftCount = convertToLong(stats[3], "draft count");
+            
+            return new DocumentStatistics(totalCount, totalSize, currentCount, draftCount);
+            
+        } catch (Exception e) {
+            logger.error("Error getting document statistics for study {}: {}", studyId, e.getMessage(), e);
+            // Return default statistics to prevent application failure
+            return new DocumentStatistics(0L, 0L, 0L, 0L);
+        }
+    }
+    
+    /**
+     * Safely convert an object to Long
+     * @param obj The object to convert
+     * @param fieldName The field name for error reporting
+     * @return Long value or 0 if conversion fails
+     */
+    private Long convertToLong(Object obj, String fieldName) {
+        if (obj == null) {
+            logger.warn("Null value found for {}, defaulting to 0", fieldName);
+            return 0L;
+        }
         
-        return new DocumentStatistics(
-            ((Number) stats[0]).longValue(),  // total count
-            ((Number) stats[1]).longValue(),  // total size
-            ((Number) stats[2]).longValue(),  // current count
-            ((Number) stats[3]).longValue()   // draft count
-        );
+        try {
+            if (obj instanceof Number) {
+                return ((Number) obj).longValue();
+            } else if (obj instanceof Object[]) {
+                Object[] array = (Object[]) obj;
+                logger.warn("Unexpected array found for {}: {}, taking first element", fieldName, Arrays.toString(array));
+                if (array.length > 0 && array[0] instanceof Number) {
+                    return ((Number) array[0]).longValue();
+                }
+            } else {
+                logger.warn("Unexpected type for {}: {}, attempting string conversion", fieldName, obj.getClass().getSimpleName());
+                return Long.parseLong(obj.toString());
+            }
+        } catch (Exception e) {
+            logger.error("Failed to convert {} to Long: {}", fieldName, e.getMessage());
+        }
+        
+        return 0L;
     }
 
     /**
