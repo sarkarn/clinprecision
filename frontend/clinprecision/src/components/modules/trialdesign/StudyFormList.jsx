@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import StudyFormService from '../../../services/StudyFormService';
 import StudyService from '../../../services/StudyService';
+import { Alert } from './components/UIComponents';
 
 const StudyFormList = () => {
     const { studyId } = useParams();
@@ -12,6 +13,13 @@ const StudyFormList = () => {
     const [showTemplateSelector, setShowTemplateSelector] = useState(false);
     const [availableTemplates, setAvailableTemplates] = useState([]);
     const [templatesLoading, setTemplatesLoading] = useState(false);
+
+    // Success message state
+    const [successMessage, setSuccessMessage] = useState(null);
+
+    // Error message state  
+    const [errorMessage, setErrorMessage] = useState(null);
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -73,9 +81,20 @@ const StudyFormList = () => {
             try {
                 await StudyFormService.deleteStudyForm(formId);
                 setForms(forms.filter(form => form.id !== formId));
-                alert('Form deleted successfully');
+                setSuccessMessage({
+                    title: 'Success',
+                    message: 'Form deleted successfully'
+                });
+
+                // Auto-dismiss after 3 seconds
+                setTimeout(() => {
+                    setSuccessMessage(null);
+                }, 3000);
             } catch (err) {
-                alert(`Error deleting form: ${err.message || 'Unknown error'}`);
+                setErrorMessage({
+                    title: 'Error',
+                    message: `Error deleting form: ${err.message || 'Unknown error'}`
+                });
                 console.error('Error deleting form:', err);
             }
         }
@@ -102,10 +121,24 @@ const StudyFormList = () => {
                 formName
             );
 
+            // Show success message
+            setSuccessMessage({
+                title: 'Success',
+                message: `Form created successfully from template "${template.name}"!`
+            });
+
             setShowTemplateSelector(false);
-            navigate(`/study-design/study/${studyId}/forms/builder/${newForm.id}`);
+
+            // Auto-dismiss message after 3 seconds and navigate
+            setTimeout(() => {
+                setSuccessMessage(null);
+                navigate(`/study-design/study/${studyId}/forms/builder/${newForm.id}`);
+            }, 3000);
         } catch (err) {
-            alert(`Error creating form from template: ${err.message || 'Unknown error'}`);
+            setErrorMessage({
+                title: 'Error',
+                message: `Error creating form from template: ${err.message || 'Unknown error'}`
+            });
             console.error('Error creating form from template:', err);
         }
     };
@@ -185,6 +218,30 @@ const StudyFormList = () => {
 
     return (
         <div className="container mx-auto p-6">
+            {/* Success Message */}
+            {successMessage && (
+                <div className="mb-6">
+                    <Alert
+                        type="success"
+                        title={successMessage.title}
+                        message={successMessage.message}
+                        onClose={() => setSuccessMessage(null)}
+                    />
+                </div>
+            )}
+
+            {/* Error Message */}
+            {errorMessage && (
+                <div className="mb-6">
+                    <Alert
+                        type="error"
+                        title={errorMessage.title}
+                        message={errorMessage.message}
+                        onClose={() => setErrorMessage(null)}
+                    />
+                </div>
+            )}
+
             <div className="bg-white rounded-lg shadow">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200">

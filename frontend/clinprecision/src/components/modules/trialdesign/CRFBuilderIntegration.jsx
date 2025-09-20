@@ -4,6 +4,7 @@ import { Plus, Trash2, Settings, Table, List, ChevronDown, ChevronUp, Eye, Edit3
 import FormService from '../../../services/FormService';
 import StudyFormService from '../../../services/StudyFormService';
 import FormVersionService from '../../../services/FormVersionService';
+import { Alert } from './components/UIComponents';
 
 /**
  * This component acts as a bridge between the CRF Builder (to be implemented) 
@@ -43,6 +44,12 @@ const CRFBuilderIntegration = () => {
     const [previewMode, setPreviewMode] = useState(false);
     const [previewData, setPreviewData] = useState({});
     const [activeMetadataTab, setActiveMetadataTab] = useState({});
+
+    // Success message state
+    const [successMessage, setSuccessMessage] = useState(null);
+
+    // Error message state
+    const [errorMessage, setErrorMessage] = useState(null);
 
     // Template selection for new forms
     const [showTemplateSelector, setShowTemplateSelector] = useState(false);
@@ -305,7 +312,15 @@ const CRFBuilderIntegration = () => {
             console.log('Form saved to:', isStudyContext ? 'STUDY-SPECIFIC' : 'LIBRARY');
 
             // Show success message
-            alert('Form saved successfully!');
+            setSuccessMessage({
+                title: 'Success',
+                message: 'Form saved successfully!'
+            });
+
+            // Auto-dismiss after 3 seconds
+            setTimeout(() => {
+                setSuccessMessage(null);
+            }, 3000);
 
             // For new forms, update the URL without navigation to avoid reload
             if (!formId) {
@@ -988,11 +1003,20 @@ const CRFBuilderIntegration = () => {
                     }
                 }
 
-                alert("Form created successfully!");
-                const builderPath = isStudyContext
-                    ? `/study-design/study/${studyId}/forms/builder/${result.id}`
-                    : `/study-design/forms/builder/${result.id}`;
-                navigate(builderPath);
+                // Show success message and navigate
+                setSuccessMessage({
+                    title: 'Success',
+                    message: 'Form created successfully!'
+                });
+
+                // Auto-dismiss after 3 seconds and navigate
+                setTimeout(() => {
+                    setSuccessMessage(null);
+                    const builderPath = isStudyContext
+                        ? `/study-design/study/${studyId}/forms/builder/${result.id}`
+                        : `/study-design/forms/builder/${result.id}`;
+                    navigate(builderPath);
+                }, 3000);
             } else {
                 // Update existing form
                 const updatedFormData = {
@@ -1010,18 +1034,31 @@ const CRFBuilderIntegration = () => {
                 };
 
                 await FormService.updateForm(formId, updatedFormData);
-                alert("Form updated successfully!");
-                const formListPath = isStudyContext
-                    ? `/study-design/study/${studyId}/forms`
-                    : `/study-design/forms`;
-                navigate(formListPath);
+
+                // Show success message and navigate
+                setSuccessMessage({
+                    title: 'Success',
+                    message: 'Form updated successfully!'
+                });
+
+                // Auto-dismiss after 3 seconds and navigate
+                setTimeout(() => {
+                    setSuccessMessage(null);
+                    const formListPath = isStudyContext
+                        ? `/study-design/study/${studyId}/forms`
+                        : `/study-design/forms`;
+                    navigate(formListPath);
+                }, 3000);
             }
 
             setSaving(false);
             setChanges(false);
         } catch (err) {
             console.error("Error saving form:", err);
-            alert(`Failed to save form: ${err.message || "Unknown error"}`);
+            setErrorMessage({
+                title: 'Error',
+                message: `Failed to save form: ${err.message || "Unknown error"}`
+            });
             setSaving(false);
         }
     };
@@ -1048,6 +1085,30 @@ const CRFBuilderIntegration = () => {
             <h2 className="text-2xl font-bold mb-6">
                 {formId ? `Edit Form: ${form?.name}` : "Create New Form"}
             </h2>
+
+            {/* Success Message */}
+            {successMessage && (
+                <div className="mb-6">
+                    <Alert
+                        type="success"
+                        title={successMessage.title}
+                        message={successMessage.message}
+                        onClose={() => setSuccessMessage(null)}
+                    />
+                </div>
+            )}
+
+            {/* Error Message */}
+            {errorMessage && (
+                <div className="mb-6">
+                    <Alert
+                        type="error"
+                        title={errorMessage.title}
+                        message={errorMessage.message}
+                        onClose={() => setErrorMessage(null)}
+                    />
+                </div>
+            )}
 
             {/* Template indicator for new forms */}
             {!formId && selectedTemplate && (

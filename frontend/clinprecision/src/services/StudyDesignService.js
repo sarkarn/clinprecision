@@ -112,7 +112,8 @@ class StudyDesignService {
 
     async publishStudy(studyId, publishData) {
         try {
-            const response = await ApiService.post(`/studies/${studyId}/publish`, publishData);
+            // Backend endpoint only expects the studyId path parameter, no request body
+            const response = await ApiService.patch(`/api/studies/${studyId}/publish`);
             return response.data;
         } catch (error) {
             console.error('Error publishing study:', error);

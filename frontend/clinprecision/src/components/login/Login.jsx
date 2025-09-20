@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import LoginService from "../../services/LoginService";
+import RequestDemoModal from "../common/modals/RequestDemoModal";
 import {
     Shield,
     Zap,
@@ -24,6 +25,7 @@ export default function Login() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showDemoModal, setShowDemoModal] = useState(false);
     const auth = useAuth();
     const navigate = useNavigate();
 
@@ -69,6 +71,10 @@ export default function Login() {
         }
     };
 
+    const handleDemoRequest = () => {
+        setShowDemoModal(true);
+    };
+
     const features = [
         {
             title: "AI-Driven Protocol Deviation Review",
@@ -93,8 +99,8 @@ export default function Login() {
     ];
 
     const stats = [
-        { number: "500+", label: "Clinical Trials" },
-        { number: "50K+", label: "Patients Enrolled" },
+        { number: "0K+", label: "Clinical Trials" },
+        { number: "0K+", label: "Patients Enrolled" },
         { number: "99.9%", label: "Uptime SLA" },
         { number: "24/7", label: "Support" }
     ];
@@ -283,7 +289,10 @@ export default function Login() {
                                 <div className="mt-6 pt-6 border-t border-gray-200 text-center">
                                     <p className="text-sm text-gray-600">
                                         Need access to ClinPrecision?{" "}
-                                        <button className="text-blue-600 hover:text-blue-700 font-medium">
+                                        <button
+                                            onClick={handleDemoRequest}
+                                            className="text-blue-600 hover:text-blue-700 font-medium focus:outline-none focus:underline"
+                                        >
                                             Request Demo
                                         </button>
                                     </p>
@@ -305,6 +314,12 @@ export default function Login() {
                     </div>
                 </div>
             </div>
+
+            {/* Request Demo Modal */}
+            <RequestDemoModal
+                isOpen={showDemoModal}
+                onClose={() => setShowDemoModal(false)}
+            />
         </div>
     );
 }
