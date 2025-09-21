@@ -697,10 +697,10 @@ export default function Login() {
                                 <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <span className="text-white text-xl font-bold">NS</span>
                                 </div>
-                                <h4 className="text-lg font-semibold text-gray-900">Dr. Naren Sarkar</h4>
+                                <h4 className="text-lg font-semibold text-gray-900">Narendra Sarkar</h4>
                                 <p className="text-blue-600 font-medium">Co-Founder & CEO</p>
                                 <p className="text-gray-600 text-sm mt-2">
-                                    15+ years in clinical research, former VP at leading CRO
+                                    12+ years in clinical research, former Head of Portfolio Lead Architecture at leading CRO
                                 </p>
                             </div>
 
@@ -804,9 +804,7 @@ export default function Login() {
                                     <div>
                                         <h4 className="font-semibold text-gray-900">Visit Us</h4>
                                         <p className="text-gray-600">
-                                            San Francisco, CA<br />
-                                            Boston, MA<br />
-                                            London, UK
+                                            Cgicago, IL<br />
                                         </p>
                                     </div>
                                 </div>
