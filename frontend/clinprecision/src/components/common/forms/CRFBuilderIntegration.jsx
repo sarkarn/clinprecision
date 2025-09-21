@@ -1151,32 +1151,61 @@ const CRFBuilderIntegration = () => {
                     setSuccessMessage(null);
                 }, 3000);
 
-                // Navigate to edit page for the newly created form
+                // Update URL to reflect the newly created form ID without navigation
                 if (result && result.id) {
-                    const editPath = isStudyContext
-                        ? `/study-design/study/${studyId}/forms/${result.id}/edit`
-                        : `/study-design/forms/${result.id}/edit`;
-                    console.log('*** handleSave: Navigating to edit page:', editPath);
-                    navigate(editPath);
+                    const builderPath = isStudyContext
+                        ? `/study-design/study/${studyId}/forms/builder/${result.id}`
+                        : `/study-design/forms/builder/${result.id}`;
+                    console.log('*** handleSave: Updating URL to reflect new form ID:', builderPath);
+
+                    // Use window.history.replaceState to update URL without reload
+                    window.history.replaceState(null, '', builderPath);
+
+                    // The component will continue working with the form data we already have
+                    console.log('*** handleSave: URL updated, staying on form builder page');
                 }
             } else {
                 // Update existing form
-                const updatedFormData = {
-                    templateId: form?.id || form?.templateId || `FORM-${Date.now()}`, // Backend requires templateId
-                    name: form?.name || "Updated Form",
-                    description: form?.description || "Form updated via CRF Builder",
-                    category: form?.type || form?.category || "Custom", // Map type to category  
-                    version: form?.version || "1.0",
-                    isLatestVersion: true,
-                    status: form?.status || "DRAFT", // Ensure uppercase enum value
-                    fields: JSON.stringify(allFields), // Field definitions as JSON string
-                    structure: JSON.stringify(structureData), // Structure/layout as JSON string
-                    tags: form?.tags || "",
-                    createdBy: form?.createdBy || 1 // Default user ID
-                };
+                console.log('*** handleSave: Updating existing form with ID:', formId);
+                console.log('*** handleSave: Context - isStudyContext:', isStudyContext, 'studyId:', studyId);
 
-                console.log('*** handleSave: About to update existing form with ID:', formId);
-                await FormService.updateForm(formId, updatedFormData);
+                if (isStudyContext && studyId) {
+                    console.log('*** handleSave: STUDY CONTEXT - Using StudyFormService for update ***');
+                    // Update in study context
+                    const studyFormData = {
+                        studyId: studyId, // Required field for backend validation
+                        name: form?.name || "Updated Form",
+                        description: form?.description || "Form updated via CRF Builder",
+                        formType: form?.type || form?.formType || "General",
+                        version: form?.version || "1.0",
+                        status: form?.status || "DRAFT",
+                        fields: JSON.stringify(allFields),
+                        structure: JSON.stringify(structureData),
+                        templateId: form?.templateId || null
+                    };
+
+                    console.log('*** handleSave: Study form data for update:', studyFormData);
+                    await StudyFormService.updateStudyForm(formId, studyFormData);
+                } else {
+                    console.log('*** handleSave: LIBRARY CONTEXT - Using FormService for update ***');
+                    // Update in library/template context
+                    const updatedFormData = {
+                        templateId: form?.id || form?.templateId || `FORM-${Date.now()}`, // Backend requires templateId
+                        name: form?.name || "Updated Form",
+                        description: form?.description || "Form updated via CRF Builder",
+                        category: form?.type || form?.category || "Custom", // Map type to category  
+                        version: form?.version || "1.0",
+                        isLatestVersion: true,
+                        status: form?.status || "DRAFT", // Ensure uppercase enum value
+                        fields: JSON.stringify(allFields), // Field definitions as JSON string
+                        structure: JSON.stringify(structureData), // Structure/layout as JSON string
+                        tags: form?.tags || "",
+                        createdBy: form?.createdBy || 1 // Default user ID
+                    };
+
+                    await FormService.updateForm(formId, updatedFormData);
+                }
+
                 console.log('*** handleSave: Form update completed successfully ***');
 
                 // Show success message for form update
