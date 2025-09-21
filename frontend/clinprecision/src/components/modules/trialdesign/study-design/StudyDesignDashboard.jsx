@@ -10,6 +10,10 @@ import FormBindingDesigner from './FormBindingDesigner';
 import StudyPublishWorkflow from './StudyPublishWorkflow';
 import ProtocolRevisionWorkflow from './ProtocolRevisionWorkflow';
 
+// Import services
+import { getStudyById } from '../../../../services/StudyService';
+import StudyDesignService from '../../../../services/StudyDesignService';
+
 /**
  * Study Design Dashboard Component
  * Main orchestrator for the complete study design workflow
@@ -102,6 +106,13 @@ const StudyDesignDashboard = () => {
         loadStudyData();
     }, [studyId]);
 
+    // Reload progress when navigating between phases to show updated status
+    useEffect(() => {
+        if (studyId) {
+            loadDesignProgress();
+        }
+    }, [location.pathname, studyId]);
+
     // Update current phase when route changes
     useEffect(() => {
         const newPhase = getCurrentPhaseFromUrl();
@@ -121,39 +132,85 @@ const StudyDesignDashboard = () => {
     const loadStudyData = async () => {
         try {
             setLoading(true);
+            setErrors([]);
 
-            // Mock data - replace with actual API call
-            const mockData = {
-                study: {
-                    id: studyId,
-                    name: 'Phase III Oncology Trial - Advanced NSCLC',
-                    state: 'DESIGN',
-                    version: '1.0',
-                    lastModified: '2024-01-15T10:30:00Z',
-                    createdBy: 'Dr. Sarah Johnson',
-                    studyPhase: 'Phase III',
-                    indication: 'Advanced Non-Small Cell Lung Cancer'
-                },
-                designProgress: {
-                    'basic-info': { completed: true, percentage: 100, lastUpdated: '2024-01-10T09:00:00Z' },
-                    'arms': { completed: true, percentage: 85, lastUpdated: '2024-01-12T14:30:00Z' },
-                    'visits': { completed: true, percentage: 90, lastUpdated: '2024-01-13T11:15:00Z' },
-                    'forms': { completed: false, percentage: 60, lastUpdated: '2024-01-14T16:45:00Z' },
-                    'review': { completed: false, percentage: 0, lastUpdated: null },
-                    'publish': { completed: false, percentage: 0, lastUpdated: null },
-                    'revisions': { completed: false, percentage: 0, lastUpdated: null }
-                },
-                completedPhases: ['basic-info', 'arms', 'visits']
-            };
+            // Fetch real study data from backend
+            const studyResponse = await getStudyById(studyId);
+            setStudy(studyResponse);
 
-            setStudy(mockData.study);
-            setDesignProgress(mockData.designProgress);
-            setCompletedPhases(mockData.completedPhases);
+            // Fetch design progress from backend API
+            try {
+                const designProgressResponse = await StudyDesignService.getDesignProgress(studyId);
+
+                // Check if response is in expected format (has progressData)
+                const progressData = designProgressResponse.progressData || designProgressResponse;
+                setDesignProgress(progressData);
+
+                // Calculate completed phases based on progress data
+                const completed = Object.entries(progressData).filter(
+                    ([_, progress]) => progress && progress.completed
+                ).map(([phaseId, _]) => phaseId);
+
+                setCompletedPhases(completed);
+
+                console.info('Design progress loaded successfully for study', studyId);
+
+            } catch (progressError) {
+                console.warn('Design progress API call failed, initializing default progress:', progressError);
+
+                // Try to initialize design progress for this study
+                try {
+                    await StudyDesignService.initializeDesignProgress(studyId);
+                    // Retry fetching progress after initialization
+                    const retryProgressResponse = await StudyDesignService.getDesignProgress(studyId);
+                    const progressData = retryProgressResponse.progressData || retryProgressResponse;
+                    setDesignProgress(progressData);
+
+                    const completed = Object.entries(progressData).filter(
+                        ([_, progress]) => progress && progress.completed
+                    ).map(([phaseId, _]) => phaseId);
+                    setCompletedPhases(completed);
+
+                } catch (initError) {
+                    console.error('Failed to initialize design progress, using fallback:', initError);
+                    // Fallback to default state if initialization fails
+                    setDesignProgress({
+                        'basic-info': { completed: true, percentage: 100, lastUpdated: new Date().toISOString() },
+                        'arms': { completed: false, percentage: 0, lastUpdated: null },
+                        'visits': { completed: false, percentage: 0, lastUpdated: null },
+                        'forms': { completed: false, percentage: 0, lastUpdated: null },
+                        'review': { completed: false, percentage: 0, lastUpdated: null },
+                        'publish': { completed: false, percentage: 0, lastUpdated: null },
+                        'revisions': { completed: false, percentage: 0, lastUpdated: null }
+                    });
+                    setCompletedPhases(['basic-info']);
+                }
+            }
+
             setLoading(false);
         } catch (error) {
             console.error('Error loading study design data:', error);
-            setErrors(['Failed to load study design data']);
+            setErrors(['Failed to load study design data. Please check your connection and try again.']);
             setLoading(false);
+        }
+    };
+
+    // Load only design progress (for updates without full reload)
+    const loadDesignProgress = async () => {
+        try {
+            const designProgressResponse = await StudyDesignService.getDesignProgress(studyId);
+            const progressData = designProgressResponse.progressData || designProgressResponse;
+            setDesignProgress(progressData);
+
+            // Update completed phases
+            const completed = Object.entries(progressData).filter(
+                ([_, progress]) => progress && progress.completed
+            ).map(([phaseId, _]) => phaseId);
+            setCompletedPhases(completed);
+
+            console.info('Design progress refreshed for study', studyId);
+        } catch (error) {
+            console.warn('Failed to refresh design progress:', error);
         }
     };
 
@@ -186,6 +243,22 @@ const StudyDesignDashboard = () => {
 
     // Check if phase is accessible
     const isPhaseAccessible = (phaseId) => {
+        // For development: Allow access to all phases except publish and revisions
+        // which should only be accessible after completing the design phases
+        if (['basic-info', 'arms', 'visits', 'forms', 'review'].includes(phaseId)) {
+            return true;
+        }
+
+        // For publish and revisions, check if review is completed
+        if (phaseId === 'publish') {
+            return completedPhases.includes('review');
+        }
+
+        if (phaseId === 'revisions') {
+            return completedPhases.includes('publish') || completedPhases.includes('review');
+        }
+
+        // Fallback to original logic for any other phases
         const phaseIndex = designPhases.findIndex(p => p.id === phaseId);
         if (phaseIndex === 0) return true; // First phase is always accessible
 
@@ -321,7 +394,7 @@ const StudyDesignHeader = ({ study, currentPhase, overallCompletion, onBack }) =
                         {/* Study Info */}
                         <div className="text-right">
                             <div className="text-sm font-medium text-gray-900">Version {study?.version}</div>
-                            <div className="text-xs text-gray-600">{study?.state}</div>
+                            <div className="text-xs text-gray-600">{study?.studyStatus?.name || study?.state || 'Draft'}</div>
                         </div>
                     </div>
                 </div>
@@ -444,8 +517,16 @@ const BasicInfoSummary = ({ study }) => {
                         <div className="mt-1 text-sm text-gray-900">{study?.name}</div>
                     </div>
                     <div>
+                        <label className="block text-sm font-medium text-gray-700">Protocol Number</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.protocolNumber || 'Not assigned'}</div>
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700">Study Phase</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.studyPhase}</div>
+                        <div className="mt-1 text-sm text-gray-900">{study?.studyPhase?.name || study?.studyPhase}</div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Study Status</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.studyStatus?.name || study?.studyStatus}</div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Indication</label>
@@ -453,9 +534,31 @@ const BasicInfoSummary = ({ study }) => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Principal Investigator</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.createdBy}</div>
+                        <div className="mt-1 text-sm text-gray-900">{study?.principalInvestigator}</div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Sponsor</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.sponsor}</div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Version</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.version}</div>
                     </div>
                 </div>
+
+                {study?.description && (
+                    <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700">Description</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.description}</div>
+                    </div>
+                )}
+
+                {study?.primaryObjective && (
+                    <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700">Primary Objective</label>
+                        <div className="mt-1 text-sm text-gray-900">{study?.primaryObjective}</div>
+                    </div>
+                )}
 
                 <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
                     <div className="flex items-center">
@@ -473,21 +576,39 @@ const BasicInfoSummary = ({ study }) => {
     );
 };
 
-// Study Review Panel Component (placeholder)
+
+// Study Review Panel Component with completion button
 const StudyReviewPanel = ({ study, designProgress }) => {
+    const [marking, setMarking] = React.useState(false);
+    const [error, setError] = React.useState("");
     const completedPhases = Object.entries(designProgress).filter(
         ([_, progress]) => progress.completed
     );
-
     const pendingPhases = Object.entries(designProgress).filter(
         ([_, progress]) => !progress.completed
     );
-
+    const { studyId } = useParams();
+    // Import loadDesignProgress from parent scope if possible, else reload page
+    const handleMarkReviewComplete = async () => {
+        setMarking(true);
+        setError("");
+        try {
+            await StudyDesignService.updateDesignProgress(studyId, {
+                progressData: {
+                    review: { phase: "review", completed: true, percentage: 100 }
+                }
+            });
+            window.location.reload(); // Or call loadDesignProgress if available
+        } catch (e) {
+            setError("Failed to mark review as complete. Please try again.");
+        } finally {
+            setMarking(false);
+        }
+    };
     return (
         <div className="space-y-6">
             <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Study Design Review</h3>
-
                 {/* Completion Summary */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
@@ -501,7 +622,6 @@ const StudyReviewPanel = ({ study, designProgress }) => {
                             ))}
                         </div>
                     </div>
-
                     <div>
                         <h4 className="font-medium text-gray-900 mb-3">Pending Sections</h4>
                         <div className="space-y-2">
@@ -514,7 +634,6 @@ const StudyReviewPanel = ({ study, designProgress }) => {
                         </div>
                     </div>
                 </div>
-
                 {/* Validation Results */}
                 <div className="border-t border-gray-200 pt-6">
                     <h4 className="font-medium text-gray-900 mb-3">Validation Status</h4>
@@ -527,11 +646,18 @@ const StudyReviewPanel = ({ study, designProgress }) => {
                             <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
                             <span className="text-sm text-green-900">Visit schedule is properly configured</span>
                         </div>
-                        <div className="flex items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <AlertCircle className="h-5 w-5 text-yellow-500 mr-3" />
-                            <span className="text-sm text-yellow-900">Some forms are not bound to visits</span>
-                        </div>
                     </div>
+                </div>
+                {/* Mark Review Complete Button */}
+                <div className="pt-6 flex flex-col items-end">
+                    {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+                    <button
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded shadow disabled:opacity-50"
+                        onClick={handleMarkReviewComplete}
+                        disabled={marking}
+                    >
+                        {marking ? "Marking..." : "Finish Review & Continue"}
+                    </button>
                 </div>
             </div>
         </div>

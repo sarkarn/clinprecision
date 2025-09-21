@@ -2,6 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FileText, Eye, Link, Unlink, Settings, Search, Filter } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
+import VisitService from '../../../../services/VisitService';
+import StudyService from '../../../../services/StudyService';
+import StudyFormService from '../../../../services/StudyFormService';
+import StudyDesignService from '../../../../services/StudyDesignService';
+
+// Helper function to get field count from form
+const getFieldCount = (form) => {
+    if (typeof form.fields === 'number') {
+        return form.fields; // Mock data format
+    }
+    if (typeof form.fields === 'string') {
+        try {
+            const parsedFields = JSON.parse(form.fields);
+            return Array.isArray(parsedFields) ? parsedFields.length : 0;
+        } catch {
+            return 0;
+        }
+    }
+    return 0;
+};
 
 /**
  * Form Binding Designer Component
@@ -34,178 +54,19 @@ const FormBindingDesigner = () => {
         try {
             setLoading(true);
 
-            // Mock data - replace with actual API call
-            const mockData = {
-                study: {
-                    id: studyId,
-                    name: 'Phase III Oncology Trial - Advanced NSCLC',
-                    state: 'DESIGN'
-                },
-                visits: [
-                    { id: 'V001', name: 'Screening', type: 'SCREENING' },
-                    { id: 'V002', name: 'Baseline/Day 1', type: 'BASELINE' },
-                    { id: 'V003', name: 'Week 2', type: 'TREATMENT' },
-                    { id: 'V004', name: 'Week 4', type: 'TREATMENT' },
-                    { id: 'V005', name: 'Week 8', type: 'TREATMENT' },
-                    { id: 'V006', name: 'Week 12', type: 'TREATMENT' },
-                    { id: 'V007', name: 'End of Treatment', type: 'END_OF_TREATMENT' },
-                    { id: 'V008', name: 'Follow-up 30 days', type: 'FOLLOW_UP' }
-                ],
-                forms: [
-                    {
-                        id: 'demographics',
-                        name: 'Demographics',
-                        category: 'Subject Information',
-                        description: 'Basic demographic information',
-                        fields: 15,
-                        version: '1.0',
-                        isRequired: true,
-                        estimatedTime: 5
-                    },
-                    {
-                        id: 'medical_history',
-                        name: 'Medical History',
-                        category: 'Medical Assessment',
-                        description: 'Comprehensive medical history',
-                        fields: 25,
-                        version: '1.2',
-                        isRequired: true,
-                        estimatedTime: 10
-                    },
-                    {
-                        id: 'inclusion_exclusion',
-                        name: 'Inclusion/Exclusion Criteria',
-                        category: 'Eligibility',
-                        description: 'Study eligibility criteria assessment',
-                        fields: 20,
-                        version: '1.0',
-                        isRequired: true,
-                        estimatedTime: 8
-                    },
-                    {
-                        id: 'vital_signs',
-                        name: 'Vital Signs',
-                        category: 'Clinical Assessment',
-                        description: 'Blood pressure, heart rate, temperature',
-                        fields: 8,
-                        version: '1.1',
-                        isRequired: true,
-                        estimatedTime: 3
-                    },
-                    {
-                        id: 'laboratory',
-                        name: 'Laboratory Results',
-                        category: 'Laboratory',
-                        description: 'Hematology, chemistry, urinalysis',
-                        fields: 45,
-                        version: '1.3',
-                        isRequired: true,
-                        estimatedTime: 15
-                    },
-                    {
-                        id: 'adverse_events',
-                        name: 'Adverse Events',
-                        category: 'Safety',
-                        description: 'Adverse event reporting',
-                        fields: 12,
-                        version: '1.0',
-                        isRequired: false,
-                        estimatedTime: 10
-                    },
-                    {
-                        id: 'concomitant_meds',
-                        name: 'Concomitant Medications',
-                        category: 'Medical Assessment',
-                        description: 'Prior and concomitant medications',
-                        fields: 18,
-                        version: '1.1',
-                        isRequired: true,
-                        estimatedTime: 7
-                    },
-                    {
-                        id: 'ecg_reading',
-                        name: 'ECG Reading',
-                        category: 'Cardiac Assessment',
-                        description: 'Electrocardiogram interpretation',
-                        fields: 10,
-                        version: '1.0',
-                        isRequired: true,
-                        estimatedTime: 5
-                    },
-                    {
-                        id: 'tumor_assessment',
-                        name: 'Tumor Assessment (RECIST)',
-                        category: 'Efficacy',
-                        description: 'RECIST 1.1 tumor measurements',
-                        fields: 30,
-                        version: '1.0',
-                        isRequired: true,
-                        estimatedTime: 20
-                    },
-                    {
-                        id: 'quality_of_life',
-                        name: 'Quality of Life (EORTC QLQ-C30)',
-                        category: 'Patient Reported Outcomes',
-                        description: 'EORTC QLQ-C30 questionnaire',
-                        fields: 30,
-                        version: '1.0',
-                        isRequired: false,
-                        estimatedTime: 15
-                    }
-                ],
-                bindings: [
-                    {
-                        id: 'B001',
-                        visitId: 'V001',
-                        formId: 'demographics',
-                        isRequired: true,
-                        timing: 'ANY_TIME',
-                        conditions: [],
-                        reminders: { enabled: true, days: [1, 3] }
-                    },
-                    {
-                        id: 'B002',
-                        visitId: 'V001',
-                        formId: 'medical_history',
-                        isRequired: true,
-                        timing: 'ANY_TIME',
-                        conditions: [],
-                        reminders: { enabled: true, days: [1] }
-                    },
-                    {
-                        id: 'B003',
-                        visitId: 'V001',
-                        formId: 'inclusion_exclusion',
-                        isRequired: true,
-                        timing: 'BEFORE_PROCEDURES',
-                        conditions: [],
-                        reminders: { enabled: true, days: [1] }
-                    },
-                    {
-                        id: 'B004',
-                        visitId: 'V002',
-                        formId: 'vital_signs',
-                        isRequired: true,
-                        timing: 'BEFORE_PROCEDURES',
-                        conditions: [],
-                        reminders: { enabled: true, days: [1] }
-                    },
-                    {
-                        id: 'B005',
-                        visitId: 'V002',
-                        formId: 'laboratory',
-                        isRequired: true,
-                        timing: 'ANY_TIME',
-                        conditions: [],
-                        reminders: { enabled: true, days: [1, 2] }
-                    }
-                ]
-            };
+            // Load actual data from backend APIs
+            const [studyData, visitsData, bindingsData, formsData] = await Promise.all([
+                StudyService.getStudyById(studyId),
+                VisitService.getVisitsByStudy(studyId),
+                VisitService.getVisitFormBindings(studyId), // Load visit-form bindings
+                StudyFormService.getFormsByStudy(studyId) // Load study-specific forms
+            ]);
 
-            setStudy(mockData.study);
-            setVisits(mockData.visits);
-            setForms(mockData.forms);
-            setBindings(mockData.bindings);
+            setStudy(studyData);
+            setVisits(visitsData || []);
+            setBindings(bindingsData || []);
+            setForms(formsData || []);
+
             setLoading(false);
         } catch (error) {
             console.error('Error loading form bindings:', error);
@@ -215,52 +76,73 @@ const FormBindingDesigner = () => {
     };
 
     // Create new binding
-    const handleCreateBinding = (visitId, formId) => {
-        // Check if binding already exists
-        const existingBinding = bindings.find(b => b.visitId === visitId && b.formId === formId);
-        if (existingBinding) {
-            alert('This form is already bound to this visit');
-            return;
+    const handleCreateBinding = async (visitId, formId) => {
+        try {
+            // Check if binding already exists
+            const existingBinding = bindings.find(b =>
+                (b.visitDefinitionId === visitId || b.visitId === visitId) &&
+                (b.formDefinitionId === formId || b.formId === formId)
+            );
+            if (existingBinding) {
+                alert('This form is already bound to this visit');
+                return;
+            }
+
+            const newBinding = {
+                studyId,
+                visitDefinitionId: visitId,
+                formDefinitionId: formId,
+                isRequired: true,
+                timing: 'ANY_TIME',
+                conditions: [],
+                reminders: { enabled: true, days: [1] }
+            };
+
+            const createdBinding = await VisitService.createVisitFormBinding(newBinding);
+            const updatedBindings = [...bindings, createdBinding];
+            setBindings(updatedBindings);
+            setSelectedBinding(createdBinding);
+            setIsDirty(true);
+        } catch (error) {
+            console.error('Error creating binding:', error);
+            setErrors(['Failed to create form binding']);
         }
-
-        const newBinding = {
-            id: `B${String(bindings.length + 1).padStart(3, '0')}`,
-            visitId,
-            formId,
-            isRequired: true,
-            timing: 'ANY_TIME',
-            conditions: [],
-            reminders: { enabled: true, days: [1] }
-        };
-
-        const updatedBindings = [...bindings, newBinding];
-        setBindings(updatedBindings);
-        setSelectedBinding(newBinding);
-        setIsDirty(true);
     };
 
     // Remove binding
-    const handleRemoveBinding = (bindingId) => {
+    const handleRemoveBinding = async (bindingId) => {
         if (window.confirm('Are you sure you want to remove this form binding?')) {
-            const updatedBindings = bindings.filter(b => b.id !== bindingId);
-            setBindings(updatedBindings);
-            if (selectedBinding && selectedBinding.id === bindingId) {
-                setSelectedBinding(null);
+            try {
+                await VisitService.deleteVisitFormBinding(bindingId);
+                const updatedBindings = bindings.filter(b => b.id !== bindingId);
+                setBindings(updatedBindings);
+                if (selectedBinding && selectedBinding.id === bindingId) {
+                    setSelectedBinding(null);
+                }
+                setIsDirty(true);
+            } catch (error) {
+                console.error('Error removing binding:', error);
+                setErrors(['Failed to remove form binding']);
             }
-            setIsDirty(true);
         }
     };
 
     // Update binding
-    const handleUpdateBinding = (bindingId, updates) => {
-        const updatedBindings = bindings.map(binding =>
-            binding.id === bindingId ? { ...binding, ...updates } : binding
-        );
-        setBindings(updatedBindings);
-        if (selectedBinding && selectedBinding.id === bindingId) {
-            setSelectedBinding({ ...selectedBinding, ...updates });
+    const handleUpdateBinding = async (bindingId, updates) => {
+        try {
+            const updatedBinding = await VisitService.updateVisitFormBinding(bindingId, updates);
+            const updatedBindings = bindings.map(binding =>
+                binding.id === bindingId ? updatedBinding : binding
+            );
+            setBindings(updatedBindings);
+            if (selectedBinding && selectedBinding.id === bindingId) {
+                setSelectedBinding(updatedBinding);
+            }
+            setIsDirty(true);
+        } catch (error) {
+            console.error('Error updating binding:', error);
+            setErrors(['Failed to update form binding']);
         }
-        setIsDirty(true);
     };
 
     // Save changes
@@ -275,6 +157,19 @@ const FormBindingDesigner = () => {
 
             // Mock save - replace with actual API call
             console.log('Saving form bindings:', { studyId, bindings });
+
+            // Update design progress to indicate forms phase is completed
+            await StudyDesignService.updateDesignProgress(studyId, {
+                progressData: {
+                    forms: {
+                        phase: 'forms',
+                        completed: true,
+                        percentage: 100,
+                        notes: 'Form binding configuration completed'
+                    }
+                }
+            });
+
             setIsDirty(false);
             setErrors([]);
         } catch (error) {
@@ -303,16 +198,19 @@ const FormBindingDesigner = () => {
     const filteredForms = forms.filter(form => {
         const matchesSearch = form.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             form.description.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = !filterCategory || form.category === filterCategory;
+        const matchesCategory = !filterCategory || form.formType === filterCategory;
         return matchesSearch && matchesCategory;
     });
 
     // Get form categories
-    const formCategories = [...new Set(forms.map(f => f.category))];
+    const formCategories = [...new Set(forms.map(f => f.formType))].filter(Boolean);
 
     // Get binding for visit and form
     const getBinding = (visitId, formId) => {
-        return bindings.find(b => b.visitId === visitId && b.formId === formId);
+        return bindings.find(b =>
+            (b.visitDefinitionId === visitId || b.visitId === visitId) &&
+            (b.formDefinitionId === formId || b.formId === formId)
+        );
     };
 
     if (loading) {
@@ -517,9 +415,9 @@ const FormVisitMatrix = ({
                                 <td className="sticky left-0 bg-white px-4 py-3 border-r border-gray-200">
                                     <div>
                                         <div className="font-medium text-gray-900">{form.name}</div>
-                                        <div className="text-sm text-gray-500">{form.category}</div>
+                                        <div className="text-sm text-gray-500">{form.formType}</div>
                                         <div className="text-xs text-gray-400 mt-1">
-                                            {form.fields} fields • ~{form.estimatedTime}min
+                                            {getFieldCount(form)} fields • v{form.version}
                                         </div>
                                     </div>
                                 </td>
@@ -782,7 +680,7 @@ const FormPreviewPanel = ({ form, visit, binding }) => {
                         </div>
                         <div className="text-right text-sm text-gray-500">
                             <div>Version {form.version}</div>
-                            <div>{form.category}</div>
+                            <div>{form.formType}</div>
                         </div>
                     </div>
 
@@ -811,7 +709,7 @@ const FormPreviewPanel = ({ form, visit, binding }) => {
                     <h5 className="font-medium text-gray-900 mb-3">Form Fields Preview</h5>
                     <div className="space-y-3">
                         {/* Sample fields based on form type */}
-                        {form.id === 'demographics' && (
+                        {form.formType === 'Demographics' && (
                             <>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
@@ -834,7 +732,7 @@ const FormPreviewPanel = ({ form, visit, binding }) => {
                             </>
                         )}
 
-                        {form.id === 'vital_signs' && (
+                        {form.formType === 'Vital Signs' && (
                             <>
                                 <div className="grid grid-cols-3 gap-3">
                                     <div>
@@ -854,11 +752,11 @@ const FormPreviewPanel = ({ form, visit, binding }) => {
                         )}
 
                         {/* Generic preview for other forms */}
-                        {!['demographics', 'vital_signs'].includes(form.id) && (
+                        {!['Demographics', 'Vital Signs'].includes(form.formType) && (
                             <div className="text-gray-500 text-center py-4">
                                 <FileText className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                                <p>Form contains {form.fields} fields</p>
-                                <p className="text-sm">Estimated completion time: ~{form.estimatedTime} minutes</p>
+                                <p>Form contains {getFieldCount(form)} fields</p>
+                                <p className="text-sm">Version: {form.version}</p>
                             </div>
                         )}
                     </div>

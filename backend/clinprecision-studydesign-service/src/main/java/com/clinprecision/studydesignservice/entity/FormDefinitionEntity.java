@@ -61,6 +61,9 @@ public class FormDefinitionEntity {
     @Column(name = "fields", columnDefinition = "JSON", nullable = false)
     private String fields;
     
+    @Column(name = "structure", columnDefinition = "JSON")
+    private String structure;
+    
     @Column(name = "created_by")
     private Long createdBy;
     
@@ -241,6 +244,14 @@ public class FormDefinitionEntity {
     
     public void setFields(String fields) {
         this.fields = fields;
+    }
+    
+    public String getStructure() {
+        return structure;
+    }
+    
+    public void setStructure(String structure) {
+        this.structure = structure;
     }
     
     public Long getCreatedBy() {

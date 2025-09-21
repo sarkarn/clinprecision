@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, Users, Target, Shuffle } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
+import StudyDesignService from '../../../../services/StudyDesignService';
+import StudyService from '../../../../services/StudyService';
 
 /**
  * Study Arms Designer Component
@@ -18,7 +20,8 @@ const StudyArmsDesigner = () => {
     const [randomizationStrategy, setRandomizationStrategy] = useState({
         type: 'SIMPLE',
         blockSize: 4,
-        stratificationFactors: []
+        stratificationFactors: [],
+        allocationRatios: {} // Object to store arm ID -> ratio mapping
     });
     const [loading, setLoading] = useState(true);
     const [errors, setErrors] = useState([]);
@@ -32,55 +35,43 @@ const StudyArmsDesigner = () => {
     const loadStudyData = async () => {
         try {
             setLoading(true);
-            // Mock data for now - replace with actual API call
-            const mockStudy = {
-                id: studyId,
-                name: 'Phase III Oncology Trial - Advanced NSCLC',
-                state: 'DESIGN',
-                arms: [
-                    {
-                        id: 'ARM-001',
-                        name: 'Treatment Arm A',
-                        description: 'Active drug 10mg daily',
-                        type: 'TREATMENT',
-                        sequence: 1,
-                        plannedSubjects: 150,
-                        interventions: [
-                            {
-                                id: 'INT-001',
-                                type: 'DRUG',
-                                name: 'Study Drug XYZ',
-                                dosage: '10mg',
-                                frequency: 'Daily',
-                                route: 'Oral'
-                            }
-                        ]
-                    },
-                    {
-                        id: 'ARM-002',
-                        name: 'Control Arm',
-                        description: 'Placebo matching study drug',
-                        type: 'PLACEBO',
-                        sequence: 2,
-                        plannedSubjects: 150,
-                        interventions: [
-                            {
-                                id: 'INT-002',
-                                type: 'DRUG',
-                                name: 'Placebo',
-                                dosage: '10mg',
-                                frequency: 'Daily',
-                                route: 'Oral'
-                            }
-                        ]
-                    }
-                ]
-            };
 
-            setStudy(mockStudy);
-            setStudyArms(mockStudy.arms || []);
-            if (mockStudy.arms && mockStudy.arms.length > 0) {
-                setSelectedArm(mockStudy.arms[0]);
+            // Load actual data from backend APIs
+            const [studyData, studyArmsData] = await Promise.all([
+                StudyService.getStudyById(studyId),
+                StudyDesignService.getStudyArms(studyId)
+            ]);
+
+            console.log('Loaded study arms:', studyArmsData);
+
+            setStudy(studyData);
+
+            // Ensure each arm has an interventions array with proper default values
+            const armsWithInterventions = (studyArmsData || []).map(arm => ({
+                ...arm,
+                interventions: (arm.interventions || []).map(intervention => ({
+                    ...intervention,
+                    type: intervention.type || 'DRUG',
+                    name: intervention.name || '',
+                    description: intervention.description || '',
+                    dosage: intervention.dosage || '',
+                    frequency: intervention.frequency || '',
+                    route: intervention.route || ''
+                }))
+            }));
+            setStudyArms(armsWithInterventions);
+
+            // Initialize allocation ratios - default to 1:1 for all arms
+            if (armsWithInterventions && armsWithInterventions.length > 0) {
+                const initialRatios = {};
+                armsWithInterventions.forEach(arm => {
+                    initialRatios[arm.id] = 1;
+                });
+                setRandomizationStrategy(prev => ({
+                    ...prev,
+                    allocationRatios: initialRatios
+                }));
+                setSelectedArm(armsWithInterventions[0]);
             }
             setLoading(false);
         } catch (error) {
@@ -91,49 +82,99 @@ const StudyArmsDesigner = () => {
     };
 
     // Add new study arm
-    const handleAddArm = () => {
-        const newArm = {
-            id: `ARM-${String(studyArms.length + 1).padStart(3, '0')}`,
-            name: `Arm ${studyArms.length + 1}`,
-            description: '',
-            type: 'TREATMENT',
-            sequence: studyArms.length + 1,
-            plannedSubjects: 0,
-            interventions: []
-        };
+    const handleAddArm = async () => {
+        try {
+            const newArm = {
+                name: `Arm ${studyArms.length + 1}`,
+                description: '',
+                type: 'TREATMENT',
+                sequence: studyArms.length + 1,
+                plannedSubjects: 0,
+                interventions: []
+            };
 
-        const updatedArms = [...studyArms, newArm];
-        setStudyArms(updatedArms);
-        setSelectedArm(newArm);
-        setIsDirty(true);
-    };
+            const createdArm = await StudyDesignService.createStudyArm(studyId, newArm);
+            const updatedArms = [...studyArms, createdArm];
+            setStudyArms(updatedArms);
 
-    // Update study arm
-    const handleUpdateArm = (armId, updates) => {
-        const updatedArms = studyArms.map(arm =>
-            arm.id === armId ? { ...arm, ...updates } : arm
-        );
-        setStudyArms(updatedArms);
-        if (selectedArm && selectedArm.id === armId) {
-            setSelectedArm({ ...selectedArm, ...updates });
+            // Initialize allocation ratio for new arm
+            setRandomizationStrategy(prev => ({
+                ...prev,
+                allocationRatios: {
+                    ...prev.allocationRatios,
+                    [createdArm.id]: 1
+                }
+            }));
+
+            setSelectedArm(createdArm);
+            setIsDirty(true);
+        } catch (error) {
+            console.error('Error creating study arm:', error);
+            setErrors(['Failed to create study arm']);
         }
-        setIsDirty(true);
     };
+
+    // Update study arm (local state only, no API call)
+    const handleUpdateArm = useCallback((armId, updates) => {
+        console.log('handleUpdateArm called with:', { armId, updates });
+
+        setStudyArms(prevArms => {
+            const updatedArms = prevArms.map(arm =>
+                arm.id === armId ? { ...arm, ...updates } : arm
+            );
+            return updatedArms;
+        });
+
+        // Update selected arm if it's the one being updated
+        setSelectedArm(prevSelected => {
+            if (prevSelected && prevSelected.id === armId) {
+                return { ...prevSelected, ...updates };
+            }
+            return prevSelected;
+        });
+
+        setIsDirty(true);
+    }, []);
 
     // Delete study arm
-    const handleDeleteArm = (armId) => {
+    const handleDeleteArm = async (armId) => {
         if (window.confirm('Are you sure you want to delete this arm? This action cannot be undone.')) {
-            const updatedArms = studyArms.filter(arm => arm.id !== armId);
-            setStudyArms(updatedArms);
-            if (selectedArm && selectedArm.id === armId) {
-                setSelectedArm(updatedArms.length > 0 ? updatedArms[0] : null);
+            try {
+                await StudyDesignService.deleteStudyArm(armId);
+                const updatedArms = studyArms.filter(arm => arm.id !== armId);
+                setStudyArms(updatedArms);
+
+                // Remove allocation ratio for deleted arm
+                setRandomizationStrategy(prev => {
+                    const { [armId]: removed, ...remainingRatios } = prev.allocationRatios;
+                    return { ...prev, allocationRatios: remainingRatios };
+                });
+
+                if (selectedArm && selectedArm.id === armId) {
+                    setSelectedArm(updatedArms.length > 0 ? updatedArms[0] : null);
+                }
+                setIsDirty(true);
+            } catch (error) {
+                console.error('Error deleting study arm:', error);
+                setErrors(['Failed to delete study arm']);
             }
-            setIsDirty(true);
         }
     };
 
+    // Update allocation ratio for a specific arm
+    const handleAllocationRatioChange = useCallback((armId, ratio) => {
+        setRandomizationStrategy(prev => ({
+            ...prev,
+            allocationRatios: {
+                ...prev.allocationRatios,
+                [armId]: parseInt(ratio) || 1
+            }
+        }));
+        setIsDirty(true);
+    }, []);
+
     // Add intervention to arm
-    const handleAddIntervention = (armId) => {
+    const handleAddIntervention = useCallback((armId) => {
         const newIntervention = {
             id: `INT-${Date.now()}`,
             type: 'DRUG',
@@ -143,30 +184,88 @@ const StudyArmsDesigner = () => {
             route: ''
         };
 
-        handleUpdateArm(armId, {
-            interventions: [...(selectedArm?.interventions || []), newIntervention]
+        setStudyArms(prevArms => {
+            const updatedArms = prevArms.map(arm => {
+                if (arm.id === armId) {
+                    return {
+                        ...arm,
+                        interventions: [...(arm.interventions || []), newIntervention]
+                    };
+                }
+                return arm;
+            });
+            return updatedArms;
         });
-    };
+
+        // Update selected arm if it's the one being updated
+        setSelectedArm(prevSelected => {
+            if (prevSelected && prevSelected.id === armId) {
+                return {
+                    ...prevSelected,
+                    interventions: [...(prevSelected.interventions || []), newIntervention]
+                };
+            }
+            return prevSelected;
+        });
+
+        setIsDirty(true);
+    }, []);
 
     // Update intervention
-    const handleUpdateIntervention = (armId, interventionId, updates) => {
-        const arm = studyArms.find(a => a.id === armId);
-        if (arm) {
-            const updatedInterventions = arm.interventions.map(int =>
-                int.id === interventionId ? { ...int, ...updates } : int
-            );
-            handleUpdateArm(armId, { interventions: updatedInterventions });
-        }
-    };
+    const handleUpdateIntervention = useCallback((armId, interventionId, updates) => {
+        console.log('handleUpdateIntervention called with:', { armId, interventionId, updates });
+
+        setStudyArms(prevArms => {
+            const updatedArms = prevArms.map(arm => {
+                if (arm.id === armId) {
+                    const updatedInterventions = arm.interventions.map(int =>
+                        int.id === interventionId ? { ...int, ...updates } : int
+                    );
+                    return { ...arm, interventions: updatedInterventions };
+                }
+                return arm;
+            });
+            return updatedArms;
+        });
+
+        // Update selected arm if it's the one being updated
+        setSelectedArm(prevSelected => {
+            if (prevSelected && prevSelected.id === armId) {
+                const updatedInterventions = prevSelected.interventions.map(int =>
+                    int.id === interventionId ? { ...int, ...updates } : int
+                );
+                return { ...prevSelected, interventions: updatedInterventions };
+            }
+            return prevSelected;
+        });
+
+        setIsDirty(true);
+    }, []);
 
     // Delete intervention
-    const handleDeleteIntervention = (armId, interventionId) => {
-        const arm = studyArms.find(a => a.id === armId);
-        if (arm) {
-            const updatedInterventions = arm.interventions.filter(int => int.id !== interventionId);
-            handleUpdateArm(armId, { interventions: updatedInterventions });
-        }
-    };
+    const handleDeleteIntervention = useCallback((armId, interventionId) => {
+        setStudyArms(prevArms => {
+            const updatedArms = prevArms.map(arm => {
+                if (arm.id === armId) {
+                    const updatedInterventions = arm.interventions.filter(int => int.id !== interventionId);
+                    return { ...arm, interventions: updatedInterventions };
+                }
+                return arm;
+            });
+            return updatedArms;
+        });
+
+        // Update selected arm if it's the one being updated
+        setSelectedArm(prevSelected => {
+            if (prevSelected && prevSelected.id === armId) {
+                const updatedInterventions = prevSelected.interventions.filter(int => int.id !== interventionId);
+                return { ...prevSelected, interventions: updatedInterventions };
+            }
+            return prevSelected;
+        });
+
+        setIsDirty(true);
+    }, []);
 
     // Save changes
     const handleSave = async () => {
@@ -178,13 +277,59 @@ const StudyArmsDesigner = () => {
                 return;
             }
 
-            // Mock save - replace with actual API call
-            console.log('Saving study arms:', { studyId, arms: studyArms, randomization: randomizationStrategy });
+            // Save each arm that has changes
+            const savePromises = studyArms.map(async (arm) => {
+                try {
+                    const updatedArm = await StudyDesignService.updateStudyArm(arm.id, {
+                        name: arm.name,
+                        description: arm.description,
+                        type: arm.type,
+                        sequence: arm.sequence,
+                        plannedSubjects: arm.plannedSubjects,
+                        interventions: arm.interventions
+                    });
+                    return updatedArm;
+                } catch (error) {
+                    console.error(`Error saving arm ${arm.id}:`, error);
+                    throw error;
+                }
+            });
+
+            const savedArms = await Promise.all(savePromises);
+            setStudyArms(savedArms);
+
+            // Update selected arm if it was updated
+            if (selectedArm) {
+                const updatedSelectedArm = savedArms.find(arm => arm.id === selectedArm.id);
+                if (updatedSelectedArm) {
+                    setSelectedArm(updatedSelectedArm);
+                }
+            }
+
             setIsDirty(false);
             setErrors([]);
+
+            // Update design progress to reflect completion
+            try {
+                await StudyDesignService.updateDesignProgress(studyId, {
+                    progressData: {
+                        arms: {
+                            phase: 'arms',
+                            completed: true,
+                            percentage: 100,
+                            notes: 'Study arms configuration completed'
+                        }
+                    }
+                });
+                console.log('Arms design progress updated successfully');
+            } catch (progressError) {
+                console.warn('Failed to update arms design progress:', progressError);
+                // Don't fail the save operation if progress update fails
+            }
+            console.log('Successfully saved study arms');
         } catch (error) {
             console.error('Error saving study arms:', error);
-            setErrors(['Failed to save study arms']);
+            setErrors(['Failed to save study arms: ' + (error.message || 'Unknown error')]);
         }
     };
 
@@ -324,8 +469,8 @@ const StudyArmsDesigner = () => {
                                             <p className="text-sm text-gray-600 mt-1">{arm.description}</p>
                                             <div className="flex items-center mt-2 space-x-4">
                                                 <span className={`px-2 py-1 text-xs rounded-full ${arm.type === 'TREATMENT' ? 'bg-green-100 text-green-800' :
-                                                        arm.type === 'PLACEBO' ? 'bg-yellow-100 text-yellow-800' :
-                                                            'bg-gray-100 text-gray-800'
+                                                    arm.type === 'PLACEBO' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-gray-100 text-gray-800'
                                                     }`}>
                                                     {arm.type}
                                                 </span>
@@ -391,6 +536,7 @@ const StudyArmsDesigner = () => {
                 strategy={randomizationStrategy}
                 onChange={setRandomizationStrategy}
                 studyArms={studyArms}
+                onAllocationRatioChange={handleAllocationRatioChange}
             />
         </div>
     );
@@ -525,7 +671,7 @@ const ArmDetailsPanel = ({
                                         Type *
                                     </label>
                                     <select
-                                        value={intervention.type}
+                                        value={intervention.type || 'DRUG'}
                                         onChange={(e) => onUpdateIntervention(intervention.id, { type: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     >
@@ -542,7 +688,7 @@ const ArmDetailsPanel = ({
                                     </label>
                                     <input
                                         type="text"
-                                        value={intervention.name}
+                                        value={intervention.name || ''}
                                         onChange={(e) => onUpdateIntervention(intervention.id, { name: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         placeholder="Intervention name"
@@ -554,7 +700,7 @@ const ArmDetailsPanel = ({
                                     </label>
                                     <input
                                         type="text"
-                                        value={intervention.dosage}
+                                        value={intervention.dosage || ''}
                                         onChange={(e) => onUpdateIntervention(intervention.id, { dosage: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         placeholder="e.g., 10mg"
@@ -566,7 +712,7 @@ const ArmDetailsPanel = ({
                                     </label>
                                     <input
                                         type="text"
-                                        value={intervention.frequency}
+                                        value={intervention.frequency || ''}
                                         onChange={(e) => onUpdateIntervention(intervention.id, { frequency: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         placeholder="e.g., Daily, BID"
@@ -578,7 +724,7 @@ const ArmDetailsPanel = ({
                                     </label>
                                     <input
                                         type="text"
-                                        value={intervention.route}
+                                        value={intervention.route || ''}
                                         onChange={(e) => onUpdateIntervention(intervention.id, { route: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         placeholder="e.g., Oral, IV"
@@ -607,7 +753,7 @@ const ArmDetailsPanel = ({
 };
 
 // Randomization Panel Component
-const RandomizationPanel = ({ strategy, onChange, studyArms }) => {
+const RandomizationPanel = ({ strategy, onChange, studyArms, onAllocationRatioChange }) => {
     const randomizationTypes = [
         { value: 'SIMPLE', label: 'Simple Randomization', description: 'Basic random assignment' },
         { value: 'BLOCK', label: 'Block Randomization', description: 'Randomization in blocks' },
@@ -673,8 +819,14 @@ const RandomizationPanel = ({ strategy, onChange, studyArms }) => {
                                             <div className="text-xs text-gray-500 mb-1">{arm.name}</div>
                                             <input
                                                 type="number"
-                                                value={1}
-                                                className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                                                value={strategy.allocationRatios?.[arm.id] || 1}
+                                                onChange={(e) => {
+                                                    if (onAllocationRatioChange) {
+                                                        onAllocationRatioChange(arm.id, e.target.value);
+                                                    }
+                                                }}
+                                                readOnly={!onAllocationRatioChange}
+                                                className={`w-16 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${!onAllocationRatioChange ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                                                 min="1"
                                             />
                                         </div>

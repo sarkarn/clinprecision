@@ -31,6 +31,7 @@ public class FormDefinitionDto {
     private String tags;
     
     private String fields;
+    private String structure;
     private Long createdBy;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -173,6 +174,14 @@ public class FormDefinitionDto {
     
     public void setFields(String fields) {
         this.fields = fields;
+    }
+    
+    public String getStructure() {
+        return structure;
+    }
+    
+    public void setStructure(String structure) {
+        this.structure = structure;
     }
     
     public Long getCreatedBy() {

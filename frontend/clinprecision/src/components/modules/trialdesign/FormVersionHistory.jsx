@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import FormVersionService from '../../../services/FormVersionService';
 import FormService from '../../../services/FormService';
+import StudyFormService from '../../../services/StudyFormService';
 
 const FormVersionHistory = () => {
-    const { formId } = useParams();
+    const { formId, studyId } = useParams();
     const [form, setForm] = useState(null);
     const [versions, setVersions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -12,13 +13,19 @@ const FormVersionHistory = () => {
     const [selectedVersions, setSelectedVersions] = useState([]);
     const [comparison, setComparison] = useState(null);
 
+    // Determine if we're in study context or global form context
+    const isStudyContext = !!studyId;
+    const formService = isStudyContext ? StudyFormService : FormService;
+
     useEffect(() => {
         const fetchFormAndVersions = async () => {
             try {
                 setLoading(true);
 
-                // Fetch form details
-                const formData = await FormService.getFormById(formId);
+                // Fetch form details using appropriate service
+                const formData = isStudyContext
+                    ? await StudyFormService.getStudyFormById(formId)
+                    : await FormService.getFormById(formId);
                 setForm(formData);
 
                 // Fetch form versions
@@ -36,7 +43,7 @@ const FormVersionHistory = () => {
         if (formId) {
             fetchFormAndVersions();
         }
-    }, [formId]);
+    }, [formId, studyId, isStudyContext]);
 
     const handleSelectVersion = (versionId) => {
         setSelectedVersions(prev => {
@@ -98,7 +105,13 @@ const FormVersionHistory = () => {
     return (
         <div className="bg-white shadow rounded-lg p-6">
             <div className="mb-6">
-                <Link to="/study-design/forms" className="text-blue-600 hover:underline">
+                <Link
+                    to={isStudyContext
+                        ? `/study-design/study/${studyId}/forms`
+                        : "/study-design/forms"
+                    }
+                    className="text-blue-600 hover:underline"
+                >
                     &larr; Back to Forms
                 </Link>
                 <h2 className="text-2xl font-bold mt-2">Form Version History: {form.name}</h2>
@@ -183,15 +196,18 @@ const FormVersionHistory = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${version.status === 'Published' ? 'bg-green-100 text-green-800' :
-                                                version.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-gray-100 text-gray-800'
+                                            version.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-gray-100 text-gray-800'
                                             }`}>
                                             {version.status || 'Draft'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <Link
-                                            to={`/study-design/forms/${formId}/versions/${version.id}/view`}
+                                            to={isStudyContext
+                                                ? `/study-design/study/${studyId}/forms/${formId}/versions/${version.id}/view`
+                                                : `/study-design/forms/${formId}/versions/${version.id}/view`
+                                            }
                                             className="text-blue-600 hover:text-blue-900 mr-4"
                                         >
                                             View

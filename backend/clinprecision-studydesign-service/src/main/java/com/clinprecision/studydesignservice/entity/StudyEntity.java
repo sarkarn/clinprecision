@@ -76,6 +76,66 @@ public class StudyEntity {
     @Column(name = "modified_by")
     private Long modifiedBy;
     
+    // Additional fields for Study Overview Dashboard
+    @Column(name = "therapeutic_area", length = 255)
+    private String therapeuticArea;
+    
+    @Column(name = "study_coordinator", length = 255)
+    private String studyCoordinator;
+    
+    @Column(name = "active_sites")
+    private Integer activeSites = 0;
+    
+    @Column(name = "screened_subjects")
+    private Integer screenedSubjects = 0;
+    
+    @Column(name = "randomized_subjects")
+    private Integer randomizedSubjects = 0;
+    
+    @Column(name = "completed_subjects")
+    private Integer completedSubjects = 0;
+    
+    @Column(name = "withdrawn_subjects")
+    private Integer withdrawnSubjects = 0;
+    
+    @Column(name = "estimated_completion")
+    private LocalDate estimatedCompletion;
+    
+    @Column(name = "primary_endpoint", columnDefinition = "TEXT")
+    private String primaryEndpoint;
+    
+    @Column(name = "secondary_endpoints", columnDefinition = "JSON")
+    private String secondaryEndpoints;
+    
+    @Column(name = "inclusion_criteria", columnDefinition = "JSON")
+    private String inclusionCriteria;
+    
+    @Column(name = "exclusion_criteria", columnDefinition = "JSON")
+    private String exclusionCriteria;
+    
+    @Column(name = "study_timeline", columnDefinition = "JSON")
+    private String timeline;
+    
+    // Study metrics
+    @Column(name = "enrollment_rate")
+    private Double enrollmentRate;
+    
+    @Column(name = "screening_success_rate")
+    private Double screeningSuccessRate;
+    
+    @Column(name = "retention_rate")
+    private Double retentionRate;
+    
+    @Column(name = "compliance_rate")
+    private Double complianceRate;
+    
+    @Column(name = "query_rate")
+    private Double queryRate;
+    
+    // Recent activities (JSON array as string)
+    @Column(name = "recent_activities", columnDefinition = "JSON")
+    private String recentActivities;
+    
     // Foreign key relationships to lookup tables
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "study_status_id", referencedColumnName = "id")
@@ -417,5 +477,158 @@ public class StudyEntity {
     public void removeFormDefinition(FormDefinitionEntity formDefinition) {
         formDefinitions.remove(formDefinition);
         formDefinition.setStudy(null);
+    }
+    
+    // Getters and Setters for new overview fields
+    public String getTherapeuticArea() {
+        return therapeuticArea;
+    }
+    
+    public void setTherapeuticArea(String therapeuticArea) {
+        this.therapeuticArea = therapeuticArea;
+    }
+    
+    public String getStudyCoordinator() {
+        return studyCoordinator;
+    }
+    
+    public void setStudyCoordinator(String studyCoordinator) {
+        this.studyCoordinator = studyCoordinator;
+    }
+    
+    public Integer getActiveSites() {
+        return activeSites;
+    }
+    
+    public void setActiveSites(Integer activeSites) {
+        this.activeSites = activeSites;
+    }
+    
+    public Integer getScreenedSubjects() {
+        return screenedSubjects;
+    }
+    
+    public void setScreenedSubjects(Integer screenedSubjects) {
+        this.screenedSubjects = screenedSubjects;
+    }
+    
+    public Integer getRandomizedSubjects() {
+        return randomizedSubjects;
+    }
+    
+    public void setRandomizedSubjects(Integer randomizedSubjects) {
+        this.randomizedSubjects = randomizedSubjects;
+    }
+    
+    public Integer getCompletedSubjects() {
+        return completedSubjects;
+    }
+    
+    public void setCompletedSubjects(Integer completedSubjects) {
+        this.completedSubjects = completedSubjects;
+    }
+    
+    public Integer getWithdrawnSubjects() {
+        return withdrawnSubjects;
+    }
+    
+    public void setWithdrawnSubjects(Integer withdrawnSubjects) {
+        this.withdrawnSubjects = withdrawnSubjects;
+    }
+    
+    public LocalDate getEstimatedCompletion() {
+        return estimatedCompletion;
+    }
+    
+    public void setEstimatedCompletion(LocalDate estimatedCompletion) {
+        this.estimatedCompletion = estimatedCompletion;
+    }
+    
+    public String getPrimaryEndpoint() {
+        return primaryEndpoint;
+    }
+    
+    public void setPrimaryEndpoint(String primaryEndpoint) {
+        this.primaryEndpoint = primaryEndpoint;
+    }
+    
+    public String getSecondaryEndpoints() {
+        return secondaryEndpoints;
+    }
+    
+    public void setSecondaryEndpoints(String secondaryEndpoints) {
+        this.secondaryEndpoints = secondaryEndpoints;
+    }
+    
+    public String getInclusionCriteria() {
+        return inclusionCriteria;
+    }
+    
+    public void setInclusionCriteria(String inclusionCriteria) {
+        this.inclusionCriteria = inclusionCriteria;
+    }
+    
+    public String getExclusionCriteria() {
+        return exclusionCriteria;
+    }
+    
+    public void setExclusionCriteria(String exclusionCriteria) {
+        this.exclusionCriteria = exclusionCriteria;
+    }
+    
+    public String getTimeline() {
+        return timeline;
+    }
+    
+    public void setTimeline(String timeline) {
+        this.timeline = timeline;
+    }
+    
+    public Double getEnrollmentRate() {
+        return enrollmentRate;
+    }
+    
+    public void setEnrollmentRate(Double enrollmentRate) {
+        this.enrollmentRate = enrollmentRate;
+    }
+    
+    public Double getScreeningSuccessRate() {
+        return screeningSuccessRate;
+    }
+    
+    public void setScreeningSuccessRate(Double screeningSuccessRate) {
+        this.screeningSuccessRate = screeningSuccessRate;
+    }
+    
+    public Double getRetentionRate() {
+        return retentionRate;
+    }
+    
+    public void setRetentionRate(Double retentionRate) {
+        this.retentionRate = retentionRate;
+    }
+    
+    public Double getComplianceRate() {
+        return complianceRate;
+    }
+    
+    public void setComplianceRate(Double complianceRate) {
+        this.complianceRate = complianceRate;
+    }
+    
+    public Double getQueryRate() {
+        return queryRate;
+    }
+    
+    public void setQueryRate(Double queryRate) {
+        this.queryRate = queryRate;
+    }
+    
+    public String getRecentActivities() {
+        return recentActivities;
+    }
+    
+    public void setRecentActivities(String recentActivities) {
+        this.recentActivities = recentActivities;
     }
 }

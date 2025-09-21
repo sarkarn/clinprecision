@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import StudyService from '../../../../services/StudyService';
+import StudyDocumentService from '../../../../services/StudyDocumentService';
+import DocumentUploadModal from './DocumentUploadModal';
 import {
     ArrowLeft,
     Edit,
@@ -34,150 +37,226 @@ const StudyOverviewDashboard = ({
     const [study, setStudy] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [documentStats, setDocumentStats] = useState({ total: 0, types: [] });
+    const [uploadedDocuments, setUploadedDocuments] = useState([]);
 
     useEffect(() => {
         if (studyId) {
             loadStudyDetails();
+
+            // Load uploaded documents from localStorage
+            try {
+                const savedDocuments = localStorage.getItem(`study_${studyId}_uploaded_documents`);
+                if (savedDocuments) {
+                    setUploadedDocuments(JSON.parse(savedDocuments));
+                }
+            } catch (error) {
+                console.error('Error loading documents from localStorage:', error);
+            }
         }
     }, [studyId]);
 
     const loadStudyDetails = async () => {
         setLoading(true);
         try {
-            // Mock data - replace with actual API call
-            const studyData = {
-                id: studyId,
-                title: 'Phase III Oncology Trial - Advanced NSCLC',
-                protocol: 'ONC-2024-001',
-                version: '2.1',
-                versionStatus: 'APPROVED',
-                status: 'ACTIVE',
-                phase: 'Phase III',
-                indication: 'Non-Small Cell Lung Cancer',
-                therapeuticArea: 'Oncology',
-                sponsor: 'Global Pharma Inc.',
-                principalInvestigator: 'Dr. Sarah Johnson',
-                studyCoordinator: 'Jennifer Martinez, RN',
-                sites: 25,
-                activeSites: 23,
-                plannedSubjects: 450,
-                enrolledSubjects: 287,
-                screenedSubjects: 324,
-                randomizedSubjects: 278,
-                completedSubjects: 156,
-                withdrawnSubjects: 31,
-                startDate: '2024-01-15',
-                estimatedCompletion: '2026-03-30',
-                lastModified: '2024-03-15T10:30:00Z',
-                modifiedBy: 'Dr. Sarah Johnson',
-                description: 'A randomized, double-blind, placebo-controlled Phase III study to evaluate the efficacy and safety of investigational drug XYZ-123 in patients with advanced non-small cell lung cancer who have progressed on prior systemic therapy.',
-                primaryEndpoint: 'Overall Survival (OS)',
-                secondaryEndpoints: [
-                    'Progression-Free Survival (PFS)',
-                    'Objective Response Rate (ORR)',
-                    'Duration of Response (DoR)',
-                    'Safety and Tolerability'
-                ],
-                inclusionCriteria: [
-                    'Age ≥ 18 years',
-                    'Histologically confirmed NSCLC',
-                    'Advanced or metastatic disease',
-                    'ECOG Performance Status 0-1',
-                    'Adequate organ function'
-                ],
-                exclusionCriteria: [
-                    'Prior treatment with similar agents',
-                    'Brain metastases (unless treated)',
-                    'Severe cardiovascular disease',
-                    'Active infection',
-                    'Pregnancy or nursing'
-                ],
-                timeline: {
-                    screening: '4 weeks',
-                    treatment: '24 cycles (approximately 2 years)',
-                    followUp: '2 years post-treatment'
-                },
-                amendments: [
-                    {
-                        version: '2.1',
-                        type: 'MINOR',
-                        date: '2024-03-15',
-                        reason: 'Updated exclusion criteria for cardiovascular conditions',
-                        status: 'APPROVED'
-                    },
-                    {
-                        version: '2.0',
-                        type: 'MAJOR',
-                        date: '2024-02-01',
-                        reason: 'Added new secondary endpoint and modified dosing schedule',
-                        status: 'APPROVED'
-                    },
-                    {
-                        version: '1.0',
-                        type: 'INITIAL',
-                        date: '2024-01-15',
-                        reason: 'Initial protocol version',
-                        status: 'APPROVED'
-                    }
-                ],
-                documents: [
-                    {
-                        name: 'Protocol v2.1',
-                        type: 'Protocol',
-                        size: '2.4 MB',
-                        lastModified: '2024-03-15',
-                        status: 'Current'
-                    },
-                    {
-                        name: 'Informed Consent v2.1',
-                        type: 'ICF',
-                        size: '485 KB',
-                        lastModified: '2024-03-15',
-                        status: 'Current'
-                    },
-                    {
-                        name: 'Investigator Brochure v3.0',
-                        type: 'IB',
-                        size: '1.8 MB',
-                        lastModified: '2024-02-28',
-                        status: 'Current'
-                    }
-                ],
-                metrics: {
-                    enrollmentRate: 75.2,
-                    screeningSuccessRate: 88.6,
-                    retentionRate: 89.2,
-                    complianceRate: 94.8,
-                    queryRate: 12.3
-                },
-                recentActivities: [
-                    {
-                        type: 'amendment',
-                        message: 'Protocol amendment v2.1 approved',
-                        date: '2024-03-15T10:30:00Z',
-                        user: 'Regulatory Affairs'
-                    },
-                    {
-                        type: 'enrollment',
-                        message: '5 new subjects enrolled at Site 003',
-                        date: '2024-03-14T16:45:00Z',
-                        user: 'Site Coordinator'
-                    },
-                    {
-                        type: 'milestone',
-                        message: '75% enrollment milestone reached',
-                        date: '2024-03-12T09:20:00Z',
-                        user: 'System'
-                    }
-                ]
-            };
+            console.log('Loading study overview for ID:', studyId);
 
+            // Call the real API to get study overview data
+            const studyData = await StudyService.getStudyOverview(studyId);
+
+            console.log('Study overview loaded successfully:', studyData);
             setStudy(studyData);
+
+            // Initialize document statistics locally (no backend call)
+            updateDocumentStats();
         } catch (error) {
             console.error('Error loading study details:', error);
+
+            // Fallback to mock data if API fails for now
+            console.log('Falling back to mock data due to API error');
+            const mockStudyData = getMockStudyData(studyId);
+            setStudy(mockStudyData);
         } finally {
             setLoading(false);
         }
+    };
+
+    // Update document statistics based on uploaded documents
+    const updateDocumentStats = () => {
+        const typeCount = {};
+        uploadedDocuments.forEach(doc => {
+            typeCount[doc.documentType] = (typeCount[doc.documentType] || 0) + 1;
+        });
+
+        const types = Object.entries(typeCount).map(([type, count]) => ({
+            type,
+            count
+        }));
+
+        setDocumentStats({
+            total: uploadedDocuments.length,
+            types
+        });
+    };
+
+    // Handle document upload
+    const handleUploadSuccess = (uploadedDocument) => {
+        // Add document to local state
+        const newDocument = {
+            id: Date.now(), // Simple ID generation for demo
+            ...uploadedDocument,
+            uploadedAt: new Date().toISOString(),
+            status: 'ACTIVE'
+        };
+
+        const updatedDocuments = [...uploadedDocuments, newDocument];
+        setUploadedDocuments(updatedDocuments);
+
+        // Save to localStorage for access by other components
+        localStorage.setItem(`study_${studyId}_uploaded_documents`, JSON.stringify(updatedDocuments));
+
+        setShowUploadModal(false);
+    };
+
+    const handleUploadCancel = () => {
+        setShowUploadModal(false);
+    };
+
+    // Update document stats whenever uploaded documents change
+    useEffect(() => {
+        updateDocumentStats();
+    }, [uploadedDocuments]);
+
+    // Mock data fallback function
+    const getMockStudyData = (id) => {
+        return {
+            id: id,
+            title: 'Phase III Oncology Trial - Advanced NSCLC',
+            protocol: 'ONC-2024-001',
+            version: '2.1',
+            versionStatus: 'APPROVED',
+            status: 'ACTIVE',
+            phase: 'Phase III',
+            indication: 'Non-Small Cell Lung Cancer',
+            therapeuticArea: 'Oncology',
+            sponsor: 'Global Pharma Inc.',
+            principalInvestigator: 'Dr. Sarah Johnson',
+            studyCoordinator: 'Jennifer Martinez, RN',
+            sites: 25,
+            activeSites: 23,
+            plannedSubjects: 450,
+            enrolledSubjects: 287,
+            screenedSubjects: 324,
+            randomizedSubjects: 278,
+            completedSubjects: 156,
+            withdrawnSubjects: 31,
+            startDate: '2024-01-15',
+            estimatedCompletion: '2026-03-30',
+            lastModified: '2024-03-15T10:30:00Z',
+            modifiedBy: 'Dr. Sarah Johnson',
+            description: 'A randomized, double-blind, placebo-controlled Phase III study to evaluate the efficacy and safety of investigational drug XYZ-123 in patients with advanced non-small cell lung cancer who have progressed on prior systemic therapy.',
+            primaryEndpoint: 'Overall Survival (OS)',
+            secondaryEndpoints: [
+                'Progression-Free Survival (PFS)',
+                'Objective Response Rate (ORR)',
+                'Duration of Response (DoR)',
+                'Safety and Tolerability'
+            ],
+            inclusionCriteria: [
+                'Age ≥ 18 years',
+                'Histologically confirmed NSCLC',
+                'Advanced or metastatic disease',
+                'ECOG Performance Status 0-1',
+                'Adequate organ function'
+            ],
+            exclusionCriteria: [
+                'Prior treatment with similar agents',
+                'Brain metastases (unless treated)',
+                'Severe cardiovascular disease',
+                'Active infection',
+                'Pregnancy or nursing'
+            ],
+            timeline: {
+                screening: '4 weeks',
+                treatment: '24 cycles (approximately 2 years)',
+                followUp: '2 years post-treatment'
+            },
+            amendments: [
+                {
+                    version: '2.1',
+                    type: 'MINOR',
+                    date: '2024-03-15',
+                    reason: 'Updated exclusion criteria for cardiovascular conditions',
+                    status: 'APPROVED'
+                },
+                {
+                    version: '2.0',
+                    type: 'MAJOR',
+                    date: '2024-02-01',
+                    reason: 'Added new secondary endpoint and modified dosing schedule',
+                    status: 'APPROVED'
+                },
+                {
+                    version: '1.0',
+                    type: 'INITIAL',
+                    date: '2024-01-15',
+                    reason: 'Initial protocol version',
+                    status: 'APPROVED'
+                }
+            ],
+            documents: [
+                {
+                    name: 'Protocol v2.1',
+                    type: 'Protocol',
+                    size: '2.4 MB',
+                    lastModified: '2024-03-15',
+                    status: 'Current'
+                },
+                {
+                    name: 'Informed Consent v2.1',
+                    type: 'ICF',
+                    size: '485 KB',
+                    lastModified: '2024-03-15',
+                    status: 'Current'
+                },
+                {
+                    name: 'Investigator Brochure v3.0',
+                    type: 'IB',
+                    size: '1.8 MB',
+                    lastModified: '2024-02-28',
+                    status: 'Current'
+                }
+            ],
+            metrics: {
+                enrollmentRate: 75.2,
+                screeningSuccessRate: 88.6,
+                retentionRate: 89.2,
+                complianceRate: 94.8,
+                queryRate: 12.3
+            },
+            recentActivities: [
+                {
+                    type: 'amendment',
+                    message: 'Protocol amendment v2.1 approved',
+                    date: '2024-03-15T10:30:00Z',
+                    user: 'Regulatory Affairs'
+                },
+                {
+                    type: 'enrollment',
+                    message: '5 new subjects enrolled at Site 003',
+                    date: '2024-03-14T16:45:00Z',
+                    user: 'Site Coordinator'
+                },
+                {
+                    type: 'milestone',
+                    message: '75% enrollment milestone reached',
+                    date: '2024-03-12T09:20:00Z',
+                    user: 'System'
+                }
+            ]
+        };
     };
 
     const getStatusIcon = (status) => {
@@ -555,15 +634,19 @@ const StudyOverviewDashboard = ({
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <h3 className="text-lg font-semibold text-gray-900">Study Documents</h3>
-                                <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <button
+                                    onClick={() => setShowUploadModal(true)}
+                                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                >
                                     <Plus className="w-4 h-4 mr-2" />
                                     Upload Document
                                 </button>
                             </div>
 
                             <div className="grid grid-cols-1 gap-4">
+                                {/* Display original study documents */}
                                 {study.documents.map((doc, index) => (
-                                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                                    <div key={`original-${index}`} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-start gap-3">
                                                 <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
@@ -587,6 +670,45 @@ const StudyOverviewDashboard = ({
                                         </div>
                                     </div>
                                 ))}
+
+                                {/* Display uploaded documents */}
+                                {uploadedDocuments.map((doc, index) => (
+                                    <div key={`uploaded-${doc.id}`} className="border border-blue-200 rounded-lg p-4 hover:bg-blue-50 bg-blue-25">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-start gap-3">
+                                                <FileText className="w-5 h-5 text-blue-500 mt-0.5" />
+                                                <div>
+                                                    <h4 className="font-medium text-gray-900">{doc.fileName}</h4>
+                                                    <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                                                        <span className="font-medium text-blue-600">{StudyDocumentService.getDocumentTypes().find(type => type.value === doc.documentType)?.label || doc.documentType}</span>
+                                                        <span>{(doc.fileSize / 1024).toFixed(1)} KB</span>
+                                                        <span>Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                    {doc.description && (
+                                                        <p className="text-sm text-gray-600 mt-1">{doc.description}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                                    Recently Uploaded
+                                                </span>
+                                                <button className="p-1 text-gray-400 hover:text-gray-600">
+                                                    <Download className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Show message when no documents */}
+                                {study.documents.length === 0 && uploadedDocuments.length === 0 && (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                        <p>No documents uploaded yet</p>
+                                        <p className="text-sm">Click "Upload Document" to add your first document</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -635,6 +757,16 @@ const StudyOverviewDashboard = ({
                     )}
                 </div>
             </div>
+
+            {/* Document Upload Modal */}
+            {showUploadModal && (
+                <DocumentUploadModal
+                    isOpen={showUploadModal}
+                    onClose={handleUploadCancel}
+                    studyId={studyId}
+                    onUploadSuccess={handleUploadSuccess}
+                />
+            )}
         </div>
     );
 };

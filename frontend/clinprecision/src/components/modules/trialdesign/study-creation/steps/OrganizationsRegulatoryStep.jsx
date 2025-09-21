@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { OrganizationService } from '../../../../../services/OrganizationService';
 import StudyService from '../../../../../services/StudyService';
 import { LoadingOverlay, Alert } from '../../components/UIComponents';
@@ -17,9 +17,9 @@ const OrganizationsRegulatoryStep = ({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Use regulatory statuses from lookupData prop if available, otherwise load independently
+    // State for regulatory statuses
     const [regulatoryStatuses, setRegulatoryStatuses] = useState([]);
-    const [loadingLookups, setLoadingLookups] = useState(!lookupData.regulatoryStatuses?.length);
+    const [loadingLookups, setLoadingLookups] = useState(true);
     const [lookupError, setLookupError] = useState(null);
 
     // Load available organizations
@@ -42,26 +42,32 @@ const OrganizationsRegulatoryStep = ({
         fetchOrganizations();
     }, []);
 
-    // Load regulatory status lookup data (use prop data if available, otherwise fetch)
+    // Process regulatory status lookup data (use prop data if available, otherwise fetch)
     useEffect(() => {
         const processRegulatoryStatuses = async () => {
+            // Don't re-run if we already have data
+            if (regulatoryStatuses.length > 0) {
+                return;
+            }
+
             try {
                 setLoadingLookups(true);
+                setLookupError(null);
 
                 let statuses = [];
 
                 // Use lookupData prop if available
-                if (lookupData.regulatoryStatuses && lookupData.regulatoryStatuses.length > 0) {
-                    console.log('Using regulatory statuses from lookupData prop:', lookupData.regulatoryStatuses);
+                if (lookupData?.regulatoryStatuses && Array.isArray(lookupData.regulatoryStatuses) && lookupData.regulatoryStatuses.length > 0) {
                     statuses = lookupData.regulatoryStatuses;
                 } else {
                     // Fallback to independent loading if no prop data
-                    console.log('Loading regulatory statuses independently...');
-                    statuses = await StudyService.getRegulatoryStatuses();
+                    try {
+                        statuses = await StudyService.getRegulatoryStatuses();
+                    } catch (fetchError) {
+                        console.error('Error fetching regulatory statuses:', fetchError);
+                        throw fetchError;
+                    }
                 }
-
-                // Debug logging to understand the data structure
-                console.log('Processing regulatory statuses:', statuses);
 
                 // Transform to options format
                 const statusOptions = (statuses || []).map(status => ({
@@ -69,8 +75,6 @@ const OrganizationsRegulatoryStep = ({
                     label: status.name || status.label || `Status ${status.id}`, // Use 'name' field primarily, fallback to 'label' or ID
                     description: status.description || ''
                 })).filter(option => option.value != null && option.label);
-
-                console.log('Transformed regulatory status options:', statusOptions);
 
                 setRegulatoryStatuses(statusOptions);
                 setLookupError(null);
@@ -94,9 +98,27 @@ const OrganizationsRegulatoryStep = ({
         };
 
         processRegulatoryStatuses();
-    }, [lookupData.regulatoryStatuses]); // Re-run when lookupData changes
+    }, []); // Empty dependency array - only run once
 
-    const roleOptions = [
+    // Separate effect to handle prop changes
+    useEffect(() => {
+        if (lookupData?.regulatoryStatuses && Array.isArray(lookupData.regulatoryStatuses) && lookupData.regulatoryStatuses.length > 0) {
+            const statusOptions = lookupData.regulatoryStatuses.map(status => ({
+                value: status.id,
+                label: status.name || status.label || `Status ${status.id}`,
+                description: status.description || ''
+            })).filter(option => option.value != null && option.label);
+
+            if (statusOptions.length > 0) {
+                setRegulatoryStatuses(statusOptions);
+                setLoadingLookups(false);
+                setLookupError(null);
+            }
+        }
+    }, [lookupData]);
+
+    // Memoize role options to prevent unnecessary re-renders
+    const roleOptions = useMemo(() => [
         { value: 'sponsor', label: 'Sponsor' },
         { value: 'cro', label: 'Contract Research Organization (CRO)' },
         { value: 'site', label: 'Investigational Site' },
@@ -105,51 +127,64 @@ const OrganizationsRegulatoryStep = ({
         { value: 'regulatory', label: 'Regulatory Consultant' },
         { value: 'statistics', label: 'Statistical Analysis' },
         { value: 'safety', label: 'Safety Monitoring' }
-    ];
+    ], []);
+
+    // Memoize filtered regulatory status options
+    const filteredRegulatoryOptions = useMemo(() => {
+        return regulatoryStatuses.filter(option => option && option.value && option.label);
+    }, [regulatoryStatuses]);
 
     // Handle organization role assignment
     const handleOrgRoleChange = (orgId, role, isPrimary = false) => {
-        const currentOrgs = formData.organizations || [];
-        const existingIndex = currentOrgs.findIndex(o => o.organizationId === orgId);
+        try {
+            const currentOrgs = formData.organizations || [];
+            const existingIndex = currentOrgs.findIndex(o => o.organizationId === orgId);
 
-        if (!role) {
-            // Remove organization if no role selected
-            if (existingIndex !== -1) {
-                const newOrgs = currentOrgs.filter((_, index) => index !== existingIndex);
-                onFieldChange('organizations', newOrgs);
-            }
-        } else {
-            // Add or update organization
-            const orgAssociation = {
-                organizationId: orgId,
-                role,
-                isPrimary
-            };
-
-            if (existingIndex !== -1) {
-                // Update existing
-                const newOrgs = [...currentOrgs];
-                newOrgs[existingIndex] = orgAssociation;
-                onFieldChange('organizations', newOrgs);
+            if (!role) {
+                // Remove organization if no role selected
+                if (existingIndex !== -1) {
+                    const newOrgs = currentOrgs.filter((_, index) => index !== existingIndex);
+                    onFieldChange('organizations', newOrgs);
+                }
             } else {
-                // Add new
-                onFieldChange('organizations', [...currentOrgs, orgAssociation]);
+                // Add or update organization
+                const orgAssociation = {
+                    organizationId: orgId,
+                    role,
+                    isPrimary
+                };
+
+                if (existingIndex !== -1) {
+                    // Update existing
+                    const newOrgs = [...currentOrgs];
+                    newOrgs[existingIndex] = orgAssociation;
+                    onFieldChange('organizations', newOrgs);
+                } else {
+                    // Add new
+                    onFieldChange('organizations', [...currentOrgs, orgAssociation]);
+                }
             }
+        } catch (error) {
+            console.error('Error updating organization role:', error);
         }
     };
 
     // Set primary organization for a role
     const handleSetPrimary = (orgId, role) => {
-        const currentOrgs = formData.organizations || [];
-        const newOrgs = currentOrgs.map(org => ({
-            ...org,
-            // Only clear isPrimary for organizations with the SAME role
-            // This allows one primary per role type, not one primary total
-            isPrimary: org.role === role
-                ? (org.organizationId === orgId) // Set true for selected org, false for others in same role
-                : org.isPrimary // Keep existing isPrimary for different roles
-        }));
-        onFieldChange('organizations', newOrgs);
+        try {
+            const currentOrgs = formData.organizations || [];
+            const newOrgs = currentOrgs.map(org => ({
+                ...org,
+                // Only clear isPrimary for organizations with the SAME role
+                // This allows one primary per role type, not one primary total
+                isPrimary: org.role === role
+                    ? (org.organizationId === orgId) // Set true for selected org, false for others in same role
+                    : org.isPrimary // Keep existing isPrimary for different roles
+            }));
+            onFieldChange('organizations', newOrgs);
+        } catch (error) {
+            console.error('Error setting primary organization:', error);
+        }
     };
 
     // Get current role for an organization
@@ -293,32 +328,19 @@ const OrganizationsRegulatoryStep = ({
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Regulatory Status
                         </label>
-                        {/* Debug logging */}
-                        {console.log('=== REGULATORY STATUS DEBUG ===', {
-                            formDataRegulatoryStatusId: formData.regulatoryStatusId,
-                            formDataType: typeof formData.regulatoryStatusId,
-                            availableOptions: regulatoryStatuses.map(opt => ({
-                                value: opt.value,
-                                valueType: typeof opt.value,
-                                label: opt.label
-                            })),
-                            matchingOption: regulatoryStatuses.find(opt => opt.value == formData.regulatoryStatusId),
-                            strictMatchingOption: regulatoryStatuses.find(opt => opt.value === formData.regulatoryStatusId)
-                        })}
                         <select
                             value={formData.regulatoryStatusId || ''}
                             onChange={(e) => {
                                 // Convert to number if it's a valid number, otherwise keep as string
                                 const value = e.target.value;
                                 const numValue = !isNaN(value) && value !== '' ? Number(value) : value;
-                                console.log('Regulatory status changed:', { originalValue: value, numValue, formDataBefore: formData.regulatoryStatusId });
                                 onFieldChange('regulatoryStatusId', numValue);
                             }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             disabled={loadingLookups}
                         >
                             <option value="">{loadingLookups ? "Loading..." : "Select Status"}</option>
-                            {regulatoryStatuses.filter(option => option && option.value && option.label).map(option => (
+                            {filteredRegulatoryOptions.map(option => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}
                                 </option>

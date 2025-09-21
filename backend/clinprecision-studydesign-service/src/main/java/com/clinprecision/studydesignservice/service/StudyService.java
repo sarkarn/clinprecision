@@ -1,8 +1,12 @@
+// ...existing code...
+// ...existing code...
 package com.clinprecision.studydesignservice.service;
 
 import com.clinprecision.studydesignservice.dto.*;
 import com.clinprecision.studydesignservice.entity.OrganizationStudyEntity;
 import com.clinprecision.studydesignservice.entity.StudyEntity;
+import com.clinprecision.studydesignservice.entity.StudyStatusEntity;
+import com.clinprecision.studydesignservice.repository.StudyStatusRepository;
 import com.clinprecision.studydesignservice.exception.StudyNotFoundException;
 import com.clinprecision.studydesignservice.mapper.StudyMapper;
 import com.clinprecision.studydesignservice.repository.OrganizationStudyRepository;
@@ -28,15 +32,21 @@ public class StudyService {
     private final OrganizationStudyRepository organizationStudyRepository;
     private final StudyMapper studyMapper;
     private final StudyValidationService validationService;
+    private final StudyStatusRepository studyStatusRepository;
+    private final StudyDocumentService documentService;
     
     public StudyService(StudyRepository studyRepository,
                        OrganizationStudyRepository organizationStudyRepository,
                        StudyMapper studyMapper,
-                       StudyValidationService validationService) {
+                       StudyValidationService validationService,
+                       StudyStatusRepository studyStatusRepository,
+                       StudyDocumentService documentService) {
         this.studyRepository = studyRepository;
         this.organizationStudyRepository = organizationStudyRepository;
         this.studyMapper = studyMapper;
         this.validationService = validationService;
+        this.studyStatusRepository = studyStatusRepository;
+        this.documentService = documentService;
     }
     
     /**
@@ -84,6 +94,158 @@ public class StudyService {
             .orElseThrow(() -> new StudyNotFoundException(id));
         
         return studyMapper.toResponseDto(study);
+    }
+    
+    /**
+     * Get study overview data for dashboard
+     * This method returns comprehensive study data for the overview tab
+     */
+    @Transactional(readOnly = true)
+    public StudyResponseDto getStudyOverview(Long id) {
+        logger.info("Fetching study overview with ID: {}", id);
+        
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+        
+        // Convert to DTO with all overview fields populated
+        StudyResponseDto response = studyMapper.toResponseDto(study);
+        
+        // Add computed fields if not already set
+        populateComputedOverviewFields(response, study);
+        
+        // Add document information to the overview
+        populateDocumentOverviewFields(response, id);
+        
+        logger.info("Study overview fetched successfully for study: {}", response.getName());
+        return response;
+    }
+    
+    /**
+     * Populate computed overview fields that may not be stored directly
+     */
+    private void populateComputedOverviewFields(StudyResponseDto response, StudyEntity study) {
+        // If enrollment rate is not stored, calculate it
+        if (response.getEnrollmentRate() == null && 
+            response.getPlannedSubjects() != null && 
+            response.getEnrolledSubjects() != null && 
+            response.getPlannedSubjects() > 0) {
+            double rate = (response.getEnrolledSubjects().doubleValue() / response.getPlannedSubjects().doubleValue()) * 100;
+            response.setEnrollmentRate(Math.round(rate * 10.0) / 10.0); // Round to 1 decimal
+        }
+        
+        // If screening success rate is not stored, calculate it
+        if (response.getScreeningSuccessRate() == null && 
+            response.getScreenedSubjects() != null && 
+            response.getEnrolledSubjects() != null && 
+            response.getScreenedSubjects() > 0) {
+            double rate = (response.getEnrolledSubjects().doubleValue() / response.getScreenedSubjects().doubleValue()) * 100;
+            response.setScreeningSuccessRate(Math.round(rate * 10.0) / 10.0); // Round to 1 decimal
+        }
+        
+        // Set default recent activities if not present
+        if (response.getRecentActivities() == null) {
+            response.setRecentActivities("[]"); // Empty JSON array
+        }
+        
+        // Set default endpoints if not present
+        if (response.getSecondaryEndpoints() == null) {
+            response.setSecondaryEndpoints("[]"); // Empty JSON array
+        }
+        
+        if (response.getInclusionCriteria() == null) {
+            response.setInclusionCriteria("[]"); // Empty JSON array
+        }
+        
+        if (response.getExclusionCriteria() == null) {
+            response.setExclusionCriteria("[]"); // Empty JSON array
+        }
+        
+        if (response.getTimeline() == null) {
+            response.setTimeline("{}"); // Empty JSON object
+        }
+    }
+    
+    /**
+     * Populate document overview fields for study dashboard
+     */
+    private void populateDocumentOverviewFields(StudyResponseDto response, Long studyId) {
+        try {
+            logger.debug("Populating document overview fields for study: {}", studyId);
+            
+            // Get document statistics
+            StudyDocumentService.DocumentStatistics stats = documentService.getDocumentStatistics(studyId);
+            
+            // Get recent documents (current documents for overview)
+            List<StudyDocumentDto> recentDocuments = documentService.getCurrentStudyDocuments(studyId);
+            
+            // Build document summary JSON for the frontend
+            StringBuilder documentSummary = new StringBuilder();
+            documentSummary.append("{");
+            documentSummary.append("\"totalCount\":").append(stats.getTotalCount()).append(",");
+            documentSummary.append("\"totalSize\":\"").append(stats.getFormattedTotalSize()).append("\",");
+            documentSummary.append("\"currentCount\":").append(stats.getCurrentCount()).append(",");
+            documentSummary.append("\"draftCount\":").append(stats.getDraftCount()).append(",");
+            documentSummary.append("\"recentDocuments\":[");
+            
+            // Add recent documents (limit to 5 most recent for overview)
+            int maxDocs = Math.min(5, recentDocuments.size());
+            for (int i = 0; i < maxDocs; i++) {
+                StudyDocumentDto doc = recentDocuments.get(i);
+                if (i > 0) documentSummary.append(",");
+                documentSummary.append("{");
+                documentSummary.append("\"id\":").append(doc.getId()).append(",");
+                documentSummary.append("\"name\":\"").append(escapeJson(doc.getName())).append("\",");
+                documentSummary.append("\"type\":\"").append(escapeJson(doc.getType())).append("\",");
+                documentSummary.append("\"status\":\"").append(doc.getStatus()).append("\",");
+                documentSummary.append("\"uploadedAt\":\"").append(doc.getUploadedAt()).append("\",");
+                documentSummary.append("\"formattedSize\":\"").append(doc.getSize()).append("\"");
+                documentSummary.append("}");
+            }
+            
+            documentSummary.append("]}");
+            
+            // Add document summary to metadata field (since no dedicated field exists)
+            String existingMetadata = response.getMetadata();
+            if (existingMetadata == null || existingMetadata.trim().isEmpty() || "{}".equals(existingMetadata.trim())) {
+                // Create new metadata with documents
+                response.setMetadata("{\"documents\":" + documentSummary.toString() + "}");
+            } else {
+                // Try to merge with existing metadata
+                try {
+                    if (existingMetadata.trim().endsWith("}")) {
+                        // Insert documents before the last brace
+                        String newMetadata = existingMetadata.substring(0, existingMetadata.lastIndexOf("}")) 
+                            + ",\"documents\":" + documentSummary.toString() + "}";
+                        response.setMetadata(newMetadata);
+                    } else {
+                        // Fallback: replace with new metadata
+                        response.setMetadata("{\"documents\":" + documentSummary.toString() + "}");
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to merge with existing metadata, using documents only", e);
+                    response.setMetadata("{\"documents\":" + documentSummary.toString() + "}");
+                }
+            }
+            
+            logger.debug("Document overview fields populated successfully for study: {}", studyId);
+            
+        } catch (Exception e) {
+            logger.warn("Failed to populate document overview fields for study: {}", studyId, e);
+            // Don't fail the entire response if document data fails
+            // Just log the warning and continue
+        }
+    }
+    
+    /**
+     * Escape JSON special characters in strings
+     */
+    private String escapeJson(String input) {
+        if (input == null) return "";
+        return input.replace("\\", "\\\\")
+                   .replace("\"", "\\\"")
+                   .replace("\n", "\\n")
+                   .replace("\r", "\\r")
+                   .replace("\t", "\\t");
     }
     
     /**
@@ -234,6 +396,38 @@ public class StudyService {
         // For now, return a default user name
         // In production, this should get the user name from Spring Security context
         return 1L ; // Temporary hardcoded value
+    }
+
+    /**
+     * Publish a study (set status to ACTIVE if eligible)
+     */
+    public StudyResponseDto publishStudy(Long id) {
+        logger.info("Publishing study with ID: {}", id);
+
+        // 1. Fetch study
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+
+        // 2. Validate eligibility (all design phases complete)
+        // TODO: Add more robust validation as needed
+        // For now, assume eligible if not already ACTIVE/COMPLETED/TERMINATED
+        String currentStatus = study.getStudyStatus() != null ? study.getStudyStatus().getCode() : null;
+        if ("ACTIVE".equalsIgnoreCase(currentStatus)) {
+            throw new IllegalStateException("Study is already published (ACTIVE)");
+        }
+        if ("COMPLETED".equalsIgnoreCase(currentStatus) || "TERMINATED".equalsIgnoreCase(currentStatus)) {
+            throw new IllegalStateException("Cannot publish a completed or terminated study");
+        }
+
+        // 3. Set status to ACTIVE (published)
+        StudyStatusEntity activeStatus = studyStatusRepository.findByCodeIgnoreCase("ACTIVE")
+            .orElseThrow(() -> new IllegalStateException("ACTIVE status not found in lookup table"));
+        study.setStudyStatus(activeStatus);
+
+        // 4. Save and return updated study
+        StudyEntity saved = studyRepository.save(study);
+        logger.info("Study {} published successfully", id);
+        return studyMapper.toResponseDto(saved);
     }
 }
 

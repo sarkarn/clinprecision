@@ -200,6 +200,7 @@ CREATE TABLE study_phase (
     INDEX idx_study_phase_display_order (display_order)
 );
 
+
 CREATE TABLE IF NOT EXISTS form_templates (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     template_id VARCHAR(50) NOT NULL UNIQUE COMMENT 'Unique template identifier (e.g., DEMO-001)',
@@ -208,9 +209,10 @@ CREATE TABLE IF NOT EXISTS form_templates (
     category VARCHAR(100) COMMENT 'Template category (Demographics, Safety, Laboratory, etc.)',
     version VARCHAR(20) DEFAULT '1.0',
     is_latest_version BOOLEAN DEFAULT TRUE,
-    status ENUM('draft', 'published', 'archived') DEFAULT 'draft',
+    status ENUM('DRAFT', 'PUBLISHED', 'ARCHIVED') DEFAULT 'DRAFT',
     -- Store the entire field structure including metadata in JSON
     fields JSON NOT NULL COMMENT 'Array of field definitions with metadata',
+	structure JSON COMMENT 'Organized layout/structure of form fields',
     tags TEXT COMMENT 'Comma-separated tags for searching/filtering',
     usage_count INT DEFAULT 0 COMMENT 'Number of times template has been used',
     created_by BIGINT,
@@ -294,6 +296,35 @@ CREATE TABLE studies (
 	study_status_id BIGINT NULL COMMENT 'References study_status.id',
     regulatory_status_id BIGINT NULL COMMENT 'References regulatory_status.id',
     study_phase_id BIGINT NULL COMMENT 'References study_phase.id',
+	therapeutic_area VARCHAR(255) COMMENT 'Therapeutic area or medical specialty',
+	study_coordinator VARCHAR(255) COMMENT 'Study coordinator name',
+	active_sites INTEGER DEFAULT 0 COMMENT 'Number of active study sites',
+	total_sites INTEGER DEFAULT 0 COMMENT 'Total number of study sites',
+	screened_subjects INTEGER DEFAULT 0 COMMENT 'Number of screened subjects',
+	randomized_subjects INTEGER DEFAULT 0 COMMENT 'Number of randomized subjects',
+	completed_subjects INTEGER DEFAULT 0 COMMENT 'Number of subjects who completed the study',
+	withdrawn_subjects INTEGER DEFAULT 0 COMMENT 'Number of withdrawn subjects',
+	enrollment_rate DECIMAL(5,2) COMMENT 'Enrollment rate percentage',
+	screening_success_rate DECIMAL(5,2) COMMENT 'Screening success rate percentage',
+	first_patient_in_date DATE COMMENT 'Date of first patient enrollment',
+	last_patient_in_date DATE COMMENT 'Date of last patient enrollment',
+	estimated_completion_date DATE COMMENT 'Estimated study completion date',
+	primary_endpoint TEXT COMMENT 'Primary endpoint description',
+	secondary_endpoints JSON COMMENT 'JSON array of secondary endpoints',
+	inclusion_criteria JSON COMMENT 'JSON array of inclusion criteria',
+	exclusion_criteria JSON COMMENT 'JSON array of exclusion criteria',
+	recent_activities JSON COMMENT 'JSON array of recent study activities',
+	timeline JSON COMMENT 'JSON object containing study timeline data',
+	study_duration_weeks INTEGER COMMENT 'Planned study duration in weeks',
+	data_lock_date DATE COMMENT 'Date when data was locked',
+	database_lock_status ENUM('open', 'soft_lock', 'hard_lock') DEFAULT 'open' COMMENT 'Database lock status',
+	monitoring_visits_completed INTEGER DEFAULT 0 COMMENT 'Number of monitoring visits completed',
+	adverse_events_reported INTEGER DEFAULT 0 COMMENT 'Number of adverse events reported',
+	protocol_deviations INTEGER DEFAULT 0 COMMENT 'Number of protocol deviations',
+	queries_open INTEGER DEFAULT 0 COMMENT 'Number of open data queries',
+	queries_resolved INTEGER DEFAULT 0 COMMENT 'Number of resolved data queries',
+	sdv_percentage DECIMAL(5,2) COMMENT 'Source data verification percentage',
+	recruitment_status ENUM('not_started', 'recruiting', 'completed', 'suspended') DEFAULT 'not_started' COMMENT 'Patient recruitment status',
     metadata JSON,
     created_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -317,6 +348,27 @@ CREATE TABLE study_versions (
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
+-- Create study_design_progress table
+CREATE TABLE study_design_progress (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Primary key',
+    study_id BIGINT NOT NULL COMMENT 'Foreign key to studies table',
+    phase VARCHAR(50) NOT NULL COMMENT 'Design phase name (basic-info, arms, visits, forms, review, publish, revisions)',
+    completed BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Whether this phase is completed',
+    percentage INT NOT NULL DEFAULT 0 CHECK (percentage >= 0 AND percentage <= 100) COMMENT 'Completion percentage (0-100)',
+    notes TEXT COMMENT 'Optional notes about the phase progress',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Record creation timestamp',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Record update timestamp',
+    created_by BIGINT COMMENT 'User who created this record',
+    updated_by BIGINT COMMENT 'User who last updated this record',
+    
+    -- Constraints
+    UNIQUE KEY unique_study_phase (study_id, phase),
+    FOREIGN KEY fk_design_progress_study (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    FOREIGN KEY fk_design_progress_created_by (created_by) REFERENCES users(id),
+    FOREIGN KEY fk_design_progress_updated_by (updated_by) REFERENCES users(id)
+);
+
+
 CREATE TABLE organization_studies (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     organization_id BIGINT NOT NULL,
@@ -332,16 +384,101 @@ CREATE TABLE organization_studies (
     UNIQUE KEY (organization_id, study_id, role)
 );
 
+-- Study Documents Table (MVP Version)
+CREATE TABLE study_documents (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL COMMENT 'Reference to studies table',
+    name VARCHAR(255) NOT NULL COMMENT 'Display name of the document',
+    document_type VARCHAR(50) NOT NULL COMMENT 'Type of document (Protocol, ICF, IB, CRF, etc.)',
+    file_name VARCHAR(255) NOT NULL COMMENT 'Original filename',
+    file_path VARCHAR(500) NOT NULL COMMENT 'Path to stored file',
+    file_size BIGINT NOT NULL COMMENT 'File size in bytes',
+    mime_type VARCHAR(100) COMMENT 'MIME type of the file',
+    version VARCHAR(50) DEFAULT '1.0' COMMENT 'Document version',
+    status ENUM('DRAFT', 'CURRENT', 'SUPERSEDED', 'ARCHIVED') DEFAULT 'CURRENT' COMMENT 'Document status',
+    description TEXT COMMENT 'Document description',
+    uploaded_by BIGINT NOT NULL COMMENT 'User who uploaded the document',
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Upload timestamp',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Record creation timestamp',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Record update timestamp',
+    
+    -- Foreign key constraints
+    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    FOREIGN KEY (uploaded_by) REFERENCES users(id),
+    
+    -- Indexes for performance
+    INDEX idx_study_documents_study_id (study_id),
+    INDEX idx_study_documents_type (document_type),
+    INDEX idx_study_documents_status (status),
+    INDEX idx_study_documents_uploaded_at (uploaded_at)
+) COMMENT 'Store study documents and their metadata';
+
+-- Document audit trail for tracking changes
+CREATE TABLE study_document_audit (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    document_id BIGINT NOT NULL COMMENT 'Reference to study_documents table',
+    action_type ENUM('UPLOAD', 'DOWNLOAD', 'UPDATE', 'DELETE', 'STATUS_CHANGE') NOT NULL COMMENT 'Type of action performed',
+    old_values JSON COMMENT 'Previous values (for updates)',
+    new_values JSON COMMENT 'New values (for updates)',
+    performed_by BIGINT NOT NULL COMMENT 'User who performed the action',
+    performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'When the action was performed',
+    ip_address VARCHAR(45) COMMENT 'IP address of the user',
+    user_agent TEXT COMMENT 'Browser/client information',
+    notes TEXT COMMENT 'Additional notes about the action',
+    
+    -- Foreign key constraints
+    FOREIGN KEY (document_id) REFERENCES study_documents(id) ON DELETE CASCADE,
+    FOREIGN KEY (performed_by) REFERENCES users(id),
+    
+    -- Indexes for performance
+    INDEX idx_document_audit_document_id (document_id),
+    INDEX idx_document_audit_performed_at (performed_at),
+    INDEX idx_document_audit_action_type (action_type)
+) COMMENT 'Audit trail for document management actions';
+
 -- Study arms
 CREATE TABLE study_arms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    study_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    randomization_ratio INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
+    type VARCHAR(50) NOT NULL DEFAULT 'TREATMENT',
+    sequence_number INTEGER NOT NULL,
+    planned_subjects INTEGER DEFAULT 0,
+    study_id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    updated_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    
+    -- Foreign key constraint to studies table
+    CONSTRAINT fk_study_arms_study_id FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    
+    -- Unique constraint on study_id and sequence_number
+	CONSTRAINT chk_study_arms_type CHECK (type IN ('TREATMENT', 'PLACEBO', 'CONTROL', 'ACTIVE_COMPARATOR')),
+    CONSTRAINT uk_study_arms_study_sequence UNIQUE (study_id, sequence_number),
+    CONSTRAINT chk_study_arms_sequence CHECK (sequence_number > 0),
+    CONSTRAINT chk_study_arms_planned_subjects CHECK (planned_subjects >= 0)
+);
+
+CREATE TABLE study_interventions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    type VARCHAR(50) NOT NULL DEFAULT 'DRUG',
+    dosage VARCHAR(255),
+    frequency VARCHAR(255),
+    route VARCHAR(255),
+    study_arm_id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    updated_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    
+    -- Foreign key constraint to study_arms table
+    CONSTRAINT fk_interventions_study_arm_id FOREIGN KEY (study_arm_id) REFERENCES study_arms(id) ON DELETE CASCADE,
+    
+    -- Check constraints for data integrity
+    CONSTRAINT chk_interventions_type CHECK (type IN ('DRUG', 'DEVICE', 'PROCEDURE', 'BEHAVIORAL', 'OTHER'))
 );
 
 -- Sites and visits
@@ -371,7 +508,7 @@ CREATE TABLE visit_definitions (
     timepoint INT NOT NULL,  -- Days from baseline (can be negative for screening)
     window_before INT DEFAULT 0,
     window_after INT DEFAULT 0,
-    visit_type ENUM('screening', 'baseline', 'treatment', 'follow_up', 'unscheduled') DEFAULT 'treatment',
+    visit_type ENUM('SCREENING', 'BASELINE', 'TREATMENT', 'FOLLOW_UP', 'UNSCHEDULED', 'END_OF_STUDY') DEFAULT 'TREATMENT',
     is_required BOOLEAN DEFAULT TRUE,
     sequence_number INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -392,12 +529,13 @@ CREATE TABLE form_definitions (
     parent_version_id VARCHAR(36) DEFAULT NULL,
     version_notes TEXT,
     is_locked BOOLEAN DEFAULT FALSE,
-    status ENUM('draft', 'approved', 'retired') DEFAULT 'draft',
+    status ENUM('DRAFT', 'APPROVED', 'RETIRED') DEFAULT 'DRAFT',
     template_id BIGINT NULL COMMENT 'Reference to form_templates table for template-based forms',
 	template_version VARCHAR(36) NULL COMMENT 'Version of template used when form was created',
 	tags TEXT NULL COMMENT 'Comma-separated tags for searching/filtering',
     -- Store the entire field structure including metadata in JSON
     fields JSON NOT NULL COMMENT 'Array of field definitions with metadata. Each field has a ONE-TO-ONE relationship with its metadata.',
+	structure JSON COMMENT 'Organized layout/structure of form fields (matching form_templates structure)',
     created_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -412,6 +550,7 @@ CREATE TABLE form_versions (
     version VARCHAR(20) NOT NULL,
     version_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by BIGINT,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     version_notes TEXT,
     FOREIGN KEY (form_id) REFERENCES form_definitions(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id)
@@ -421,9 +560,11 @@ CREATE TABLE visit_forms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     visit_definition_id BIGINT NOT NULL,
     form_definition_id BIGINT NOT NULL,
-    sequence_number INT NOT NULL,
     is_required BOOLEAN DEFAULT TRUE,
-    is_active BOOLEAN DEFAULT TRUE,
+    is_conditional BOOLEAN DEFAULT FALSE,
+    conditional_logic TEXT COMMENT 'JSON or expression for conditional forms',
+    display_order INT DEFAULT 1 COMMENT 'Order for display in UI',
+    instructions TEXT COMMENT 'Specific instructions for this form in this visit',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     updated_by BIGINT,
@@ -745,64 +886,24 @@ CREATE INDEX idx_studies_study_phase_id ON studies(study_phase_id);
 -- Add template_id column to form_definitions table to link study forms to templates
 CREATE INDEX idx_form_template ON form_definitions(template_id);
 CREATE INDEX idx_form_status ON form_definitions(status);
+-- Create indexes for performance optimization
+CREATE INDEX idx_study_arms_study_id ON study_arms(study_id);
+CREATE INDEX idx_study_arms_sequence ON study_arms(study_id, sequence_number);
+CREATE INDEX idx_study_arms_type ON study_arms(type);
+CREATE INDEX idx_study_interventions_study_arm_id ON study_interventions(study_arm_id);
+CREATE INDEX idx_study_interventions_type ON study_interventions(type);
+ -- Indexes for performance
+CREATE INDEX idx_design_progress_study_id ON study_design_progress (study_id);
+CREATE INDEX idx_design_progress_phase ON study_design_progress (phase);
+CREATE INDEX idx_design_progress_completed ON study_design_progress (completed);
+CREATE INDEX idx_design_progress_updated_at ON study_design_progress (updated_at);
+CREATE INDEX idx_studies_therapeutic_area ON studies(therapeutic_area);
+CREATE INDEX idx_studies_study_coordinator ON studies(study_coordinator);
+CREATE INDEX idx_studies_enrollment_rate ON studies(enrollment_rate);
+CREATE INDEX idx_studies_recruitment_status ON studies(recruitment_status);
+CREATE INDEX idx_studies_database_lock_status ON studies(database_lock_status);
+CREATE INDEX idx_studies_first_patient_in ON studies(first_patient_in_date);
+CREATE INDEX idx_studies_estimated_completion ON studies(estimated_completion_date);
 
 
--- Insert default user types
 
-
--- Remaining role-authority assignments can be added as needed
-
--- Define triggers for form data history
-DELIMITER //
-
-CREATE TRIGGER after_form_data_update
-AFTER UPDATE ON form_data
-FOR EACH ROW
-BEGIN
-  DECLARE change_type VARCHAR(20);
-  
-  IF OLD.status != NEW.status THEN
-    IF NEW.status = 'signed' THEN
-      SET change_type = 'sign';
-    ELSEIF NEW.status = 'locked' THEN
-      SET change_type = 'lock';
-    ELSEIF OLD.status = 'locked' AND NEW.status != 'locked' THEN
-      SET change_type = 'unlock';
-    ELSE
-      SET change_type = 'update';
-    END IF;
-  ELSEIF OLD.form_definition_id != NEW.form_definition_id OR OLD.form_version != NEW.form_version THEN
-    SET change_type = 'version_upgrade';
-  ELSE
-    SET change_type = 'update';
-  END IF;
-  
-  INSERT INTO form_data_history (
-    id, form_data_id, subject_id, subject_visit_id, 
-    form_definition_id, form_version, status, data,
-    changed_by, change_timestamp, change_type, change_reason
-  )
-  VALUES (
-    UUID(), NEW.id, NEW.subject_id, NEW.subject_visit_id,
-    NEW.form_definition_id, NEW.form_version, NEW.status, NEW.data,
-    NEW.updated_by, NOW(), change_type, NEW.entry_reason
-  );
-END //
-
-CREATE TRIGGER after_form_data_insert
-AFTER INSERT ON form_data
-FOR EACH ROW
-BEGIN
-  INSERT INTO form_data_history (
-    id, form_data_id, subject_id, subject_visit_id, 
-    form_definition_id, form_version, status, data,
-    changed_by, change_timestamp, change_type, change_reason
-  )
-  VALUES (
-    UUID(), NEW.id, NEW.subject_id, NEW.subject_visit_id,
-    NEW.form_definition_id, NEW.form_version, NEW.status, NEW.data,
-    NEW.created_by, NOW(), 'create', NEW.entry_reason
-  );
-END //
-
-DELIMITER ;

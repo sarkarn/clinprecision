@@ -8,6 +8,8 @@ import com.clinprecision.studydesignservice.exception.DuplicateEntityException;
 import com.clinprecision.studydesignservice.exception.EntityLockedException;
 import com.clinprecision.studydesignservice.mapper.FormDefinitionMapper;
 import com.clinprecision.studydesignservice.repository.FormDefinitionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class FormDefinitionService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(FormDefinitionService.class);
     
     private final FormDefinitionRepository formDefinitionRepository;
     private final FormDefinitionMapper formDefinitionMapper;
@@ -40,25 +44,46 @@ public class FormDefinitionService {
      */
     @Transactional
     public FormDefinitionDto createFormDefinition(FormDefinitionCreateRequestDto requestDto) {
-        // Check if form name already exists within the study
-        if (formDefinitionRepository.existsByStudyIdAndName(requestDto.getStudyId(), requestDto.getName())) {
-            throw new DuplicateEntityException("Form with name '" + requestDto.getName() + 
-                                             "' already exists in study ID: " + requestDto.getStudyId());
+        logger.info("FormDefinitionService.createFormDefinition() called");
+        logger.info("Creating form for studyId={}, name='{}', formType='{}'", 
+                   requestDto.getStudyId(), requestDto.getName(), requestDto.getFormType());
+        
+        try {
+            // Check if form name already exists within the study
+            logger.debug("Checking if form name already exists in study...");
+            if (formDefinitionRepository.existsByStudyIdAndName(requestDto.getStudyId(), requestDto.getName())) {
+                logger.warn("Form with name '{}' already exists in study ID: {}", requestDto.getName(), requestDto.getStudyId());
+                throw new DuplicateEntityException("Form with name '" + requestDto.getName() + 
+                                                 "' already exists in study ID: " + requestDto.getStudyId());
+            }
+            
+            // Convert DTO to entity
+            logger.debug("Converting DTO to entity...");
+            FormDefinitionEntity entity = formDefinitionMapper.toEntity(requestDto);
+            logger.debug("Entity created: id={}, studyId={}, name='{}'", entity.getId(), entity.getStudyId(), entity.getName());
+            
+            // If based on a template, increment template usage count
+            if (entity.getTemplateId() != null) {
+                logger.debug("Form is based on template ID: {}, incrementing usage count", entity.getTemplateId());
+                formTemplateService.incrementTemplateUsage(entity.getTemplateId());
+            }
+            
+            // Save entity
+            logger.debug("Saving form definition entity to database...");
+            FormDefinitionEntity savedEntity = formDefinitionRepository.save(entity);
+            logger.info("Form definition saved with ID: {}", savedEntity.getId());
+            
+            // Convert back to DTO and return
+            logger.debug("Converting saved entity back to DTO...");
+            FormDefinitionDto result = formDefinitionMapper.toDto(savedEntity);
+            logger.info("Form definition creation completed successfully. Returning form with ID: {}", result.getId());
+            
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error in FormDefinitionService.createFormDefinition(): {}", e.getMessage(), e);
+            throw e;
         }
-        
-        // Convert DTO to entity
-        FormDefinitionEntity entity = formDefinitionMapper.toEntity(requestDto);
-        
-        // If based on a template, increment template usage count
-        if (entity.getTemplateId() != null) {
-            formTemplateService.incrementTemplateUsage(entity.getTemplateId());
-        }
-        
-        // Save entity
-        FormDefinitionEntity savedEntity = formDefinitionRepository.save(entity);
-        
-        // Convert back to DTO and return
-        return formDefinitionMapper.toDto(savedEntity);
     }
     
     /**
@@ -256,6 +281,7 @@ public class FormDefinitionService {
         requestDto.setTemplateVersion(template.getVersion());
         requestDto.setTags(template.getTags());
         requestDto.setFields(template.getFields());
+        requestDto.setStructure(template.getStructure()); // Add structure from template
         
         return createFormDefinition(requestDto);
     }
