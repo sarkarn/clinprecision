@@ -1,4 +1,4 @@
-package com.clinprecision.adminservice.ui.controllers;
+package com.clinprecision.adminservice.ui.controller;
 
 import com.clinprecision.common.entity.OrganizationEntity;
 import com.clinprecision.common.entity.OrganizationContactEntity;

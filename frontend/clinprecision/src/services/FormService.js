@@ -1,6 +1,6 @@
 import ApiService from './ApiService';
 
-const API_PATH = '/study-design-ws/api/form-templates'; // Global form library/templates
+const API_PATH = '/admin-ws/api/form-templates'; // Global form library/templates (moved to Admin Service)
 const FORM_DEFINITIONS_PATH = '/study-design-ws/api/form-definitions'; // Study-specific forms
 
 /**

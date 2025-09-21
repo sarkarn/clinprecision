@@ -1,6 +1,7 @@
-package com.clinprecision.studydesignservice.entity;
+package com.clinprecision.common.entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 /**

@@ -12,9 +12,9 @@ import StudyViewPage from './StudyViewPage';
 import FormList from './FormList';
 import StudyFormList from './StudyFormList';
 import FormDesigner from './FormDesigner';
-import FormVersionHistory from './FormVersionHistory';
-import FormVersionViewer from './FormVersionViewer';
-import CRFBuilderIntegration from './CRFBuilderIntegration';
+import FormVersionHistory from '../../common/forms/FormVersionHistory';
+import FormVersionViewer from '../../common/forms/FormVersionViewer';
+import CRFBuilderIntegration from '../../common/forms/CRFBuilderIntegration';
 import { useAuth } from '../../login/AuthContext';
 import { useDashboardMetrics } from './hooks/useDashboardMetrics';
 
@@ -304,12 +304,6 @@ const StudyDesignModule = () => {
               >
                 Quick Register
               </button>
-              <button
-                onClick={() => navigate('/study-design/forms', { replace: true })}
-                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-              >
-                Manage Forms
-              </button>
             </div>
           </div>
         )}
@@ -335,12 +329,6 @@ const StudyDesignModule = () => {
                 className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
               >
                 Quick Register
-              </button>
-              <button
-                onClick={() => navigate('/study-design/forms', { replace: true })}
-                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-              >
-                Manage Forms
               </button>
             </div>
           </div>

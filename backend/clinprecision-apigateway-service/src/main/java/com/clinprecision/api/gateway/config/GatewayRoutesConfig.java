@@ -19,30 +19,6 @@ public class GatewayRoutesConfig {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
-                .route("admin-ws-create", r -> r
-                        .path("/admin-ws/users")
-                        .and()
-                        .method("POST")
-                        .and()
-                        .header("Authorization", "Bearer (.*)")
-                        .filters(f -> f
-                                .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
-                                .filter(authFilter)
-                        )
-                        .uri("lb://admin-ws")
-                )
-                // users-ws-get-all (no auth required)
-                .route("admin-ws-get-all", r -> r
-                        .path("/admin-ws/users")
-                        .and()
-                        .method("GET")
-                        .filters(f -> f
-                                .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
-                        )
-                        .uri("lb://admin-ws")
-                )
                 // users-ws-login
                 .route("users-ws-login", r -> r
                         .path("/users-ws/users/login")
@@ -81,106 +57,22 @@ public class GatewayRoutesConfig {
                         )
                         .uri("lb://users-ws")
                 )
-                // User types - GET all and GET by ID (no auth required for read access)
-                .route("admin-ws-usertypes-get", r -> r
-                        .path("/admin-ws/usertypes/**")
+                // Public GET routes (no auth required)
+                .route("admin-ws-get", r -> r
+                        .path("/admin-ws/**")
                         .and()
                         .method("GET")
-                        .filters(f -> f
-                                .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
-                        )
-                        .uri("lb://admin-ws")
-                )
-                // User types - POST, PUT, DELETE (requires auth)
-                .route("admin-ws-usertypes-write", r -> r
-                        .path("/admin-ws/usertypes/**")
-                        .and()
-                        .method("POST", "PUT", "DELETE")
                         .and()
                         .header("Authorization", "Bearer (.*)")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
                                 .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
-                                .filter(authFilter)
                         )
                         .uri("lb://admin-ws")
                 )
-                // User-UserType assignments (requires auth)
-                .route("admin-ws-user-types", r -> r
-                        .path("/admin-ws/users/*/types/**")
-                        .and()
-                        .header("Authorization", "Bearer (.*)")
-                        .filters(f -> f
-                                .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
-                                .filter(authFilter)
-                        )
-                        .uri("lb://admin-ws")
-                )
-                // Organizations - GET all and GET by ID (no auth required for read access)
-                .route("admin-ws-organizations-get", r -> r
-                        .path("/admin-ws/organizations/**")
-                        .and()
-                        .method("GET")
-                        .filters(f -> f
-                                .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
-                        )
-                        .uri("lb://admin-ws")
-                )
-                // Organizations - POST, PUT, DELETE (requires auth)
-                .route("admin-ws-organizations-write", r -> r
-                        .path("/admin-ws/organizations/**")
-                        .and()
-                        .method("POST", "PUT", "DELETE")
-                        .and()
-                        .header("Authorization", "Bearer (.*)")
-                        .filters(f -> f
-                                .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
-                                .filter(authFilter)
-                        )
-                        .uri("lb://admin-ws")
-                )
-                // Organization types endpoint
-                .route("admin-ws-organization-types", r -> r
-                        .path("/admin-ws/organization-types/**")
-                        .and()
-                        .method("GET","POST","PUT","DELETE")
-                        .and()
-                        .header("Authorization", "Bearer (.*)")
-                        .filters(f -> f
-                                .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/organization-types/(?<segment>.*)", "/organizations/organization-types/${segment}")
-                                .rewritePath("/admin-ws/organization-types", "/organizations/organization-types")
-                        )
-                        .uri("lb://admin-ws")
-                )
-                .route("admin-ws-roles-get", r -> r
-                    .path("/admin-ws/roles/**")
-                    .and()
-                    .header("Authorization", "Bearer (.*)")
-                    .filters(f -> f
-                            .removeRequestHeader("Cookie")
-                            .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
-                    )
-                    .uri("lb://admin-ws")
-                )
-                // Form Templates - GET operations (no auth required for read access)
-                .route("admin-ws-form-templates-get", r -> r
-                        .path("/admin-ws/form-templates/**")
-                        .and()
-                        .method("GET")
-                        .filters(f -> f
-                                .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
-                        )
-                        .uri("lb://admin-ws")
-                )
-                // Form Templates - POST, PUT, DELETE, PATCH operations (requires auth)
-                .route("admin-ws-form-templates-write", r -> r
-                        .path("/admin-ws/form-templates/**")
+                // Protected write routes (auth required)
+                .route("admin-ws-write", r -> r
+                        .path("/admin-ws/**")
                         .and()
                         .method("POST", "PUT", "DELETE", "PATCH")
                         .and()
@@ -188,7 +80,7 @@ public class GatewayRoutesConfig {
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
                                 .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
-                                .filter(authFilter)
+                                .filter(authFilter) // enforce authentication
                         )
                         .uri("lb://admin-ws")
                 )
@@ -212,6 +104,8 @@ public class GatewayRoutesConfig {
                     .path("/studies/**", "/arms/**", "/api/studies/**", "/api/arms/**", "/api/visits/**")
                     .and()
                     .method("GET","POST","PUT","DELETE","PATCH")
+                        .and()
+                        .header("Authorization", "Bearer (.*)")
                     .filters(f -> f
                             .removeRequestHeader("Cookie")
                     )

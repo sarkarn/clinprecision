@@ -1,8 +1,8 @@
-package com.clinprecision.studydesignservice.controller;
+package com.clinprecision.adminservice.ui.controller;
+import com.clinprecision.adminservice.service.FormTemplateService;
 
-import com.clinprecision.studydesignservice.dto.FormTemplateCreateRequestDto;
-import com.clinprecision.studydesignservice.dto.FormTemplateDto;
-import com.clinprecision.studydesignservice.service.FormTemplateService;
+import com.clinprecision.common.dto.FormTemplateCreateRequestDto;
+import com.clinprecision.common.dto.FormTemplateDto;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -75,15 +75,14 @@ public class FormTemplateController {
         FormTemplateDto template = formTemplateService.getFormTemplateById(id);
         return ResponseEntity.ok(template);
     }
-    
+
     /**
      * Get form template by template ID
      * GET /api/form-templates/template/{templateId}
      */
-    @GetMapping("/template/{templateId}")
-    public ResponseEntity<FormTemplateDto> getFormTemplateByTemplateId(@PathVariable String templateId) {
-        FormTemplateDto template = formTemplateService.getFormTemplateByTemplateId(templateId);
-        return ResponseEntity.ok(template);
+    @PostMapping("/template/{templateId}")
+    public void  incrementTemplateUsage(@PathVariable Long templateId) {
+        formTemplateService.incrementTemplateUsage(templateId);
     }
     
     /**

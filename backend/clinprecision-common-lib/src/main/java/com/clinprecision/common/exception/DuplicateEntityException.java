@@ -1,4 +1,4 @@
-package com.clinprecision.studydesignservice.exception;
+package com.clinprecision.common.exception;
 
 /**
  * Exception thrown when trying to create an entity that already exists

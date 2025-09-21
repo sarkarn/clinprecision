@@ -1,5 +1,6 @@
 package com.clinprecision.studydesignservice.entity;
 
+import com.clinprecision.common.entity.FormTemplateEntity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

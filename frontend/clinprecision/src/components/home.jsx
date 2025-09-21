@@ -4,7 +4,7 @@ import TopNavigationHeader from "./shared/TopNavigationHeader";
 import StudyDesignModule from "./modules/trialdesign/StudyDesignModule";
 import DataCaptureModule from "./modules/datacapture/DataCaptureModule";
 import DQManagement from "./modules/dqmgmt/DQManagement";
-import UserManagementModule from "./modules/usermanagement/UserManagementModule";
+import AdminModule from "./modules/admin/AdminModule";
 import { useAuth } from "./login/AuthContext";
 
 export default function Home() {
@@ -196,7 +196,7 @@ export default function Home() {
                         <Route path="study-design/*" element={<StudyDesignModule />} />
                         <Route path="datacapture-management/*" element={<DataCaptureModule />} />
                         <Route path="dq-management/*" element={<DQManagement />} />
-                        <Route path="user-management/*" element={<UserManagementModule />} />
+                        <Route path="user-management/*" element={<AdminModule />} />
 
                         {/* Additional tools routes - you'll need to import these components */}
                         <Route path="medical-coding/*" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Medical Coding & Standardization Module</h2><p>Medical coding and standardization functionality will be implemented here.</p></div>} />
