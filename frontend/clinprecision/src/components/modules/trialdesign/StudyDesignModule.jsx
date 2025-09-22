@@ -166,7 +166,7 @@ const StudyDesignModule = () => {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Study Design Dashboard</h1>
-            <p className="text-gray-600">Manage clinical trial studies and protocols with industry-standard versioning</p>
+            <p className="text-gray-600">Comprehensive clinical trial study management with integrated protocol design tools</p>
             {hasData && metrics.lastUpdated && (
               <p className="text-sm text-gray-500 mt-1">
                 Last updated: {new Date(metrics.lastUpdated).toLocaleString()}
@@ -285,52 +285,7 @@ const StudyDesignModule = () => {
         {isDirectNavigation && !isStudySpecificContext() && (
           <div className="mb-6">
             <h2 className="text-2xl font-bold mb-2">Study Design</h2>
-            <div className="flex space-x-4 mb-4">
-              <button
-                onClick={() => navigate('/study-design/create', { replace: true })}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Create New Study
-              </button>
-              <button
-                onClick={() => navigate('/study-design/studies', { replace: true })}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-              >
-                Manage Studies
-              </button>
-              <button
-                onClick={() => navigate('/study-design/register', { replace: true })}
-                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-              >
-                Quick Register
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Action buttons for Study Design landing page - show when on main study-design route */}
-        {location.pathname === '/study-design' && !isStudySpecificContext() && (
-          <div className="mb-6">
-            <div className="flex space-x-4 mb-4">
-              <button
-                onClick={() => navigate('/study-design/create', { replace: true })}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Create New Study
-              </button>
-              <button
-                onClick={() => navigate('/study-design/studies', { replace: true })}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-              >
-                Manage Studies
-              </button>
-              <button
-                onClick={() => navigate('/study-design/register', { replace: true })}
-                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-              >
-                Quick Register
-              </button>
-            </div>
+            <p className="text-gray-600 mb-4">Design and manage clinical trial protocols with comprehensive study management tools</p>
           </div>
         )}
 
