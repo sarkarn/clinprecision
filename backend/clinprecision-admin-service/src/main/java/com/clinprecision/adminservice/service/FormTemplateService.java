@@ -1,12 +1,12 @@
-package com.clinprecision.studydesignservice.service;
+package com.clinprecision.adminservice.service;
 
-import com.clinprecision.studydesignservice.dto.FormTemplateCreateRequestDto;
-import com.clinprecision.studydesignservice.dto.FormTemplateDto;
-import com.clinprecision.studydesignservice.entity.FormTemplateEntity;
-import com.clinprecision.studydesignservice.exception.EntityNotFoundException;
-import com.clinprecision.studydesignservice.exception.DuplicateEntityException;
-import com.clinprecision.studydesignservice.mapper.FormTemplateMapper;
-import com.clinprecision.studydesignservice.repository.FormTemplateRepository;
+import com.clinprecision.adminservice.repository.FormTemplateRepository;
+import com.clinprecision.common.dto.FormTemplateCreateRequestDto;
+import com.clinprecision.common.dto.FormTemplateDto;
+import com.clinprecision.common.entity.FormTemplateEntity;
+import com.clinprecision.common.exception.EntityNotFoundException;
+import com.clinprecision.common.exception.DuplicateEntityException;
+import com.clinprecision.common.mapper.FormTemplateMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,16 +91,7 @@ public class FormTemplateService {
         return formTemplateMapper.toDto(entity);
     }
     
-    /**
-     * Get form template by template ID
-     */
-    public FormTemplateDto getFormTemplateByTemplateId(String templateId) {
-        FormTemplateEntity entity = formTemplateRepository.findByTemplateId(templateId)
-                .orElseThrow(() -> new EntityNotFoundException("Form template not found with template ID: " + templateId));
-        
-        return formTemplateMapper.toDto(entity);
-    }
-    
+
     /**
      * Search form templates by name
      */

@@ -4,7 +4,7 @@ import { Plus, Trash2, Settings, Table, List, ChevronDown, ChevronUp, Eye, Edit3
 import FormService from '../../../services/FormService';
 import StudyFormService from '../../../services/StudyFormService';
 import FormVersionService from '../../../services/FormVersionService';
-import { Alert } from './components/UIComponents';
+import { Alert } from '../../modules/trialdesign/components/UIComponents';
 
 /**
  * This component acts as a bridge between the CRF Builder (to be implemented) 
@@ -48,6 +48,11 @@ const CRFBuilderIntegration = () => {
     // Success message state
     const [successMessage, setSuccessMessage] = useState(null);
 
+    // Monitor successMessage state changes
+    useEffect(() => {
+        console.log('*** SUCCESS MESSAGE STATE CHANGED:', successMessage);
+    }, [successMessage]);
+
     // Error message state
     const [errorMessage, setErrorMessage] = useState(null);
 
@@ -84,19 +89,53 @@ const CRFBuilderIntegration = () => {
                         const fields = typeof formData.fields === 'string' ? JSON.parse(formData.fields) : formData.fields || [];
                         const structure = typeof formData.structure === 'string' ? JSON.parse(formData.structure) : formData.structure || {};
 
-                        console.log('Loaded form data:', { formData, fields, structure });
+                        // Ensure fields have a 'name' property for compatibility with the form builder
+                        const normalizedFields = fields.map(field => ({
+                            ...field,
+                            name: field.name || field.id // Use 'id' as 'name' if 'name' doesn't exist
+                        }));
+
+                        console.log('Loaded form data:', { formData, fields: normalizedFields, structure });
+                        console.log('Reconstructing CRF data...');
 
                         if (structure.sections && Array.isArray(structure.sections)) {
                             // Reconstruct sections with their fields
                             reconstructedCrfData.sections = structure.sections.map(section => {
-                                // Get the actual field objects for this section
-                                const sectionFields = fields.filter(field =>
-                                    section.fields && section.fields.includes(field.id)
-                                );
+                                // Check if section.fields contains full field objects or just IDs
+                                let sectionFields = [];
+
+                                if (section.fields && Array.isArray(section.fields)) {
+                                    if (section.fields.length > 0 && typeof section.fields[0] === 'object' && section.fields[0].name) {
+                                        // Fields are already full objects with name, type, etc.
+                                        console.log(`Section "${section.title || section.name || section.id}" has full field objects:`, section.fields);
+                                        sectionFields = section.fields;
+                                    } else if (section.fields.length > 0 && typeof section.fields[0] === 'string') {
+                                        // Fields are IDs, need to map to full field objects
+                                        console.log(`Section "${section.title || section.name || section.id}" has field IDs:`, section.fields);
+                                        console.log(`Available fields for mapping:`, normalizedFields);
+
+                                        sectionFields = normalizedFields.filter(field =>
+                                            section.fields.includes(field.id)
+                                        );
+
+                                        console.log(`Mapped to field objects:`, sectionFields);
+
+                                        // If mapping failed, let's check why
+                                        if (sectionFields.length === 0 && section.fields.length > 0) {
+                                            console.warn(`⚠️ No fields mapped for section "${section.title || section.name || section.id}"`);
+                                            console.log('Available field IDs:', normalizedFields.map(f => f.id));
+                                            console.log('Expected field IDs:', section.fields);
+                                        }
+                                    } else {
+                                        console.warn(`⚠️ Section "${section.title || section.name || section.id}" has empty or invalid fields array:`, section.fields);
+                                    }
+                                } else {
+                                    console.warn(`⚠️ Section "${section.title || section.name || section.id}" has no fields property or it's not an array:`, section.fields);
+                                }
 
                                 return {
                                     id: section.id,
-                                    name: section.name,
+                                    name: section.title || section.name || 'Untitled Section',
                                     description: section.description || '',
                                     type: section.type || 'regular',
                                     fields: sectionFields,
@@ -107,25 +146,59 @@ const CRFBuilderIntegration = () => {
                                     }
                                 };
                             });
-                        } else if (fields && fields.length > 0) {
+                        } else if (normalizedFields && normalizedFields.length > 0) {
                             // If no structure but we have fields, create a default section
+                            console.log('No structure found, creating default section with all fields:', normalizedFields);
                             reconstructedCrfData.sections = [{
                                 id: 'default_section',
                                 name: 'Form Fields',
                                 description: 'Default section containing all form fields',
                                 type: 'regular',
-                                fields: fields,
+                                fields: normalizedFields,
                                 metadata: {
                                     isRequired: false,
                                     helpText: '',
                                     displayOrder: 1
                                 }
                             }];
+                        } else {
+                            console.warn('⚠️ No structure and no fields found in form data');
                         }
 
-                        // If we have legacy structure format, handle it
-                        if (formData.structure && formData.structure.sections) {
-                            reconstructedCrfData = formData.structure;
+                        // If no sections were created but we have structure.sections, use them directly
+                        // (but only if they already contain full field objects)
+                        if (reconstructedCrfData.sections.length === 0 &&
+                            formData.structure &&
+                            formData.structure.sections &&
+                            formData.structure.sections.length > 0) {
+
+                            // Check if the first section has field objects with names
+                            const firstSection = formData.structure.sections[0];
+                            if (firstSection.fields &&
+                                firstSection.fields.length > 0 &&
+                                typeof firstSection.fields[0] === 'object' &&
+                                firstSection.fields[0].name) {
+
+                                reconstructedCrfData = formData.structure;
+                            }
+                        }
+
+                        // Final safety check: if we have no sections with fields, but we have fields, create a default section
+                        const totalFieldsInSections = reconstructedCrfData.sections.reduce((count, section) => count + (section.fields?.length || 0), 0);
+                        if (totalFieldsInSections === 0 && normalizedFields && normalizedFields.length > 0) {
+                            console.log('⚠️ No fields found in sections after reconstruction, creating fallback section');
+                            reconstructedCrfData.sections = [{
+                                id: 'fallback_section',
+                                name: 'Form Fields',
+                                description: 'Fallback section containing all available fields',
+                                type: 'regular',
+                                fields: normalizedFields,
+                                metadata: {
+                                    isRequired: false,
+                                    helpText: '',
+                                    displayOrder: 1
+                                }
+                            }];
                         }
 
                     } catch (parseError) {
@@ -137,17 +210,21 @@ const CRFBuilderIntegration = () => {
                         };
                     }
 
+                    console.log('Final reconstructed CRF data:', reconstructedCrfData);
                     setCrfData(reconstructedCrfData);
 
                 } else {
                     // New form - show template selector first
+                    console.log('*** NEW FORM: Loading templates and showing selector...');
                     await loadTemplates();
+                    console.log('*** NEW FORM: Templates loaded, setting showTemplateSelector to true');
                     setShowTemplateSelector(true);
                     // Initialize with empty CRF data for now
                     setCrfData({
                         sections: [],
                         fields: []
                     });
+                    console.log('*** NEW FORM: Template selector should now be visible');
                 }
 
                 setLoading(false);
@@ -174,9 +251,10 @@ const CRFBuilderIntegration = () => {
     const loadTemplates = async () => {
         try {
             setLoadingTemplates(true);
-            const templates = isStudyContext
-                ? await StudyFormService.getAvailableTemplates()
-                : await FormService.getFormTemplates();
+            // Always use FormService for templates since they're now managed in Admin module
+            console.log('Loading templates from admin-ws via FormService.getForms()...');
+            const templates = await FormService.getForms();
+            console.log('Loaded templates:', templates?.length || 0, 'templates');
             setAvailableTemplates(templates || []);
         } catch (err) {
             console.error("Error loading templates:", err);
@@ -188,25 +266,68 @@ const CRFBuilderIntegration = () => {
 
     // Handle template selection
     const handleTemplateSelect = async (template) => {
+        console.log('*** handleTemplateSelect called with template:', template);
         try {
             setSelectedTemplate(template);
             setShowTemplateSelector(false);
+            console.log('*** handleTemplateSelect: Modal closed, selectedTemplate set to:', template?.id || 'null');
 
             if (template) {
+                console.log('*** handleTemplateSelect: Processing template data...');
+                console.log('*** Template structure (raw):', template.structure);
+                console.log('*** Template fields (raw):', template.fields);
+
+                // Parse structure and fields if they are JSON strings
+                let parsedStructure = template.structure;
+                let parsedFields = template.fields;
+
+                if (typeof template.structure === 'string') {
+                    try {
+                        parsedStructure = JSON.parse(template.structure);
+                        console.log('*** Parsed structure from JSON string:', parsedStructure);
+                    } catch (e) {
+                        console.error('*** Error parsing structure JSON:', e);
+                        parsedStructure = { sections: [], fields: [] };
+                    }
+                }
+
+                if (typeof template.fields === 'string') {
+                    try {
+                        parsedFields = JSON.parse(template.fields);
+                        console.log('*** Parsed fields from JSON string:', parsedFields);
+                    } catch (e) {
+                        console.error('*** Error parsing fields JSON:', e);
+                        parsedFields = [];
+                    }
+                }
+
                 // Initialize form with template data
-                setCrfData(template.structure || {
+                setCrfData(parsedStructure || {
                     sections: [],
                     fields: []
                 });
+                console.log('*** handleTemplateSelect: CRF data set from template structure');
 
-                // Pre-populate form metadata
-                setForm({
-                    name: `New ${template.name}`,
-                    description: template.description,
+                // Pre-populate form metadata with unique name
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+                const uniqueName = `${template.name} - Copy ${timestamp}`;
+                console.log('*** handleTemplateSelect: Generated unique name:', uniqueName);
+
+                const formData = {
+                    name: uniqueName,
+                    description: template.description || `Copy of ${template.name}`,
                     type: template.type,
                     templateId: template.id
-                });
+                };
+
+                setForm(formData);
+                console.log('*** handleTemplateSelect: Form metadata set:', formData);
+
+                // Template applied successfully - ready for user to save manually
+                console.log('*** handleTemplateSelect: Template applied successfully');
+
             } else {
+                console.log('*** handleTemplateSelect: Starting from scratch (no template)');
                 // Start from scratch
                 setCrfData({
                     sections: [],
@@ -216,8 +337,9 @@ const CRFBuilderIntegration = () => {
             }
 
             setLoading(false);
+            console.log('*** handleTemplateSelect: Template selection completed');
         } catch (err) {
-            console.error("Error applying template:", err);
+            console.error("*** handleTemplateSelect: Error applying template:", err);
             setError("Failed to apply template. Please try again.");
             setLoading(false);
         }
@@ -295,7 +417,7 @@ const CRFBuilderIntegration = () => {
                     console.log('LIBRARY CONTEXT DETECTED - Creating library/template form');
                     console.log('studyId value:', studyId, 'isStudyContext:', isStudyContext);
                     console.log('*** CALLING FormService.createForm() ***');
-                    console.log('API endpoint should be: /study-design-ws/api/form-templates');
+                    console.log('API endpoint should be: /admin-ws/api/form-templates (updated path)');
                     console.log('Expected backend controller: FormTemplateController');
 
                     // Add a marker to track this call
@@ -311,7 +433,7 @@ const CRFBuilderIntegration = () => {
             console.log('Saved form response:', savedForm);
             console.log('Form saved to:', isStudyContext ? 'STUDY-SPECIFIC' : 'LIBRARY');
 
-            // Show success message
+            // Show success message for manual save
             setSuccessMessage({
                 title: 'Success',
                 message: 'Form saved successfully!'
@@ -920,8 +1042,20 @@ const CRFBuilderIntegration = () => {
 
     // Save form changes
     const handleSave = async () => {
+        console.log('*** handleSave: Starting save operation ***');
+        console.log('*** handleSave: Context - isStudyContext:', isStudyContext, 'studyId:', studyId);
+        console.log('*** handleSave: formId:', formId, 'form:', form);
+        console.log('*** handleSave: crfData sections:', crfData?.sections?.length || 0);
+
+        // Prevent duplicate calls if already saving
+        if (saving) {
+            console.log('*** handleSave: BLOCKED - Save operation already in progress');
+            return;
+        }
+
         try {
             setSaving(true);
+            console.log('*** handleSave: Set saving to true ***');
 
             // Extract fields from sections for the fields property
             const allFields = [];
@@ -930,6 +1064,7 @@ const CRFBuilderIntegration = () => {
                     allFields.push(...section.fields);
                 }
             });
+            console.log('*** handleSave: Extracted fields:', allFields.length, 'total fields');
 
             // Create structure object (organized layout information)
             const structureData = {
@@ -947,6 +1082,7 @@ const CRFBuilderIntegration = () => {
                     spacing: "normal"
                 }
             };
+            console.log('*** handleSave: Created structure data:', structureData);
 
             if (!formId) {
                 console.log('*** handleSave: Creating new form ***');
@@ -1003,58 +1139,93 @@ const CRFBuilderIntegration = () => {
                     }
                 }
 
-                // Show success message and navigate
+                // Show success message for manual form creation
+                console.log('*** handleSave: Form created successfully ***');
                 setSuccessMessage({
-                    title: 'Success',
-                    message: 'Form created successfully!'
+                    title: 'Success!',
+                    message: 'Form created successfully! You can continue editing or navigate back to the form list.'
                 });
 
-                // Auto-dismiss after 3 seconds and navigate
+                // Auto-dismiss after 3 seconds
                 setTimeout(() => {
                     setSuccessMessage(null);
+                }, 3000);
+
+                // Update URL to reflect the newly created form ID without navigation
+                if (result && result.id) {
                     const builderPath = isStudyContext
                         ? `/study-design/study/${studyId}/forms/builder/${result.id}`
                         : `/study-design/forms/builder/${result.id}`;
-                    navigate(builderPath);
-                }, 3000);
+                    console.log('*** handleSave: Updating URL to reflect new form ID:', builderPath);
+
+                    // Use window.history.replaceState to update URL without reload
+                    window.history.replaceState(null, '', builderPath);
+
+                    // The component will continue working with the form data we already have
+                    console.log('*** handleSave: URL updated, staying on form builder page');
+                }
             } else {
                 // Update existing form
-                const updatedFormData = {
-                    templateId: form?.id || form?.templateId || `FORM-${Date.now()}`, // Backend requires templateId
-                    name: form?.name || "Updated Form",
-                    description: form?.description || "Form updated via CRF Builder",
-                    category: form?.type || form?.category || "Custom", // Map type to category  
-                    version: form?.version || "1.0",
-                    isLatestVersion: true,
-                    status: form?.status || "DRAFT", // Ensure uppercase enum value
-                    fields: JSON.stringify(allFields), // Field definitions as JSON string
-                    structure: JSON.stringify(structureData), // Structure/layout as JSON string
-                    tags: form?.tags || "",
-                    createdBy: form?.createdBy || 1 // Default user ID
-                };
+                console.log('*** handleSave: Updating existing form with ID:', formId);
+                console.log('*** handleSave: Context - isStudyContext:', isStudyContext, 'studyId:', studyId);
 
-                await FormService.updateForm(formId, updatedFormData);
+                if (isStudyContext && studyId) {
+                    console.log('*** handleSave: STUDY CONTEXT - Using StudyFormService for update ***');
+                    // Update in study context
+                    const studyFormData = {
+                        studyId: studyId, // Required field for backend validation
+                        name: form?.name || "Updated Form",
+                        description: form?.description || "Form updated via CRF Builder",
+                        formType: form?.type || form?.formType || "General",
+                        version: form?.version || "1.0",
+                        status: form?.status || "DRAFT",
+                        fields: JSON.stringify(allFields),
+                        structure: JSON.stringify(structureData),
+                        templateId: form?.templateId || null
+                    };
 
-                // Show success message and navigate
+                    console.log('*** handleSave: Study form data for update:', studyFormData);
+                    await StudyFormService.updateStudyForm(formId, studyFormData);
+                } else {
+                    console.log('*** handleSave: LIBRARY CONTEXT - Using FormService for update ***');
+                    // Update in library/template context
+                    const updatedFormData = {
+                        templateId: form?.id || form?.templateId || `FORM-${Date.now()}`, // Backend requires templateId
+                        name: form?.name || "Updated Form",
+                        description: form?.description || "Form updated via CRF Builder",
+                        category: form?.type || form?.category || "Custom", // Map type to category  
+                        version: form?.version || "1.0",
+                        isLatestVersion: true,
+                        status: form?.status || "DRAFT", // Ensure uppercase enum value
+                        fields: JSON.stringify(allFields), // Field definitions as JSON string
+                        structure: JSON.stringify(structureData), // Structure/layout as JSON string
+                        tags: form?.tags || "",
+                        createdBy: form?.createdBy || 1 // Default user ID
+                    };
+
+                    await FormService.updateForm(formId, updatedFormData);
+                }
+
+                console.log('*** handleSave: Form update completed successfully ***');
+
+                // Show success message for form update
                 setSuccessMessage({
-                    title: 'Success',
-                    message: 'Form updated successfully!'
+                    title: 'Success!',
+                    message: 'Form updated successfully! Your changes have been saved.'
                 });
 
-                // Auto-dismiss after 3 seconds and navigate
+                // Auto-dismiss after 3 seconds
                 setTimeout(() => {
                     setSuccessMessage(null);
-                    const formListPath = isStudyContext
-                        ? `/study-design/study/${studyId}/forms`
-                        : `/study-design/forms`;
-                    navigate(formListPath);
                 }, 3000);
             }
 
+            console.log('*** handleSave: Save operation completed successfully ***');
             setSaving(false);
             setChanges(false);
         } catch (err) {
-            console.error("Error saving form:", err);
+            console.error("*** handleSave: Error saving form:", err);
+            console.error("*** handleSave: Error details:", err.message, err.stack);
             setErrorMessage({
                 title: 'Error',
                 message: `Failed to save form: ${err.message || "Unknown error"}`
@@ -1080,6 +1251,9 @@ const CRFBuilderIntegration = () => {
     if (loading) return <div className="text-center p-6">Loading CRF Builder...</div>;
     if (error) return <div className="text-red-500 p-6">{error}</div>;
 
+    // Debug: Log template modal state
+    console.log('*** RENDER: showTemplateSelector:', showTemplateSelector, 'availableTemplates:', availableTemplates?.length || 0);
+
     return (
         <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-2xl font-bold mb-6">
@@ -1089,11 +1263,15 @@ const CRFBuilderIntegration = () => {
             {/* Success Message */}
             {successMessage && (
                 <div className="mb-6">
+                    {console.log('*** SUCCESS MESSAGE RENDERING:', successMessage)}
                     <Alert
                         type="success"
                         title={successMessage.title}
                         message={successMessage.message}
-                        onClose={() => setSuccessMessage(null)}
+                        onClose={() => {
+                            console.log('*** SUCCESS MESSAGE CLOSED BY USER ***');
+                            setSuccessMessage(null);
+                        }}
                     />
                 </div>
             )}
@@ -2296,7 +2474,15 @@ const CRFBuilderIntegration = () => {
                     Cancel
                 </button>
                 <button
-                    onClick={handleSave}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        console.log('*** SAVE BUTTON: Click detected, saving state:', saving);
+                        if (!saving) {
+                            handleSave();
+                        } else {
+                            console.log('*** SAVE BUTTON: Click ignored - already saving');
+                        }
+                    }}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
                     disabled={saving || !changes}
                 >
@@ -2340,58 +2526,66 @@ const CRFBuilderIntegration = () => {
                                     </div>
 
                                     {/* Template Categories */}
-                                    {Object.entries(
-                                        availableTemplates.reduce((categories, template) => {
+                                    {(() => {
+                                        const categorizedTemplates = availableTemplates.reduce((categories, template) => {
                                             const category = template.category || 'Other';
                                             if (!categories[category]) categories[category] = [];
                                             categories[category].push(template);
                                             return categories;
-                                        }, {})
-                                    ).map(([category, templates]) => (
+                                        }, {});
+                                        console.log('*** TEMPLATE MODAL: Rendering categorized templates:', categorizedTemplates);
+                                        return Object.entries(categorizedTemplates);
+                                    })().map(([category, templates]) => (
                                         <div key={category}>
                                             <h4 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
                                                 {category}
                                             </h4>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {templates.map((template) => (
-                                                    <div
-                                                        key={template.id}
-                                                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md cursor-pointer transition-all group"
-                                                        onClick={() => handleTemplateSelect(template)}
-                                                    >
-                                                        <div className="flex items-start space-x-3">
-                                                            <div className="flex-shrink-0">
-                                                                <span className="text-2xl" role="img" aria-label={template.type}>
-                                                                    {template.icon}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <h5 className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
-                                                                    {template.name}
-                                                                </h5>
-                                                                <p className="text-xs text-gray-600 mt-1">
-                                                                    {template.description}
-                                                                </p>
-                                                                <div className="mt-3 flex items-center justify-between text-xs">
-                                                                    <span className={`px-2 py-1 rounded-full ${template.complexity === 'Basic' ? 'bg-green-100 text-green-800' :
-                                                                        template.complexity === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                                                                            'bg-red-100 text-red-800'
-                                                                        }`}>
-                                                                        {template.complexity}
-                                                                    </span>
-                                                                    <span className="text-gray-500">
-                                                                        ⏱️ {template.estimatedTime}
+                                                {templates.map((template) => {
+                                                    console.log('*** TEMPLATE MODAL: Rendering template:', template.name, template.id);
+                                                    return (
+                                                        <div
+                                                            key={template.id}
+                                                            className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md cursor-pointer transition-all group"
+                                                            onClick={() => {
+                                                                console.log('*** TEMPLATE CLICKED:', template.name, 'ID:', template.id);
+                                                                handleTemplateSelect(template);
+                                                            }}
+                                                        >
+                                                            <div className="flex items-start space-x-3">
+                                                                <div className="flex-shrink-0">
+                                                                    <span className="text-2xl" role="img" aria-label={template.type}>
+                                                                        {template.icon}
                                                                     </span>
                                                                 </div>
-                                                                <div className="mt-2">
-                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-800">
-                                                                        {template.type}
-                                                                    </span>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h5 className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                                                                        {template.name}
+                                                                    </h5>
+                                                                    <p className="text-xs text-gray-600 mt-1">
+                                                                        {template.description}
+                                                                    </p>
+                                                                    <div className="mt-3 flex items-center justify-between text-xs">
+                                                                        <span className={`px-2 py-1 rounded-full ${template.complexity === 'Basic' ? 'bg-green-100 text-green-800' :
+                                                                            template.complexity === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                                                                                'bg-red-100 text-red-800'
+                                                                            }`}>
+                                                                            {template.complexity}
+                                                                        </span>
+                                                                        <span className="text-gray-500">
+                                                                            ⏱️ {template.estimatedTime}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="mt-2">
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-800">
+                                                                            {template.type}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     ))}

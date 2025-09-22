@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-export default function UserManagementDashboard() {
+export default function AdminDashboard() {
     return (
         <div>
             <div className="mb-6 flex justify-between items-center">
@@ -58,6 +58,24 @@ export default function UserManagementDashboard() {
                             className="inline-block bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
                         >
                             Manage Organizations
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Form Templates Card */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-5 bg-indigo-50 border-b border-indigo-100">
+                        <h4 className="font-medium text-lg text-indigo-800">Form Templates</h4>
+                    </div>
+                    <div className="p-5">
+                        <p className="text-gray-600 mb-4">
+                            Manage reusable form templates for standardization across studies.
+                        </p>
+                        <Link
+                            to="/user-management/form-templates"
+                            className="inline-block bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                        >
+                            Manage Form Templates
                         </Link>
                     </div>
                 </div>

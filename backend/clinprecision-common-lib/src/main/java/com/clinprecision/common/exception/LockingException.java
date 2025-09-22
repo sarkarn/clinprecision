@@ -1,4 +1,4 @@
-package com.clinprecision.studydesignservice.exception;
+package com.clinprecision.common.exception;
 
 /**
  * Exception thrown when there's an issue with locking or unlocking an entity.

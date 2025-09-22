@@ -1,6 +1,7 @@
-package com.clinprecision.studydesignservice.dto;
+package com.clinprecision.common.dto;
 
-import com.clinprecision.studydesignservice.entity.FormTemplateEntity;
+
+import com.clinprecision.common.entity.FormTemplateEntity;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;

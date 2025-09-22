@@ -1,6 +1,6 @@
-package com.clinprecision.studydesignservice.repository;
+package com.clinprecision.adminservice.repository;
 
-import com.clinprecision.studydesignservice.entity.FormTemplateEntity;
+import com.clinprecision.common.entity.FormTemplateEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,10 +16,7 @@ import java.util.Optional;
 @Repository
 public interface FormTemplateRepository extends JpaRepository<FormTemplateEntity, Long> {
     
-    /**
-     * Find form template by template ID
-     */
-    Optional<FormTemplateEntity> findByTemplateId(String templateId);
+
     
     /**
      * Find form templates by category

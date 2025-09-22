@@ -1,4 +1,4 @@
-package com.clinprecision.studydesignservice.exception;
+package com.clinprecision.common.exception;
 
 /**
  * Exception thrown when attempting to modify a locked entity.

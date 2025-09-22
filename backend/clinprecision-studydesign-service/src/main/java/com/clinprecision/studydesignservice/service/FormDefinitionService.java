@@ -1,11 +1,12 @@
 package com.clinprecision.studydesignservice.service;
 
+import com.clinprecision.common.exception.DuplicateEntityException;
+import com.clinprecision.common.exception.EntityLockedException;
+import com.clinprecision.common.exception.EntityNotFoundException;
+import com.clinprecision.common.util.SecurityUtil;
 import com.clinprecision.studydesignservice.dto.FormDefinitionCreateRequestDto;
 import com.clinprecision.studydesignservice.dto.FormDefinitionDto;
 import com.clinprecision.studydesignservice.entity.FormDefinitionEntity;
-import com.clinprecision.studydesignservice.exception.EntityNotFoundException;
-import com.clinprecision.studydesignservice.exception.DuplicateEntityException;
-import com.clinprecision.studydesignservice.exception.EntityLockedException;
 import com.clinprecision.studydesignservice.mapper.FormDefinitionMapper;
 import com.clinprecision.studydesignservice.repository.FormDefinitionRepository;
 import org.slf4j.Logger;
@@ -28,12 +29,12 @@ public class FormDefinitionService {
     
     private final FormDefinitionRepository formDefinitionRepository;
     private final FormDefinitionMapper formDefinitionMapper;
-    private final FormTemplateService formTemplateService;
+    private final FormTemplateServiceClient formTemplateService;
     
     @Autowired
     public FormDefinitionService(FormDefinitionRepository formDefinitionRepository,
                                 FormDefinitionMapper formDefinitionMapper,
-                                FormTemplateService formTemplateService) {
+                                 FormTemplateServiceClient formTemplateService) {
         this.formDefinitionRepository = formDefinitionRepository;
         this.formDefinitionMapper = formDefinitionMapper;
         this.formTemplateService = formTemplateService;
@@ -53,7 +54,7 @@ public class FormDefinitionService {
             logger.debug("Checking if form name already exists in study...");
             if (formDefinitionRepository.existsByStudyIdAndName(requestDto.getStudyId(), requestDto.getName())) {
                 logger.warn("Form with name '{}' already exists in study ID: {}", requestDto.getName(), requestDto.getStudyId());
-                throw new DuplicateEntityException("Form with name '" + requestDto.getName() + 
+                throw new DuplicateEntityException("Form with name '" + requestDto.getName() +
                                                  "' already exists in study ID: " + requestDto.getStudyId());
             }
             
@@ -65,7 +66,8 @@ public class FormDefinitionService {
             // If based on a template, increment template usage count
             if (entity.getTemplateId() != null) {
                 logger.debug("Form is based on template ID: {}, incrementing usage count", entity.getTemplateId());
-                formTemplateService.incrementTemplateUsage(entity.getTemplateId());
+                var authHeader = SecurityUtil.getAuthorizationHeader();
+                formTemplateService.incrementTemplateUsage(entity.getTemplateId(), authHeader);
             }
             
             // Save entity
@@ -262,8 +264,35 @@ public class FormDefinitionService {
      */
     @Transactional
     public FormDefinitionDto createFormDefinitionFromTemplate(Long studyId, Long templateId, String formName) {
+        logger.info("Creating form definition from template - studyId: {}, templateId: {}, formName: {}", 
+                   studyId, templateId, formName);
+        
         // Get the template
-        var template = formTemplateService.getFormTemplateById(templateId);
+        var authHeader = SecurityUtil.getAuthorizationHeader();
+        var response = formTemplateService.getFormTemplateById(templateId, authHeader);
+        
+        // Validate template response
+        if (response == null || response.getBody() == null) {
+            logger.error("Failed to fetch template with ID: {}. Response is null", templateId);
+            throw new EntityNotFoundException("Template with ID " + templateId + " not found or service unavailable");
+        }
+        
+        var template = response.getBody();
+        
+        // Additional null check for template
+        if (template == null) {
+            logger.error("Template body is null for ID: {}", templateId);
+            throw new EntityNotFoundException("Template with ID " + templateId + " not found");
+        }
+        
+        // Validate template has required fields  
+        if (template.getFields() == null || template.getFields().isEmpty()) {
+            logger.error("Template {} has null or empty fields", templateId);
+            throw new IllegalStateException("Template " + templateId + " has no fields defined");
+        }
+        
+        logger.info("Successfully fetched template: {} with {} fields", 
+                   template.getName(), template.getFields().length());
         
         // Check if form name already exists within the study
         if (formDefinitionRepository.existsByStudyIdAndName(studyId, formName)) {
@@ -282,6 +311,15 @@ public class FormDefinitionService {
         requestDto.setTags(template.getTags());
         requestDto.setFields(template.getFields());
         requestDto.setStructure(template.getStructure()); // Add structure from template
+        
+        // Increment template usage after successful creation
+        try {
+            formTemplateService.incrementTemplateUsage(templateId, authHeader);
+            logger.info("Incremented usage count for template: {}", templateId);
+        } catch (Exception e) {
+            logger.warn("Failed to increment template usage for template {}: {}", templateId, e.getMessage());
+            // Don't fail the form creation if usage increment fails
+        }
         
         return createFormDefinition(requestDto);
     }
