@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FileText, Eye, Link, Unlink, Settings, Search, Filter } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
-import VisitService from '../../../../services/VisitService';
+import VisitDefinitionService from '../../../../services/VisitDefinitionService';
 import StudyService from '../../../../services/StudyService';
 import StudyFormService from '../../../../services/StudyFormService';
 import StudyDesignService from '../../../../services/StudyDesignService';
@@ -57,8 +57,8 @@ const FormBindingDesigner = () => {
             // Load actual data from backend APIs
             const [studyData, visitsData, bindingsData, formsData] = await Promise.all([
                 StudyService.getStudyById(studyId),
-                VisitService.getVisitsByStudy(studyId),
-                VisitService.getVisitFormBindings(studyId), // Load visit-form bindings
+                VisitDefinitionService.getVisitsByStudy(studyId),
+                VisitDefinitionService.getVisitFormBindings(studyId), // Load visit-form bindings
                 StudyFormService.getFormsByStudy(studyId) // Load study-specific forms
             ]);
 
@@ -98,7 +98,7 @@ const FormBindingDesigner = () => {
                 reminders: { enabled: true, days: [1] }
             };
 
-            const createdBinding = await VisitService.createVisitFormBinding(newBinding);
+            const createdBinding = await VisitDefinitionService.createVisitFormBinding(newBinding);
             const updatedBindings = [...bindings, createdBinding];
             setBindings(updatedBindings);
             setSelectedBinding(createdBinding);
@@ -113,7 +113,7 @@ const FormBindingDesigner = () => {
     const handleRemoveBinding = async (bindingId) => {
         if (window.confirm('Are you sure you want to remove this form binding?')) {
             try {
-                await VisitService.deleteVisitFormBinding(bindingId);
+                await VisitDefinitionService.deleteVisitFormBinding(bindingId);
                 const updatedBindings = bindings.filter(b => b.id !== bindingId);
                 setBindings(updatedBindings);
                 if (selectedBinding && selectedBinding.id === bindingId) {
@@ -130,7 +130,7 @@ const FormBindingDesigner = () => {
     // Update binding
     const handleUpdateBinding = async (bindingId, updates) => {
         try {
-            const updatedBinding = await VisitService.updateVisitFormBinding(bindingId, updates);
+            const updatedBinding = await VisitDefinitionService.updateVisitFormBinding(bindingId, updates);
             const updatedBindings = bindings.map(binding =>
                 binding.id === bindingId ? updatedBinding : binding
             );

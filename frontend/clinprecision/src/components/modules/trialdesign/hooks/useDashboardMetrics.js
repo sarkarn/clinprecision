@@ -92,8 +92,37 @@ export const useDashboardMetrics = () => {
         return () => clearInterval(interval);
     }, [loading, isDataFresh, refreshMetrics]);
 
+    // Enhanced metrics formatter with additional calculations
+    const getEnhancedMetrics = useCallback(() => {
+        if (!metrics || loading) {
+            return {
+                activeStudies: loading ? '...' : '–',
+                draftProtocols: loading ? '...' : '–',
+                completedStudies: loading ? '...' : '–',
+                totalAmendments: loading ? '...' : '–',
+                totalStudies: loading ? '...' : '–',
+                completionRate: loading ? '...' : '–'
+            };
+        }
+
+        const totalStudies = (metrics.activeStudies || 0) + (metrics.draftProtocols || 0) + (metrics.completedStudies || 0);
+        const completionRate = totalStudies > 0 ? ((metrics.completedStudies || 0) / totalStudies * 100).toFixed(1) : 0;
+
+        return {
+            activeStudies: metrics.activeStudies || 0,
+            draftProtocols: metrics.draftProtocols || 0,
+            completedStudies: metrics.completedStudies || 0,
+            totalAmendments: metrics.totalAmendments || 0,
+            studiesByStatus: metrics.studiesByStatus || {},
+            studiesByPhase: metrics.studiesByPhase || {},
+            lastUpdated: metrics.lastUpdated,
+            totalStudies,
+            completionRate
+        };
+    }, [metrics, loading]);
+
     return {
-        metrics: getFormattedMetrics(),
+        metrics: getEnhancedMetrics(),
         rawMetrics: metrics,
         loading,
         error,

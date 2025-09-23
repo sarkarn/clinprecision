@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircle, AlertCircle, Clock, FileText, Users, Target, Calendar, Link as LinkIcon, GitBranch, Send } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock, FileText, Users, Target, Calendar, Link as LinkIcon, GitBranch, Send, Zap } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
+import StudyContextHeader from '../components/StudyContextHeader';
+import NavigationSidebar, { NavigationToggle } from '../components/NavigationSidebar';
+import WorkflowProgressTracker from '../components/WorkflowProgressTracker';
+import SmartWorkflowAssistant from '../components/SmartWorkflowAssistant';
+import PhaseTransitionHelper from '../components/PhaseTransitionHelper';
 
 // Import the designer components
 import StudyArmsDesigner from './StudyArmsDesigner';
@@ -40,6 +45,10 @@ const StudyDesignDashboard = () => {
     const [completedPhases, setCompletedPhases] = useState([]);
     const [loading, setLoading] = useState(true);
     const [errors, setErrors] = useState([]);
+    const [showNavSidebar, setShowNavSidebar] = useState(false);
+    const [showWorkflowAssistant, setShowWorkflowAssistant] = useState(true);
+    const [transitionTarget, setTransitionTarget] = useState(null);
+    const [showTransitionHelper, setShowTransitionHelper] = useState(false);
 
     // Design phases configuration
     const designPhases = [
@@ -214,9 +223,28 @@ const StudyDesignDashboard = () => {
         }
     };
 
-    // Navigate to phase
+    // Navigate to phase with transition helper
     const handlePhaseChange = (phaseId) => {
+        // If changing to a different phase, show transition helper
+        if (phaseId !== currentPhase && showWorkflowAssistant) {
+            setTransitionTarget(phaseId);
+            setShowTransitionHelper(true);
+        } else {
+            navigate(`/study-design/study/${studyId}/design/${phaseId}`, { replace: true });
+        }
+    };
+
+    // Handle confirmed phase transition
+    const handleConfirmedTransition = (phaseId) => {
+        setShowTransitionHelper(false);
+        setTransitionTarget(null);
         navigate(`/study-design/study/${studyId}/design/${phaseId}`, { replace: true });
+    };
+
+    // Cancel phase transition
+    const handleCancelTransition = () => {
+        setShowTransitionHelper(false);
+        setTransitionTarget(null);
     };
 
     // Get phase status
@@ -272,6 +300,12 @@ const StudyDesignDashboard = () => {
         return true;
     };
 
+    // Get current phase display name
+    const getCurrentPhaseName = () => {
+        const phase = designPhases.find(p => p.id === currentPhase);
+        return phase ? phase.name : 'Study Design';
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center py-12">
@@ -283,12 +317,48 @@ const StudyDesignDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <StudyDesignHeader
+            {/* Navigation Toggle for Mobile */}
+            <NavigationToggle
+                onClick={() => setShowNavSidebar(!showNavSidebar)}
+                isOpen={showNavSidebar}
+            />
+
+            {/* Navigation Sidebar */}
+            <NavigationSidebar
+                isOpen={showNavSidebar}
+                onToggle={() => setShowNavSidebar(!showNavSidebar)}
+                currentWorkflow="Study Design Workflow"
+                workflowSteps={designPhases.map((phase, index) => ({
+                    title: phase.name,
+                    description: phase.description,
+                    completed: completedPhases.includes(phase.id),
+                    current: phase.id === currentPhase
+                }))}
+                currentStep={designPhases.findIndex(phase => phase.id === currentPhase)}
                 study={study}
-                currentPhase={currentPhase}
-                overallCompletion={getOverallCompletion()}
+            />
+
+            {/* Study Context Header */}
+            <StudyContextHeader
+                study={study}
+                currentPage={getCurrentPhaseName()}
                 onBack={() => navigate('/study-design/studies')}
+                showProgress={true}
+                progressValue={getOverallCompletion()}
+                actions={[
+                    {
+                        label: showWorkflowAssistant ? 'Hide Assistant' : 'Show Assistant',
+                        variant: 'outline',
+                        icon: Zap,
+                        onClick: () => setShowWorkflowAssistant(!showWorkflowAssistant)
+                    },
+                    {
+                        label: 'Edit Study',
+                        variant: 'outline',
+                        icon: FileText,
+                        onClick: () => navigate(`/study-design/edit/${studyId}`)
+                    }
+                ]}
             />
 
             {/* Errors */}
@@ -305,30 +375,57 @@ const StudyDesignDashboard = () => {
 
             {/* Main Layout */}
             <div className="max-w-7xl mx-auto px-6 py-6">
-                <div className="flex gap-6">
-                    {/* Sidebar Navigation */}
-                    <StudyDesignSidebar
-                        phases={designPhases}
-                        currentPhase={currentPhase}
-                        designProgress={designProgress}
-                        completedPhases={completedPhases}
-                        onPhaseChange={handlePhaseChange}
-                        isPhaseAccessible={isPhaseAccessible}
-                        getPhaseStatus={getPhaseStatus}
-                    />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Left Sidebar - Workflow Progress */}
+                    <div className="lg:col-span-3 space-y-6">
+                        <WorkflowProgressTracker
+                            phases={designPhases}
+                            currentPhase={currentPhase}
+                            completedPhases={completedPhases}
+                            designProgress={designProgress}
+                            onPhaseChange={handlePhaseChange}
+                            isPhaseAccessible={isPhaseAccessible}
+                        />
 
-                    {/* Main Content */}
-                    <div className="flex-1">
-                        {currentPhase === 'basic-info' && <BasicInfoSummary study={study} />}
-                        {currentPhase === 'arms' && <StudyArmsDesigner />}
-                        {currentPhase === 'visits' && <VisitScheduleDesigner />}
-                        {currentPhase === 'forms' && <FormBindingDesigner />}
-                        {currentPhase === 'review' && <StudyReviewPanel study={study} designProgress={designProgress} />}
-                        {currentPhase === 'publish' && <StudyPublishWorkflow />}
-                        {currentPhase === 'revisions' && <ProtocolRevisionWorkflow />}
+                        {showWorkflowAssistant && (
+                            <SmartWorkflowAssistant
+                                currentPhase={currentPhase}
+                                designProgress={designProgress}
+                                completedPhases={completedPhases}
+                                study={study}
+                                onPhaseChange={handlePhaseChange}
+                            />
+                        )}
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="lg:col-span-9">
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 min-h-[600px]">
+                            {/* Phase Content */}
+                            <div className="p-6">
+                                {currentPhase === 'basic-info' && <BasicInfoSummary study={study} />}
+                                {currentPhase === 'arms' && <StudyArmsDesigner />}
+                                {currentPhase === 'visits' && <VisitScheduleDesigner />}
+                                {currentPhase === 'forms' && <FormBindingDesigner />}
+                                {currentPhase === 'review' && <StudyReviewPanel study={study} designProgress={designProgress} />}
+                                {currentPhase === 'publish' && <StudyPublishWorkflow />}
+                                {currentPhase === 'revisions' && <ProtocolRevisionWorkflow />}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            {/* Phase Transition Helper */}
+            <PhaseTransitionHelper
+                currentPhase={currentPhase}
+                targetPhase={transitionTarget}
+                completedPhases={completedPhases}
+                designProgress={designProgress}
+                onTransition={handleConfirmedTransition}
+                onCancel={handleCancelTransition}
+                isVisible={showTransitionHelper}
+            />
         </div>
     );
 };

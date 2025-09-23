@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { GitBranch, Clock, FileText, Users, CheckCircle, AlertTriangle, Plus, Edit, Eye, ArrowRight } from 'lucide-react';
+import { GitBranch, Clock, FileText, Users, CheckCircle, AlertTriangle, Plus, Edit, Eye, ArrowRight, GitCompare, Settings, Activity } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
+import EnhancedVersionManager from '../components/EnhancedVersionManager';
+import VersionComparisonTool from '../components/VersionComparisonTool';
+import ApprovalWorkflowInterface from '../components/ApprovalWorkflowInterface';
 
 /**
  * Protocol Revision Workflow Component
@@ -19,6 +22,10 @@ const ProtocolRevisionWorkflow = () => {
     const [activeRevision, setActiveRevision] = useState(null);
     const [revisionType, setRevisionType] = useState('AMENDMENT'); // AMENDMENT, ADMINISTRATIVE_CHANGE
     const [showCreateRevision, setShowCreateRevision] = useState(false);
+    const [showVersionComparison, setShowVersionComparison] = useState(false);
+    const [showApprovalWorkflow, setShowApprovalWorkflow] = useState(false);
+    const [selectedVersionsForComparison, setSelectedVersionsForComparison] = useState([]);
+    const [viewMode, setViewMode] = useState('enhanced'); // 'enhanced', 'classic'
     const [loading, setLoading] = useState(true);
     const [errors, setErrors] = useState([]);
 
@@ -238,7 +245,13 @@ const ProtocolRevisionWorkflow = () => {
         }
     };
 
-    // Approve and implement revision
+    // Handle version comparison
+    const handleCompareVersions = (versionsToCompare) => {
+        setSelectedVersionsForComparison(versionsToCompare);
+        setShowVersionComparison(true);
+    };
+
+    // Handle approval workflow actions
     const handleApproveRevision = async (revisionId) => {
         try {
             const revision = pendingRevisions.find(r => r.id === revisionId);
@@ -276,6 +289,40 @@ const ProtocolRevisionWorkflow = () => {
         } catch (error) {
             console.error('Error approving revision:', error);
             setErrors(['Failed to approve revision']);
+        }
+    };
+
+    const handleRejectRevision = async (revisionId) => {
+        try {
+            const updatedRevisions = pendingRevisions.map(rev =>
+                rev.id === revisionId ? { ...rev, status: 'REJECTED' } : rev
+            );
+            setPendingRevisions(updatedRevisions);
+        } catch (error) {
+            console.error('Error rejecting revision:', error);
+            setErrors(['Failed to reject revision']);
+        }
+    };
+
+    const handleRequestChanges = async (revisionId) => {
+        try {
+            const updatedRevisions = pendingRevisions.map(rev =>
+                rev.id === revisionId ? { ...rev, status: 'CHANGES_REQUESTED' } : rev
+            );
+            setPendingRevisions(updatedRevisions);
+        } catch (error) {
+            console.error('Error requesting changes:', error);
+            setErrors(['Failed to request changes']);
+        }
+    };
+
+    const handleAddComment = async (revisionId, comment) => {
+        try {
+            // In real implementation, this would make an API call
+            console.log('Adding comment to revision:', revisionId, comment);
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            setErrors(['Failed to add comment']);
         }
     };
 
@@ -317,9 +364,9 @@ const ProtocolRevisionWorkflow = () => {
     }
 
     return (
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
-            {/* Header */}
-            <div className="bg-white rounded-lg shadow p-6">
+        <div className="space-y-6">
+            {/* Enhanced Header */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex justify-between items-start">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Protocol Revisions</h1>
@@ -327,9 +374,36 @@ const ProtocolRevisionWorkflow = () => {
                             Manage protocol amendments and versioning for {study?.name}
                         </p>
                     </div>
-                    <div className="flex space-x-3">
-                        <Button variant="outline" onClick={() => navigate(-1)}>
-                            Back
+                    <div className="flex items-center space-x-3">
+                        {/* View Mode Toggle */}
+                        <div className="flex items-center space-x-2">
+                            <label className="text-sm font-medium text-gray-700">View:</label>
+                            <select
+                                value={viewMode}
+                                onChange={(e) => setViewMode(e.target.value)}
+                                className="text-sm border border-gray-300 rounded px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="enhanced">Enhanced</option>
+                                <option value="classic">Classic</option>
+                            </select>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowApprovalWorkflow(true)}
+                            disabled={pendingRevisions.length === 0}
+                        >
+                            <Activity className="h-4 w-4 mr-2" />
+                            Workflow
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowVersionComparison(true)}
+                            disabled={versions.length < 2}
+                        >
+                            <GitCompare className="h-4 w-4 mr-2" />
+                            Compare
                         </Button>
                         <Button
                             onClick={() => setShowCreateRevision(true)}
@@ -343,28 +417,28 @@ const ProtocolRevisionWorkflow = () => {
 
                 {/* Current Version Info */}
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                         <div className="flex items-center">
                             <GitBranch className="h-5 w-5 text-green-600 mr-2" />
                             <span className="text-sm font-medium text-green-900">Current Version</span>
                         </div>
                         <div className="text-2xl font-bold text-green-900 mt-1">v{study?.currentVersion}</div>
                     </div>
-                    <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                         <div className="flex items-center">
                             <Clock className="h-5 w-5 text-blue-600 mr-2" />
                             <span className="text-sm font-medium text-blue-900">Total Versions</span>
                         </div>
                         <div className="text-2xl font-bold text-blue-900 mt-1">{versions.length}</div>
                     </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
+                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                         <div className="flex items-center">
                             <FileText className="h-5 w-5 text-purple-600 mr-2" />
                             <span className="text-sm font-medium text-purple-900">Pending Revisions</span>
                         </div>
                         <div className="text-2xl font-bold text-purple-900 mt-1">{pendingRevisions.length}</div>
                     </div>
-                    <div className="bg-orange-50 p-4 rounded-lg">
+                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                         <div className="flex items-center">
                             <Users className="h-5 w-5 text-orange-600 mr-2" />
                             <span className="text-sm font-medium text-orange-900">Subjects Enrolled</span>
@@ -386,54 +460,69 @@ const ProtocolRevisionWorkflow = () => {
                 />
             )}
 
-            {/* Pending Revisions */}
-            {pendingRevisions.length > 0 && (
-                <div className="bg-white rounded-lg shadow">
-                    <div className="p-6 border-b border-gray-200">
-                        <h3 className="text-lg font-medium text-gray-900">Pending Revisions</h3>
-                    </div>
-                    <PendingRevisions
-                        revisions={pendingRevisions}
-                        onSubmit={handleSubmitRevision}
-                        onApprove={handleApproveRevision}
-                        onView={setActiveRevision}
-                    />
-                </div>
-            )}
-
-            {/* Version History */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Version List */}
-                <div className="bg-white rounded-lg shadow">
-                    <div className="p-6 border-b border-gray-200">
-                        <h3 className="text-lg font-medium text-gray-900">Version History</h3>
-                    </div>
-                    <VersionHistory
-                        versions={versions}
-                        selectedVersion={selectedVersion}
-                        onSelectVersion={setSelectedVersion}
-                        getVersionStatusColor={getVersionStatusColor}
-                        getRevisionTypeColor={getRevisionTypeColor}
-                    />
-                </div>
-
-                {/* Version Details */}
-                <div className="bg-white rounded-lg shadow">
-                    {selectedVersion ? (
-                        <VersionDetails
-                            version={selectedVersion}
-                            getRevisionTypeColor={getRevisionTypeColor}
-                            getVersionStatusColor={getVersionStatusColor}
-                        />
-                    ) : (
-                        <div className="p-8 text-center text-gray-500">
-                            <GitBranch className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Version</h3>
-                            <p>Choose a version from the history to view its details</p>
+            {/* Enhanced or Classic View */}
+            {viewMode === 'enhanced' ? (
+                <EnhancedVersionManager
+                    versions={versions}
+                    selectedVersion={selectedVersion}
+                    onSelectVersion={setSelectedVersion}
+                    onCompareVersions={handleCompareVersions}
+                    currentVersion={study?.currentVersion}
+                    pendingRevisions={pendingRevisions}
+                />
+            ) : (
+                <div className="space-y-6">
+                    {/* Classic view - existing implementation */}
+                    {/* Pending Revisions */}
+                    {pendingRevisions.length > 0 && (
+                        <div className="bg-white rounded-lg shadow">
+                            <div className="p-6 border-b border-gray-200">
+                                <h3 className="text-lg font-medium text-gray-900">Pending Revisions</h3>
+                            </div>
+                            <PendingRevisions
+                                revisions={pendingRevisions}
+                                onSubmit={handleSubmitRevision}
+                                onApprove={handleApproveRevision}
+                                onView={setActiveRevision}
+                            />
                         </div>
                     )}
+
+                    {/* Version History */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Version List */}
+                        <div className="bg-white rounded-lg shadow">
+                            <div className="p-6 border-b border-gray-200">
+                                <h3 className="text-lg font-medium text-gray-900">Version History</h3>
+                            </div>
+                            <VersionHistory
+                                versions={versions}
+                                selectedVersion={selectedVersion}
+                                onSelectVersion={setSelectedVersion}
+                                getVersionStatusColor={getVersionStatusColor}
+                                getRevisionTypeColor={getRevisionTypeColor}
+                            />
+                        </div>
+
+                        {/* Version Details */}
+                        <div className="bg-white rounded-lg shadow">
+                            {selectedVersion ? (
+                                <VersionDetails
+                                    version={selectedVersion}
+                                    getRevisionTypeColor={getRevisionTypeColor}
+                                    getVersionStatusColor={getVersionStatusColor}
+                                />
+                            ) : (
+                                <div className="p-8 text-center text-gray-500">
+                                    <GitBranch className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Version</h3>
+                                    <p>Choose a version from the history to view its details</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Active Revision Details */}
             {activeRevision && (
@@ -455,6 +544,30 @@ const ProtocolRevisionWorkflow = () => {
                     onTypeChange={setRevisionType}
                 />
             )}
+
+            {/* Version Comparison Tool */}
+            <VersionComparisonTool
+                versions={versions}
+                selectedVersions={selectedVersionsForComparison}
+                onVersionSelect={setSelectedVersionsForComparison}
+                isVisible={showVersionComparison}
+                onClose={() => {
+                    setShowVersionComparison(false);
+                    setSelectedVersionsForComparison([]);
+                }}
+            />
+
+            {/* Approval Workflow Interface */}
+            <ApprovalWorkflowInterface
+                revisions={pendingRevisions}
+                currentUser={{ name: 'Current User', role: 'Investigator' }} // Replace with actual user
+                onApprove={handleApproveRevision}
+                onReject={handleRejectRevision}
+                onRequestChanges={handleRequestChanges}
+                onAddComment={handleAddComment}
+                isVisible={showApprovalWorkflow}
+                onClose={() => setShowApprovalWorkflow(false)}
+            />
         </div>
     );
 };
@@ -613,8 +726,8 @@ const VersionDetails = ({ version, getRevisionTypeColor, getVersionStatusColor }
                                 {change.impactLevel && (
                                     <div className="mt-2">
                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${change.impactLevel === 'HIGH' ? 'bg-red-100 text-red-800' :
-                                                change.impactLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-green-100 text-green-800'
+                                            change.impactLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-green-100 text-green-800'
                                             }`}>
                                             {change.impactLevel} Impact
                                         </span>

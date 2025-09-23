@@ -69,7 +69,7 @@ clinprecision/
 │   │   ├── SubjectService.js        # Subject/patient management
 │   │   ├── UserService.js           # User management APIs
 │   │   ├── UserTypeService.js       # User type classification
-│   │   └── VisitService.js          # Visit schedule management
+│   │   └── VisitDefinitionService.js # Visit definition management
 │   ├── config.js                    # Application configuration
 │   ├── App.jsx                      # Root application component
 │   ├── App.css                      # Global application styles
@@ -207,7 +207,7 @@ Each service provides CRUD operations and business logic:
 - `createStudy(data)`: Create new study
 - `updateStudy(id, data)`: Update study information
 
-#### VisitService.js
+#### VisitDefinitionService.js
 - `getVisitsByStudy(studyId)`: Get study visit schedule
 - `createVisit(studyId, data)`: Add new visit
 - `updateVisit(id, data)`: Modify visit details

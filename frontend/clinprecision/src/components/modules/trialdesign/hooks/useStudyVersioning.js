@@ -11,22 +11,66 @@ export const useStudyVersioning = () => {
   const [error, setError] = useState(null);
 
   // Amendment types following FDA guidelines
-  const amendmentTypes = {
-    MAJOR: 'major',           // Protocol changes affecting safety/efficacy
-    MINOR: 'minor',           // Administrative changes
-    SAFETY: 'safety',         // Safety-related changes
-    ADMINISTRATIVE: 'admin'   // Non-substantial changes
+  const AMENDMENT_TYPES = {
+    MAJOR: {
+      value: 'major',
+      label: 'Major Amendment',
+      description: 'Protocol changes affecting safety/efficacy'
+    },
+    MINOR: {
+      value: 'minor',
+      label: 'Minor Amendment', 
+      description: 'Administrative changes'
+    },
+    SAFETY: {
+      value: 'safety',
+      label: 'Safety Amendment',
+      description: 'Safety-related changes'
+    },
+    ADMINISTRATIVE: {
+      value: 'admin',
+      label: 'Administrative Amendment',
+      description: 'Non-substantial changes'
+    }
   };
 
   // Version status types
-  const versionStatus = {
-    DRAFT: 'draft',           // In development
-    UNDER_REVIEW: 'under-review', // Under internal review
-    SUBMITTED: 'submitted',   // Submitted to regulatory
-    APPROVED: 'approved',     // Approved by regulatory
-    ACTIVE: 'active',         // Currently active version
-    SUPERSEDED: 'superseded', // Replaced by newer version
-    WITHDRAWN: 'withdrawn'    // Withdrawn/cancelled
+  const VERSION_STATUS = {
+    DRAFT: {
+      value: 'draft',
+      label: 'Draft',
+      description: 'In development'
+    },
+    UNDER_REVIEW: {
+      value: 'under-review',
+      label: 'Under Review',
+      description: 'Under internal review'
+    },
+    SUBMITTED: {
+      value: 'submitted',
+      label: 'Submitted',
+      description: 'Submitted to regulatory'
+    },
+    APPROVED: {
+      value: 'approved',
+      label: 'Approved',
+      description: 'Approved by regulatory'
+    },
+    ACTIVE: {
+      value: 'active',
+      label: 'Active',
+      description: 'Currently active version'
+    },
+    SUPERSEDED: {
+      value: 'superseded',
+      label: 'Superseded',
+      description: 'Replaced by newer version'
+    },
+    WITHDRAWN: {
+      value: 'withdrawn',
+      label: 'Withdrawn',
+      description: 'Withdrawn/cancelled'
+    }
   };
 
   // Parse version string (e.g., "v2.1" -> { major: 2, minor: 1 })
@@ -48,20 +92,20 @@ export const useStudyVersioning = () => {
     const current = parseVersion(currentVersionString);
     
     switch (amendmentType) {
-      case amendmentTypes.MAJOR:
-      case amendmentTypes.SAFETY:
+      case 'MAJOR':
+      case 'SAFETY':
         // Major changes increment major version, reset minor
         return `v${current.major + 1}.0`;
       
-      case amendmentTypes.MINOR:
-      case amendmentTypes.ADMINISTRATIVE:
+      case 'MINOR':
+      case 'ADMINISTRATIVE':
         // Minor changes increment minor version
         return `v${current.major}.${current.minor + 1}`;
       
       default:
         return `v${current.major}.${current.minor + 1}`;
     }
-  }, [parseVersion, amendmentTypes]);
+  }, [parseVersion]);
 
   // Compare two versions
   const compareVersions = useCallback((version1, version2) => {
@@ -101,8 +145,8 @@ export const useStudyVersioning = () => {
         id: `version-${Date.now()}`, // Will be replaced by server ID
         studyId,
         version: nextVersionNumber,
-        status: versionStatus.DRAFT,
-        amendmentType: versionData.amendmentType || amendmentTypes.MINOR,
+        status: VERSION_STATUS.DRAFT.value,
+        amendmentType: versionData.amendmentType || 'MINOR',
         amendmentReason: versionData.amendmentReason || '',
         description: versionData.description || '',
         createdBy: versionData.createdBy || 'current-user',
@@ -139,7 +183,7 @@ export const useStudyVersioning = () => {
     } finally {
       setLoading(false);
     }
-  }, [versions, getLatestVersion, generateNextVersion, versionStatus, amendmentTypes]);
+  }, [versions, getLatestVersion, generateNextVersion]);
 
   // Update version status
   const updateVersionStatus = useCallback(async (versionId, newStatus, additionalData = {}) => {
@@ -156,13 +200,13 @@ export const useStudyVersioning = () => {
           };
 
           // When approving a version
-          if (newStatus === versionStatus.APPROVED) {
+          if (newStatus === VERSION_STATUS.APPROVED.value) {
             updatedVersion.approvedBy = additionalData.approvedBy || 'current-user';
             updatedVersion.approvedDate = new Date().toISOString();
           }
 
           // When activating a version, mark others as superseded
-          if (newStatus === versionStatus.ACTIVE) {
+          if (newStatus === VERSION_STATUS.ACTIVE.value) {
             updatedVersion.effectiveDate = updatedVersion.effectiveDate || new Date().toISOString();
           }
 
@@ -170,11 +214,11 @@ export const useStudyVersioning = () => {
         }
         
         // Mark other versions as superseded when a new one becomes active
-        if (newStatus === versionStatus.ACTIVE && version.studyId === 
+        if (newStatus === VERSION_STATUS.ACTIVE.value && version.studyId === 
             prev.find(v => v.id === versionId)?.studyId) {
           return {
             ...version,
-            status: version.status === versionStatus.ACTIVE ? versionStatus.SUPERSEDED : version.status
+            status: version.status === VERSION_STATUS.ACTIVE.value ? VERSION_STATUS.SUPERSEDED.value : version.status
           };
         }
         
@@ -188,7 +232,7 @@ export const useStudyVersioning = () => {
     } finally {
       setLoading(false);
     }
-  }, [versionStatus]);
+  }, []);
 
   // Get versions for a specific study
   const getStudyVersions = useCallback((studyId) => {
@@ -199,18 +243,18 @@ export const useStudyVersioning = () => {
 
   // Get active version for a study
   const getActiveVersion = useCallback((studyId) => {
-    return versions.find(v => v.studyId === studyId && v.status === versionStatus.ACTIVE);
-  }, [versions, versionStatus]);
+    return versions.find(v => v.studyId === studyId && v.status === VERSION_STATUS.ACTIVE.value);
+  }, [versions]);
 
   // Check if version can be edited
   const canEditVersion = useCallback((version) => {
-    return version.status === versionStatus.DRAFT || version.status === versionStatus.UNDER_REVIEW;
-  }, [versionStatus]);
+    return version.status === VERSION_STATUS.DRAFT.value || version.status === VERSION_STATUS.UNDER_REVIEW.value;
+  }, []);
 
   // Check if version can be submitted
   const canSubmitVersion = useCallback((version) => {
-    return version.status === versionStatus.DRAFT || version.status === versionStatus.UNDER_REVIEW;
-  }, [versionStatus]);
+    return version.status === VERSION_STATUS.DRAFT.value || version.status === VERSION_STATUS.UNDER_REVIEW.value;
+  }, []);
 
   // Get version history with changes
   const getVersionHistory = useCallback((studyId) => {
@@ -241,8 +285,8 @@ export const useStudyVersioning = () => {
     error,
     
     // Constants
-    amendmentTypes,
-    versionStatus,
+    AMENDMENT_TYPES,
+    VERSION_STATUS,
     
     // Actions
     createVersion,
