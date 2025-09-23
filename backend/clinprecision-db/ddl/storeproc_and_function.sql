@@ -504,3 +504,542 @@ BEGIN
     WHERE id = OLD.study_id;
 END//
 DELIMITER ;
+
+
+DELIMITER //
+
+CREATE PROCEDURE ComputeAndUpdateStudyStatus(
+    IN p_study_id BIGINT,
+    IN p_trigger_source VARCHAR(50),
+    IN p_trigger_details TEXT
+)
+BEGIN
+    DECLARE v_current_status_id BIGINT;
+    DECLARE v_current_status_code VARCHAR(100);
+    DECLARE v_computed_status_code VARCHAR(100);
+    DECLARE v_computed_status_id BIGINT;
+    DECLARE v_status_changed BOOLEAN DEFAULT FALSE;
+    DECLARE v_error_message TEXT DEFAULT '';
+    
+    -- Error handling
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            v_error_message = MESSAGE_TEXT;
+        
+        INSERT INTO study_status_computation_log (
+            study_id, trigger_source, old_status_code, new_status_code,
+            computation_result, error_message, created_at
+        ) VALUES (
+            p_study_id, p_trigger_source, v_current_status_code, NULL,
+            'ERROR', v_error_message, NOW()
+        );
+        
+        RESIGNAL;
+    END;
+    
+    -- Get current study status
+    SELECT s.study_status_id, ss.code 
+    INTO v_current_status_id, v_current_status_code
+    FROM studies s
+    LEFT JOIN study_status ss ON s.study_status_id = ss.id
+    WHERE s.id = p_study_id;
+    
+    -- Compute new status based on study versions and amendments
+    CALL DetermineStudyStatusFromVersions(p_study_id, v_computed_status_code);
+    
+    -- Get the ID for the computed status
+    SELECT id INTO v_computed_status_id
+    FROM study_status
+    WHERE code = v_computed_status_code;
+    
+    -- Update study status if it has changed
+    IF v_current_status_code != v_computed_status_code OR v_current_status_id IS NULL THEN
+        SET v_status_changed = TRUE;
+        
+        UPDATE studies 
+        SET study_status_id = v_computed_status_id,
+            updated_at = NOW()
+        WHERE id = p_study_id;
+        
+        -- Log the status change
+        CALL LogStudyStatusChange(
+            p_study_id, 
+            p_trigger_source, 
+            v_current_status_code, 
+            v_computed_status_code,
+            'SUCCESS',
+            p_trigger_details
+        );
+    ELSE
+        -- Log that no change was needed
+        CALL LogStudyStatusChange(
+            p_study_id, 
+            p_trigger_source, 
+            v_current_status_code, 
+            v_computed_status_code,
+            'NO_CHANGE',
+            p_trigger_details
+        );
+    END IF;
+    
+END//
+
+-- =====================================================
+-- Procedure to determine study status from versions and amendments
+-- =====================================================
+
+CREATE PROCEDURE DetermineStudyStatusFromVersions(
+    IN p_study_id BIGINT,
+    OUT p_computed_status VARCHAR(100)
+)
+BEGIN
+    DECLARE v_has_active_versions INT DEFAULT 0;
+    DECLARE v_has_approved_versions INT DEFAULT 0;
+    DECLARE v_has_under_review_versions INT DEFAULT 0;
+    DECLARE v_has_draft_versions INT DEFAULT 0;
+    DECLARE v_has_pending_safety_amendments INT DEFAULT 0;
+    DECLARE v_has_critical_amendments INT DEFAULT 0;
+    DECLARE v_total_versions INT DEFAULT 0;
+    DECLARE v_current_status_code VARCHAR(100);
+    
+    -- Get current status to consider for transitions
+    SELECT ss.code INTO v_current_status_code
+    FROM studies s
+    LEFT JOIN study_status ss ON s.study_status_id = ss.id
+    WHERE s.id = p_study_id;
+    
+    -- Count versions by status
+    SELECT 
+        COUNT(*) as total_versions,
+        SUM(CASE WHEN status = 'ACTIVE' THEN 1 ELSE 0 END) as active_versions,
+        SUM(CASE WHEN status = 'APPROVED' THEN 1 ELSE 0 END) as approved_versions,
+        SUM(CASE WHEN status = 'UNDER_REVIEW' THEN 1 ELSE 0 END) as under_review_versions,
+        SUM(CASE WHEN status = 'DRAFT' THEN 1 ELSE 0 END) as draft_versions
+    INTO v_total_versions, v_has_active_versions, v_has_approved_versions, 
+         v_has_under_review_versions, v_has_draft_versions
+    FROM study_versions
+    WHERE study_id = p_study_id;
+    
+    -- Check for pending safety amendments
+    SELECT COUNT(*) INTO v_has_pending_safety_amendments
+    FROM study_amendments sa
+    JOIN study_versions sv ON sa.study_version_id = sv.id
+    WHERE sv.study_id = p_study_id
+      AND sa.amendment_type = 'SAFETY'
+      AND sa.status IN ('DRAFT', 'SUBMITTED', 'UNDER_REVIEW');
+    
+    -- Check for critical amendments requiring immediate attention
+    SELECT COUNT(*) INTO v_has_critical_amendments
+    FROM study_amendments sa
+    JOIN study_versions sv ON sa.study_version_id = sv.id
+    WHERE sv.study_id = p_study_id
+      AND sa.amendment_type = 'SAFETY'
+      AND sa.status = 'UNDER_REVIEW'
+      AND sa.requires_regulatory_notification = TRUE;
+    
+    -- Apply status computation logic
+    
+    -- 1. If study has active versions, it should be ACTIVE (unless there are critical issues)
+    IF v_has_active_versions > 0 THEN
+        IF v_has_critical_amendments > 0 THEN
+            SET p_computed_status = 'SUSPENDED';
+        ELSE
+            SET p_computed_status = 'ACTIVE';
+        END IF;
+        
+    -- 2. If study has approved versions but no active ones, it should be APPROVED
+    ELSEIF v_has_approved_versions > 0 THEN
+        SET p_computed_status = 'APPROVED';
+        
+    -- 3. If study has versions under review, it should be UNDER_REVIEW
+    ELSEIF v_has_under_review_versions > 0 THEN
+        SET p_computed_status = 'UNDER_REVIEW';
+        
+    -- 4. If study only has draft versions, it should be DRAFT or PLANNING
+    ELSEIF v_has_draft_versions > 0 THEN
+        -- If there are pending safety amendments, keep in PLANNING
+        IF v_has_pending_safety_amendments > 0 THEN
+            SET p_computed_status = 'PLANNING';
+        ELSE
+            SET p_computed_status = 'DRAFT';
+        END IF;
+        
+    -- 5. If no versions exist, default to DRAFT
+    ELSEIF v_total_versions = 0 THEN
+        SET p_computed_status = 'DRAFT';
+        
+    -- 6. For terminal states, preserve existing status if it's terminal
+    ELSEIF v_current_status_code IN ('COMPLETED', 'TERMINATED', 'WITHDRAWN') THEN
+        SET p_computed_status = v_current_status_code;
+        
+    -- 7. Default fallback
+    ELSE
+        SET p_computed_status = 'DRAFT';
+    END IF;
+    
+END//
+
+-- =====================================================
+-- Procedure to log study status changes
+-- =====================================================
+
+CREATE PROCEDURE LogStudyStatusChange(
+    IN p_study_id BIGINT,
+    IN p_trigger_source VARCHAR(50),
+    IN p_old_status_code VARCHAR(100),
+    IN p_new_status_code VARCHAR(100),
+    IN p_computation_result VARCHAR(20),
+    IN p_trigger_details TEXT
+)
+BEGIN
+    INSERT INTO study_status_computation_log (
+        study_id, 
+        trigger_source, 
+        old_status_code, 
+        new_status_code,
+        computation_result,
+        trigger_details,
+        created_at
+    ) VALUES (
+        p_study_id, 
+        p_trigger_source, 
+        p_old_status_code, 
+        p_new_status_code,
+        p_computation_result,
+        p_trigger_details,
+        NOW()
+    );
+END//
+
+DELIMITER ;
+
+-- =====================================================
+-- Create logging table for status computation tracking
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS study_status_computation_log (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    trigger_source VARCHAR(50) NOT NULL COMMENT 'Source of the trigger (version_change, amendment_change, etc.)',
+    old_status_code VARCHAR(100) COMMENT 'Previous status code',
+    new_status_code VARCHAR(100) COMMENT 'New computed status code',
+    computation_result ENUM('SUCCESS', 'NO_CHANGE', 'ERROR') NOT NULL,
+    trigger_details TEXT COMMENT 'Additional details about what triggered the computation',
+    error_message TEXT COMMENT 'Error message if computation failed',
+    computation_time_ms INT COMMENT 'Time taken for computation in milliseconds',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Indexes for performance
+    INDEX idx_study_status_log_study_id (study_id),
+    INDEX idx_study_status_log_source (trigger_source),
+    INDEX idx_study_status_log_result (computation_result),
+    INDEX idx_study_status_log_created (created_at),
+    
+    -- Foreign key constraint
+    CONSTRAINT fk_status_log_study_id FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE
+);
+
+-- =====================================================
+-- Triggers for study_versions table
+-- =====================================================
+
+DELIMITER //
+
+-- Trigger: When a study version is updated
+CREATE TRIGGER trg_compute_study_status_on_version_change
+AFTER UPDATE ON study_versions
+FOR EACH ROW
+BEGIN
+    DECLARE v_trigger_details TEXT;
+    
+    -- Only trigger if status actually changed
+    IF OLD.status != NEW.status THEN
+        SET v_trigger_details = CONCAT(
+            'Version ', NEW.version_number, 
+            ' status changed from ', OLD.status, 
+            ' to ', NEW.status,
+            ' (Version ID: ', NEW.id, ')'
+        );
+        
+        CALL ComputeAndUpdateStudyStatus(
+            NEW.study_id, 
+            'version_update', 
+            v_trigger_details
+        );
+    END IF;
+END//
+
+-- Trigger: When a new study version is inserted
+CREATE TRIGGER trg_compute_study_status_on_version_insert
+AFTER INSERT ON study_versions
+FOR EACH ROW
+BEGIN
+    DECLARE v_trigger_details TEXT;
+    
+    SET v_trigger_details = CONCAT(
+        'New version ', NEW.version_number, 
+        ' created with status ', NEW.status,
+        ' (Version ID: ', NEW.id, ')'
+    );
+    
+    CALL ComputeAndUpdateStudyStatus(
+        NEW.study_id, 
+        'version_insert', 
+        v_trigger_details
+    );
+END//
+
+-- Trigger: When a study version is deleted
+CREATE TRIGGER trg_compute_study_status_on_version_delete
+AFTER DELETE ON study_versions
+FOR EACH ROW
+BEGIN
+    DECLARE v_trigger_details TEXT;
+    
+    SET v_trigger_details = CONCAT(
+        'Version ', OLD.version_number, 
+        ' deleted (had status ', OLD.status, ')',
+        ' (Version ID: ', OLD.id, ')'
+    );
+    
+    CALL ComputeAndUpdateStudyStatus(
+        OLD.study_id, 
+        'version_delete', 
+        v_trigger_details
+    );
+END//
+
+-- =====================================================
+-- Triggers for study_amendments table
+-- =====================================================
+
+-- Trigger: When a study amendment is updated
+CREATE TRIGGER trg_compute_study_status_on_amendment_change
+AFTER UPDATE ON study_amendments
+FOR EACH ROW
+BEGIN
+    DECLARE v_study_id BIGINT;
+    DECLARE v_trigger_details TEXT;
+    
+    -- Get the study ID from the version
+    SELECT study_id INTO v_study_id
+    FROM study_versions
+    WHERE id = NEW.study_version_id;
+    
+    -- Only trigger if status changed or if it's a safety amendment
+    IF OLD.status != NEW.status OR (NEW.amendment_type = 'SAFETY' AND OLD.amendment_type != 'SAFETY') THEN
+        SET v_trigger_details = CONCAT(
+            'Amendment ', NEW.amendment_number, 
+            ' (', NEW.amendment_type, ') status changed from ', OLD.status, 
+            ' to ', NEW.status,
+            ' (Amendment ID: ', NEW.id, ', Version ID: ', NEW.study_version_id, ')'
+        );
+        
+        CALL ComputeAndUpdateStudyStatus(
+            v_study_id, 
+            'amendment_update', 
+            v_trigger_details
+        );
+    END IF;
+END//
+
+-- Trigger: When a new study amendment is inserted
+CREATE TRIGGER trg_compute_study_status_on_amendment_insert
+AFTER INSERT ON study_amendments
+FOR EACH ROW
+BEGIN
+    DECLARE v_study_id BIGINT;
+    DECLARE v_trigger_details TEXT;
+    
+    -- Get the study ID from the version
+    SELECT study_id INTO v_study_id
+    FROM study_versions
+    WHERE id = NEW.study_version_id;
+    
+    SET v_trigger_details = CONCAT(
+        'New amendment ', NEW.amendment_number, 
+        ' (', NEW.amendment_type, ') created with status ', NEW.status,
+        ' (Amendment ID: ', NEW.id, ', Version ID: ', NEW.study_version_id, ')'
+    );
+    
+    CALL ComputeAndUpdateStudyStatus(
+        v_study_id, 
+        'amendment_insert', 
+        v_trigger_details
+    );
+END//
+
+-- Trigger: When a study amendment is deleted
+CREATE TRIGGER trg_compute_study_status_on_amendment_delete
+AFTER DELETE ON study_amendments
+FOR EACH ROW
+BEGIN
+    DECLARE v_study_id BIGINT;
+    DECLARE v_trigger_details TEXT;
+    
+    -- Get the study ID from the version
+    SELECT study_id INTO v_study_id
+    FROM study_versions
+    WHERE id = OLD.study_version_id;
+    
+    SET v_trigger_details = CONCAT(
+        'Amendment ', OLD.amendment_number, 
+        ' (', OLD.amendment_type, ') deleted (had status ', OLD.status, ')',
+        ' (Amendment ID: ', OLD.id, ', Version ID: ', OLD.study_version_id, ')'
+    );
+    
+    CALL ComputeAndUpdateStudyStatus(
+        v_study_id, 
+        'amendment_delete', 
+        v_trigger_details
+    );
+END//
+
+DELIMITER ;
+
+-- =====================================================
+-- Additional utility procedures
+-- =====================================================
+
+DELIMITER //
+
+-- Procedure: Manually trigger status computation for a study
+CREATE PROCEDURE ManuallyComputeStudyStatus(
+    IN p_study_id BIGINT,
+    IN p_reason TEXT
+)
+BEGIN
+    DECLARE v_trigger_details TEXT;
+    
+    SET v_trigger_details = CONCAT('Manual computation requested: ', COALESCE(p_reason, 'No reason provided'));
+    
+    CALL ComputeAndUpdateStudyStatus(
+        p_study_id, 
+        'manual_computation', 
+        v_trigger_details
+    );
+END//
+
+-- Procedure: Batch compute status for all studies
+CREATE PROCEDURE BatchComputeAllStudyStatuses()
+BEGIN
+    DECLARE v_study_id BIGINT;
+    DECLARE v_study_count INT DEFAULT 0;
+    DECLARE v_done INT DEFAULT FALSE;
+    
+    DECLARE study_cursor CURSOR FOR 
+        SELECT id FROM studies WHERE id IS NOT NULL;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = TRUE;
+    
+    OPEN study_cursor;
+    
+    study_loop: LOOP
+        FETCH study_cursor INTO v_study_id;
+        
+        IF v_done THEN
+            LEAVE study_loop;
+        END IF;
+        
+        CALL ManuallyComputeStudyStatus(v_study_id, 'Batch computation');
+        SET v_study_count = v_study_count + 1;
+    END LOOP;
+    
+    CLOSE study_cursor;
+    
+    SELECT CONCAT('Computed status for ', v_study_count, ' studies') as result;
+END//
+
+CREATE PROCEDURE GetStudyStatusComputationHistory(
+    IN p_study_id BIGINT,
+    IN p_limit INT
+)
+BEGIN
+    DECLARE v_limit INT;
+
+    -- Set default limit if NULL or <= 0
+    SET v_limit = IFNULL(p_limit, 50);
+
+    SELECT 
+        id,
+        study_id,
+        trigger_source,
+        old_status_code,
+        new_status_code,
+        computation_result,
+        trigger_details,
+        error_message,
+        created_at
+    FROM study_status_computation_log
+    WHERE study_id = p_study_id
+    ORDER BY created_at DESC
+    LIMIT v_limit;
+END//
+
+DELIMITER ;
+
+
+
+-- =====================================================
+-- Views for monitoring status computation
+-- =====================================================
+
+-- View: Recent status changes
+CREATE OR REPLACE VIEW recent_status_changes AS
+SELECT 
+    l.*,
+    s.name as study_name,
+    s.protocol_number,
+    old_ss.name as old_status_name,
+    new_ss.name as new_status_name
+FROM study_status_computation_log l
+JOIN studies s ON l.study_id = s.id
+LEFT JOIN study_status old_ss ON l.old_status_code = old_ss.code
+LEFT JOIN study_status new_ss ON l.new_status_code = new_ss.code
+WHERE l.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+ORDER BY l.created_at DESC;
+
+-- View: Studies with frequent status changes
+CREATE OR REPLACE VIEW studies_frequent_status_changes AS
+SELECT 
+    l.study_id,
+    s.name as study_name,
+    s.protocol_number,
+    COUNT(*) as change_count,
+    MAX(l.created_at) as last_change,
+    COUNT(DISTINCT l.new_status_code) as unique_statuses
+FROM study_status_computation_log l
+JOIN studies s ON l.study_id = s.id
+WHERE l.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+  AND l.computation_result = 'SUCCESS'
+GROUP BY l.study_id, s.name, s.protocol_number
+HAVING change_count > 5
+ORDER BY change_count DESC;
+
+-- View: Error summary for status computation
+CREATE OR REPLACE VIEW status_computation_errors AS
+SELECT 
+    l.study_id,
+    s.name as study_name,
+    s.protocol_number,
+    l.trigger_source,
+    l.error_message,
+    l.created_at
+FROM study_status_computation_log l
+JOIN studies s ON l.study_id = s.id
+WHERE l.computation_result = 'ERROR'
+  AND l.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+ORDER BY l.created_at DESC;
+
+-- =====================================================
+-- Grant permissions (adjust as needed for your setup)
+-- =====================================================
+
+-- Grant execute permissions to clinprecadmin
+GRANT EXECUTE ON PROCEDURE ComputeAndUpdateStudyStatus TO 'clinprecadmin'@'localhost';
+GRANT EXECUTE ON PROCEDURE DetermineStudyStatusFromVersions TO 'clinprecadmin'@'localhost';
+GRANT EXECUTE ON PROCEDURE LogStudyStatusChange TO 'clinprecadmin'@'localhost';
+GRANT EXECUTE ON PROCEDURE ManuallyComputeStudyStatus TO 'clinprecadmin'@'localhost';
+GRANT EXECUTE ON PROCEDURE BatchComputeAllStudyStatuses TO 'clinprecadmin'@'localhost';
+GRANT EXECUTE ON PROCEDURE GetStudyStatusComputationHistory TO 'clinprecadmin'@'localhost';

@@ -984,6 +984,8 @@ CREATE INDEX idx_study_amendments_type ON study_amendments(amendment_type);
 
 -- Additional composite indexes for common query patterns
 CREATE INDEX idx_study_versions_study_status ON study_versions (study_id, status);
+CREATE INDEX idx_study_versions_status_type ON study_versions (status, amendment_type);
 CREATE INDEX idx_study_versions_created_by_date ON study_versions (created_by, created_date);
 CREATE INDEX idx_study_amendments_version_status ON study_amendments (study_version_id, status);
 CREATE INDEX idx_study_amendments_type_status ON study_amendments (amendment_type, status);
+CREATE INDEX idx_study_amendments_safety_status ON study_amendments (amendment_type, status, requires_regulatory_notification);

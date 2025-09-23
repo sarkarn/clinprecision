@@ -34,19 +34,25 @@ public class StudyService {
     private final StudyValidationService validationService;
     private final StudyStatusRepository studyStatusRepository;
     private final StudyDocumentService documentService;
+    private final StudyStatusComputationService statusComputationService;
+    private final CrossEntityStatusValidationService crossEntityValidationService;
     
     public StudyService(StudyRepository studyRepository,
                        OrganizationStudyRepository organizationStudyRepository,
                        StudyMapper studyMapper,
                        StudyValidationService validationService,
                        StudyStatusRepository studyStatusRepository,
-                       StudyDocumentService documentService) {
+                       StudyDocumentService documentService,
+                       StudyStatusComputationService statusComputationService,
+                       CrossEntityStatusValidationService crossEntityValidationService) {
         this.studyRepository = studyRepository;
         this.organizationStudyRepository = organizationStudyRepository;
         this.studyMapper = studyMapper;
         this.validationService = validationService;
         this.studyStatusRepository = studyStatusRepository;
         this.documentService = documentService;
+        this.statusComputationService = statusComputationService;
+        this.crossEntityValidationService = crossEntityValidationService;
     }
     
     /**
@@ -64,20 +70,23 @@ public class StudyService {
         // 3. Set default values and audit information
         study.setCreatedBy(getCurrentUserId()); // From security context
         
-        // 4. Save study
+        // 4. Validate entity integrity for new study
+        validateStudyEntityIntegrity(study, "create study");
+        
+        // 5. Save study
         StudyEntity savedStudy = studyRepository.save(study);
         logger.info("Study saved with ID: {}", savedStudy.getId());
         
-        // 5. Handle organization associations
+        // 6. Handle organization associations
         if (request.getOrganizations() != null && !request.getOrganizations().isEmpty()) {
             saveOrganizationAssociations(savedStudy, request.getOrganizations());
         }
         
-        // 6. Reload study with associations for response
+        // 7. Reload study with associations for response
         StudyEntity studyWithAssociations = studyRepository.findByIdWithAllRelationships(savedStudy.getId())
             .orElse(savedStudy);
         
-        // 7. Return response
+        // 8. Return response
         StudyResponseDto response = studyMapper.toResponseDto(studyWithAssociations);
         logger.info("Study created successfully: {}", response.getId());
         return response;
@@ -308,27 +317,30 @@ public class StudyService {
         logger.info("Updating study with ID: {}", id);
         
         // 1. Find existing study
-        StudyEntity existingStudy = studyRepository.findById(id)
+        StudyEntity existingStudy = studyRepository.findByIdWithAllRelationships(id)
             .orElseThrow(() -> new StudyNotFoundException(id));
         
-        // 2. Validate update
+        // 2. Validate that study allows modifications based on current status
+        validateStudyModificationAllowed(existingStudy, "update study");
+        
+        // 3. Validate update
         validationService.validateStudyUpdate(existingStudy, request);
         
-        // 3. Update fields
+        // 4. Update fields
         studyMapper.updateEntityFromDto(request, existingStudy);
         
-        // 4. Update audit information
+        // 5. Update audit information
         existingStudy.setModifiedBy(getCurrentUserName()); // Set who modified it
         
-        // 5. Save updated study
+        // 6. Save updated study
         StudyEntity updatedStudy = studyRepository.save(existingStudy);
         
-        // 5. Update organization associations if provided
+        // 7. Update organization associations if provided
         if (request.getOrganizations() != null) {
             updateOrganizationAssociations(updatedStudy, request.getOrganizations());
         }
         
-        // 6. Reload study with associations for response
+        // 8. Reload study with associations for response
         StudyEntity studyWithAssociations = studyRepository.findByIdWithAllRelationships(updatedStudy.getId())
             .orElse(updatedStudy);
         
@@ -408,16 +420,8 @@ public class StudyService {
         StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
             .orElseThrow(() -> new StudyNotFoundException(id));
 
-        // 2. Validate eligibility (all design phases complete)
-        // TODO: Add more robust validation as needed
-        // For now, assume eligible if not already ACTIVE/COMPLETED/TERMINATED
-        String currentStatus = study.getStudyStatus() != null ? study.getStudyStatus().getCode() : null;
-        if ("ACTIVE".equalsIgnoreCase(currentStatus)) {
-            throw new IllegalStateException("Study is already published (ACTIVE)");
-        }
-        if ("COMPLETED".equalsIgnoreCase(currentStatus) || "TERMINATED".equalsIgnoreCase(currentStatus)) {
-            throw new IllegalStateException("Cannot publish a completed or terminated study");
-        }
+        // 2. Perform comprehensive validation for publishing
+        validateStudyOperation(study, "ACTIVE", "publish study");
 
         // 3. Set status to ACTIVE (published)
         StudyStatusEntity activeStatus = studyStatusRepository.findByCodeIgnoreCase("ACTIVE")
@@ -429,5 +433,325 @@ public class StudyService {
         logger.info("Study {} published successfully", id);
         return studyMapper.toResponseDto(saved);
     }
+
+    /**
+     * Change study status with validation
+     */
+    public StudyResponseDto changeStudyStatus(Long id, String newStatus) {
+        logger.info("Changing status for study {} to {}", id, newStatus);
+
+        // 1. Fetch study
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+
+        // 2. Perform comprehensive validation
+        validateStudyOperation(study, newStatus, "change status to " + newStatus);
+
+        // 3. Find new status entity
+        StudyStatusEntity newStatusEntity = studyStatusRepository.findByCodeIgnoreCase(newStatus)
+            .orElseThrow(() -> new IllegalStateException("Status not found: " + newStatus));
+
+        // 4. Update status
+        study.setStudyStatus(newStatusEntity);
+        StudyEntity saved = studyRepository.save(study);
+        
+        logger.info("Study {} status changed to {} successfully", id, newStatus);
+        return studyMapper.toResponseDto(saved);
+    }
+
+    /**
+     * Get valid next statuses for a study
+     */
+    public List<StudyStatusComputationService.StatusTransitionRecommendation> getValidNextStatuses(Long id) {
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+        
+        return statusComputationService.getStatusTransitionRecommendations(study);
+    }
+
+    /**
+     * Check if study allows modifications
+     */
+    public boolean allowsModification(Long id) {
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+        
+        return statusComputationService.allowsModification(study);
+    }
+
+    /**
+     * Compute and update study status based on protocol versions
+     */
+    public StudyResponseDto computeAndUpdateStudyStatus(Long id) {
+        logger.info("Computing and updating status for study {}", id);
+
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+
+        String computedStatus = statusComputationService.computeStudyStatus(study);
+        String currentStatus = study.getStudyStatus() != null ? study.getStudyStatus().getCode() : null;
+
+        if (!computedStatus.equalsIgnoreCase(currentStatus)) {
+            logger.info("Study {} status needs update: {} -> {}", id, currentStatus, computedStatus);
+            
+            StudyStatusEntity newStatusEntity = studyStatusRepository.findByCodeIgnoreCase(computedStatus)
+                .orElseThrow(() -> new IllegalStateException("Status not found: " + computedStatus));
+            
+            study.setStudyStatus(newStatusEntity);
+            study = studyRepository.save(study);
+        }
+
+        return studyMapper.toResponseDto(study);
+    }
+
+    // ========== STUDY LIFECYCLE OPERATIONS ==========
+
+    /**
+     * Suspend an active study
+     */
+    public StudyResponseDto suspendStudy(Long id, String reason) {
+        logger.info("Suspending study {} with reason: {}", id, reason);
+        
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+        
+        // Validate that study can be suspended
+        validateStudyOperation(study, "SUSPENDED", "suspend study");
+        
+        // Set status to SUSPENDED
+        StudyStatusEntity suspendedStatus = studyStatusRepository.findByCodeIgnoreCase("SUSPENDED")
+            .orElseThrow(() -> new IllegalStateException("SUSPENDED status not found"));
+        study.setStudyStatus(suspendedStatus);
+        
+        StudyEntity saved = studyRepository.save(study);
+        logger.info("Study {} suspended successfully", id);
+        return studyMapper.toResponseDto(saved);
+    }
+
+    /**
+     * Resume a suspended study
+     */
+    public StudyResponseDto resumeStudy(Long id) {
+        logger.info("Resuming study {}", id);
+        
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+        
+        // Validate that study can be resumed (from SUSPENDED to ACTIVE)
+        validateStudyOperation(study, "ACTIVE", "resume study");
+        
+        // Set status back to ACTIVE
+        StudyStatusEntity activeStatus = studyStatusRepository.findByCodeIgnoreCase("ACTIVE")
+            .orElseThrow(() -> new IllegalStateException("ACTIVE status not found"));
+        study.setStudyStatus(activeStatus);
+        
+        StudyEntity saved = studyRepository.save(study);
+        logger.info("Study {} resumed successfully", id);
+        return studyMapper.toResponseDto(saved);
+    }
+
+    /**
+     * Complete an active study
+     */
+    public StudyResponseDto completeStudy(Long id) {
+        logger.info("Completing study {}", id);
+        
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+        
+        // Validate that study can be completed
+        validateStudyOperation(study, "COMPLETED", "complete study");
+        
+        // Set status to COMPLETED
+        StudyStatusEntity completedStatus = studyStatusRepository.findByCodeIgnoreCase("COMPLETED")
+            .orElseThrow(() -> new IllegalStateException("COMPLETED status not found"));
+        study.setStudyStatus(completedStatus);
+        
+        StudyEntity saved = studyRepository.save(study);
+        logger.info("Study {} completed successfully", id);
+        return studyMapper.toResponseDto(saved);
+    }
+
+    /**
+     * Terminate a study
+     */
+    public StudyResponseDto terminateStudy(Long id, String reason) {
+        logger.info("Terminating study {} with reason: {}", id, reason);
+        
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+        
+        // Validate that study can be terminated
+        validateStudyOperation(study, "TERMINATED", "terminate study");
+        
+        // Set status to TERMINATED
+        StudyStatusEntity terminatedStatus = studyStatusRepository.findByCodeIgnoreCase("TERMINATED")
+            .orElseThrow(() -> new IllegalStateException("TERMINATED status not found"));
+        study.setStudyStatus(terminatedStatus);
+        
+        StudyEntity saved = studyRepository.save(study);
+        logger.info("Study {} terminated successfully", id);
+        return studyMapper.toResponseDto(saved);
+    }
+
+    /**
+     * Withdraw a study
+     */
+    public StudyResponseDto withdrawStudy(Long id, String reason) {
+        logger.info("Withdrawing study {} with reason: {}", id, reason);
+        
+        StudyEntity study = studyRepository.findByIdWithAllRelationships(id)
+            .orElseThrow(() -> new StudyNotFoundException(id));
+        
+        // Validate that study can be withdrawn
+        validateStudyOperation(study, "WITHDRAWN", "withdraw study");
+        
+        // Set status to WITHDRAWN
+        StudyStatusEntity withdrawnStatus = studyStatusRepository.findByCodeIgnoreCase("WITHDRAWN")
+            .orElseThrow(() -> new IllegalStateException("WITHDRAWN status not found"));
+        study.setStudyStatus(withdrawnStatus);
+        
+        StudyEntity saved = studyRepository.save(study);
+        logger.info("Study {} withdrawn successfully", id);
+        return studyMapper.toResponseDto(saved);
+    }
+
+    // ========== END STUDY LIFECYCLE OPERATIONS ==========
+
+    // ========== STATUS VALIDATION METHODS ==========
+
+    /**
+     * Validate that the study allows modifications based on its current status
+     */
+    private void validateStudyModificationAllowed(StudyEntity study, String operation) {
+        logger.debug("Validating modification permission for study {} - operation: {}", study.getId(), operation);
+        
+        if (!statusComputationService.allowsModification(study)) {
+            String currentStatus = study.getStudyStatus() != null ? study.getStudyStatus().getCode() : "UNKNOWN";
+            throw new IllegalStateException(
+                String.format("Cannot %s: Study is in '%s' status which does not allow modifications", 
+                             operation, currentStatus));
+        }
+    }
+
+    /**
+     * Validate status transition with detailed business rules
+     */
+    private void validateStatusTransition(StudyEntity study, String newStatus, String operation) {
+        logger.debug("Validating status transition for study {} - operation: {} - new status: {}", 
+                    study.getId(), operation, newStatus);
+        
+        StudyStatusComputationService.StatusTransitionResult result = 
+            statusComputationService.validateStatusTransition(study, newStatus);
+        
+        if (!result.isValid()) {
+            throw new IllegalStateException(
+                String.format("Cannot %s: %s", operation, String.join("; ", result.getErrorMessages())));
+        }
+    }
+
+    /**
+     * Validate study entity integrity and required fields
+     */
+    private void validateStudyEntityIntegrity(StudyEntity study, String operation) {
+        logger.debug("Validating study entity integrity for study {} - operation: {}", study.getId(), operation);
+        
+        // Validate required fields based on current status
+        String currentStatus = study.getStudyStatus() != null ? study.getStudyStatus().getCode() : null;
+        
+        if ("UNDER_REVIEW".equalsIgnoreCase(currentStatus) || 
+            "APPROVED".equalsIgnoreCase(currentStatus) || 
+            "ACTIVE".equalsIgnoreCase(currentStatus)) {
+            
+            if (study.getName() == null || study.getName().trim().isEmpty()) {
+                throw new IllegalStateException("Study name is required for status: " + currentStatus);
+            }
+            
+            if (study.getDescription() == null || study.getDescription().trim().isEmpty()) {
+                throw new IllegalStateException("Study description is required for status: " + currentStatus);
+            }
+            
+            if (study.getPrimaryObjective() == null || study.getPrimaryObjective().trim().isEmpty()) {
+                throw new IllegalStateException("Primary objective is required for status: " + currentStatus);
+            }
+        }
+    }
+
+    /**
+     * Validate cross-entity consistency between study and its protocol versions
+     */
+    private void validateCrossEntityConsistency(StudyEntity study, String operation) {
+        logger.debug("Validating cross-entity consistency for study {} - operation: {}", study.getId(), operation);
+        
+        String studyStatus = study.getStudyStatus() != null ? study.getStudyStatus().getCode() : null;
+        
+        try {
+            // Use the comprehensive cross-entity validation service
+            CrossEntityStatusValidationService.CrossEntityValidationResult validationResult = 
+                crossEntityValidationService.validateCrossEntityDependencies(study, studyStatus, operation);
+            
+            // Handle validation errors
+            if (!validationResult.getErrors().isEmpty()) {
+                String errorMessage = "Cross-entity validation failures: " + 
+                    String.join("; ", validationResult.getErrors());
+                logger.error("Cross-entity validation failed for study {}: {}", study.getId(), errorMessage);
+                throw new IllegalStateException(errorMessage);
+            }
+            
+            // Log warnings but don't fail validation
+            if (!validationResult.getWarnings().isEmpty()) {
+                logger.warn("Cross-entity validation warnings for study {}: {}", 
+                           study.getId(), String.join("; ", validationResult.getWarnings()));
+            }
+            
+            // Log validation details for debugging
+            logger.debug("Cross-entity validation details for study {}: {}", 
+                        study.getId(), validationResult.getValidationDetails());
+                        
+        } catch (Exception e) {
+            logger.error("Error during cross-entity validation for study {}: {}", study.getId(), e.getMessage());
+            throw new RuntimeException("Cross-entity validation failed", e);
+        }
+    }
+
+    /**
+     * Comprehensive validation wrapper for all study operations
+     */
+    private void validateStudyOperation(StudyEntity study, String newStatus, String operation) {
+        logger.debug("Performing comprehensive validation for study {} - operation: {} - new status: {}", 
+                    study.getId(), operation, newStatus);
+        
+        // 1. Entity integrity validation
+        validateStudyEntityIntegrity(study, operation);
+        
+        // 2. Status transition validation (if new status is provided)
+        if (newStatus != null && !newStatus.trim().isEmpty()) {
+            validateStatusTransition(study, newStatus, operation);
+        }
+        
+        // 3. Cross-entity consistency validation
+        validateCrossEntityConsistency(study, operation);
+        
+        logger.debug("All validations passed for study {} - operation: {}", study.getId(), operation);
+    }
+
+    // ========== PUBLIC VALIDATION METHODS ==========
+    
+    /**
+     * Perform comprehensive cross-entity validation for a study
+     * Useful for external validation checks and testing
+     */
+    public CrossEntityStatusValidationService.CrossEntityValidationResult validateStudyCrossEntity(Long studyId, String targetStatus, String operation) {
+        logger.info("Performing cross-entity validation for study {} - target status: {} - operation: {}", 
+                   studyId, targetStatus, operation);
+        
+        StudyEntity study = studyRepository.findById(studyId)
+            .orElseThrow(() -> new StudyNotFoundException("Study not found with id: " + studyId));
+        
+        return crossEntityValidationService.validateCrossEntityDependencies(study, targetStatus, operation);
+    }
+
+    // ========== END STATUS VALIDATION METHODS ==========
+
 }
 
