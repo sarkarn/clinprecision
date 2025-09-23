@@ -37,9 +37,9 @@ const VersionManagementModal = ({
     const [versionHistory, setVersionHistory] = useState([]);
 
     const {
+        loadStudyVersions,
         createVersion,
         getVersionHistory,
-        formatVersionDisplay,
         AMENDMENT_TYPES,
         VERSION_STATUS
     } = useStudyVersioning();
@@ -121,8 +121,13 @@ const VersionManagementModal = ({
         setLoading(true);
         try {
             const newVersion = await createVersion(study.id, {
-                ...formData,
-                currentVersion: study.version
+                amendmentType: formData.amendmentType,
+                reason: formData.reason,
+                description: formData.description,
+                effectiveDate: formData.effectiveDate,
+                notifyStakeholders: formData.notifyStakeholders,
+                requiresRegulatory: formData.requiresRegulatory,
+                notes: formData.notes
             });
 
             onVersionCreated?.(newVersion);
@@ -147,16 +152,16 @@ const VersionManagementModal = ({
 
     const getVersionStatusBadge = (status) => {
         const configs = {
-            DRAFT: { color: 'bg-gray-100 text-gray-700', text: 'Draft' },
-            UNDER_REVIEW: { color: 'bg-yellow-100 text-yellow-700', text: 'Under Review' },
-            SUBMITTED: { color: 'bg-blue-100 text-blue-700', text: 'Submitted' },
-            APPROVED: { color: 'bg-green-100 text-green-700', text: 'Approved' },
-            ACTIVE: { color: 'bg-green-100 text-green-700', text: 'Active' },
-            SUPERSEDED: { color: 'bg-orange-100 text-orange-700', text: 'Superseded' },
-            WITHDRAWN: { color: 'bg-red-100 text-red-700', text: 'Withdrawn' }
+            [VERSION_STATUS.DRAFT.value]: { color: 'bg-gray-100 text-gray-700', text: VERSION_STATUS.DRAFT.label },
+            [VERSION_STATUS.UNDER_REVIEW.value]: { color: 'bg-yellow-100 text-yellow-700', text: VERSION_STATUS.UNDER_REVIEW.label },
+            [VERSION_STATUS.SUBMITTED.value]: { color: 'bg-blue-100 text-blue-700', text: VERSION_STATUS.SUBMITTED.label },
+            [VERSION_STATUS.APPROVED.value]: { color: 'bg-green-100 text-green-700', text: VERSION_STATUS.APPROVED.label },
+            [VERSION_STATUS.ACTIVE.value]: { color: 'bg-green-100 text-green-700', text: VERSION_STATUS.ACTIVE.label },
+            [VERSION_STATUS.SUPERSEDED.value]: { color: 'bg-orange-100 text-orange-700', text: VERSION_STATUS.SUPERSEDED.label },
+            [VERSION_STATUS.WITHDRAWN.value]: { color: 'bg-red-100 text-red-700', text: VERSION_STATUS.WITHDRAWN.label }
         };
 
-        const config = configs[status] || configs.DRAFT;
+        const config = configs[status] || configs[VERSION_STATUS.DRAFT.value];
 
         return (
             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>

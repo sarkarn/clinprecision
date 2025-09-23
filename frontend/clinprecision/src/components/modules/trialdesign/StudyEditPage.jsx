@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import StudyService from '../../../services/StudyService';
 import FormService from '../../../services/FormService';
-import VisitService from '../../../services/VisitService';
+import VisitDefinitionService from '../../../services/VisitDefinitionService';
 
 const StudyEditPage = () => {
     const { studyId } = useParams();
@@ -133,7 +133,7 @@ const StudyEditPage = () => {
                                 description: visit.description,
                                 armId: armId  // Include arm reference
                             };
-                            const newVisit = await VisitService.createVisit(studyId, armId, visitData);
+                            const newVisit = await VisitDefinitionService.createVisit(studyId, armId, visitData);
                             visitId = newVisit.id;
                             visit.id = visitId; // Update with server ID
                             visit.isNew = false;
@@ -146,7 +146,7 @@ const StudyEditPage = () => {
                                 description: visit.description,
                                 armId: armId  // Include arm reference
                             };
-                            await VisitService.updateVisit(studyId, visitId, visitData);
+                            await VisitDefinitionService.updateVisit(studyId, visitId, visitData);
                             visit.isModified = false;
                         }
 
@@ -238,7 +238,7 @@ const StudyEditPage = () => {
                     // Process visit deletions
                     if (arm.visitsToDelete && arm.visitsToDelete.length > 0) {
                         for (const visitId of arm.visitsToDelete) {
-                            await VisitService.deleteVisit(studyId, visitId);
+                            await VisitDefinitionService.deleteVisit(studyId, visitId);
                         }
                         arm.visitsToDelete = [];
                     }

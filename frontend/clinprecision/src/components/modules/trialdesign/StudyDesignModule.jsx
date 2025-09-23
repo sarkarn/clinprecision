@@ -15,75 +15,52 @@ import FormDesigner from './FormDesigner';
 import FormVersionHistory from '../../common/forms/FormVersionHistory';
 import FormVersionViewer from '../../common/forms/FormVersionViewer';
 import CRFBuilderIntegration from '../../common/forms/CRFBuilderIntegration';
+import EnhancedDashboardMetrics from './components/EnhancedDashboardMetrics';
 import { useAuth } from '../../login/AuthContext';
 import { useDashboardMetrics } from './hooks/useDashboardMetrics';
+import { useStudyNavigation } from './hooks/useStudyNavigation';
 
-// Breadcrumb component
+// Enhanced Breadcrumb component with improved route handling
 const Breadcrumb = () => {
-  const location = useLocation();
+  const { getBreadcrumbInfo } = useStudyNavigation();
   const navigate = useNavigate();
-  const pathnames = location.pathname.split('/').filter(x => x);
 
-  // Find the study-design index to build proper paths
-  const studyDesignIndex = pathnames.indexOf('study-design');
-  const relevantPathnames = studyDesignIndex >= 0 ? pathnames.slice(studyDesignIndex + 1) : [];
+  const breadcrumbs = getBreadcrumbInfo();
 
   return (
-    <div className="flex items-center text-sm text-gray-600 mb-2">
-      <span
-        className="cursor-pointer hover:text-blue-600"
-        onClick={() => navigate('/')}
-      >
-        Home
-      </span>
-      <span className="mx-2">/</span>
-      <span
-        className="cursor-pointer hover:text-blue-600"
-        onClick={() => navigate('/study-design')}
-      >
-        Study Design
-      </span>
+    <nav className="flex items-center text-sm text-gray-600 mb-4 bg-gray-50 px-4 py-2 rounded-lg" aria-label="Breadcrumb">
+      <ol className="flex items-center space-x-2">
+        {breadcrumbs.map((crumb, index) => (
+          <li key={index} className="flex items-center">
+            {index > 0 && (
+              <svg className="w-4 h-4 text-gray-400 mx-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+            )}
 
-      {relevantPathnames.map((name, index) => {
-        // Build the absolute path up to this point
-        const pathUpToHere = '/study-design/' + relevantPathnames.slice(0, index + 1).join('/');
-
-        // Get display name for breadcrumb item
-        let displayName;
-        if (name === 'studies') displayName = 'Studies';
-        else if (name === 'study') displayName = 'Study Details';
-        else if (name === 'register') displayName = 'Register Study';
-        else if (name === 'create') displayName = 'Create Study';
-        else if (name === 'edit') displayName = 'Edit Study';
-        else if (name === 'view') displayName = 'View Study';
-        else if (name === 'forms') displayName = 'Forms';
-        else if (name === 'designer') displayName = 'Form Designer';
-        else if (name === 'versions') displayName = 'Form Versions';
-        else if (name === 'builder') displayName = 'CRF Builder';
-        else if (index === relevantPathnames.length - 1 && !isNaN(name)) {
-          // Skip numeric IDs in the display, but keep them in the path
-          return null;
-        } else {
-          displayName = name.charAt(0).toUpperCase() + name.slice(1);
-        }
-
-        return (
-          <div key={index}>
-            <span className="mx-2">/</span>
-            {index === relevantPathnames.length - 1 ? (
-              <span className="font-medium text-blue-600">{displayName}</span>
-            ) : (
-              <span
-                className="cursor-pointer hover:text-blue-600"
-                onClick={() => navigate(pathUpToHere)}
+            {crumb.path ? (
+              <button
+                onClick={() => navigate(crumb.path)}
+                className="text-gray-500 hover:text-blue-600 transition-colors duration-200 flex items-center"
+                aria-label={`Go to ${crumb.label}`}
               >
-                {displayName}
+                {index === 0 && (
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 21l4-4 4 4" />
+                  </svg>
+                )}
+                {crumb.label}
+              </button>
+            ) : (
+              <span className="font-medium text-blue-600" aria-current="page">
+                {crumb.label}
               </span>
             )}
-          </div>
-        );
-      })}
-    </div>
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 };
 
@@ -162,99 +139,14 @@ const StudyDesignModule = () => {
   // Dashboard component with modern design
   const renderModernDashboard = () => (
     <div className="space-y-6">
-      <div className="mb-8">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Study Design Dashboard</h1>
-            <p className="text-gray-600">Comprehensive clinical trial study management with integrated protocol design tools</p>
-            {hasData && metrics.lastUpdated && (
-              <p className="text-sm text-gray-500 mt-1">
-                Last updated: {new Date(metrics.lastUpdated).toLocaleString()}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={refreshMetrics}
-              disabled={loading}
-              className={`inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium ${loading
-                ? 'text-gray-400 cursor-not-allowed bg-gray-50'
-                : 'text-gray-700 bg-white hover:bg-gray-50'
-                }`}
-              title="Refresh metrics"
-            >
-              <svg
-                className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              <span className="ml-2">{loading ? 'Refreshing...' : 'Refresh'}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Active Studies</h3>
-          <p className="text-3xl font-bold text-blue-600">
-            {loading ? '...' : (hasData ? metrics.activeStudies : '–')}
-          </p>
-          <p className="text-sm text-gray-500">Currently recruiting</p>
-          {error && (
-            <p className="text-xs text-amber-600 mt-1">
-              ⚠️ {error}
-            </p>
-          )}
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Draft Protocols</h3>
-          <p className="text-3xl font-bold text-yellow-600">
-            {loading ? '...' : (hasData ? metrics.draftProtocols : '–')}
-          </p>
-          <p className="text-sm text-gray-500">Awaiting approval</p>
-          {error && (
-            <p className="text-xs text-amber-600 mt-1">
-              ⚠️ {error}
-            </p>
-          )}
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Completed Studies</h3>
-          <p className="text-3xl font-bold text-green-600">
-            {loading ? '...' : (hasData ? metrics.completedStudies : '–')}
-          </p>
-          <p className="text-sm text-gray-500">Data analysis complete</p>
-          {error && (
-            <p className="text-xs text-amber-600 mt-1">
-              ⚠️ {error}
-            </p>
-          )}
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Amendments</h3>
-          <p className="text-3xl font-bold text-purple-600">
-            {loading ? '...' : (hasData ? metrics.totalAmendments : '–')}
-          </p>
-          <p className="text-sm text-gray-500">Protocol versions</p>
-          {error && (
-            <p className="text-xs text-amber-600 mt-1">
-              ⚠️ {error}
-            </p>
-          )}
-        </div>
-      </div>
+      {/* Enhanced Dashboard Metrics */}
+      <EnhancedDashboardMetrics
+        metrics={metrics}
+        loading={loading}
+        error={error}
+        onRefresh={refreshMetrics}
+        isDataFresh={true} // Could be enhanced with actual freshness logic
+      />
 
       <StudyListGrid
         onCreateNew={handleCreateNewStudy}

@@ -328,7 +328,7 @@ VALUES
 -- Assign study roles to users
 INSERT INTO user_study_roles (user_id, study_id, role_id, start_date)
 VALUES
-((SELECT id FROM users WHERE email = 'jsmith@biopharm.com'), 1, (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'), '2024-01-15'),
+((SELECT id FROM users WHERE email = 'nsarkar@clinprecision.com'), 1, (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'), '2024-01-15'),
 ((SELECT id FROM users WHERE email = 'rjohnson@medicalresearch.org'), 2, (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'), '2024-02-01'),
 ((SELECT id FROM users WHERE email = 'echen@neurocare.org'), 3, (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'), '2024-03-10'),
 ((SELECT id FROM users WHERE email = 'mrodriguez@arthricare.com'), 4, (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'), '2024-05-01'),
@@ -342,5 +342,16 @@ UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'echen@neuro
 UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'mrodriguez@arthricare.com') WHERE id = 4;
 UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'swilliams@cardiohealth.org') WHERE id = 5;
 UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'dlee@respicare.org') WHERE id = 6;
+
+
+
+-- Insert initial version for existing studies (assuming study ID 1 exists)
+INSERT INTO study_versions (
+    study_id, version_number, status, created_by, created_date,
+    description, effective_date
+) VALUES (
+    1, 'v1.0', 'ACTIVE', 1, NOW(),
+    'Initial protocol version', CURDATE()
+) ON DUPLICATE KEY UPDATE version_number = version_number;
 
 

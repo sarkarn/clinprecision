@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Activity, FileText } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
-import VisitService from '../../../../services/VisitService';
+import VisitDefinitionService from '../../../../services/VisitDefinitionService';
 import StudyService from '../../../../services/StudyService';
 import StudyDesignService from '../../../../services/StudyDesignService';
 
@@ -35,7 +35,7 @@ const VisitScheduleDesigner = () => {
             // Load actual data from backend APIs
             const [studyData, visitsData] = await Promise.all([
                 StudyService.getStudyById(studyId),
-                VisitService.getVisitsByStudy(studyId)
+                VisitDefinitionService.getVisitsByStudy(studyId)
             ]);
 
             setStudy(studyData);
@@ -94,7 +94,7 @@ const VisitScheduleDesigner = () => {
 
             // Create visit without arm association initially
             // The user can associate it with specific arms later if needed
-            const createdVisit = await VisitService.createVisit(studyId, null, newVisitData);
+            const createdVisit = await VisitDefinitionService.createVisit(studyId, null, newVisitData);
 
             // Transform to frontend format
             const transformedVisit = {
@@ -155,7 +155,7 @@ const VisitScheduleDesigner = () => {
                 }
             }
 
-            const updatedVisit = await VisitService.updateVisit(studyId, visitId, backendUpdates);
+            const updatedVisit = await VisitDefinitionService.updateVisit(studyId, visitId, backendUpdates);
 
             // Transform the response back to frontend format
             const transformedVisit = {
@@ -199,7 +199,7 @@ const VisitScheduleDesigner = () => {
     const handleDeleteVisit = async (visitId) => {
         if (window.confirm('Are you sure you want to delete this visit? This action cannot be undone.')) {
             try {
-                await VisitService.deleteVisit(studyId, visitId);
+                await VisitDefinitionService.deleteVisit(studyId, visitId);
                 const updatedVisits = visits.filter(visit => visit.id !== visitId);
                 setVisits(updatedVisits);
                 if (selectedVisit && selectedVisit.id === visitId) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import StudyService from '../../../../services/StudyService';
 import StudyDocumentService from '../../../../services/StudyDocumentService';
 import DocumentUploadModal from './DocumentUploadModal';
+import StudyContextHeader from '../components/StudyContextHeader';
 import {
     ArrowLeft,
     Edit,
@@ -331,85 +332,46 @@ const StudyOverviewDashboard = ({
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <button
-                        onClick={onBack}
-                        className="flex items-center text-gray-600 hover:text-gray-900"
-                    >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Studies
-                    </button>
+            {/* Study Context Header */}
+            <StudyContextHeader
+                study={study}
+                currentPage="Study Overview"
+                onBack={onBack}
+                actions={[
+                    {
+                        label: 'Manage Forms',
+                        variant: 'outline',
+                        icon: FileText,
+                        onClick: () => window.open(`/study-design/study/${studyId}/forms`, '_blank')
+                    },
+                    {
+                        label: 'Design Study',
+                        variant: 'outline',
+                        icon: Target,
+                        onClick: () => window.open(`/study-design/study/${studyId}/design/basic-info`, '_blank')
+                    },
+                    {
+                        label: 'New Version',
+                        variant: 'outline',
+                        icon: GitBranch,
+                        onClick: () => onCreateVersion?.(study)
+                    },
+                    {
+                        label: 'Edit Study',
+                        variant: 'primary',
+                        icon: Edit,
+                        onClick: () => onEdit?.(study)
+                    }
+                ]}
+            />
 
-                    <div className="flex items-center gap-2">
-                        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-                            <Share2 className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-                            <Download className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-                            <MoreHorizontal className="w-4 h-4" />
-                        </button>
-                    </div>
+            {/* Study Description */}
+            {study.description && (
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Study Description</h3>
+                    <p className="text-gray-700 leading-relaxed">{study.description}</p>
                 </div>
-
-                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-                    <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                            {getStatusIcon(study.status)}
-                            <h1 className="text-2xl font-bold text-gray-900">{study.title}</h1>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
-                            <span className="flex items-center">
-                                <FileText className="w-4 h-4 mr-1" />
-                                {study.protocol}
-                            </span>
-                            <span className="flex items-center">
-                                <GitBranch className="w-4 h-4 mr-1" />
-                                Version {study.version}
-                            </span>
-                            <span className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-1" />
-                                Started {new Date(study.startDate).toLocaleDateString()}
-                            </span>
-                        </div>
-                        <p className="text-gray-700 leading-relaxed">{study.description}</p>
-                    </div>
-
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => window.open(`/study-design/study/${studyId}/forms`, '_blank')}
-                            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-purple-700 bg-white hover:bg-purple-50"
-                        >
-                            <FileText className="w-4 h-4 mr-2" />
-                            Manage Forms
-                        </button>
-                        <button
-                            onClick={() => window.open(`/study-design/study/${studyId}/design/basic-info`, '_blank')}
-                            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-green-700 bg-white hover:bg-green-50"
-                        >
-                            <Target className="w-4 h-4 mr-2" />
-                            Design Study
-                        </button>
-                        <button
-                            onClick={() => onCreateVersion?.(study)}
-                            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                        >
-                            <GitBranch className="w-4 h-4 mr-2" />
-                            New Version
-                        </button>
-                        <button
-                            onClick={() => onEdit?.(study)}
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                        >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit Study
-                        </button>
-                    </div>
-                </div>
-            </div>
+            )}
 
             {/* Tabs */}
             <div className="bg-white rounded-lg border border-gray-200">

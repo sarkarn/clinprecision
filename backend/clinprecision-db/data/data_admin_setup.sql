@@ -182,7 +182,7 @@ INSERT INTO organization_contacts (
 -- Add sample users with specific roles
 INSERT INTO users (first_name, last_name, email, user_id, encrypted_password, status, organization_id, created_at, updated_at)
 VALUES 
-('Jane', 'Smith', 'jsmith@biopharm.com', 'jsmith', '$2a$10$abCd1234EfGh5678IjKl.mnOpQ9876rStU5432vWxYz1234AbCd1', 'active', (SELECT id FROM organizations WHERE external_id = 'PG12345'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Narendra', 'Sarkar', 'nsarkar@clinprecision.com', 'nsarkar', '$2a$10$2FZgmKztqwI5iohsDqTX7OEZlkkiBI/lplcFalfS1d03gZ2pFH95W', 'active', (SELECT id FROM organizations WHERE external_id = 'PG12345'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('Robert', 'Johnson', 'rjohnson@medicalresearch.org', 'rjohnson', '$2a$10$abCd1234EfGh5678IjKl.mnOpQ9876rStU5432vWxYz1234AbCd2', 'active', (SELECT id FROM organizations WHERE external_id = 'BAC7890'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('Emily', 'Chen', 'echen@neurocare.org', 'echen', '$2a$10$abCd1234EfGh5678IjKl.mnOpQ9876rStU5432vWxYz1234AbCd3', 'active', (SELECT id FROM organizations WHERE external_id = 'PG12345'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('Michael', 'Rodriguez', 'mrodriguez@arthricare.com', 'mrodriguez', '$2a$10$abCd1234EfGh5678IjKl.mnOpQ9876rStU5432vWxYz1234AbCd4', 'active', (SELECT id FROM organizations WHERE external_id = 'BAC7890'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -193,7 +193,7 @@ VALUES
 -- Assign global roles to users
 INSERT INTO users_roles (users_id, roles_id)
 VALUES 
-((SELECT id FROM users WHERE email = 'jsmith@biopharm.com'), (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN')),
+((SELECT id FROM users WHERE email = 'nsarkar@clinprecision.com'), (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN')),
 ((SELECT id FROM users WHERE email = 'rjohnson@medicalresearch.org'), (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN')),
 ((SELECT id FROM users WHERE email = 'echen@neurocare.org'), (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN')),
 ((SELECT id FROM users WHERE email = 'mrodriguez@arthricare.com'), (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN')),
