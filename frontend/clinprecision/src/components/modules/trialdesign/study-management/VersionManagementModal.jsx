@@ -37,6 +37,7 @@ const VersionManagementModal = ({
     const [versionHistory, setVersionHistory] = useState([]);
 
     const {
+        loadStudyVersions,
         createVersion,
         getVersionHistory,
         AMENDMENT_TYPES,
@@ -120,8 +121,13 @@ const VersionManagementModal = ({
         setLoading(true);
         try {
             const newVersion = await createVersion(study.id, {
-                ...formData,
-                currentVersion: study.version
+                amendmentType: formData.amendmentType,
+                reason: formData.reason,
+                description: formData.description,
+                effectiveDate: formData.effectiveDate,
+                notifyStakeholders: formData.notifyStakeholders,
+                requiresRegulatory: formData.requiresRegulatory,
+                notes: formData.notes
             });
 
             onVersionCreated?.(newVersion);

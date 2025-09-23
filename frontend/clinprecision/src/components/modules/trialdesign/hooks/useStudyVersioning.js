@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
+import StudyVersioningService from '../../../../services/StudyVersioningService';
 
 /**
  * Industry-standard study versioning hook
  * Follows clinical trial protocol versioning standards
+ * Now integrated with backend APIs
  */
 export const useStudyVersioning = () => {
   const [versions, setVersions] = useState([]);
@@ -13,22 +15,22 @@ export const useStudyVersioning = () => {
   // Amendment types following FDA guidelines
   const AMENDMENT_TYPES = {
     MAJOR: {
-      value: 'major',
+      value: 'MAJOR',
       label: 'Major Amendment',
       description: 'Protocol changes affecting safety/efficacy'
     },
     MINOR: {
-      value: 'minor',
+      value: 'MINOR',
       label: 'Minor Amendment', 
       description: 'Administrative changes'
     },
     SAFETY: {
-      value: 'safety',
+      value: 'SAFETY',
       label: 'Safety Amendment',
       description: 'Safety-related changes'
     },
     ADMINISTRATIVE: {
-      value: 'admin',
+      value: 'ADMINISTRATIVE',
       label: 'Administrative Amendment',
       description: 'Non-substantial changes'
     }
@@ -37,37 +39,37 @@ export const useStudyVersioning = () => {
   // Version status types
   const VERSION_STATUS = {
     DRAFT: {
-      value: 'draft',
+      value: 'DRAFT',
       label: 'Draft',
       description: 'In development'
     },
     UNDER_REVIEW: {
-      value: 'under-review',
+      value: 'UNDER_REVIEW',
       label: 'Under Review',
       description: 'Under internal review'
     },
     SUBMITTED: {
-      value: 'submitted',
+      value: 'SUBMITTED',
       label: 'Submitted',
       description: 'Submitted to regulatory'
     },
     APPROVED: {
-      value: 'approved',
+      value: 'APPROVED',
       label: 'Approved',
       description: 'Approved by regulatory'
     },
     ACTIVE: {
-      value: 'active',
+      value: 'ACTIVE',
       label: 'Active',
       description: 'Currently active version'
     },
     SUPERSEDED: {
-      value: 'superseded',
+      value: 'SUPERSEDED',
       label: 'Superseded',
       description: 'Replaced by newer version'
     },
     WITHDRAWN: {
-      value: 'withdrawn',
+      value: 'WITHDRAWN',
       label: 'Withdrawn',
       description: 'Withdrawn/cancelled'
     }
@@ -127,110 +129,95 @@ export const useStudyVersioning = () => {
     });
   }, [compareVersions]);
 
-  // Create new version
+  // Load versions for a study from backend
+  const loadStudyVersions = useCallback(async (studyId) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const backendVersions = await StudyVersioningService.getStudyVersions(studyId);
+      const transformedVersions = backendVersions.map(version => 
+        StudyVersioningService.transformVersionForFrontend(version)
+      );
+      setVersions(transformedVersions);
+      
+      // Set current version to active version
+      const activeVersion = transformedVersions.find(v => v.status === VERSION_STATUS.ACTIVE.value);
+      if (activeVersion) {
+        setCurrentVersion(activeVersion);
+      }
+      
+      return transformedVersions;
+    } catch (err) {
+      setError(err.message || 'Failed to load study versions');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Create new version (now calls backend API)
   const createVersion = useCallback(async (studyId, versionData) => {
     setLoading(true);
     setError(null);
     
     try {
-      // Get current versions to determine next version number
-      const currentVersions = versions.filter(v => v.studyId === studyId);
-      const latestVersion = getLatestVersion(currentVersions);
-      
-      const nextVersionNumber = latestVersion 
-        ? generateNextVersion(latestVersion.version, versionData.amendmentType)
-        : 'v1.0';
-
-      const newVersion = {
-        id: `version-${Date.now()}`, // Will be replaced by server ID
-        studyId,
-        version: nextVersionNumber,
-        status: VERSION_STATUS.DRAFT.value,
-        amendmentType: versionData.amendmentType || 'MINOR',
-        amendmentReason: versionData.amendmentReason || '',
-        description: versionData.description || '',
-        createdBy: versionData.createdBy || 'current-user',
-        createdDate: new Date().toISOString(),
-        approvedBy: null,
-        approvedDate: null,
-        effectiveDate: versionData.effectiveDate || null,
-        
-        // Protocol-specific fields
-        protocolChanges: versionData.protocolChanges || [],
-        icfChanges: versionData.icfChanges || [],
-        regulatorySubmissions: versionData.regulatorySubmissions || [],
-        
-        // Metadata
-        metadata: {
-          previousVersion: latestVersion?.version || null,
-          changesSummary: versionData.changesSummary || '',
-          impactAssessment: versionData.impactAssessment || '',
-          reviewComments: []
-        }
-      };
-
-      // In a real app, this would call the API
-      // const response = await StudyVersionService.createVersion(newVersion);
+      const createdVersion = await StudyVersioningService.createVersion(studyId, versionData);
+      const transformedVersion = StudyVersioningService.transformVersionForFrontend(createdVersion);
       
       // Update local state
-      setVersions(prev => [...prev, newVersion]);
-      setCurrentVersion(newVersion);
+      setVersions(prev => [transformedVersion, ...prev]);
+      setCurrentVersion(transformedVersion);
       
-      return newVersion;
+      return transformedVersion;
     } catch (err) {
       setError(err.message || 'Failed to create version');
       throw err;
     } finally {
       setLoading(false);
     }
-  }, [versions, getLatestVersion, generateNextVersion]);
+  }, []);
 
-  // Update version status
-  const updateVersionStatus = useCallback(async (versionId, newStatus, additionalData = {}) => {
+  // Update version status (now calls backend API)
+  const updateVersionStatus = useCallback(async (studyId, versionId, newStatus, additionalData = {}) => {
     setLoading(true);
     setError(null);
     
     try {
-      setVersions(prev => prev.map(version => {
-        if (version.id === versionId) {
-          const updatedVersion = {
-            ...version,
-            status: newStatus,
-            ...additionalData
-          };
-
-          // When approving a version
-          if (newStatus === VERSION_STATUS.APPROVED.value) {
-            updatedVersion.approvedBy = additionalData.approvedBy || 'current-user';
-            updatedVersion.approvedDate = new Date().toISOString();
-          }
-
-          // When activating a version, mark others as superseded
-          if (newStatus === VERSION_STATUS.ACTIVE.value) {
-            updatedVersion.effectiveDate = updatedVersion.effectiveDate || new Date().toISOString();
-          }
-
-          return updatedVersion;
-        }
-        
-        // Mark other versions as superseded when a new one becomes active
-        if (newStatus === VERSION_STATUS.ACTIVE.value && version.studyId === 
-            prev.find(v => v.id === versionId)?.studyId) {
-          return {
-            ...version,
-            status: version.status === VERSION_STATUS.ACTIVE.value ? VERSION_STATUS.SUPERSEDED.value : version.status
-          };
-        }
-        
-        return version;
-      }));
+      const updateData = {
+        status: newStatus,
+        ...additionalData
+      };
       
-      return true;
+      const updatedVersion = await StudyVersioningService.updateVersion(studyId, versionId, updateData);
+      const transformedVersion = StudyVersioningService.transformVersionForFrontend(updatedVersion);
+      
+      // Update local state
+      setVersions(prev => prev.map(version => 
+        version.id === versionId ? transformedVersion : version
+      ));
+      
+      if (currentVersion && currentVersion.id === versionId) {
+        setCurrentVersion(transformedVersion);
+      }
+      
+      return transformedVersion;
     } catch (err) {
       setError(err.message || 'Failed to update version status');
       throw err;
     } finally {
       setLoading(false);
+    }
+  }, [currentVersion]);
+
+  // Get version history (now calls backend API)
+  const getVersionHistory = useCallback(async (studyId) => {
+    try {
+      const history = await StudyVersioningService.getVersionHistory(studyId);
+      return history.map(version => StudyVersioningService.transformVersionForFrontend(version));
+    } catch (err) {
+      setError(err.message || 'Failed to get version history');
+      throw err;
     }
   }, []);
 
@@ -256,27 +243,6 @@ export const useStudyVersioning = () => {
     return version.status === VERSION_STATUS.DRAFT.value || version.status === VERSION_STATUS.UNDER_REVIEW.value;
   }, []);
 
-  // Get version history with changes
-  const getVersionHistory = useCallback((studyId) => {
-    const studyVersions = getStudyVersions(studyId);
-    
-    return studyVersions.map((version, index) => {
-      const previousVersion = studyVersions[index + 1]; // Next in sorted array (older)
-      
-      return {
-        ...version,
-        changesSinceLastVersion: previousVersion ? {
-          protocolChanges: version.protocolChanges?.filter(change => 
-            !previousVersion.protocolChanges?.find(prevChange => 
-              prevChange.id === change.id
-            )
-          ) || [],
-          versionDiff: compareVersions(version.version, previousVersion.version)
-        } : null
-      };
-    });
-  }, [getStudyVersions, compareVersions]);
-
   return {
     // State
     versions,
@@ -289,6 +255,7 @@ export const useStudyVersioning = () => {
     VERSION_STATUS,
     
     // Actions
+    loadStudyVersions,
     createVersion,
     updateVersionStatus,
     setVersions,

@@ -336,16 +336,80 @@ CREATE TABLE studies (
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
-
 CREATE TABLE study_versions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     study_id BIGINT NOT NULL,
-    version VARCHAR(20) NOT NULL,
-    version_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by BIGINT,
-    version_notes TEXT,
-    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES users(id)
+    version_number VARCHAR(20) NOT NULL,
+    status ENUM('DRAFT', 'UNDER_REVIEW', 'SUBMITTED', 'APPROVED', 'ACTIVE', 'SUPERSEDED', 'WITHDRAWN') NOT NULL DEFAULT 'DRAFT',
+    amendment_type ENUM('MAJOR', 'MINOR', 'SAFETY', 'ADMINISTRATIVE') NULL,
+    amendment_reason TEXT NULL,
+    description TEXT NULL,
+    changes_summary TEXT NULL,
+    impact_assessment TEXT NULL,
+    previous_version_id BIGINT NULL,
+    created_by BIGINT NOT NULL,
+    created_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    approved_by BIGINT NULL,
+    approved_date DATETIME NULL,
+    effective_date DATE NULL,
+    requires_regulatory_approval BOOLEAN DEFAULT FALSE,
+    notify_stakeholders BOOLEAN DEFAULT TRUE,
+    additional_notes TEXT NULL,
+    protocol_changes JSON NULL,
+    icf_changes JSON NULL,
+    regulatory_submissions JSON NULL,
+    review_comments JSON NULL,
+    metadata JSON NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Unique constraint to prevent duplicate version numbers per study
+    UNIQUE KEY uk_study_version_number (study_id, version_number),
+    
+    -- Foreign key constraints
+    CONSTRAINT fk_study_versions_study_id FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE,
+    CONSTRAINT fk_study_versions_previous_version FOREIGN KEY (previous_version_id) REFERENCES study_versions (id) ON DELETE SET NULL,
+    CONSTRAINT fk_study_versions_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_study_versions_approved_by FOREIGN KEY (approved_by) REFERENCES users (id) ON DELETE SET NULL
+);
+
+
+CREATE TABLE study_amendments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_version_id BIGINT NOT NULL,
+    amendment_number INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    amendment_type ENUM('MAJOR', 'MINOR', 'SAFETY', 'ADMINISTRATIVE') NOT NULL,
+    reason TEXT NULL,
+    section_affected VARCHAR(100) NULL,
+    change_details TEXT NULL,
+    justification TEXT NULL,
+    impact_on_subjects BOOLEAN DEFAULT FALSE,
+    requires_consent_update BOOLEAN DEFAULT FALSE,
+    requires_regulatory_notification BOOLEAN DEFAULT FALSE,
+    status ENUM('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'IMPLEMENTED', 'REJECTED', 'WITHDRAWN') NOT NULL DEFAULT 'DRAFT',
+    submitted_by BIGINT NULL,
+    submitted_date DATETIME NULL,
+    reviewed_by BIGINT NULL,
+    reviewed_date DATETIME NULL,
+    approved_by BIGINT NULL,
+    approved_date DATETIME NULL,
+    review_comments TEXT NULL,
+    created_by BIGINT NOT NULL,
+    created_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    metadata JSON NULL,
+    
+
+    -- Unique constraint for amendment numbers within a version
+    UNIQUE KEY uk_amendment_number_per_version (study_version_id, amendment_number),
+    
+    -- Foreign key constraints
+    CONSTRAINT fk_study_amendments_version_id FOREIGN KEY (study_version_id) REFERENCES study_versions (id) ON DELETE CASCADE,
+    CONSTRAINT fk_study_amendments_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_study_amendments_submitted_by FOREIGN KEY (submitted_by) REFERENCES users (id) ON DELETE SET NULL,
+    CONSTRAINT fk_study_amendments_reviewed_by FOREIGN KEY (reviewed_by) REFERENCES users (id) ON DELETE SET NULL,
+    CONSTRAINT fk_study_amendments_approved_by FOREIGN KEY (approved_by) REFERENCES users (id) ON DELETE SET NULL
 );
 
 -- Create study_design_progress table
@@ -905,5 +969,21 @@ CREATE INDEX idx_studies_database_lock_status ON studies(database_lock_status);
 CREATE INDEX idx_studies_first_patient_in ON studies(first_patient_in_date);
 CREATE INDEX idx_studies_estimated_completion ON studies(estimated_completion_date);
 
+    -- Indexes for performance
+CREATE INDEX idx_study_versions_study_id ON study_versions(study_id);
+CREATE INDEX idx_study_versions_status ON study_versions(status);
+CREATE INDEX idx_study_versions_version_number ON study_versions(version_number);
+CREATE INDEX idx_study_versions_created_date ON study_versions(created_date);
+CREATE INDEX idx_study_versions_effective_date ON study_versions(effective_date);
+-- Indexes for performance
+CREATE INDEX idx_study_amendments_version_id ON study_amendments(study_version_id);
+CREATE INDEX idx_study_amendments_status ON study_amendments(status);
+CREATE INDEX idx_study_amendments_amendment_number ON study_amendments(amendment_number);
+CREATE INDEX idx_study_amendments_created_date ON study_amendments(created_date);
+CREATE INDEX idx_study_amendments_type ON study_amendments(amendment_type);
 
-
+-- Additional composite indexes for common query patterns
+CREATE INDEX idx_study_versions_study_status ON study_versions (study_id, status);
+CREATE INDEX idx_study_versions_created_by_date ON study_versions (created_by, created_date);
+CREATE INDEX idx_study_amendments_version_status ON study_amendments (study_version_id, status);
+CREATE INDEX idx_study_amendments_type_status ON study_amendments (amendment_type, status);

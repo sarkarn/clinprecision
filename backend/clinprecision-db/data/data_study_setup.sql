@@ -344,3 +344,14 @@ UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'swilliams@c
 UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'dlee@respicare.org') WHERE id = 6;
 
 
+
+-- Insert initial version for existing studies (assuming study ID 1 exists)
+INSERT INTO study_versions (
+    study_id, version_number, status, created_by, created_date,
+    description, effective_date
+) VALUES (
+    1, 'v1.0', 'ACTIVE', 1, NOW(),
+    'Initial protocol version', CURDATE()
+) ON DUPLICATE KEY UPDATE version_number = version_number;
+
+
