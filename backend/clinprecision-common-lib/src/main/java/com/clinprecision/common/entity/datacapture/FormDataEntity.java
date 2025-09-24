@@ -1,38 +1,35 @@
-package com.clinprecision.datacaptureservice.entity;
+package com.clinprecision.common.entity.datacapture;
 
-import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Type;
-
-
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.UUID;
 
 @Data
 @Entity
 @Table(name = "form_data")
 @NoArgsConstructor
 @AllArgsConstructor
-@TypeDef(name = "json", typeClass = JsonStringType.class)
 public class FormDataEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private String id = UUID.randomUUID().toString();
+    private Long id;
 
     @Column(name = "subject_id", nullable = false)
-    private String subjectId;
+    private Long subjectId;
 
     @Column(name = "subject_visit_id", nullable = false)
-    private String subjectVisitId;
+    private Long subjectVisitId;
 
     @Column(name = "form_definition_id", nullable = false)
-    private String formDefinitionId;
+    private Long formDefinitionId;
 
     @Column(name = "form_version", nullable = false)
     private String formVersion;
@@ -41,15 +38,15 @@ public class FormDataEntity {
     @Enumerated(EnumType.STRING)
     private FormDataStatus status = FormDataStatus.NOT_STARTED;
 
-    @Type(type = "json")
     @Column(name = "data", columnDefinition = "json")
+    @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> data;
 
     @Column(name = "created_by")
-    private String createdBy;
+    private Long createdBy;
 
     @Column(name = "updated_by")
-    private String updatedBy;
+    private Long updatedBy;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -58,7 +55,7 @@ public class FormDataEntity {
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     @Column(name = "signed_by")
-    private String signedBy;
+    private Long signedBy;
 
     @Column(name = "signed_at")
     private LocalDateTime signedAt;

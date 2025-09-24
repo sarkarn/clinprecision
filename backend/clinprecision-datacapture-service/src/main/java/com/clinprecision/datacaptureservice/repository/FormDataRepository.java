@@ -1,7 +1,7 @@
 package com.clinprecision.datacaptureservice.repository;
 
 
-import com.clinprecision.datacaptureservice.entity.FormDataEntity;
+import com.clinprecision.common.entity.datacapture.FormDataEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

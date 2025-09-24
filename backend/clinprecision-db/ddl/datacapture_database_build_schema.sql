@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS study_database_builds (
     tables_created INT DEFAULT 0 COMMENT 'Number of tables created',
     indexes_created INT DEFAULT 0 COMMENT 'Number of indexes created',
     triggers_created INT DEFAULT 0 COMMENT 'Number of triggers created',
-    forms_configured INT DEFAULT 0 COMMENT 'Number of forms configured',
+    forms_configured INT DEFAULT 0 COMMENT 'Number of forms configured in form_definitions table',
     validation_rules_created INT DEFAULT 0 COMMENT 'Number of validation rules created',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -36,37 +36,8 @@ CREATE TABLE IF NOT EXISTS study_database_builds (
     INDEX idx_study_db_builds_request_id (build_request_id)
 ) COMMENT='Tracks database build processes for clinical studies';
 
--- Study Form Definitions table (for storing form configurations from study design)
-CREATE TABLE IF NOT EXISTS study_form_definitions (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    study_id BIGINT NOT NULL,
-    form_name VARCHAR(255) NOT NULL,
-    form_display_name VARCHAR(500) NOT NULL,
-    form_version VARCHAR(20) NOT NULL DEFAULT '1.0',
-    form_type ENUM('SCREENING', 'ENROLLMENT', 'BASELINE', 'TREATMENT', 'FOLLOW_UP', 'ADVERSE_EVENT', 'CONCOMITANT_MED', 'LABORATORY', 'VITAL_SIGNS', 'CUSTOM') NOT NULL,
-    form_configuration LONGTEXT NOT NULL COMMENT 'JSON form structure definition',
-    visit_association VARCHAR(255) COMMENT 'Associated visit type or name',
-    is_required BOOLEAN DEFAULT TRUE,
-    completion_time_estimate INT COMMENT 'Estimated completion time in minutes',
-    form_status ENUM('DRAFT', 'ACTIVE', 'INACTIVE', 'ARCHIVED') DEFAULT 'DRAFT',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by BIGINT NOT NULL,
-    
-    -- Foreign key constraints
-    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES users(id),
-    
-    -- Unique constraint
-    UNIQUE KEY unique_study_form_version (study_id, form_name, form_version),
-    
-    -- Indexes
-    INDEX idx_form_def_study (study_id),
-    INDEX idx_form_def_type (form_type),
-    INDEX idx_form_def_status (form_status)
-) COMMENT='Form definitions imported from study design configuration';
-
 -- Study Validation Rules table
+-- Note: References form_definitions from consolidated schema instead of redundant study_form_definitions
 CREATE TABLE IF NOT EXISTS study_validation_rules (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     study_id BIGINT NOT NULL,
@@ -87,7 +58,7 @@ CREATE TABLE IF NOT EXISTS study_validation_rules (
     
     -- Foreign key constraints
     FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
-    FOREIGN KEY (form_definition_id) REFERENCES study_form_definitions(id) ON DELETE CASCADE,
+    FOREIGN KEY (form_definition_id) REFERENCES form_definitions(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id),
     
     -- Indexes
@@ -96,7 +67,7 @@ CREATE TABLE IF NOT EXISTS study_validation_rules (
     INDEX idx_validation_rules_field (field_name),
     INDEX idx_validation_rules_type (rule_type),
     INDEX idx_validation_rules_active (is_active)
-) COMMENT='Validation rules for study forms and fields';
+) COMMENT='Validation rules for study forms and fields - references form_definitions from consolidated schema';
 
 -- Study Database Configuration table
 CREATE TABLE IF NOT EXISTS study_database_configurations (
