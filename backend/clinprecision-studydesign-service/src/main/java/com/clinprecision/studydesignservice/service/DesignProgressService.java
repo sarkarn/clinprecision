@@ -1,9 +1,10 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.dto.DesignProgressDto;
-import com.clinprecision.studydesignservice.dto.DesignProgressResponseDto;
-import com.clinprecision.studydesignservice.dto.DesignProgressUpdateRequestDto;
-import com.clinprecision.studydesignservice.entity.DesignProgressEntity;
+
+import com.clinprecision.common.dto.studydesign.DesignProgressDto;
+import com.clinprecision.common.dto.studydesign.DesignProgressResponseDto;
+import com.clinprecision.common.dto.studydesign.DesignProgressUpdateRequestDto;
+import com.clinprecision.common.entity.studydesign.DesignProgressEntity;
 import com.clinprecision.studydesignservice.repository.DesignProgressRepository;
 import com.clinprecision.studydesignservice.repository.StudyRepository;
 import org.slf4j.Logger;

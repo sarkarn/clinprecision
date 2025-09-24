@@ -1,6 +1,7 @@
 package com.clinprecision.studydesignservice.controller;
 
-import com.clinprecision.studydesignservice.dto.VisitFormDto;
+
+import com.clinprecision.common.dto.VisitFormDto;
 import com.clinprecision.studydesignservice.service.VisitFormService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

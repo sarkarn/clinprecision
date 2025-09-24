@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.client.RestTemplate;
 
@@ -14,7 +15,13 @@ import org.springframework.web.client.RestTemplate;
 @EnableFeignClients
 @EntityScan(basePackages = {
         "com.clinprecision.studydesignservice.entity",
-        "com.clinprecision.common.entity"
+        "com.clinprecision.common.entity",
+        "com.clinprecision.common.entity.studydesign"
+})
+@ComponentScan(basePackages = {
+        "com.clinprecision.studydesignservice",
+        "com.clinprecision.common.mapper",
+        "com.clinprecision.common.mapper.studydesign"
 })
 public class StudyDesignServiceApplication {
 

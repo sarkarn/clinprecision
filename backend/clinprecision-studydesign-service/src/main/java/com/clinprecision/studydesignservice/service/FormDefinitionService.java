@@ -1,13 +1,13 @@
 package com.clinprecision.studydesignservice.service;
 
+import com.clinprecision.common.dto.studydesign.FormDefinitionCreateRequestDto;
+import com.clinprecision.common.dto.studydesign.FormDefinitionDto;
+import com.clinprecision.common.entity.studydesign.FormDefinitionEntity;
 import com.clinprecision.common.exception.DuplicateEntityException;
 import com.clinprecision.common.exception.EntityLockedException;
 import com.clinprecision.common.exception.EntityNotFoundException;
+import com.clinprecision.common.mapper.studydesign.FormDefinitionMapper;
 import com.clinprecision.common.util.SecurityUtil;
-import com.clinprecision.studydesignservice.dto.FormDefinitionCreateRequestDto;
-import com.clinprecision.studydesignservice.dto.FormDefinitionDto;
-import com.clinprecision.studydesignservice.entity.FormDefinitionEntity;
-import com.clinprecision.studydesignservice.mapper.FormDefinitionMapper;
 import com.clinprecision.studydesignservice.repository.FormDefinitionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

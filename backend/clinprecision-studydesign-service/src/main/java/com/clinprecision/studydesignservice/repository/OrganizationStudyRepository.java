@@ -1,7 +1,8 @@
 package com.clinprecision.studydesignservice.repository;
 
-import com.clinprecision.studydesignservice.entity.OrganizationStudyEntity;
-import com.clinprecision.studydesignservice.entity.OrganizationRole;
+
+import com.clinprecision.common.entity.studydesign.OrganizationRole;
+import com.clinprecision.common.entity.studydesign.OrganizationStudyEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

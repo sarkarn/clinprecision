@@ -4,15 +4,8 @@
 // ...existing code...
 package com.clinprecision.studydesignservice.controller;
 
-import com.clinprecision.studydesignservice.dto.StudyCreateRequestDto;
-import com.clinprecision.studydesignservice.dto.StudyResponseDto;
-import com.clinprecision.studydesignservice.dto.StudyUpdateRequestDto;
-import com.clinprecision.studydesignservice.dto.StudyStatusDto;
-import com.clinprecision.studydesignservice.dto.RegulatoryStatusDto;
-import com.clinprecision.studydesignservice.dto.StudyPhaseDto;
-import com.clinprecision.studydesignservice.dto.StudyDashboardMetricsDto;
-import com.clinprecision.studydesignservice.dto.DesignProgressResponseDto;
-import com.clinprecision.studydesignservice.dto.DesignProgressUpdateRequestDto;
+
+import com.clinprecision.common.dto.studydesign.*;
 import com.clinprecision.studydesignservice.service.StudyService;
 import com.clinprecision.studydesignservice.service.StudyStatusService;
 import com.clinprecision.studydesignservice.service.RegulatoryStatusService;

@@ -1,6 +1,7 @@
 package com.clinprecision.studydesignservice.controller;
 
-import com.clinprecision.studydesignservice.dto.StudyAmendmentDto;
+
+import com.clinprecision.common.dto.studydesign.StudyAmendmentDto;
 import com.clinprecision.studydesignservice.service.StudyAmendmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

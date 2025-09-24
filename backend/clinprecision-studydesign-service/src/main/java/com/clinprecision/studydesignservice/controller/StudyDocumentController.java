@@ -1,6 +1,7 @@
 package com.clinprecision.studydesignservice.controller;
 
-import com.clinprecision.studydesignservice.dto.StudyDocumentDto;
+
+import com.clinprecision.common.dto.studydesign.StudyDocumentDto;
 import com.clinprecision.studydesignservice.service.StudyDocumentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

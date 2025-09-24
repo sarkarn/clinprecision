@@ -1,8 +1,9 @@
 package com.clinprecision.studydesignservice.controller;
 
-import com.clinprecision.studydesignservice.dto.FormDefinitionCreateRequestDto;
-import com.clinprecision.studydesignservice.dto.FormDefinitionDto;
-import com.clinprecision.studydesignservice.entity.FormDefinitionEntity;
+
+import com.clinprecision.common.dto.studydesign.FormDefinitionCreateRequestDto;
+import com.clinprecision.common.dto.studydesign.FormDefinitionDto;
+import com.clinprecision.common.entity.studydesign.FormDefinitionEntity;
 import com.clinprecision.studydesignservice.service.FormDefinitionService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;

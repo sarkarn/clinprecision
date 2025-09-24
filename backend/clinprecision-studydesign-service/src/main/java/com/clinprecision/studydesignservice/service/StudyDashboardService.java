@@ -1,6 +1,7 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.dto.StudyDashboardMetricsDto;
+
+import com.clinprecision.common.dto.studydesign.StudyDashboardMetricsDto;
 import com.clinprecision.studydesignservice.repository.StudyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

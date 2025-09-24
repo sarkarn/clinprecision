@@ -1,8 +1,9 @@
 package com.clinprecision.studydesignservice.controller;
 
-import com.clinprecision.studydesignservice.dto.StudyVersionCreateRequestDto;
-import com.clinprecision.studydesignservice.dto.StudyVersionDto;
-import com.clinprecision.studydesignservice.dto.StudyVersionUpdateRequestDto;
+
+import com.clinprecision.common.dto.studydesign.StudyVersionCreateRequestDto;
+import com.clinprecision.common.dto.studydesign.StudyVersionDto;
+import com.clinprecision.common.dto.studydesign.StudyVersionUpdateRequestDto;
 import com.clinprecision.studydesignservice.service.StudyVersionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

@@ -1,7 +1,8 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.entity.StudyEntity;
-import com.clinprecision.studydesignservice.entity.StudyVersionEntity;
+
+import com.clinprecision.common.entity.studydesign.StudyEntity;
+import com.clinprecision.common.entity.studydesign.StudyVersionEntity;
 import com.clinprecision.studydesignservice.repository.StudyVersionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

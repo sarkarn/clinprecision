@@ -1,8 +1,9 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.dto.StudyDocumentDto;
-import com.clinprecision.studydesignservice.entity.StudyDocumentEntity;
-import com.clinprecision.studydesignservice.mapper.StudyDocumentMapper;
+
+import com.clinprecision.common.dto.studydesign.StudyDocumentDto;
+import com.clinprecision.common.entity.studydesign.StudyDocumentEntity;
+import com.clinprecision.common.mapper.studydesign.StudyDocumentMapper;
 import com.clinprecision.studydesignservice.repository.StudyDocumentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

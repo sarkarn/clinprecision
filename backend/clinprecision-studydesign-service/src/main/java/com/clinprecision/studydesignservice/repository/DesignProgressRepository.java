@@ -1,6 +1,7 @@
 package com.clinprecision.studydesignservice.repository;
 
-import com.clinprecision.studydesignservice.entity.DesignProgressEntity;
+
+import com.clinprecision.common.entity.studydesign.DesignProgressEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

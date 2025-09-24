@@ -1,7 +1,8 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.dto.VisitDefinitionDto;
-import com.clinprecision.studydesignservice.entity.VisitDefinitionEntity;
+
+import com.clinprecision.common.dto.studydesign.VisitDefinitionDto;
+import com.clinprecision.common.entity.studydesign.VisitDefinitionEntity;
 import com.clinprecision.studydesignservice.repository.VisitDefinitionRepository;
 import com.clinprecision.studydesignservice.repository.VisitFormRepository;
 import lombok.RequiredArgsConstructor;
