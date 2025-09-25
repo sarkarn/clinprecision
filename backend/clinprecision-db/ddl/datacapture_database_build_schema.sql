@@ -5,7 +5,7 @@
 USE clinprecisiondb;
 
 -- Study Database Build tracking table
-CREATE TABLE IF NOT EXISTS study_database_builds (
+CREATE TABLE study_database_builds (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     study_id BIGINT NOT NULL,
     build_request_id VARCHAR(100) UNIQUE NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS study_database_builds (
 
 -- Study Validation Rules table
 -- Note: References form_definitions from consolidated schema instead of redundant study_form_definitions
-CREATE TABLE IF NOT EXISTS study_validation_rules (
+CREATE TABLE study_validation_rules (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     study_id BIGINT NOT NULL,
     form_definition_id BIGINT,
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS study_validation_rules (
 ) COMMENT='Validation rules for study forms and fields - references form_definitions from consolidated schema';
 
 -- Study Database Configuration table
-CREATE TABLE IF NOT EXISTS study_database_configurations (
+CREATE TABLE study_database_configurations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     study_id BIGINT NOT NULL UNIQUE,
     database_schema_version VARCHAR(20) NOT NULL,
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS study_database_configurations (
 ) COMMENT='Database configuration settings for studies';
 
 -- Study Database Validation History table
-CREATE TABLE IF NOT EXISTS study_database_validations (
+CREATE TABLE EXISTS study_database_validations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     study_id BIGINT NOT NULL,
     validation_type ENUM('SCHEMA', 'DATA_INTEGRITY', 'PERFORMANCE', 'COMPLIANCE', 'SYSTEM_READINESS', 'FULL') NOT NULL,
@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS study_database_validations (
 ) COMMENT='Database validation history and results';
 
 -- Study Build Notifications table (for tracking build status notifications)
-CREATE TABLE IF NOT EXISTS study_build_notifications (
+CREATE TABLE study_build_notifications (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     build_request_id VARCHAR(100) NOT NULL,
     notification_type ENUM('BUILD_STARTED', 'BUILD_COMPLETED', 'BUILD_FAILED', 'VALIDATION_COMPLETED', 'VALIDATION_FAILED') NOT NULL,
@@ -149,32 +149,28 @@ CREATE TABLE IF NOT EXISTS study_build_notifications (
 -- (These will be created if they don't already exist)
 
 -- Subjects table indexes for study-specific queries
-CREATE INDEX IF NOT EXISTS idx_subjects_study_status ON subjects(study_id, status);
-CREATE INDEX IF NOT EXISTS idx_subjects_enrollment_date ON subjects(enrollment_date);
+CREATE INDEX  idx_subjects_study_status ON subjects(study_id, status);
+CREATE INDEX  idx_subjects_enrollment_date ON subjects(enrollment_date);
 
--- Form instances indexes for performance
-CREATE INDEX IF NOT EXISTS idx_form_instances_subject_form ON form_instances(subject_id, form_definition_id);
-CREATE INDEX IF NOT EXISTS idx_form_instances_status ON form_instances(form_status);
-CREATE INDEX IF NOT EXISTS idx_form_instances_completion ON form_instances(completion_date);
 
 -- Form field data indexes
-CREATE INDEX IF NOT EXISTS idx_form_field_data_form_field ON form_field_data(form_instance_id, field_name);
-CREATE INDEX IF NOT EXISTS idx_form_field_data_entry_time ON form_field_data(entry_timestamp);
+CREATE INDEX  idx_form_field_data_form_field ON form_field_data(form_instance_id, field_name);
+CREATE INDEX  idx_form_field_data_entry_time ON form_field_data(entry_timestamp);
 
 -- Visit instances indexes
-CREATE INDEX IF NOT EXISTS idx_visit_instances_subject_date ON visit_instances(subject_id, actual_date);
-CREATE INDEX IF NOT EXISTS idx_visit_instances_status ON visit_instances(visit_status);
+CREATE INDEX  idx_visit_instances_subject_date ON visit_instances(subject_id, actual_date);
+CREATE INDEX  idx_visit_instances_status ON visit_instances(visit_status);
 
 -- Audit trail indexes for compliance
-CREATE INDEX IF NOT EXISTS idx_audit_trail_table_record ON audit_trail(table_name, record_id);
-CREATE INDEX IF NOT EXISTS idx_audit_trail_timestamp ON audit_trail(changed_at);
-CREATE INDEX IF NOT EXISTS idx_audit_trail_user ON audit_trail(changed_by);
+CREATE INDEX  idx_audit_trail_table_record ON audit_trail(table_name, record_id);
+CREATE INDEX  idx_audit_trail_timestamp ON audit_trail(changed_at);
+CREATE INDEX  idx_audit_trail_user ON audit_trail(changed_by);
 
 -- Study-specific database functions and procedures
 
 -- Function to check database readiness for a study
 DELIMITER //
-CREATE FUNCTION IF NOT EXISTS is_study_database_ready(p_study_id BIGINT) 
+CREATE FUNCTION  is_study_database_ready(p_study_id BIGINT) 
 RETURNS BOOLEAN
 READS SQL DATA
 DETERMINISTIC
@@ -204,7 +200,7 @@ DELIMITER ;
 
 -- Stored procedure to get study database build summary
 DELIMITER //
-CREATE PROCEDURE IF NOT EXISTS get_study_database_build_summary(IN p_study_id BIGINT)
+CREATE PROCEDURE  get_study_database_build_summary(IN p_study_id BIGINT)
 BEGIN
     SELECT 
         sdb.id,

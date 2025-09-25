@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Users, Target, Shuffle } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Target, Shuffle, CheckCircle } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
 import StudyDesignService from '../../../../services/StudyDesignService';
 import StudyService from '../../../../services/StudyService';
@@ -9,7 +9,7 @@ import StudyService from '../../../../services/StudyService';
  * Study Arms Designer Component
  * Manages treatment arms, interventions, and randomization strategy
  */
-const StudyArmsDesigner = () => {
+const StudyArmsDesigner = ({ onPhaseCompleted }) => {
     const { studyId } = useParams();
     const navigate = useNavigate();
 
@@ -26,6 +26,7 @@ const StudyArmsDesigner = () => {
     const [loading, setLoading] = useState(true);
     const [errors, setErrors] = useState([]);
     const [isDirty, setIsDirty] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
 
     // Load study data
     useEffect(() => {
@@ -308,6 +309,10 @@ const StudyArmsDesigner = () => {
 
             setIsDirty(false);
             setErrors([]);
+            setSaveSuccess(true);
+
+            // Clear success message after 5 seconds
+            setTimeout(() => setSaveSuccess(false), 5000);
 
             // Update design progress to reflect completion
             try {
@@ -322,6 +327,11 @@ const StudyArmsDesigner = () => {
                     }
                 });
                 console.log('Arms design progress updated successfully');
+
+                // Notify parent component to refresh progress state
+                if (onPhaseCompleted) {
+                    await onPhaseCompleted();
+                }
             } catch (progressError) {
                 console.warn('Failed to update arms design progress:', progressError);
                 // Don't fail the save operation if progress update fails
@@ -435,6 +445,38 @@ const StudyArmsDesigner = () => {
                     }
                     onClose={() => setErrors([])}
                 />
+            )}
+
+            {/* Success Message */}
+            {saveSuccess && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                            <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                            <div>
+                                <h4 className="text-green-900 font-medium">Changes Saved Successfully</h4>
+                                <p className="text-green-700 text-sm mt-1">
+                                    Study arms configuration has been completed. Ready to proceed to visit schedule design.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/study-design/study/${studyId}/design/visits`)}
+                            >
+                                Continue to Visit Schedule
+                            </Button>
+                            <button
+                                onClick={() => setSaveSuccess(false)}
+                                className="text-green-400 hover:text-green-600"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Main Content */}

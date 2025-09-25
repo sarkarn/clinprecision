@@ -155,6 +155,8 @@ const StudyDesignDashboard = () => {
                 const progressData = designProgressResponse.progressData || designProgressResponse;
                 setDesignProgress(progressData);
 
+                console.log('Initial progress data received:', progressData);
+
                 // Calculate completed phases based on progress data
                 const completed = Object.entries(progressData).filter(
                     ([_, progress]) => progress && progress.completed
@@ -162,7 +164,7 @@ const StudyDesignDashboard = () => {
 
                 setCompletedPhases(completed);
 
-                console.info('Design progress loaded successfully for study', studyId);
+                console.info('Design progress loaded successfully for study', studyId, '- Initial completed phases:', completed);
 
             } catch (progressError) {
                 console.warn('Design progress API call failed, initializing default progress:', progressError);
@@ -217,7 +219,7 @@ const StudyDesignDashboard = () => {
             ).map(([phaseId, _]) => phaseId);
             setCompletedPhases(completed);
 
-            console.info('Design progress refreshed for study', studyId);
+            console.info('Design progress refreshed for study', studyId, '- Completed phases:', completed);
         } catch (error) {
             console.warn('Failed to refresh design progress:', error);
         }
@@ -404,8 +406,8 @@ const StudyDesignDashboard = () => {
                             {/* Phase Content */}
                             <div className="p-6">
                                 {currentPhase === 'basic-info' && <BasicInfoSummary study={study} />}
-                                {currentPhase === 'arms' && <StudyArmsDesigner />}
-                                {currentPhase === 'visits' && <VisitScheduleDesigner />}
+                                {currentPhase === 'arms' && <StudyArmsDesigner onPhaseCompleted={loadDesignProgress} />}
+                                {currentPhase === 'visits' && <VisitScheduleDesigner onPhaseCompleted={loadDesignProgress} />}
                                 {currentPhase === 'forms' && <FormBindingDesigner />}
                                 {currentPhase === 'review' && <StudyReviewPanel study={study} designProgress={designProgress} />}
                                 {currentPhase === 'publish' && <StudyPublishWorkflow />}

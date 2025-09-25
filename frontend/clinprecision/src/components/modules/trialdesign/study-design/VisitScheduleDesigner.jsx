@@ -10,7 +10,7 @@ import StudyDesignService from '../../../../services/StudyDesignService';
  * Visit Schedule Designer Component
  * Manages study visits and timeline (procedures managed separately)
  */
-const VisitScheduleDesigner = () => {
+const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     const { studyId } = useParams();
     const navigate = useNavigate();
 
@@ -38,13 +38,15 @@ const VisitScheduleDesigner = () => {
                 VisitDefinitionService.getVisitsByStudy(studyId)
             ]);
 
+            console.log('Raw visits data from backend:', visitsData); // Debug log
+
             setStudy(studyData);
 
             // Transform backend visit data to frontend format
             const transformedVisits = (visitsData || []).map(visit => ({
                 id: visit.id,
                 name: visit.name || `Visit ${visit.sequenceNumber || ''}`,
-                type: visit.visitType || 'TREATMENT',
+                type: (visit.visitType || 'TREATMENT').toUpperCase(), // Convert to uppercase for frontend
                 window: {
                     days: [
                         (visit.timepoint || 0) - (visit.windowBefore || 0),
@@ -100,7 +102,7 @@ const VisitScheduleDesigner = () => {
             const transformedVisit = {
                 id: createdVisit.id,
                 name: createdVisit.name || `Visit ${createdVisit.sequenceNumber || ''}`,
-                type: createdVisit.visitType || 'TREATMENT',
+                type: (createdVisit.visitType || 'TREATMENT').toUpperCase(), // Convert to uppercase for frontend
                 window: {
                     days: [
                         (createdVisit.timepoint || 0) - (createdVisit.windowBefore || 0),
@@ -133,18 +135,35 @@ const VisitScheduleDesigner = () => {
     // Update visit
     const handleUpdateVisit = async (visitId, updates) => {
         try {
-            // Transform frontend updates to backend format
-            const backendUpdates = {};
+            // Find the current visit to merge with updates
+            const currentVisit = visits.find(v => v.id === visitId);
+            if (!currentVisit) {
+                throw new Error(`Visit with ID ${visitId} not found`);
+            }
 
-            if (updates.name !== undefined) backendUpdates.name = updates.name;
-            if (updates.type !== undefined) backendUpdates.visitType = updates.type;
-            if (updates.isRequired !== undefined) backendUpdates.isRequired = updates.isRequired;
+            // Transform frontend updates to backend format, merging with current visit data
+            const backendUpdates = {
+                // Include all required fields from current visit
+                id: currentVisit.id,
+                studyId: parseInt(studyId),
+                name: updates.name !== undefined ? updates.name : currentVisit.name,
+                visitType: updates.type !== undefined ? updates.type : currentVisit.type,
+                isRequired: updates.isRequired !== undefined ? updates.isRequired : currentVisit.isRequired,
+                sequenceNumber: currentVisit.sequenceNumber,
+                description: currentVisit.window?.description || '',
+                // Default timepoint from current visit
+                timepoint: currentVisit.timepoint || 0,
+                windowBefore: currentVisit.windowBefore || 0,
+                windowAfter: currentVisit.windowAfter || 0
+            };
+
+            // Apply window updates if provided
             if (updates.window) {
                 if (updates.window.days) {
                     const [startDay, endDay] = updates.window.days;
                     const timepoint = Math.round((startDay + endDay) / 2);
-                    const windowBefore = timepoint - startDay;
-                    const windowAfter = endDay - timepoint;
+                    const windowBefore = Math.max(0, timepoint - startDay);
+                    const windowAfter = Math.max(0, endDay - timepoint);
 
                     backendUpdates.timepoint = timepoint;
                     backendUpdates.windowBefore = windowBefore;
@@ -155,13 +174,24 @@ const VisitScheduleDesigner = () => {
                 }
             }
 
+            // Include arm association if present
+            if (currentVisit.armId) {
+                backendUpdates.armId = currentVisit.armId;
+            }
+
+            console.log('Current visit before update:', currentVisit); // Debug log
+            console.log('Updates requested:', updates); // Debug log
+            console.log('Sending backend updates:', backendUpdates); // Debug log
+
             const updatedVisit = await VisitDefinitionService.updateVisit(studyId, visitId, backendUpdates);
+
+            console.log('Backend response:', updatedVisit); // Debug log
 
             // Transform the response back to frontend format
             const transformedVisit = {
                 id: updatedVisit.id,
                 name: updatedVisit.name || `Visit ${updatedVisit.sequenceNumber || ''}`,
-                type: updatedVisit.visitType || 'TREATMENT',
+                type: (updatedVisit.visitType || 'TREATMENT').toUpperCase(), // Convert to uppercase for frontend
                 window: {
                     days: [
                         (updatedVisit.timepoint || 0) - (updatedVisit.windowBefore || 0),
@@ -256,6 +286,11 @@ const VisitScheduleDesigner = () => {
 
             setIsDirty(false);
             setErrors([]);
+
+            // Notify parent component to refresh progress state
+            if (onPhaseCompleted) {
+                await onPhaseCompleted();
+            }
         } catch (error) {
             console.error('Error saving visit schedule:', error);
             setErrors(['Failed to save visit schedule']);
@@ -560,15 +595,17 @@ const VisitListItem = ({ visit, isSelected, onClick, onDelete }) => {
 
 // Visit Details Panel Component
 const VisitDetailsPanel = ({ visit, onUpdate }) => {
+    // Visit types must match backend VisitType enum exactly
     const visitTypes = [
         { value: 'SCREENING', label: 'Screening' },
         { value: 'BASELINE', label: 'Baseline' },
         { value: 'TREATMENT', label: 'Treatment' },
         { value: 'FOLLOW_UP', label: 'Follow-up' },
-        { value: 'END_OF_TREATMENT', label: 'End of Treatment' },
-        { value: 'SAFETY_FOLLOW_UP', label: 'Safety Follow-up' },
         { value: 'UNSCHEDULED', label: 'Unscheduled' }
     ];
+
+    // Debug: Log the visit data being rendered
+    console.log('VisitDetailsPanel rendering with visit:', visit);
 
     // Defensive check: ensure visit.window exists with proper structure
     if (!visit || !visit.window || !Array.isArray(visit.window.days)) {
@@ -604,7 +641,10 @@ const VisitDetailsPanel = ({ visit, onUpdate }) => {
                         </label>
                         <select
                             value={visit.type}
-                            onChange={(e) => onUpdate({ type: e.target.value })}
+                            onChange={(e) => {
+                                console.log('Dropdown changed from', visit.type, 'to', e.target.value);
+                                onUpdate({ type: e.target.value });
+                            }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                             {visitTypes.map(type => (
@@ -703,8 +743,6 @@ const getVisitTypeColor = (type) => {
         BASELINE: 'bg-green-500 border-green-700',
         TREATMENT: 'bg-blue-500 border-blue-700',
         FOLLOW_UP: 'bg-purple-500 border-purple-700',
-        END_OF_TREATMENT: 'bg-orange-500 border-orange-700',
-        SAFETY_FOLLOW_UP: 'bg-yellow-500 border-yellow-700',
         UNSCHEDULED: 'bg-gray-500 border-gray-700'
     };
     return colors[type] || 'bg-gray-500 border-gray-700';
@@ -716,8 +754,6 @@ const getVisitTypeColorClasses = (type) => {
         BASELINE: 'bg-green-100 text-green-800',
         TREATMENT: 'bg-blue-100 text-blue-800',
         FOLLOW_UP: 'bg-purple-100 text-purple-800',
-        END_OF_TREATMENT: 'bg-orange-100 text-orange-800',
-        SAFETY_FOLLOW_UP: 'bg-yellow-100 text-yellow-800',
         UNSCHEDULED: 'bg-gray-100 text-gray-800'
     };
     return colors[type] || 'bg-gray-100 text-gray-800';

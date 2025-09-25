@@ -1,10 +1,8 @@
 import ApiService from './ApiService';
 
-const API_PATH = '/api/visit-definitions';  // Updated to match backend API definitions
-
 /**
  * Service for handling Visit operations
- * Updated to match backend API: /api/visit-definitions
+ * Updated to match backend API: /api/studies/{studyId}/visits
  */
 class VisitService {
   /**
@@ -14,7 +12,7 @@ class VisitService {
    */
   async getVisitsByStudy(studyId) {
     try {
-      const response = await ApiService.get(`${API_PATH}/study/${studyId}`);
+      const response = await ApiService.get(`/api/studies/${studyId}/visits`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching visits for study ${studyId}:`, error);
@@ -25,11 +23,12 @@ class VisitService {
   /**
    * Get a visit by ID
    * @param {string} visitId - The ID of the visit to retrieve
+   * @param {string} studyId - The ID of the study (required for validation)
    * @returns {Promise<Object>} Promise that resolves to the visit data
    */
-  async getVisitById(visitId) {
+  async getVisitById(visitId, studyId) {
     try {
-      const response = await ApiService.get(`${API_PATH}/${visitId}`);
+      const response = await ApiService.get(`/api/studies/${studyId}/visits/${visitId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching visit with ID ${visitId}:`, error);
@@ -39,12 +38,29 @@ class VisitService {
 
   /**
    * Create a new visit for a study
-   * @param {Object} visitData - The visit data to create (must include studyId)
+   * @param {string} studyId - The ID of the study
+   * @param {string|null} armId - The ID of the arm (optional, can be null)
+   * @param {Object} visitData - The visit data to create
    * @returns {Promise<Object>} Promise that resolves to the created visit
    */
-  async createVisit(visitData) {
+  async createVisit(studyId, armId = null, visitData = null) {
     try {
-      const response = await ApiService.post(`${API_PATH}`, visitData);
+      // Handle flexible parameter usage - if armId is an object, it means it's actually visitData
+      let actualVisitData, actualArmId;
+      if (typeof armId === 'object' && armId !== null) {
+        actualVisitData = armId; // armId is actually visitData
+        actualArmId = null; // no arm specified
+      } else {
+        actualVisitData = visitData;
+        actualArmId = armId;
+      }
+      
+      // Add armId to visitData if specified
+      if (actualArmId) {
+        actualVisitData = { ...actualVisitData, armId: actualArmId };
+      }
+      
+      const response = await ApiService.post(`/api/studies/${studyId}/visits`, actualVisitData);
       return response.data;
     } catch (error) {
       console.error(`Error creating visit:`, error);
@@ -54,13 +70,14 @@ class VisitService {
 
   /**
    * Update an existing visit
+   * @param {string} studyId - The ID of the study
    * @param {string} visitId - The ID of the visit to update
    * @param {Object} visitData - The updated visit data
    * @returns {Promise<Object>} Promise that resolves to the updated visit
    */
-  async updateVisit(visitId, visitData) {
+  async updateVisit(studyId, visitId, visitData) {
     try {
-      const response = await ApiService.put(`${API_PATH}/${visitId}`, visitData);
+      const response = await ApiService.put(`/api/studies/${studyId}/visits/${visitId}`, visitData);
       return response.data;
     } catch (error) {
       console.error(`Error updating visit with ID ${visitId}:`, error);
@@ -70,12 +87,13 @@ class VisitService {
 
   /**
    * Delete a visit by ID
+   * @param {string} studyId - The ID of the study
    * @param {string} visitId - The ID of the visit to delete
    * @returns {Promise<Object>} Promise that resolves to the deletion confirmation
    */
-  async deleteVisit(visitId) {
+  async deleteVisit(studyId, visitId) {
     try {
-      const response = await ApiService.delete(`${API_PATH}/${visitId}`);
+      const response = await ApiService.delete(`/api/studies/${studyId}/visits/${visitId}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting visit with ID ${visitId}:`, error);
@@ -85,13 +103,14 @@ class VisitService {
 
   /**
    * Get all forms associated with a visit (may need backend support)
+   * @param {string} studyId - The ID of the study
    * @param {string} visitId - The ID of the visit
    * @returns {Promise<Array>} Promise that resolves to an array of forms for the visit
    */
-  async getVisitForms(visitId) {
+  async getVisitForms(studyId, visitId) {
     try {
-      // Note: This may need backend endpoint /api/visit-definitions/{id}/forms
-      const response = await ApiService.get(`${API_PATH}/${visitId}/forms`);
+      // Note: This may need backend endpoint /api/studies/{studyId}/visits/{visitId}/forms
+      const response = await ApiService.get(`/api/studies/${studyId}/visits/${visitId}/forms`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching forms for visit ${visitId}:`, error);
@@ -100,15 +119,14 @@ class VisitService {
   }
 
   /**
-   * Order visits within a study (may need backend support)
+   * Order visits within a study - updated to match backend endpoint
    * @param {string} studyId - The ID of the study
    * @param {Array} visitOrder - Array of visit IDs in the desired order
    * @returns {Promise<Object>} Promise that resolves to the ordering confirmation
    */
   async orderVisits(studyId, visitOrder) {
     try {
-      // Note: This may need backend endpoint /api/visit-definitions/study/{studyId}/order
-      const response = await ApiService.put(`${API_PATH}/study/${studyId}/order`, { visitOrder });
+      const response = await ApiService.put(`/api/studies/${studyId}/visits/order`, { visitOrder });
       return response.data;
     } catch (error) {
       console.error(`Error ordering visits for study ${studyId}:`, error);
@@ -125,7 +143,7 @@ class VisitService {
   async getVisitsByArm(studyId, armId) {
     try {
       // Use query parameter to filter visits by arm
-      const response = await ApiService.get(`${API_PATH}/study/${studyId}?armId=${armId}`);
+      const response = await ApiService.get(`/api/studies/${studyId}/visits?armId=${armId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching visits for arm ${armId} in study ${studyId}:`, error);
@@ -136,15 +154,17 @@ class VisitService {
   // Arm association methods (updated for new API structure)
   /**
    * Add a visit to an arm in a study
+   * @param {string} studyId - The ID of the study
    * @param {string} armId - The ID of the arm
    * @param {string} visitId - The ID of the visit to add
+   * @param {Object} visitData - The updated visit data including armId
    * @returns {Promise<Object>} Promise that resolves to the association confirmation
    */
-  async addVisitToArm(armId, visitId) {
+  async addVisitToArm(studyId, armId, visitId, visitData = {}) {
     try {
       // Update the visit to associate it with the arm
-      const visitData = { armId: armId };
-      const response = await ApiService.put(`${API_PATH}/${visitId}`, visitData);
+      const updatedVisitData = { ...visitData, armId: armId };
+      const response = await ApiService.put(`/api/studies/${studyId}/visits/${visitId}`, updatedVisitData);
       return response.data;
     } catch (error) {
       console.error(`Error adding visit ${visitId} to arm ${armId}:`, error);
@@ -154,14 +174,16 @@ class VisitService {
 
   /**
    * Remove a visit from an arm
+   * @param {string} studyId - The ID of the study
    * @param {string} visitId - The ID of the visit to remove from arm
+   * @param {Object} visitData - The updated visit data
    * @returns {Promise<Object>} Promise that resolves to the disassociation confirmation
    */
-  async removeVisitFromArm(visitId) {
+  async removeVisitFromArm(studyId, visitId, visitData = {}) {
     try {
       // Update the visit to remove arm association (set armId to null)
-      const visitData = { armId: null };
-      const response = await ApiService.put(`${API_PATH}/${visitId}`, visitData);
+      const updatedVisitData = { ...visitData, armId: null };
+      const response = await ApiService.put(`/api/studies/${studyId}/visits/${visitId}`, updatedVisitData);
       return response.data;
     } catch (error) {
       console.error(`Error removing visit ${visitId} from arm:`, error);
@@ -229,6 +251,40 @@ class VisitService {
     }
   }
 
+  /**
+   * Create or update form binding for a visit (VisitFormBinding methods for component compatibility)
+   * @param {Object} bindingData - The binding data to create
+   * @returns {Promise<Object>} Promise that resolves to the created binding
+   */
+  async createVisitFormBinding(bindingData) {
+    return this.createFormBinding(bindingData.visitId, bindingData.formId, bindingData);
+  }
+
+  /**
+   * Update visit form binding
+   * @param {string} bindingId - The ID of the binding to update
+   * @param {Object} updates - The updates to apply
+   * @returns {Promise<Object>} Promise that resolves to the updated binding
+   */
+  async updateVisitFormBinding(bindingId, updates) {
+    try {
+      const response = await ApiService.put(`/api/form-bindings/${bindingId}`, updates);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating visit form binding ${bindingId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete visit form binding
+   * @param {string} bindingId - The ID of the binding to delete
+   * @returns {Promise<Object>} Promise that resolves to the deletion confirmation
+   */
+  async deleteVisitFormBinding(bindingId) {
+    return this.removeFormBinding(bindingId);
+  }
+
   // Legacy methods for backward compatibility
   /**
    * @deprecated This method name is confusing, use the main getVisitsByStudy method
@@ -238,24 +294,24 @@ class VisitService {
   }
 
   /**
-   * @deprecated Use createVisit(visitData) with studyId in visitData instead
+   * @deprecated Use createVisit(studyId, visitData) instead
    */
   async createVisitForStudy(studyId, visitData) {
-    return this.createVisit({ ...visitData, studyId });
+    return this.createVisit(studyId, visitData);
   }
 
   /**
-   * @deprecated Use updateVisit(visitId, visitData) instead
+   * @deprecated Use updateVisit(studyId, visitId, visitData) instead
    */
   async updateVisitForStudy(studyId, visitId, visitData) {
-    return this.updateVisit(visitId, visitData);
+    return this.updateVisit(studyId, visitId, visitData);
   }
 
   /**
-   * @deprecated Use deleteVisit(visitId) instead
+   * @deprecated Use deleteVisit(studyId, visitId) instead
    */
   async deleteVisitFromStudy(studyId, visitId) {
-    return this.deleteVisit(visitId);
+    return this.deleteVisit(studyId, visitId);
   }
 }
 
