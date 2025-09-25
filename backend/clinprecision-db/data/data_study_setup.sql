@@ -336,7 +336,7 @@ VALUES
 ((SELECT id FROM users WHERE email = 'dlee@respicare.org'), 6, (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'), '2023-01-10');
 
 -- Update the studies to set created_by to the corresponding sponsor admin
-UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'jsmith@biopharm.com') WHERE id = 1;
+UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'nsarkar@clinprecision.com') WHERE id = 1;
 UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'rjohnson@medicalresearch.org') WHERE id = 2;
 UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'echen@neurocare.org') WHERE id = 3;
 UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'mrodriguez@arthricare.com') WHERE id = 4;

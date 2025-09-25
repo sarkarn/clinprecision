@@ -22,20 +22,7 @@ public class UserStudyRoleEntity {
     
     @Column(name = "study_id", nullable = false, length = 36)
     private Long studyId;
-    
-    @Column(name = "role_code", nullable = false)
-    private String roleCode;
-    
-    @Column(name = "role_name", nullable = false)
-    private String roleName;
-    
-    @Column(name = "description")
-    private String description;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status")
-    private RoleStatus status = RoleStatus.ACTIVE;
-    
+
     @Column(name = "start_date")
     private LocalDateTime startDate;
     
@@ -88,38 +75,6 @@ public class UserStudyRoleEntity {
 
     public void setStudyId(Long studyId) {
         this.studyId = studyId;
-    }
-
-    public String getRoleCode() {
-        return roleCode;
-    }
-
-    public void setRoleCode(String roleCode) {
-        this.roleCode = roleCode;
-    }
-
-    public String getRoleName() {
-        return roleName;
-    }
-
-    public void setRoleName(String roleName) {
-        this.roleName = roleName;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public RoleStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(RoleStatus status) {
-        this.status = status;
     }
 
     public LocalDateTime getStartDate() {

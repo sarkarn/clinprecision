@@ -1,10 +1,12 @@
 
 
 -- Add sample sites
-INSERT INTO sites (organization_id, site_number, study_id, principal_investigator_id, status, activation_date, deactivation_date, max_subjects, created_at, updated_at)
+INSERT INTO sites (name,organization_id, site_number, study_id, principal_investigator_id, status, activation_date, deactivation_date, max_subjects, created_at, updated_at)
 VALUES
 -- Sites for Study 1
+
 (
+'Site 1',
   (SELECT id FROM organizations WHERE external_id = 'CMC8901'),
   'SITE-001',
   1,
@@ -18,6 +20,7 @@ VALUES
 ),
 -- Sites for Study 3
 (
+  'Site 3',
   (SELECT id FROM organizations WHERE external_id = 'URH3456'),
   'SITE-002',
   3,
@@ -31,6 +34,7 @@ VALUES
 ),
 -- Sites for Study 4
 (
+  'Site 4',
   (SELECT id FROM organizations WHERE external_id = 'CMC8901'),
   'SITE-003',
   4,
