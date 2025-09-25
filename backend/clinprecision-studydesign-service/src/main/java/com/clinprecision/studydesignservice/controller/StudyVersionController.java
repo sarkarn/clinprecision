@@ -19,7 +19,6 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/studies/{studyId}")
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class StudyVersionController {
     
     @Autowired
