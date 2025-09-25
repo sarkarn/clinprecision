@@ -203,6 +203,47 @@ const SmartWorkflowAssistant = ({
                 'Initialize data collection',
                 'Begin site activation'
             ]
+        },
+        'protocol-versions': {
+            icon: GitBranch,
+            color: 'purple',
+            title: 'Protocol Management',
+            description: 'Manage protocol versions and amendments',
+            tips: [
+                {
+                    id: 'version-control',
+                    type: 'best-practice',
+                    title: 'Version Control',
+                    content: 'Maintain clear version numbering and comprehensive change documentation for regulatory compliance.',
+                    action: 'Review versioning'
+                },
+                {
+                    id: 'amendment-planning',
+                    type: 'process',
+                    title: 'Amendment Planning',
+                    content: 'Plan amendments carefully to minimize site burden and maintain data integrity.',
+                    action: 'Plan amendments'
+                },
+                {
+                    id: 'regulatory-tracking',
+                    type: 'compliance',
+                    title: 'Regulatory Tracking',
+                    content: 'Track approval status across different regulatory authorities and sites.',
+                    action: 'Track approvals'
+                }
+            ],
+            checklist: [
+                'Initial protocol version created',
+                'Version numbering system established',
+                'Amendment process defined',
+                'Approval workflow configured',
+                'Change documentation ready'
+            ],
+            nextSteps: [
+                'Submit for review',
+                'Track approval status',
+                'Manage site implementations'
+            ]
         }
     };
 
@@ -240,7 +281,7 @@ const SmartWorkflowAssistant = ({
         } else {
             // Current phase is completed - suggest moving to next phase
             const getNextPhaseId = () => {
-                const phaseOrder = ['basic-info', 'arms', 'visits', 'forms', 'review', 'publish'];
+                const phaseOrder = ['basic-info', 'arms', 'visits', 'forms', 'review', 'publish', 'protocol-versions'];
                 const currentIndex = phaseOrder.indexOf(currentPhase);
                 return phaseOrder[currentIndex + 1];
             };
@@ -281,7 +322,7 @@ const SmartWorkflowAssistant = ({
         }
 
         // Next phase suggestion
-        const phaseOrder = ['basic-info', 'arms', 'visits', 'forms', 'review', 'publish'];
+        const phaseOrder = ['basic-info', 'arms', 'visits', 'forms', 'review', 'publish', 'protocol-versions'];
         const currentIndex = phaseOrder.indexOf(currentPhase);
         const nextPhase = phaseOrder[currentIndex + 1];
 

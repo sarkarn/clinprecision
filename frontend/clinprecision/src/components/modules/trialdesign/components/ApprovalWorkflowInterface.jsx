@@ -201,7 +201,7 @@ const ApprovalWorkflowInterface = ({
             filtered = filtered.filter(revision => {
                 const statusMap = {
                     pending: 'DRAFT',
-                    'in-review': 'UNDER_REVIEW',
+                    'in-review': 'PROTOCOL_REVIEW',
                     approved: 'APPROVED',
                     rejected: 'REJECTED'
                 };
@@ -311,7 +311,7 @@ const ApprovalWorkflowInterface = ({
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="text-2xl font-bold text-blue-900">
-                                        {revisions.filter(r => r.status === 'UNDER_REVIEW').length}
+                                        {revisions.filter(r => r.status === 'PROTOCOL_REVIEW').length}
                                     </div>
                                     <div className="text-sm text-blue-700">In Review</div>
                                 </div>
@@ -402,8 +402,8 @@ const ApprovalWorkflowInterface = ({
                                     <div
                                         key={revision.id}
                                         className={`p-4 rounded-lg border cursor-pointer hover:shadow-md transition-shadow ${selectedRevision?.id === revision.id
-                                                ? 'border-blue-500 bg-blue-50'
-                                                : 'border-gray-200 bg-white'
+                                            ? 'border-blue-500 bg-blue-50'
+                                            : 'border-gray-200 bg-white'
                                             }`}
                                         onClick={() => setSelectedRevision(revision)}
                                     >
@@ -580,7 +580,7 @@ const ApprovalWorkflowInterface = ({
                                 </div>
 
                                 {/* Action Buttons */}
-                                {selectedRevision.status === 'UNDER_REVIEW' && (
+                                {selectedRevision.status === 'PROTOCOL_REVIEW' && (
                                     <div className="border-t border-gray-200 pt-4">
                                         <div className="flex space-x-3">
                                             <Button

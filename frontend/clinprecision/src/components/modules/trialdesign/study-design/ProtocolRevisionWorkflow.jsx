@@ -236,7 +236,7 @@ const ProtocolRevisionWorkflow = () => {
     const handleSubmitRevision = async (revisionId) => {
         try {
             const updatedRevisions = pendingRevisions.map(rev =>
-                rev.id === revisionId ? { ...rev, status: 'UNDER_REVIEW' } : rev
+                rev.id === revisionId ? { ...rev, status: 'PROTOCOL_REVIEW' } : rev
             );
             setPendingRevisions(updatedRevisions);
         } catch (error) {
@@ -578,7 +578,7 @@ const PendingRevisions = ({ revisions, onSubmit, onApprove, onView }) => {
         switch (status) {
             case 'DRAFT':
                 return 'bg-blue-100 text-blue-800';
-            case 'UNDER_REVIEW':
+            case 'PROTOCOL_REVIEW':
                 return 'bg-yellow-100 text-yellow-800';
             case 'APPROVED':
                 return 'bg-green-100 text-green-800';
@@ -618,7 +618,7 @@ const PendingRevisions = ({ revisions, onSubmit, onApprove, onView }) => {
                                     Submit
                                 </Button>
                             )}
-                            {revision.status === 'UNDER_REVIEW' && (
+                            {revision.status === 'PROTOCOL_REVIEW' && (
                                 <Button
                                     size="sm"
                                     onClick={() => onApprove(revision.id)}
@@ -757,7 +757,7 @@ const RevisionDetailsPanel = ({ revision, onClose, onSubmit, onApprove, getRevis
                             Submit for Review
                         </Button>
                     )}
-                    {revision.status === 'UNDER_REVIEW' && (
+                    {revision.status === 'PROTOCOL_REVIEW' && (
                         <Button
                             size="sm"
                             onClick={() => onApprove(revision.id)}

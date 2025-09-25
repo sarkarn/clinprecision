@@ -171,7 +171,7 @@ const StudyListGrid = ({
         const getVersionColor = (status) => {
             const colors = {
                 DRAFT: 'bg-gray-100 text-gray-700',
-                UNDER_REVIEW: 'bg-yellow-100 text-yellow-700',
+                PROTOCOL_REVIEW: 'bg-yellow-100 text-yellow-700',
                 APPROVED: 'bg-green-100 text-green-700',
                 ACTIVE: 'bg-blue-100 text-blue-700',
                 SUPERSEDED: 'bg-orange-100 text-orange-700',

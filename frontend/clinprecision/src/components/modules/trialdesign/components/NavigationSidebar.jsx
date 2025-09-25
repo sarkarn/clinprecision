@@ -96,35 +96,76 @@ const NavigationSidebar = ({
                     <div className="p-4 border-b border-gray-200">
                         <h3 className="text-sm font-medium text-gray-900 mb-3">Workflow Progress</h3>
                         <div className="space-y-2">
-                            {workflowSteps.map((step, index) => (
-                                <div
-                                    key={index}
-                                    className={`flex items-center p-2 rounded-lg ${index === currentStep
-                                        ? 'bg-blue-100 border border-blue-200'
-                                        : step.completed
-                                            ? 'bg-green-50 border border-green-200'
-                                            : 'bg-gray-50 border border-gray-200'
-                                        }`}
-                                >
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium mr-3 ${index === currentStep
-                                        ? 'bg-blue-500 text-white'
-                                        : step.completed
-                                            ? 'bg-green-500 text-white'
-                                            : 'bg-gray-300 text-gray-600'
-                                        }`}>
-                                        {index + 1}
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className={`text-sm font-medium ${index === currentStep ? 'text-blue-900' : 'text-gray-700'
+                            {workflowSteps.map((step, index) => {
+                                // Handle separator
+                                if (step.type === 'separator') {
+                                    return (
+                                        <div key={`separator-${index}`} className="py-3">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="flex-1 h-px bg-gray-300"></div>
+                                                <span className="text-xs font-medium text-gray-500 px-2 py-1 bg-gray-100 rounded-full">
+                                                    {step.label}
+                                                </span>
+                                                <div className="flex-1 h-px bg-gray-300"></div>
+                                            </div>
+                                            <div className="text-xs text-gray-400 text-center mt-1">
+                                                Independent workflow
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                // Calculate the visual step number (excluding separators and independent steps)
+                                const visualStepNumber = workflowSteps
+                                    .slice(0, index)
+                                    .filter(s => s.type !== 'separator' && !s.hideNumber).length + 1;
+
+                                return (
+                                    <div
+                                        key={index}
+                                        className={`flex items-center p-2 rounded-lg ${index === currentStep
+                                            ? 'bg-blue-100 border border-blue-200'
+                                            : step.completed
+                                                ? 'bg-green-50 border border-green-200'
+                                                : step.independent
+                                                    ? 'bg-purple-50 border border-purple-200'
+                                                    : 'bg-gray-50 border border-gray-200'
+                                            }`}
+                                    >
+                                        {/* Step number or icon */}
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium mr-3 ${index === currentStep
+                                            ? 'bg-blue-500 text-white'
+                                            : step.completed
+                                                ? 'bg-green-500 text-white'
+                                                : step.independent
+                                                    ? 'bg-purple-500 text-white'
+                                                    : 'bg-gray-300 text-gray-600'
                                             }`}>
-                                            {step.title}
-                                        </p>
-                                        {step.description && (
-                                            <p className="text-xs text-gray-500 mt-1">{step.description}</p>
-                                        )}
+                                            {step.hideNumber ? (
+                                                <div className="w-2 h-2 bg-current rounded-full"></div>
+                                            ) : (
+                                                visualStepNumber
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center justify-between">
+                                                <p className={`text-sm font-medium ${index === currentStep ? 'text-blue-900' : 'text-gray-700'
+                                                    }`}>
+                                                    {step.title}
+                                                </p>
+                                                {step.independent && (
+                                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full ml-2">
+                                                        Independent
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {step.description && (
+                                                <p className="text-xs text-gray-500 mt-1">{step.description}</p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}

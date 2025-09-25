@@ -305,9 +305,9 @@ class StudyVersioningService {
                 description: 'In development'
             },
             {
-                value: 'UNDER_REVIEW',
-                label: 'Under Review',
-                description: 'Under internal review'
+                value: 'PROTOCOL_REVIEW',
+                label: 'Protocol Review',
+                description: 'Under protocol review'
             },
             {
                 value: 'SUBMITTED',

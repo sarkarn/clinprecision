@@ -153,7 +153,7 @@ const VersionManagementModal = ({
     const getVersionStatusBadge = (status) => {
         const configs = {
             [VERSION_STATUS.DRAFT.value]: { color: 'bg-gray-100 text-gray-700', text: VERSION_STATUS.DRAFT.label },
-            [VERSION_STATUS.UNDER_REVIEW.value]: { color: 'bg-yellow-100 text-yellow-700', text: VERSION_STATUS.UNDER_REVIEW.label },
+            [VERSION_STATUS.PROTOCOL_REVIEW.value]: { color: 'bg-yellow-100 text-yellow-700', text: VERSION_STATUS.PROTOCOL_REVIEW.label },
             [VERSION_STATUS.SUBMITTED.value]: { color: 'bg-blue-100 text-blue-700', text: VERSION_STATUS.SUBMITTED.label },
             [VERSION_STATUS.APPROVED.value]: { color: 'bg-green-100 text-green-700', text: VERSION_STATUS.APPROVED.label },
             [VERSION_STATUS.ACTIVE.value]: { color: 'bg-green-100 text-green-700', text: VERSION_STATUS.ACTIVE.label },
