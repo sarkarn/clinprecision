@@ -43,10 +43,10 @@ export const useStudyVersioning = () => {
       label: 'Draft',
       description: 'In development'
     },
-    UNDER_REVIEW: {
-      value: 'UNDER_REVIEW',
-      label: 'Under Review',
-      description: 'Under internal review'
+    PROTOCOL_REVIEW: {
+      value: 'PROTOCOL_REVIEW',
+      label: 'Protocol Review',
+      description: 'Under protocol review'
     },
     SUBMITTED: {
       value: 'SUBMITTED',
@@ -235,12 +235,12 @@ export const useStudyVersioning = () => {
 
   // Check if version can be edited
   const canEditVersion = useCallback((version) => {
-    return version.status === VERSION_STATUS.DRAFT.value || version.status === VERSION_STATUS.UNDER_REVIEW.value;
+    return version.status === VERSION_STATUS.DRAFT.value || version.status === VERSION_STATUS.PROTOCOL_REVIEW.value;
   }, []);
 
   // Check if version can be submitted
   const canSubmitVersion = useCallback((version) => {
-    return version.status === VERSION_STATUS.DRAFT.value || version.status === VERSION_STATUS.UNDER_REVIEW.value;
+    return version.status === VERSION_STATUS.DRAFT.value || version.status === VERSION_STATUS.PROTOCOL_REVIEW.value;
   }, []);
 
   return {

@@ -9,7 +9,7 @@ This document describes the implementation of **Option B: Study List and Overvie
 ### 🔄 Industry-Standard Study Versioning
 - **Clinical trial protocol versioning** following FDA guidelines
 - **Amendment types**: MAJOR, MINOR, SAFETY, ADMINISTRATIVE
-- **Version status tracking**: DRAFT, UNDER_REVIEW, SUBMITTED, APPROVED, ACTIVE, SUPERSEDED, WITHDRAWN
+- **Version status tracking**: DRAFT, PROTOCOL_REVIEW, SUBMITTED, APPROVED, ACTIVE, SUPERSEDED, WITHDRAWN
 - **Protocol amendment history** with detailed change tracking
 - **Version comparison** and change impact analysis
 - **Regulatory compliance** features for amendment submissions
@@ -102,7 +102,7 @@ Provides advanced data management capabilities:
 
 ### Version Status Lifecycle
 ```
-DRAFT → UNDER_REVIEW → SUBMITTED → APPROVED → ACTIVE
+DRAFT → PROTOCOL_REVIEW → SUBMITTED → APPROVED → ACTIVE
                                       ↓
                               SUPERSEDED/WITHDRAWN
 ```

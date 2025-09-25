@@ -21,6 +21,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST Controller for study operations
@@ -305,16 +306,25 @@ public class StudyController {
     @PatchMapping("/{id}/publish")
     public ResponseEntity<StudyResponseDto> publishStudy(@PathVariable Long id) {
         logger.info("PATCH /api/studies/{}/publish - Publishing study", id);
-        try {
-            StudyResponseDto response = studyService.publishStudy(id);
-            logger.info("Study {} published successfully", id);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            logger.error("Error publishing study {}: {}", id, e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            logger.error("Unexpected error publishing study {}", id, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        StudyResponseDto response = studyService.publishStudy(id);
+        logger.info("Study {} published successfully", id);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Change study status
+     * PATCH /api/studies/{id}/status
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<StudyResponseDto> changeStudyStatus(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        String newStatus = request.get("newStatus");
+        if (newStatus == null || newStatus.trim().isEmpty()) {
+            throw new IllegalArgumentException("newStatus is required");
         }
+        
+        logger.info("PATCH /api/studies/{}/status - Changing status to {}", id, newStatus);
+        StudyResponseDto response = studyService.changeStudyStatus(id, newStatus);
+        logger.info("Study {} status changed to {} successfully", id, newStatus);
+        return ResponseEntity.ok(response);
     }
 }

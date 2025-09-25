@@ -6,6 +6,17 @@ import ApiService from './ApiService';
  */
 class StudyDesignService {
 
+    // General Study Information
+    async getStudyById(studyId) {
+        try {
+            const response = await ApiService.get(`/api/studies/${studyId}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching study by ID:', error);
+            throw error;
+        }
+    }
+
     // Study Arms Management
     async getStudyArms(studyId) {
         try {
@@ -117,7 +128,53 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error publishing study:', error);
-            throw error;
+            
+            // Extract meaningful error message from backend response
+            let errorMessage = 'Failed to publish study';
+            
+            if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            // Create new error with backend message and preserve original error
+            const enhancedError = new Error(errorMessage);
+            enhancedError.originalError = error;
+            enhancedError.status = error.response?.status;
+            
+            throw enhancedError;
+        }
+    }
+
+    async changeStudyStatus(studyId, newStatus) {
+        try {
+            const response = await ApiService.patch(`/api/studies/${studyId}/status`, { 
+                newStatus: newStatus 
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error changing study status:', error);
+            
+            // Extract meaningful error message from backend response
+            let errorMessage = `Failed to change study status to ${newStatus}`;
+            
+            if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            // Create new error with backend message and preserve original error
+            const enhancedError = new Error(errorMessage);
+            enhancedError.originalError = error;
+            enhancedError.status = error.response?.status;
+            
+            throw enhancedError;
         }
     }
 

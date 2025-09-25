@@ -660,7 +660,7 @@ public class StudyService {
         // Validate required fields based on current status
         String currentStatus = study.getStudyStatus() != null ? study.getStudyStatus().getCode() : null;
         
-        if ("UNDER_REVIEW".equalsIgnoreCase(currentStatus) || 
+        if ("PROTOCOL_REVIEW".equalsIgnoreCase(currentStatus) || 
             "APPROVED".equalsIgnoreCase(currentStatus) || 
             "ACTIVE".equalsIgnoreCase(currentStatus)) {
             

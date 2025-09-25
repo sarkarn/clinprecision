@@ -15,7 +15,7 @@ const StudyPublishWorkflow = () => {
     // State management
     const [study, setStudy] = useState(null);
     const [validationResults, setValidationResults] = useState([]);
-    const [publishStatus, setPublishStatus] = useState('DRAFT'); // DRAFT, READY_FOR_REVIEW, UNDER_REVIEW, READY_TO_PUBLISH, PUBLISHED
+    const [publishStatus, setPublishStatus] = useState('DRAFT'); // DRAFT, READY_FOR_REVIEW, PROTOCOL_REVIEW, READY_TO_PUBLISH, PUBLISHED
     const [reviewers, setReviewers] = useState([]);
     const [publishSettings, setPublishSettings] = useState({
         enableDataCapture: true,
@@ -167,12 +167,17 @@ const StudyPublishWorkflow = () => {
                 ]
             };
 
-            setStudy(mockData.study);
+            // Load actual study data from backend
+            const studyData = await StudyDesignService.getStudyById(studyId);
+            console.log('Loaded study data:', studyData);
+
+            setStudy(studyData);
             setValidationResults(mockData.validationResults);
             setReviewers(mockData.reviewers);
 
-            // Determine publish status based on validation and reviews
-            const overallStatus = determinePublishStatus(mockData.validationResults, mockData.reviewers);
+            // Determine publish status based on backend study status
+            const backendStatus = studyData.studyStatus?.code || 'PLANNING';
+            const overallStatus = determinePublishStatusFromBackend(backendStatus, mockData.validationResults, mockData.reviewers);
             setPublishStatus(overallStatus);
 
             setLoading(false);
@@ -193,9 +198,35 @@ const StudyPublishWorkflow = () => {
         const hasChangesRequested = reviewers.some(r => r.status === 'CHANGES_REQUESTED');
 
         if (hasChangesRequested) return 'DRAFT';
-        if (!allReviewsComplete) return 'UNDER_REVIEW';
+        if (!allReviewsComplete) return 'PROTOCOL_REVIEW';
 
         return 'READY_TO_PUBLISH';
+    };
+
+    // Determine publish status based on backend study status
+    const determinePublishStatusFromBackend = (backendStatus, validations, reviewers) => {
+        console.log('Determining publish status for backend status:', backendStatus);
+
+        switch (backendStatus?.toUpperCase()) {
+            case 'PLANNING':
+            case 'DRAFT':
+            case 'REJECTED':
+                return 'DRAFT';
+            case 'PROTOCOL_REVIEW':
+                return 'PROTOCOL_REVIEW';
+            case 'APPROVED':
+                return 'READY_TO_PUBLISH';
+            case 'ACTIVE':
+                return 'PUBLISHED';
+            case 'COMPLETED':
+            case 'TERMINATED':
+            case 'WITHDRAWN':
+            case 'SUSPENDED':
+                return 'PUBLISHED'; // Study has been published but is now in a different state
+            default:
+                console.warn('Unknown backend status:', backendStatus);
+                return 'DRAFT';
+        }
     };
 
     // Publish study (handles all cases - with or without validation issues)
@@ -228,11 +259,50 @@ const StudyPublishWorkflow = () => {
 
         } catch (error) {
             console.error('Error publishing study:', error);
-            setErrors(['Failed to publish study: ' + (error.message || 'Unknown error')]);
+
+            // Use backend error message if descriptive, otherwise add context
+            let errorMessage = error.message || 'Unknown error';
+            if (!errorMessage.toLowerCase().includes('publish') && !errorMessage.toLowerCase().includes('study')) {
+                errorMessage = 'Failed to publish study: ' + errorMessage;
+            }
+
+            setErrors([errorMessage]);
         } finally {
             setPublishing(false);
         }
-    };    // Run validation
+    };
+
+    // Approve study (changes status from PROTOCOL_REVIEW to APPROVED)
+    const handleApproveStudy = async () => {
+        if (!window.confirm('Are you sure you want to approve this study? This will allow it to be published for data capture.')) {
+            return;
+        }
+
+        try {
+            setPublishing(true);
+
+            const result = await StudyDesignService.changeStudyStatus(studyId, 'APPROVED');
+            console.log('Study approved successfully:', result);
+
+            // Update the study state
+            setStudy(prev => ({ ...prev, studyStatus: { code: 'APPROVED' } }));
+            setPublishStatus('READY_TO_PUBLISH');
+
+        } catch (error) {
+            console.error('Error approving study:', error);
+
+            let errorMessage = error.message || 'Unknown error';
+            if (!errorMessage.toLowerCase().includes('approve') && !errorMessage.toLowerCase().includes('study')) {
+                errorMessage = 'Failed to approve study: ' + errorMessage;
+            }
+
+            setErrors([errorMessage]);
+        } finally {
+            setPublishing(false);
+        }
+    };
+
+    // Run validation
     const handleRunValidation = async () => {
         try {
             // Mock validation - replace with actual API call
@@ -274,7 +344,7 @@ const StudyPublishWorkflow = () => {
                 return { label: 'Draft', color: 'bg-gray-100 text-gray-800', icon: <FileText className="h-4 w-4" /> };
             case 'READY_FOR_REVIEW':
                 return { label: 'Ready for Review', color: 'bg-blue-100 text-blue-800', icon: <Eye className="h-4 w-4" /> };
-            case 'UNDER_REVIEW':
+            case 'PROTOCOL_REVIEW':
                 return { label: 'Under Review', color: 'bg-yellow-100 text-yellow-800', icon: <Users className="h-4 w-4" /> };
             case 'READY_TO_PUBLISH':
                 return { label: 'Ready to Publish', color: 'bg-green-100 text-green-800', icon: <Send className="h-4 w-4" /> };
@@ -409,6 +479,7 @@ const StudyPublishWorkflow = () => {
                     status={publishStatus}
                     validationStatus={overallValidation}
                     onPublish={handlePublishStudy}
+                    onApprove={handleApproveStudy}
                     publishing={publishing}
                 />
             </div>
@@ -434,7 +505,7 @@ const PublishingProgress = ({ status, validationStatus, reviewers }) => {
         {
             id: 'review',
             name: 'Review',
-            status: status === 'UNDER_REVIEW' || status === 'READY_TO_PUBLISH' || status === 'PUBLISHED' ? 'COMPLETED' :
+            status: status === 'PROTOCOL_REVIEW' || status === 'READY_TO_PUBLISH' || status === 'PUBLISHED' ? 'COMPLETED' :
                 status === 'READY_FOR_REVIEW' ? 'CURRENT' : 'PENDING',
             icon: <Users className="h-5 w-5" />
         },
@@ -676,7 +747,7 @@ const PublishSettings = ({ settings, onChange }) => {
 };
 
 // Publish Actions Component
-const PublishActions = ({ status, validationStatus, onPublish, publishing }) => {
+const PublishActions = ({ status, validationStatus, onPublish, onApprove, publishing }) => {
     // For development - allow publishing from any status except already published
     const canPublish = status !== 'PUBLISHED';
     const hasValidationIssues = validationStatus === 'FAILED' || validationStatus === 'WARNING';
@@ -700,7 +771,7 @@ const PublishActions = ({ status, validationStatus, onPublish, publishing }) => 
                 {status === 'READY_FOR_REVIEW' && (
                     'Study has been submitted for review'
                 )}
-                {status === 'UNDER_REVIEW' && (
+                {status === 'PROTOCOL_REVIEW' && (
                     'Study is currently under review'
                 )}
                 {status === 'READY_TO_PUBLISH' && (
@@ -712,7 +783,28 @@ const PublishActions = ({ status, validationStatus, onPublish, publishing }) => 
             </div>
 
             <div className="flex space-x-3">
-                {canPublish && (
+                {status === 'PROTOCOL_REVIEW' && (
+                    <Button
+                        onClick={onApprove}
+                        disabled={publishing}
+                        variant="primary"
+                        className="bg-blue-600 hover:bg-blue-700"
+                    >
+                        {publishing ? (
+                            <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Approving...
+                            </>
+                        ) : (
+                            <>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Approve Study
+                            </>
+                        )}
+                    </Button>
+                )}
+
+                {status === 'READY_TO_PUBLISH' && (
                     <Button
                         onClick={onPublish}
                         disabled={publishing}
@@ -731,6 +823,18 @@ const PublishActions = ({ status, validationStatus, onPublish, publishing }) => 
                             </>
                         )}
                     </Button>
+                )}
+
+                {status === 'DRAFT' && (
+                    <div className="text-sm text-gray-600">
+                        Complete the review phase to submit for approval
+                    </div>
+                )}
+
+                {status === 'PUBLISHED' && (
+                    <div className="text-sm text-green-600 font-medium">
+                        ✅ Study is live and collecting data
+                    </div>
                 )}
             </div>
         </div>
