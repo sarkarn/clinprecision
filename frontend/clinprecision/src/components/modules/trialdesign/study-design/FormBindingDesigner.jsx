@@ -78,6 +78,8 @@ const FormBindingDesigner = () => {
     // Create new binding
     const handleCreateBinding = async (visitId, formId) => {
         try {
+            console.log('Creating binding with:', { visitId, formId, studyId });
+
             // Check if binding already exists
             const existingBinding = bindings.find(b =>
                 (b.visitDefinitionId === visitId || b.visitId === visitId) &&
@@ -97,6 +99,8 @@ const FormBindingDesigner = () => {
                 conditions: [],
                 reminders: { enabled: true, days: [1] }
             };
+
+            console.log('New binding data:', newBinding);
 
             const createdBinding = await VisitDefinitionService.createVisitFormBinding(newBinding);
             const updatedBindings = [...bindings, createdBinding];

@@ -223,10 +223,11 @@ class VisitService {
    */
   async createFormBinding(visitId, formId, bindingData) {
     try {
-      // This might need to be handled by a separate FormBindingService
-      const response = await ApiService.post(`/api/form-bindings`, {
-        visitId,
-        formId,
+      // Use the specific endpoint for creating form bindings with path parameters
+      const studyId = bindingData.studyId;
+      const response = await ApiService.post(`/api/studies/${studyId}/visits/${visitId}/forms/${formId}`, {
+        visitDefinitionId: visitId,
+        formDefinitionId: formId,
         ...bindingData
       });
       return response.data;
@@ -257,7 +258,14 @@ class VisitService {
    * @returns {Promise<Object>} Promise that resolves to the created binding
    */
   async createVisitFormBinding(bindingData) {
-    return this.createFormBinding(bindingData.visitId, bindingData.formId, bindingData);
+    // Extract visitId and formId from the binding data to ensure compatibility
+    const visitId = bindingData.visitDefinitionId || bindingData.visitId;
+    const formId = bindingData.formDefinitionId || bindingData.formId;
+    
+    console.log('Service createVisitFormBinding called with:', { bindingData, visitId, formId });
+    console.log('Using endpoint: /api/studies/' + bindingData.studyId + '/visits/' + visitId + '/forms/' + formId);
+    
+    return this.createFormBinding(visitId, formId, bindingData);
   }
 
   /**

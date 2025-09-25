@@ -687,19 +687,25 @@ const StudyReviewPanel = ({ study, designProgress }) => {
         ([_, progress]) => !progress.completed
     );
     const { studyId } = useParams();
-    // Import loadDesignProgress from parent scope if possible, else reload page
-    const handleMarkReviewComplete = async () => {
+    // Submit study for review (changes status from PLANNING to PROTOCOL_REVIEW)
+    const handleSubmitForReview = async () => {
         setMarking(true);
         setError("");
         try {
+            // First change the study status to PROTOCOL_REVIEW
+            await StudyDesignService.changeStudyStatus(studyId, 'PROTOCOL_REVIEW');
+
+            // Then mark the review phase as completed in design progress
             await StudyDesignService.updateDesignProgress(studyId, {
                 progressData: {
                     review: { phase: "review", completed: true, percentage: 100 }
                 }
             });
+
             window.location.reload(); // Or call loadDesignProgress if available
         } catch (e) {
-            setError("Failed to mark review as complete. Please try again.");
+            console.error('Error submitting study for review:', e);
+            setError(e.message || "Failed to submit study for review. Please try again.");
         } finally {
             setMarking(false);
         }
@@ -747,15 +753,15 @@ const StudyReviewPanel = ({ study, designProgress }) => {
                         </div>
                     </div>
                 </div>
-                {/* Mark Review Complete Button */}
+                {/* Submit for Review Button */}
                 <div className="pt-6 flex flex-col items-end">
                     {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
                     <button
                         className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded shadow disabled:opacity-50"
-                        onClick={handleMarkReviewComplete}
+                        onClick={handleSubmitForReview}
                         disabled={marking}
                     >
-                        {marking ? "Marking..." : "Finish Review & Continue"}
+                        {marking ? "Submitting..." : "Submit for Review"}
                     </button>
                 </div>
             </div>

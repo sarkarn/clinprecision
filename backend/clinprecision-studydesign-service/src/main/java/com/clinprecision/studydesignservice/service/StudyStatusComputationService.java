@@ -33,9 +33,9 @@ public class StudyStatusComputationService {
      * Defines allowed transitions between study statuses
      */
     private static final Map<String, Set<String>> STUDY_STATUS_TRANSITIONS = Map.of(
-        "DRAFT", Set.of("UNDER_REVIEW", "PLANNING", "WITHDRAWN"),
-        "PLANNING", Set.of("UNDER_REVIEW", "DRAFT", "WITHDRAWN"),
-        "UNDER_REVIEW", Set.of("APPROVED", "DRAFT", "PLANNING", "REJECTED", "WITHDRAWN"),
+        "DRAFT", Set.of("PROTOCOL_REVIEW", "PLANNING", "WITHDRAWN"),
+        "PLANNING", Set.of("PROTOCOL_REVIEW", "DRAFT", "WITHDRAWN"),
+        "PROTOCOL_REVIEW", Set.of("APPROVED", "DRAFT", "PLANNING", "REJECTED", "WITHDRAWN"),
         "APPROVED", Set.of("ACTIVE", "WITHDRAWN"),
         "REJECTED", Set.of("DRAFT", "PLANNING", "WITHDRAWN"),
         "ACTIVE", Set.of("COMPLETED", "TERMINATED", "SUSPENDED"),
@@ -92,8 +92,8 @@ public class StudyStatusComputationService {
      */
     private StatusTransitionResult validateBusinessRules(StudyEntity study, String currentStatus, String newStatus) {
         switch (newStatus.toUpperCase()) {
-            case "UNDER_REVIEW":
-                return validateUnderReviewTransition(study);
+            case "PROTOCOL_REVIEW":
+                return validateProtocolReviewTransition(study);
             case "APPROVED":
                 return validateApprovedTransition(study);
             case "ACTIVE":
@@ -110,9 +110,9 @@ public class StudyStatusComputationService {
     }
 
     /**
-     * Validate transition to UNDER_REVIEW status
+     * Validate transition to PROTOCOL_REVIEW status
      */
-    private StatusTransitionResult validateUnderReviewTransition(StudyEntity study) {
+    private StatusTransitionResult validateProtocolReviewTransition(StudyEntity study) {
         List<String> errors = new ArrayList<>();
 
         // Check if study has basic required information
@@ -136,8 +136,8 @@ public class StudyStatusComputationService {
         List<String> errors = new ArrayList<>();
 
         // Check if study has been properly reviewed
-        if (!"UNDER_REVIEW".equalsIgnoreCase(study.getStudyStatus().getCode())) {
-            errors.add("Study must be under review before approval");
+        if (!"PROTOCOL_REVIEW".equalsIgnoreCase(study.getStudyStatus().getCode())) {
+            errors.add("Study must be under protocol review before approval");
         }
 
         // Check if study has at least one approved protocol version
@@ -247,7 +247,7 @@ public class StudyStatusComputationService {
         // Apply business logic for status computation
         if ("ACTIVE".equalsIgnoreCase(currentStatus) && !hasActiveVersion) {
             // Study marked as active but no active versions - should be approved
-            return hasApprovedVersion ? "APPROVED" : "UNDER_REVIEW";
+            return hasApprovedVersion ? "APPROVED" : "PROTOCOL_REVIEW";
         }
 
         if (hasActiveVersion && !"ACTIVE".equalsIgnoreCase(currentStatus) && 
@@ -287,7 +287,7 @@ public class StudyStatusComputationService {
         // Default business rules
         return !isTerminalStatus(status) && 
                !"ACTIVE".equalsIgnoreCase(status) && 
-               !"UNDER_REVIEW".equalsIgnoreCase(status);
+               !"PROTOCOL_REVIEW".equalsIgnoreCase(status);
     }
 
     /**
@@ -327,7 +327,7 @@ public class StudyStatusComputationService {
         return switch (status.toUpperCase()) {
             case "DRAFT" -> "Study is in draft state and can be modified";
             case "PLANNING" -> "Study is in planning phase";
-            case "UNDER_REVIEW" -> "Study is being reviewed for approval";
+            case "PROTOCOL_REVIEW" -> "Study protocol is under review for approval";
             case "APPROVED" -> "Study has been approved and ready for activation";
             case "REJECTED" -> "Study has been rejected and needs revision";
             case "ACTIVE" -> "Study is actively recruiting and collecting data";

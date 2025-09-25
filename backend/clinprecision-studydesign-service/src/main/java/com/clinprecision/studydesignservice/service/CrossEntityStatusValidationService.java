@@ -54,8 +54,8 @@ public class CrossEntityStatusValidationService {
 
         // Perform validation based on target status
         switch (targetStatus != null ? targetStatus.toUpperCase() : "CURRENT") {
-            case "UNDER_REVIEW":
-                validateUnderReviewDependencies(study, versions, amendments, errors, warnings, validationDetails);
+            case "PROTOCOL_REVIEW":
+                validateProtocolReviewDependencies(study, versions, amendments, errors, warnings, validationDetails);
                 break;
             case "APPROVED":
                 validateApprovedDependencies(study, versions, amendments, errors, warnings, validationDetails);
@@ -94,13 +94,13 @@ public class CrossEntityStatusValidationService {
     }
 
     /**
-     * Validate dependencies for UNDER_REVIEW status
+     * Validate dependencies for PROTOCOL_REVIEW status
      */
-    private void validateUnderReviewDependencies(StudyEntity study, List<StudyVersionEntity> versions, 
+    private void validateProtocolReviewDependencies(StudyEntity study, List<StudyVersionEntity> versions, 
                                                List<StudyAmendmentEntity> amendments, List<String> errors, 
                                                List<String> warnings, Map<String, Object> details) {
         
-        logger.debug("Validating UNDER_REVIEW dependencies for study {}", study.getId());
+        logger.debug("Validating PROTOCOL_REVIEW dependencies for study {}", study.getId());
 
         // Must have at least one protocol version
         if (versions.isEmpty()) {
