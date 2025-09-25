@@ -216,16 +216,68 @@ const SmartWorkflowAssistant = ({
         const suggestions = [];
         const guidance = getCurrentGuidance();
 
-        // Phase completion suggestion
-        if (!completedPhases.includes(currentPhase)) {
+        // Check if current phase is completed
+        const isCurrentPhaseCompleted = completedPhases.includes(currentPhase);
+
+        if (!isCurrentPhaseCompleted) {
+            // Current phase not completed - suggest completing it
             suggestions.push({
                 type: 'completion',
                 priority: 'high',
                 title: `Complete ${guidance.title}`,
-                description: `Finish configuring ${guidance.title.toLowerCase()} to unlock the next phase`,
-                action: () => {/* Focus on current phase */ },
-                actionLabel: 'Continue'
+                description: `Finish configuring ${guidance.title.toLowerCase()} and save your changes to proceed`,
+                action: () => {
+                    console.log('Phase completion guidance for:', currentPhase);
+                    // For arms phase, suggest saving changes
+                    if (currentPhase === 'arms') {
+                        alert('Please configure your study arms and click "Save Changes" to complete this phase.');
+                    } else {
+                        alert(`Please complete the ${guidance.title.toLowerCase()} configuration to proceed.`);
+                    }
+                },
+                actionLabel: 'How to Complete'
             });
+        } else {
+            // Current phase is completed - suggest moving to next phase
+            const getNextPhaseId = () => {
+                const phaseOrder = ['basic-info', 'arms', 'visits', 'forms', 'review', 'publish'];
+                const currentIndex = phaseOrder.indexOf(currentPhase);
+                return phaseOrder[currentIndex + 1];
+            };
+
+            const nextPhaseId = getNextPhaseId();
+            if (nextPhaseId) {
+                const nextGuidance = phaseGuidance[nextPhaseId];
+                suggestions.push({
+                    type: 'next-phase',
+                    priority: 'medium',
+                    title: `Ready for ${nextGuidance?.title || 'Next Phase'}`,
+                    description: `${guidance.title} is complete. Continue to ${nextGuidance?.description || 'the next phase'}.`,
+                    action: () => {
+                        console.log('Continue button clicked', {
+                            currentPhase,
+                            nextPhaseId,
+                            onPhaseChange: typeof onPhaseChange,
+                            completedPhases
+                        });
+
+                        if (!onPhaseChange) {
+                            console.error('onPhaseChange function not provided to SmartWorkflowAssistant');
+                            alert('Navigation function not available. Please refresh the page.');
+                            return;
+                        }
+
+                        console.log(`Navigating from ${currentPhase} to ${nextPhaseId}`);
+                        try {
+                            onPhaseChange(nextPhaseId);
+                        } catch (error) {
+                            console.error('Error during phase navigation:', error);
+                            alert('Error occurred during navigation. Please try again.');
+                        }
+                    },
+                    actionLabel: 'Continue'
+                });
+            }
         }
 
         // Next phase suggestion
@@ -311,8 +363,8 @@ const SmartWorkflowAssistant = ({
                             key={id}
                             onClick={() => setActiveTab(id)}
                             className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === id
-                                    ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                ? 'bg-white text-gray-900 shadow-sm'
+                                : 'text-gray-600 hover:text-gray-900'
                                 }`}
                         >
                             <Icon className="w-4 h-4 mr-2" />
@@ -336,8 +388,8 @@ const SmartWorkflowAssistant = ({
                                                 <Sparkles className="w-4 h-4 text-yellow-500" />
                                                 <h4 className="font-medium text-gray-900">{suggestion.title}</h4>
                                                 <span className={`px-2 py-1 text-xs rounded-full ${suggestion.priority === 'high'
-                                                        ? 'bg-red-100 text-red-700'
-                                                        : 'bg-blue-100 text-blue-700'
+                                                    ? 'bg-red-100 text-red-700'
+                                                    : 'bg-blue-100 text-blue-700'
                                                     }`}>
                                                     {suggestion.priority}
                                                 </span>

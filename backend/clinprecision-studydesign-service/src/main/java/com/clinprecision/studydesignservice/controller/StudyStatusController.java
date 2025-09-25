@@ -1,6 +1,7 @@
 package com.clinprecision.studydesignservice.controller;
 
-import com.clinprecision.studydesignservice.dto.StudyResponseDto;
+
+import com.clinprecision.common.dto.studydesign.StudyResponseDto;
 import com.clinprecision.studydesignservice.service.StudyService;
 import com.clinprecision.studydesignservice.service.StudyStatusComputationService;
 import com.clinprecision.studydesignservice.service.CrossEntityStatusValidationService;

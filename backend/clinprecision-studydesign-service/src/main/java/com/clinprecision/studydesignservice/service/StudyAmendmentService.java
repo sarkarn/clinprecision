@@ -1,7 +1,8 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.dto.StudyAmendmentDto;
-import com.clinprecision.studydesignservice.entity.StudyAmendmentEntity;
+
+import com.clinprecision.common.dto.studydesign.StudyAmendmentDto;
+import com.clinprecision.common.entity.studydesign.StudyAmendmentEntity;
 import com.clinprecision.studydesignservice.repository.StudyAmendmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

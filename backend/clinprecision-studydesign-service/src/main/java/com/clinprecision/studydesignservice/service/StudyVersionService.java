@@ -1,9 +1,10 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.dto.StudyVersionCreateRequestDto;
-import com.clinprecision.studydesignservice.dto.StudyVersionDto;
-import com.clinprecision.studydesignservice.dto.StudyVersionUpdateRequestDto;
-import com.clinprecision.studydesignservice.entity.StudyVersionEntity;
+
+import com.clinprecision.common.dto.studydesign.StudyVersionCreateRequestDto;
+import com.clinprecision.common.dto.studydesign.StudyVersionDto;
+import com.clinprecision.common.dto.studydesign.StudyVersionUpdateRequestDto;
+import com.clinprecision.common.entity.studydesign.StudyVersionEntity;
 import com.clinprecision.studydesignservice.repository.StudyVersionRepository;
 import com.clinprecision.studydesignservice.repository.StudyRepository;
 import org.springframework.beans.factory.annotation.Autowired;

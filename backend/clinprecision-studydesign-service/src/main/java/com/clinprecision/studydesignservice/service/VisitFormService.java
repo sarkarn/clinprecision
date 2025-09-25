@@ -1,9 +1,10 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.dto.VisitFormDto;
-import com.clinprecision.studydesignservice.entity.VisitFormEntity;
-import com.clinprecision.studydesignservice.entity.VisitDefinitionEntity;
-import com.clinprecision.studydesignservice.entity.FormDefinitionEntity;
+
+import com.clinprecision.common.dto.VisitFormDto;
+import com.clinprecision.common.entity.VisitFormEntity;
+import com.clinprecision.common.entity.studydesign.FormDefinitionEntity;
+import com.clinprecision.common.entity.studydesign.VisitDefinitionEntity;
 import com.clinprecision.studydesignservice.repository.VisitFormRepository;
 import com.clinprecision.studydesignservice.repository.VisitDefinitionRepository;
 import com.clinprecision.studydesignservice.repository.FormDefinitionRepository;

@@ -1,10 +1,11 @@
 package com.clinprecision.studydesignservice.mapper;
 
-import com.clinprecision.studydesignservice.dto.*;
-import com.clinprecision.studydesignservice.entity.*;
-import com.clinprecision.studydesignservice.service.StudyStatusService;
+
+import com.clinprecision.common.dto.studydesign.*;
+import com.clinprecision.common.entity.studydesign.*;
 import com.clinprecision.studydesignservice.service.RegulatoryStatusService;
 import com.clinprecision.studydesignservice.service.StudyPhaseService;
+import com.clinprecision.studydesignservice.service.StudyStatusService;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -337,7 +338,7 @@ public class StudyMapper {
         
         // Convert role string to enum
         if (dto.getRole() != null) {
-            entity.setRole(com.clinprecision.studydesignservice.entity.OrganizationRole.valueOf(dto.getRole().toUpperCase()));
+            entity.setRole(OrganizationRole.valueOf(dto.getRole().toUpperCase()));
         }
         
         // Set isPrimary field

@@ -1,7 +1,8 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.dto.StudyStatusDto;
-import com.clinprecision.studydesignservice.entity.StudyStatusEntity;
+
+import com.clinprecision.common.dto.studydesign.StudyStatusDto;
+import com.clinprecision.common.entity.studydesign.StudyStatusEntity;
 import com.clinprecision.studydesignservice.repository.StudyStatusRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,10 +1,11 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.dto.*;
-import com.clinprecision.studydesignservice.entity.StudyArmEntity;
-import com.clinprecision.studydesignservice.entity.StudyArmType;
-import com.clinprecision.studydesignservice.entity.StudyInterventionEntity;
-import com.clinprecision.studydesignservice.entity.InterventionType;
+
+import com.clinprecision.common.dto.studydesign.*;
+import com.clinprecision.common.entity.studydesign.InterventionType;
+import com.clinprecision.common.entity.studydesign.StudyArmEntity;
+import com.clinprecision.common.entity.studydesign.StudyArmType;
+import com.clinprecision.common.entity.studydesign.StudyInterventionEntity;
 import com.clinprecision.studydesignservice.repository.StudyArmRepository;
 import com.clinprecision.studydesignservice.repository.StudyInterventionRepository;
 import org.slf4j.Logger;

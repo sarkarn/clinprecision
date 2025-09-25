@@ -2,10 +2,11 @@
 // ...existing code...
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.dto.*;
-import com.clinprecision.studydesignservice.entity.OrganizationStudyEntity;
-import com.clinprecision.studydesignservice.entity.StudyEntity;
-import com.clinprecision.studydesignservice.entity.StudyStatusEntity;
+
+import com.clinprecision.common.dto.studydesign.*;
+import com.clinprecision.common.entity.studydesign.OrganizationStudyEntity;
+import com.clinprecision.common.entity.studydesign.StudyEntity;
+import com.clinprecision.common.entity.studydesign.StudyStatusEntity;
 import com.clinprecision.studydesignservice.repository.StudyStatusRepository;
 import com.clinprecision.studydesignservice.exception.StudyNotFoundException;
 import com.clinprecision.studydesignservice.mapper.StudyMapper;

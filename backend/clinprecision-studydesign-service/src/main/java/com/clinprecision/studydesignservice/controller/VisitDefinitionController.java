@@ -1,7 +1,8 @@
 package com.clinprecision.studydesignservice.controller;
 
-import com.clinprecision.studydesignservice.dto.VisitDefinitionDto;
-import com.clinprecision.studydesignservice.entity.VisitDefinitionEntity;
+
+import com.clinprecision.common.dto.studydesign.VisitDefinitionDto;
+import com.clinprecision.common.entity.studydesign.VisitDefinitionEntity;
 import com.clinprecision.studydesignservice.service.VisitDefinitionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

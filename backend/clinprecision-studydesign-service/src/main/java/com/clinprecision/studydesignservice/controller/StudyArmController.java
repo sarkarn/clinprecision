@@ -1,8 +1,9 @@
 package com.clinprecision.studydesignservice.controller;
 
-import com.clinprecision.studydesignservice.dto.StudyArmCreateRequestDto;
-import com.clinprecision.studydesignservice.dto.StudyArmResponseDto;
-import com.clinprecision.studydesignservice.dto.StudyArmUpdateRequestDto;
+
+import com.clinprecision.common.dto.studydesign.StudyArmCreateRequestDto;
+import com.clinprecision.common.dto.studydesign.StudyArmResponseDto;
+import com.clinprecision.common.dto.studydesign.StudyArmUpdateRequestDto;
 import com.clinprecision.studydesignservice.service.StudyArmService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;

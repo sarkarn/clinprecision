@@ -1,6 +1,7 @@
 package com.clinprecision.datacaptureservice.repository;
 
-import com.clinprecision.edc.domain.FormData;
+
+import com.clinprecision.common.entity.datacapture.FormDataEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -8,13 +9,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface FormDataRepository extends JpaRepository<FormData, String> {
+public interface FormDataRepository extends JpaRepository<FormDataEntity, String> {
 
-    List<FormData> findBySubjectId(String subjectId);
+    List<FormDataEntity> findBySubjectId(String subjectId);
 
-    List<FormData> findBySubjectVisitId(String subjectVisitId);
+    List<FormDataEntity> findBySubjectVisitId(String subjectVisitId);
 
-    Optional<FormData> findBySubjectVisitIdAndFormDefinitionId(
+    Optional<FormDataEntity> findBySubjectVisitIdAndFormDefinitionId(
             String subjectVisitId,
             String formDefinitionId
     );

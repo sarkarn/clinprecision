@@ -101,14 +101,14 @@ const NavigationSidebar = ({
                                     key={index}
                                     className={`flex items-center p-2 rounded-lg ${index === currentStep
                                         ? 'bg-blue-100 border border-blue-200'
-                                        : index < currentStep
+                                        : step.completed
                                             ? 'bg-green-50 border border-green-200'
                                             : 'bg-gray-50 border border-gray-200'
                                         }`}
                                 >
                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium mr-3 ${index === currentStep
                                         ? 'bg-blue-500 text-white'
-                                        : index < currentStep
+                                        : step.completed
                                             ? 'bg-green-500 text-white'
                                             : 'bg-gray-300 text-gray-600'
                                         }`}>

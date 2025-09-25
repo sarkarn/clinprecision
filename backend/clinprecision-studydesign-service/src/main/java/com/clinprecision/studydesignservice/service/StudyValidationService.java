@@ -1,8 +1,9 @@
 package com.clinprecision.studydesignservice.service;
 
-import com.clinprecision.studydesignservice.entity.StudyEntity;
-import com.clinprecision.studydesignservice.dto.StudyCreateRequestDto;
-import com.clinprecision.studydesignservice.dto.StudyUpdateRequestDto;
+
+import com.clinprecision.common.dto.studydesign.StudyCreateRequestDto;
+import com.clinprecision.common.dto.studydesign.StudyUpdateRequestDto;
+import com.clinprecision.common.entity.studydesign.StudyEntity;
 import com.clinprecision.studydesignservice.exception.StudyValidationException;
 import com.clinprecision.studydesignservice.repository.StudyRepository;
 import org.springframework.stereotype.Service;
