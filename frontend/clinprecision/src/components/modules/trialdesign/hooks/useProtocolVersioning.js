@@ -5,9 +5,10 @@ import StudyVersioningService from '../../../../services/StudyVersioningService'
  * Custom hook for Protocol Version Management
  * Handles CRUD operations for protocol versions with enhanced features
  */
-export const useProtocolVersioning = (studyId) => {
+const useProtocolVersioning = (studyId) => {
   const [protocolVersions, setProtocolVersions] = useState([]);
   const [currentProtocolVersion, setCurrentProtocolVersion] = useState(null);
+  const [editingVersion, setEditingVersion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -123,12 +124,14 @@ export const useProtocolVersioning = (studyId) => {
       // Transform and sort versions
       const transformedVersions = versions.map(version => ({
         ...version,
+        // Ensure we have the right field names for version number
+        versionNumber: version.versionNumber || version.version,
         statusInfo: PROTOCOL_VERSION_STATUS[version.status] || PROTOCOL_VERSION_STATUS.DRAFT
       })).sort((a, b) => {
         // Sort by version number (descending) and creation date (descending)
-        const versionCompare = compareVersionNumbers(b.versionNumber, a.versionNumber);
+        const versionCompare = compareVersionNumbers(b.versionNumber || '1.0', a.versionNumber || '1.0');
         if (versionCompare !== 0) return versionCompare;
-        return new Date(b.createdDate) - new Date(a.createdDate);
+        return new Date(b.createdDate || b.createdAt) - new Date(a.createdDate || a.createdAt);
       });
 
       setProtocolVersions(transformedVersions);
@@ -354,6 +357,7 @@ export const useProtocolVersioning = (studyId) => {
     // State
     protocolVersions,
     currentProtocolVersion,
+    editingVersion,
     loading,
     error,
     
@@ -369,6 +373,7 @@ export const useProtocolVersioning = (studyId) => {
     submitForReview,
     approveProtocolVersion,
     activateProtocolVersion,
+    setEditingVersion,
     
     // Utilities
     generateNextVersionNumber,
