@@ -73,7 +73,25 @@ public interface UserStudyRoleRepository extends JpaRepository<UserStudyRoleEnti
      * @return list of user roles with the specified role ID
      */
     List<UserStudyRoleEntity> findByRole_Id(Long roleId);
-    
+
+
+    @Query("SELECT usr FROM UserStudyRoleEntity usr WHERE usr.user.id = :userId " +
+            "AND usr.startDate <= :currentDate " +
+            "AND (usr.endDate IS NULL OR usr.endDate >= :currentDate) " +
+            "ORDER BY " +
+            "CASE usr.role.name " +
+            "WHEN 'SYSTEM_ADMIN' THEN 1 " +
+            "WHEN 'PRINCIPAL_INVESTIGATOR' THEN 2 " +
+            "WHEN 'STUDY_COORDINATOR' THEN 3 " +
+            "WHEN 'DATA_MANAGER' THEN 4 " +
+            "WHEN 'CRA' THEN 5 " +
+            "WHEN 'MEDICAL_CODER' THEN 6 " +
+            "WHEN 'AUDITOR' THEN 7 " +
+            "WHEN 'SITE_USER' THEN 8 " +
+            "ELSE 9 END")
+    List<UserStudyRoleEntity> findHighestPriorityActiveRoleByUserId(@Param("userId") Long userId, @Param("currentDate") LocalDate currentDate);
+
+
     /**
      * Convenience method to find all currently active user roles for a specific study.
      * This replaces the old findByStudyIdAndStatus method.
@@ -83,5 +101,16 @@ public interface UserStudyRoleRepository extends JpaRepository<UserStudyRoleEnti
      */
     default List<UserStudyRoleEntity> findActiveByStudyId(Long studyId) {
         return findActiveByStudyId(studyId, LocalDate.now());
+    }
+
+    /**
+     * Convenience method to find the highest priority active role for a user.
+     *
+     * @param userId the ID of the user
+     * @return optional containing the highest priority active role if found
+     */
+    default Optional<UserStudyRoleEntity> findHighestPriorityActiveRoleByUserId(Long userId) {
+        List<UserStudyRoleEntity> roles = findHighestPriorityActiveRoleByUserId(userId, LocalDate.now());
+        return roles.isEmpty() ? Optional.empty() : Optional.of(roles.get(0));
     }
 }

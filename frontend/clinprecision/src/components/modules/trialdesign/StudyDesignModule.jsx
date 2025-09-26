@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import TopNavigationHeader from '../../shared/TopNavigationHeader';
 import StudyRegister from './StudyRegister';
 import StudyCreationWizard from './study-creation/StudyCreationWizard';
@@ -66,11 +66,10 @@ const Breadcrumb = () => {
 
 const StudyDesignModule = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const location = useLocation();
 
   // Dashboard metrics hook
-  const { metrics, loading, error, refreshMetrics, hasData } = useDashboardMetrics();
+  const { metrics, loading, error, refreshMetrics } = useDashboardMetrics();
 
   // State for version management modal
   const [showVersionModal, setShowVersionModal] = useState(false);
@@ -239,7 +238,7 @@ const StudyDesignModule = () => {
           <Route path="study/:studyId/design/*" element={<StudyDesignDashboard />} />
 
           {/* Default to modern study dashboard */}
-          <Route index element={renderModernDashboard()} />
+          <Route index element={<Navigate to="studies" replace />} />
         </Routes>
       </div>
 
