@@ -44,6 +44,58 @@ class StudyVersioningService {
             throw error;
         }
     }
+
+    /**
+     * Update a study version
+     */
+    static async updateVersion(versionId, updateData) {
+        try {
+            const response = await ApiService.put(`/api/study-versions/${versionId}`, updateData);
+            return response.data;
+        } catch (error) {
+            console.error('Error updating version:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update version status
+     */
+    static async updateVersionStatus(versionId, status) {
+        try {
+            const response = await ApiService.put(`/api/study-versions/${versionId}/status`, { status });
+            return response.data;
+        } catch (error) {
+            console.error('Error updating version status:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Delete a study version
+     */
+    static async deleteVersion(versionId) {
+        try {
+            const response = await ApiService.delete(`/api/study-versions/${versionId}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error deleting version:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get a specific study version
+     */
+    static async getVersion(versionId) {
+        try {
+            const response = await ApiService.get(`/api/study-versions/${versionId}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching version:', error);
+            throw error;
+        }
+    }
 }
 
 export default StudyVersioningService;

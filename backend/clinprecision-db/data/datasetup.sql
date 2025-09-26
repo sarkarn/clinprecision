@@ -3,6 +3,7 @@
 -- Last updated: September 12, 2025
 
 USE clinprecisiondb;
+@code_list_data.sql
 @data_admin_setup.sql
 @study_lookup_data.sql
 @data_form_templates_setup.sql
