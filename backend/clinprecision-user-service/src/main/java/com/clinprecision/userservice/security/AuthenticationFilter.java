@@ -68,13 +68,11 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
 		Instant now = Instant.now();
 		
-		// Determine user role - for now we'll use the first user type's code as the role
-		// In a proper RBAC system, this would be replaced with actual role information
-		String userRole = "USER"; // Default role
-		if (userDetails.getUserTypes() != null && !userDetails.getUserTypes().isEmpty()) {
-			UserTypeDto firstUserType = userDetails.getUserTypes().iterator().next();
-			userRole = firstUserType.getCode();
-		}
+		// Determine user role using proper RBAC hierarchy:
+		// 1. First check user_study_roles for study-specific roles
+		// 2. If no study role, check users_roles for general system roles
+		// 3. Fall back to default role if none found
+		String userRole = usersService.getUserRole(userDetails.getId());
 
 		String token = Jwts.builder()
 				.claim("scope", auth.getAuthorities())
