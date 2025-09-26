@@ -1,10 +1,11 @@
 import { Link, Routes, Route } from "react-router-dom";
+import Logout from "./login/Logout";
 import TopNavigationHeader from "./shared/TopNavigationHeader";
 import StudyDesignModule from "./modules/trialdesign/StudyDesignModule";
 import DataCaptureModule from "./modules/datacapture/DataCaptureModule";
 import DQManagement from "./modules/dqmgmt/DQManagement";
 import AdminModule from "./modules/admin/AdminModule";
-import BreadcrumbNavigation from "./shared/BreadcrumbNavigation";
+import BreadcrumbNavigation from "./BreadcrumbNavigation";
 import { useAuth } from "./login/AuthContext";
 import { useRoleBasedNavigation } from "../hooks/useRoleBasedNavigation";
 
@@ -282,9 +283,15 @@ export default function Home() {
                                 <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">ICH GCP</span>
                                 <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">HIPAA Compliant</span>
                             </div>
+
+                            <div className="pt-3 border-t border-gray-100">
+                                <Logout />
+                            </div>
                         </div>
                     </div>
-                </div>                {/* Main Content Area */}
+                </div>
+
+                {/* Main Content Area */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <TopNavigationHeader />
                     <BreadcrumbNavigation />

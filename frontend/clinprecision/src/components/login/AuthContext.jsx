@@ -16,7 +16,7 @@ export function AuthProvider({ children }) {
     if (token && userId) {
       setUser({
         email: userEmail || 'user@example.com',
-        role: userRole || 'USER',
+        role: userRole || 'SITE_USER', // Changed from 'USER' to 'SITE_USER'
         userId,
         token
       });

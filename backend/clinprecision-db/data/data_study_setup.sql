@@ -328,7 +328,7 @@ VALUES
 -- Assign study roles to users
 INSERT INTO user_study_roles (user_id, study_id, role_id, start_date)
 VALUES
-((SELECT id FROM users WHERE email = 'nsarkar@clinprecision.com'), 1, (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'), '2024-01-15'),
+((SELECT id FROM users WHERE email = 'nsarkar@clinprecision.com'), 1, (SELECT id FROM roles WHERE name = 'SYSTEM_ADMIN'), '2024-01-15'),
 ((SELECT id FROM users WHERE email = 'rjohnson@medicalresearch.org'), 2, (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'), '2024-02-01'),
 ((SELECT id FROM users WHERE email = 'echen@neurocare.org'), 3, (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'), '2024-03-10'),
 ((SELECT id FROM users WHERE email = 'mrodriguez@arthricare.com'), 4, (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'), '2024-05-01'),
@@ -336,7 +336,7 @@ VALUES
 ((SELECT id FROM users WHERE email = 'dlee@respicare.org'), 6, (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'), '2023-01-10');
 
 -- Update the studies to set created_by to the corresponding sponsor admin
-UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'jsmith@biopharm.com') WHERE id = 1;
+UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'nsarkar@clinprecision.com') WHERE id = 1;
 UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'rjohnson@medicalresearch.org') WHERE id = 2;
 UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'echen@neurocare.org') WHERE id = 3;
 UPDATE studies SET created_by = (SELECT id FROM users WHERE email = 'mrodriguez@arthricare.com') WHERE id = 4;

@@ -3,8 +3,11 @@ package com.clinprecision.adminservice.repository;
 
 import com.clinprecision.common.entity.UserStudyRoleEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -32,23 +35,28 @@ public interface UserStudyRoleRepository extends JpaRepository<UserStudyRoleEnti
     List<UserStudyRoleEntity> findByStudyId(Long studyId);
     
     /**
-     * Find all active user roles for a specific study.
+     * Find all active user roles for a specific study based on date range.
+     * A role is considered active if:
+     * - start_date <= current_date AND (end_date is NULL OR end_date >= current_date)
      *
      * @param studyId the ID of the study
-     * @param status the status of the roles to find
+     * @param currentDate the current date to check against
      * @return list of active user roles for the specified study
      */
-    List<UserStudyRoleEntity> findByStudyIdAndStatus(Long studyId, UserStudyRoleEntity.RoleStatus status);
+    @Query("SELECT usr FROM UserStudyRoleEntity usr WHERE usr.studyId = :studyId " +
+           "AND usr.startDate <= :currentDate " +
+           "AND (usr.endDate IS NULL OR usr.endDate >= :currentDate)")
+    List<UserStudyRoleEntity> findActiveByStudyId(@Param("studyId") Long studyId, @Param("currentDate") LocalDate currentDate);
     
     /**
      * Find a specific role for a user in a study.
      *
      * @param userId the ID of the user
      * @param studyId the ID of the study
-     * @param roleCode the role code
+     * @param roleId the role ID
      * @return optional containing the user study role if found
      */
-    Optional<UserStudyRoleEntity> findByUser_IdAndStudyIdAndRoleCode(Long userId, Long studyId, String roleCode);
+    Optional<UserStudyRoleEntity> findByUser_IdAndStudyIdAndRole_Id(Long userId, Long studyId, Long roleId);
     
     /**
      * Find all user roles with end dates before a specific date.
@@ -56,13 +64,24 @@ public interface UserStudyRoleRepository extends JpaRepository<UserStudyRoleEnti
      * @param endDate the end date
      * @return list of user roles that end before the specified date
      */
-    List<UserStudyRoleEntity> findByEndDateBefore(LocalDateTime endDate);
+    List<UserStudyRoleEntity> findByEndDateBefore(LocalDate endDate);
     
     /**
-     * Find all roles for a specific role code.
+     * Find all roles for a specific role ID.
      *
-     * @param roleCode the role code
-     * @return list of user roles with the specified role code
+     * @param roleId the role ID
+     * @return list of user roles with the specified role ID
      */
-    List<UserStudyRoleEntity> findByRoleCode(String roleCode);
+    List<UserStudyRoleEntity> findByRole_Id(Long roleId);
+    
+    /**
+     * Convenience method to find all currently active user roles for a specific study.
+     * This replaces the old findByStudyIdAndStatus method.
+     *
+     * @param studyId the ID of the study
+     * @return list of currently active user roles for the specified study
+     */
+    default List<UserStudyRoleEntity> findActiveByStudyId(Long studyId) {
+        return findActiveByStudyId(studyId, LocalDate.now());
+    }
 }

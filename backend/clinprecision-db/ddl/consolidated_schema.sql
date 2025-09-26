@@ -545,22 +545,32 @@ CREATE TABLE study_interventions (
     CONSTRAINT chk_interventions_type CHECK (type IN ('DRUG', 'DEVICE', 'PROCEDURE', 'BEHAVIORAL', 'OTHER'))
 );
 
--- Sites and visits
 CREATE TABLE sites (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    organization_id BIGINT NOT NULL COMMENT 'Reference to the parent organization',
-    site_number VARCHAR(50) NOT NULL COMMENT 'Site identifier within the study',
-    study_id BIGINT NOT NULL COMMENT 'Reference to the study',
-    principal_investigator_id BIGINT COMMENT 'Reference to the principal investigator user',
-    status ENUM('pending', 'active', 'suspended', 'closed') DEFAULT 'pending',
-    activation_date DATE COMMENT 'Date when site was activated',
-    deactivation_date DATE COMMENT 'Date when site was deactivated',
-    max_subjects INT COMMENT 'Maximum number of subjects allowed at this site',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (organization_id) REFERENCES organizations(id),
-    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
-    UNIQUE KEY (site_number, study_id)
+	  id bigint NOT NULL AUTO_INCREMENT,
+	  organization_id bigint NOT NULL COMMENT 'Reference to the parent organization',
+	  site_number varchar(255) DEFAULT NULL,
+	  study_id bigint NOT NULL COMMENT 'Reference to the study',
+	  principal_investigator_id bigint DEFAULT NULL COMMENT 'Reference to the principal investigator user',
+	  status enum('pending','active','suspended','closed') DEFAULT 'pending',
+	  activation_date date DEFAULT NULL COMMENT 'Date when site was activated',
+	  deactivation_date date DEFAULT NULL COMMENT 'Date when site was deactivated',
+	  max_subjects int DEFAULT NULL COMMENT 'Maximum number of subjects allowed at this site',
+	  created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+	  updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	  address_line1 varchar(255) DEFAULT NULL,
+	  address_line2 varchar(255) DEFAULT NULL,
+	  city varchar(255) DEFAULT NULL,
+	  country varchar(255) DEFAULT NULL,
+	  email varchar(255) DEFAULT NULL,
+	  name varchar(255) NOT NULL,
+	  phone varchar(255) DEFAULT NULL,
+	  postal_code varchar(255) DEFAULT NULL,
+	  state varchar(255) DEFAULT NULL,
+	  PRIMARY KEY (id),
+	  UNIQUE KEY site_number (site_number,study_id),
+	  CONSTRAINT FKxrbt6mjphi09w4pgiwyuispo FOREIGN KEY (principal_investigator_id) REFERENCES users (id),
+	  CONSTRAINT sites_ibfk_1 FOREIGN KEY (organization_id) REFERENCES organizations (id),
+	  CONSTRAINT sites_ibfk_2 FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE
 );
 
 CREATE TABLE visit_definitions (
@@ -847,6 +857,147 @@ CREATE TABLE user_qualifications (
     FOREIGN KEY (verified_by) REFERENCES users(id)
 );
 
+
+CREATE TABLE study_database_builds (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    build_request_id VARCHAR(100) UNIQUE NOT NULL,
+    build_status ENUM('IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELLED') NOT NULL DEFAULT 'IN_PROGRESS',
+    build_start_time TIMESTAMP NULL,
+    build_end_time TIMESTAMP NULL,
+    requested_by BIGINT NOT NULL,
+    build_configuration LONGTEXT COMMENT 'JSON configuration for the build',
+    validation_results LONGTEXT COMMENT 'JSON validation results',
+    error_details LONGTEXT COMMENT 'Error details if build failed',
+    tables_created INT DEFAULT 0 COMMENT 'Number of tables created',
+    indexes_created INT DEFAULT 0 COMMENT 'Number of indexes created',
+    triggers_created INT DEFAULT 0 COMMENT 'Number of triggers created',
+    forms_configured INT DEFAULT 0 COMMENT 'Number of forms configured in form_definitions table',
+    validation_rules_created INT DEFAULT 0 COMMENT 'Number of validation rules created',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Foreign key constraints
+    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by) REFERENCES users(id),
+    
+    -- Indexes for performance
+    INDEX idx_study_db_builds_study (study_id),
+    INDEX idx_study_db_builds_status (build_status),
+    INDEX idx_study_db_builds_requested_by (requested_by),
+    INDEX idx_study_db_builds_start_time (build_start_time),
+    INDEX idx_study_db_builds_request_id (build_request_id)
+) COMMENT='Tracks database build processes for clinical studies';
+
+-- Study Validation Rules table
+-- Note: References form_definitions from consolidated schema instead of redundant study_form_definitions
+CREATE TABLE study_validation_rules (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    form_definition_id BIGINT,
+    rule_name VARCHAR(255) NOT NULL,
+    rule_type ENUM('REQUIRED', 'RANGE', 'FORMAT', 'LOGICAL', 'CONSISTENCY', 'CROSS_FORM', 'CUSTOM', 'BUSINESS_RULE') NOT NULL,
+    field_name VARCHAR(255) COMMENT 'Target field name',
+    rule_expression LONGTEXT NOT NULL COMMENT 'Rule expression or logic',
+    error_message TEXT NOT NULL,
+    warning_message TEXT,
+    severity ENUM('ERROR', 'WARNING', 'INFO') DEFAULT 'ERROR',
+    is_blocking BOOLEAN DEFAULT FALSE COMMENT 'Whether this rule blocks form completion',
+    is_active BOOLEAN DEFAULT TRUE,
+    execution_order INT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
+    
+    -- Foreign key constraints
+    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    FOREIGN KEY (form_definition_id) REFERENCES form_definitions(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    
+    -- Indexes
+    INDEX idx_validation_rules_study (study_id),
+    INDEX idx_validation_rules_form (form_definition_id),
+    INDEX idx_validation_rules_field (field_name),
+    INDEX idx_validation_rules_type (rule_type),
+    INDEX idx_validation_rules_active (is_active)
+) COMMENT='Validation rules for study forms and fields - references form_definitions from consolidated schema';
+
+-- Study Database Configuration table
+CREATE TABLE study_database_configurations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL UNIQUE,
+    database_schema_version VARCHAR(20) NOT NULL,
+    performance_settings LONGTEXT COMMENT 'JSON performance configuration',
+    audit_settings LONGTEXT COMMENT 'JSON audit trail configuration',
+    compliance_settings LONGTEXT COMMENT 'JSON compliance configuration (21 CFR Part 11, etc.)',
+    backup_settings LONGTEXT COMMENT 'JSON backup and recovery configuration',
+    security_settings LONGTEXT COMMENT 'JSON security configuration',
+    estimated_subject_count INT,
+    estimated_form_instances INT,
+    estimated_data_points BIGINT,
+    storage_estimate_gb DECIMAL(10,2),
+    is_validated BOOLEAN DEFAULT FALSE,
+    validation_date TIMESTAMP NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    configured_by BIGINT NOT NULL,
+    
+    -- Foreign key constraints
+    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    FOREIGN KEY (configured_by) REFERENCES users(id),
+    
+    -- Indexes
+    INDEX idx_db_config_study (study_id),
+    INDEX idx_db_config_validation (is_validated),
+    INDEX idx_db_config_active (is_active)
+) COMMENT='Database configuration settings for studies';
+
+-- Study Database Validation History table
+CREATE TABLE study_database_validations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    validation_type ENUM('SCHEMA', 'DATA_INTEGRITY', 'PERFORMANCE', 'COMPLIANCE', 'SYSTEM_READINESS', 'FULL') NOT NULL,
+    validation_status ENUM('PASSED', 'FAILED', 'WARNING') NOT NULL,
+    validation_results LONGTEXT COMMENT 'JSON validation results and details',
+    error_count INT DEFAULT 0,
+    warning_count INT DEFAULT 0,
+    validation_duration_seconds INT,
+    validated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    validated_by BIGINT NOT NULL,
+    
+    -- Foreign key constraints
+    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    FOREIGN KEY (validated_by) REFERENCES users(id),
+    
+    -- Indexes
+    INDEX idx_db_validations_study (study_id),
+    INDEX idx_db_validations_type (validation_type),
+    INDEX idx_db_validations_status (validation_status),
+    INDEX idx_db_validations_date (validated_at)
+) COMMENT='Database validation history and results';
+
+-- Study Build Notifications table (for tracking build status notifications)
+CREATE TABLE study_build_notifications (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    build_request_id VARCHAR(100) NOT NULL,
+    notification_type ENUM('BUILD_STARTED', 'BUILD_COMPLETED', 'BUILD_FAILED', 'VALIDATION_COMPLETED', 'VALIDATION_FAILED') NOT NULL,
+    recipient_user_id BIGINT NOT NULL,
+    notification_message TEXT NOT NULL,
+    is_sent BOOLEAN DEFAULT FALSE,
+    sent_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Foreign key constraints
+    FOREIGN KEY (build_request_id) REFERENCES study_database_builds(build_request_id) ON DELETE CASCADE,
+    FOREIGN KEY (recipient_user_id) REFERENCES users(id),
+    
+    -- Indexes
+    INDEX idx_build_notifications_request (build_request_id),
+    INDEX idx_build_notifications_recipient (recipient_user_id),
+    INDEX idx_build_notifications_sent (is_sent)
+) COMMENT='Notifications related to database build processes';
+
 -- Audit and logging tables
 CREATE TABLE audit_trail (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -989,3 +1140,10 @@ CREATE INDEX idx_study_versions_created_by_date ON study_versions (created_by, c
 CREATE INDEX idx_study_amendments_version_status ON study_amendments (study_version_id, status);
 CREATE INDEX idx_study_amendments_type_status ON study_amendments (amendment_type, status);
 CREATE INDEX idx_study_amendments_safety_status ON study_amendments (amendment_type, status, requires_regulatory_notification);
+
+-- Subjects table indexes for study-specific queries
+CREATE INDEX  idx_subjects_study_status ON subjects(study_id, status);
+CREATE INDEX  idx_subjects_enrollment_date ON subjects(enrollment_date);
+
+
+

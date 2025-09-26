@@ -2,12 +2,16 @@ package com.clinprecision.userservice.service;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Optional;
 
 import com.clinprecision.common.dto.UserDto;
 import com.clinprecision.common.entity.AuthorityEntity;
 import com.clinprecision.common.entity.RoleEntity;
 import com.clinprecision.common.entity.UserEntity;
+import com.clinprecision.common.entity.UserStudyRoleEntity;
+import com.clinprecision.userservice.repository.RoleRepository;
 import com.clinprecision.userservice.repository.UsersRepository;
+import com.clinprecision.userservice.repository.UserStudyRoleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +30,8 @@ public class UsersServiceImpl implements UsersService {
 	
 
     UsersRepository usersRepository;
+    RoleRepository roleRepository;
+    UserStudyRoleRepository userStudyRoleRepository;
     BCryptPasswordEncoder bCryptPasswordEncoder;
     Environment environment;
 	
@@ -33,9 +39,13 @@ public class UsersServiceImpl implements UsersService {
 	
 	@Autowired
     public UsersServiceImpl(UsersRepository usersRepository, 
+            RoleRepository roleRepository,
+            UserStudyRoleRepository userStudyRoleRepository,
             BCryptPasswordEncoder bCryptPasswordEncoder,
             Environment environment) {
         this.usersRepository = usersRepository;
+        this.roleRepository = roleRepository;
+        this.userStudyRoleRepository = userStudyRoleRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.environment = environment;
     }
@@ -99,5 +109,66 @@ public class UsersServiceImpl implements UsersService {
 		// Don't try to map userTypes collection - leave it as an empty set
 		
 		return userDto;
+	}
+	
+	@Override
+	public String getUserRole(Long userId) {
+	    logger.debug("Determining role for user ID: {}", userId);
+	    
+	    // Step 1: Check user_study_roles for active study-specific roles
+	    // Get the highest priority active study role
+	    Optional<UserStudyRoleEntity> highestStudyRole = userStudyRoleRepository.findHighestPriorityActiveRoleByUserId(userId);
+	    
+	    if (highestStudyRole.isPresent()) {
+	        String studyRoleName = highestStudyRole.get().getRole().getName();
+	        logger.debug("Found active study role: {} for user ID: {}", studyRoleName, userId);
+	        return studyRoleName;
+	    }
+	    
+	    // Step 2: If no study role, check users_roles for general system roles
+	    UserEntity userEntity = usersRepository.findById(userId).orElse(null);
+	    if (userEntity != null && userEntity.getRoles() != null && !userEntity.getRoles().isEmpty()) {
+	        // Get the highest priority general role
+	        String generalRole = getHighestPriorityGeneralRole(userEntity.getRoles());
+	        if (generalRole != null) {
+	            logger.debug("Found general system role: {} for user ID: {}", generalRole, userId);
+	            return generalRole;
+	        }
+	    }
+	    
+	    // Step 3: Fall back to default role
+	    logger.debug("No specific role found for user ID: {}, using default: SITE_USER", userId);
+	    return "SITE_USER";
+	}
+	
+	/**
+	 * Determines the highest priority role from a collection of general roles.
+	 * Priority order: SYSTEM_ADMIN > PRINCIPAL_INVESTIGATOR > STUDY_COORDINATOR > DATA_MANAGER > CRA > MEDICAL_CODER > AUDITOR > SITE_USER
+	 * 
+	 * @param roles Collection of role entities
+	 * @return The highest priority role name, or null if no recognized roles found
+	 */
+	private String getHighestPriorityGeneralRole(Collection<RoleEntity> roles) {
+	    String[] priorityOrder = {
+	        "SYSTEM_ADMIN", 
+	        "PRINCIPAL_INVESTIGATOR", 
+	        "STUDY_COORDINATOR", 
+	        "DATA_MANAGER", 
+	        "CRA", 
+	        "MEDICAL_CODER", 
+	        "AUDITOR", 
+	        "SITE_USER"
+	    };
+	    
+	    for (String priorityRole : priorityOrder) {
+	        for (RoleEntity role : roles) {
+	            if (priorityRole.equals(role.getName())) {
+	                return priorityRole;
+	            }
+	        }
+	    }
+	    
+	    // If no priority role found, return the first role's name
+	    return roles.iterator().next().getName();
 	}
 }

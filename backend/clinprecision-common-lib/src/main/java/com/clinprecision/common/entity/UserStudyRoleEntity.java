@@ -1,6 +1,7 @@
 package com.clinprecision.common.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -9,7 +10,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "user_study_roles", 
-    uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "study_id", "role_code"}))
+    uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "study_id", "role_id", "site_id"}))
 public class UserStudyRoleEntity {
     
     @Id
@@ -19,28 +20,22 @@ public class UserStudyRoleEntity {
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
+
+    @ManyToOne
+    @JoinColumn(name = "role_id", nullable = false)
+    private RoleEntity role;
     
-    @Column(name = "study_id", nullable = false, length = 36)
+    @Column(name = "study_id", nullable = false)
     private Long studyId;
-    
-    @Column(name = "role_code", nullable = false)
-    private String roleCode;
-    
-    @Column(name = "role_name", nullable = false)
-    private String roleName;
-    
-    @Column(name = "description")
-    private String description;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status")
-    private RoleStatus status = RoleStatus.ACTIVE;
-    
-    @Column(name = "start_date")
-    private LocalDateTime startDate;
+
+    @Column(name = "site_id")
+    private Long siteId;
+
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
     
     @Column(name = "end_date")
-    private LocalDateTime endDate;
+    private LocalDate endDate;
     
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -48,8 +43,28 @@ public class UserStudyRoleEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
+    // Enum for derived status - not stored in database but calculated from dates
     public enum RoleStatus {
-        ACTIVE, INACTIVE, SUSPENDED, PENDING
+        ACTIVE,    // start_date <= now <= end_date (or end_date is null)
+        INACTIVE,  // end_date < now
+        PENDING    // start_date > now
+    }
+    
+    /**
+     * Calculate the current status based on start and end dates
+     */
+    public RoleStatus getStatus() {
+        LocalDate now = LocalDate.now();
+        
+        if (startDate.isAfter(now)) {
+            return RoleStatus.PENDING;
+        }
+        
+        if (endDate != null && endDate.isBefore(now)) {
+            return RoleStatus.INACTIVE;
+        }
+        
+        return RoleStatus.ACTIVE;
     }
     
     @PrePersist
@@ -57,7 +72,7 @@ public class UserStudyRoleEntity {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         if (this.startDate == null) {
-            this.startDate = LocalDateTime.now();
+            this.startDate = LocalDate.now();
         }
     }
     
@@ -66,6 +81,8 @@ public class UserStudyRoleEntity {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // Getters and Setters
+    
     public Long getId() {
         return id;
     }
@@ -81,6 +98,14 @@ public class UserStudyRoleEntity {
     public void setUser(UserEntity user) {
         this.user = user;
     }
+    
+    public RoleEntity getRole() {
+        return role;
+    }
+
+    public void setRole(RoleEntity role) {
+        this.role = role;
+    }
 
     public Long getStudyId() {
         return studyId;
@@ -89,52 +114,28 @@ public class UserStudyRoleEntity {
     public void setStudyId(Long studyId) {
         this.studyId = studyId;
     }
-
-    public String getRoleCode() {
-        return roleCode;
+    
+    public Long getSiteId() {
+        return siteId;
     }
 
-    public void setRoleCode(String roleCode) {
-        this.roleCode = roleCode;
+    public void setSiteId(Long siteId) {
+        this.siteId = siteId;
     }
 
-    public String getRoleName() {
-        return roleName;
-    }
-
-    public void setRoleName(String roleName) {
-        this.roleName = roleName;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public RoleStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(RoleStatus status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getStartDate() {
+    public LocalDate getStartDate() {
         return startDate;
     }
 
-    public void setStartDate(LocalDateTime startDate) {
+    public void setStartDate(LocalDate startDate) {
         this.startDate = startDate;
     }
 
-    public LocalDateTime getEndDate() {
+    public LocalDate getEndDate() {
         return endDate;
     }
 
-    public void setEndDate(LocalDateTime endDate) {
+    public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
     }
 

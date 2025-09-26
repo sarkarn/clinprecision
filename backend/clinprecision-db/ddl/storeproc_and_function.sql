@@ -1043,3 +1043,68 @@ GRANT EXECUTE ON PROCEDURE LogStudyStatusChange TO 'clinprecadmin'@'localhost';
 GRANT EXECUTE ON PROCEDURE ManuallyComputeStudyStatus TO 'clinprecadmin'@'localhost';
 GRANT EXECUTE ON PROCEDURE BatchComputeAllStudyStatuses TO 'clinprecadmin'@'localhost';
 GRANT EXECUTE ON PROCEDURE GetStudyStatusComputationHistory TO 'clinprecadmin'@'localhost';
+
+
+DELIMITER //
+CREATE FUNCTION  is_study_database_ready(p_study_id BIGINT) 
+RETURNS BOOLEAN
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE build_count INT DEFAULT 0;
+    DECLARE completed_builds INT DEFAULT 0;
+    DECLARE validation_status VARCHAR(20);
+    
+    -- Check if study has completed database builds
+    SELECT COUNT(*) INTO build_count 
+    FROM study_database_builds 
+    WHERE study_id = p_study_id;
+    
+    SELECT COUNT(*) INTO completed_builds 
+    FROM study_database_builds 
+    WHERE study_id = p_study_id AND build_status = 'COMPLETED';
+    
+    -- Check if study database configuration is validated
+    SELECT IF(is_validated = TRUE, 'VALIDATED', 'NOT_VALIDATED') INTO validation_status
+    FROM study_database_configurations 
+    WHERE study_id = p_study_id;
+    
+    -- Return true if study has completed builds and is validated
+    RETURN (completed_builds > 0 AND validation_status = 'VALIDATED');
+END//
+DELIMITER ;
+
+-- Stored procedure to get study database build summary
+DELIMITER //
+CREATE PROCEDURE  get_study_database_build_summary(IN p_study_id BIGINT)
+BEGIN
+    SELECT 
+        sdb.id,
+        sdb.build_request_id,
+        sdb.build_status,
+        sdb.build_start_time,
+        sdb.build_end_time,
+        TIMESTAMPDIFF(MINUTE, sdb.build_start_time, sdb.build_end_time) as build_duration_minutes,
+        sdb.tables_created,
+        sdb.indexes_created,
+        sdb.triggers_created,
+        sdb.forms_configured,
+        sdb.validation_rules_created,
+        u.first_name,
+        u.last_name,
+        sdc.estimated_subject_count,
+        sdc.estimated_form_instances,
+        sdc.storage_estimate_gb,
+        sdc.is_validated as config_validated
+    FROM study_database_builds sdb
+    LEFT JOIN users u ON sdb.requested_by = u.id
+    LEFT JOIN study_database_configurations sdc ON sdb.study_id = sdc.study_id
+    WHERE sdb.study_id = p_study_id
+    ORDER BY sdb.build_start_time DESC;
+END//
+DELIMITER ;
+
+-- Insert initial data for testing (if needed)
+-- This would be populated during actual implementation
+
+COMMIT;
