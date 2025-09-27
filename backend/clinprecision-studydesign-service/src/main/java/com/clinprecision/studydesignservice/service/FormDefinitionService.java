@@ -7,7 +7,6 @@ import com.clinprecision.common.exception.DuplicateEntityException;
 import com.clinprecision.common.exception.EntityLockedException;
 import com.clinprecision.common.exception.EntityNotFoundException;
 import com.clinprecision.common.mapper.studydesign.FormDefinitionMapper;
-import com.clinprecision.common.util.SecurityUtil;
 import com.clinprecision.studydesignservice.repository.FormDefinitionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,15 +28,15 @@ public class FormDefinitionService {
     
     private final FormDefinitionRepository formDefinitionRepository;
     private final FormDefinitionMapper formDefinitionMapper;
-    private final FormTemplateServiceClient formTemplateService;
+    private final AdminServiceProxy adminServiceProxy;
     
     @Autowired
     public FormDefinitionService(FormDefinitionRepository formDefinitionRepository,
                                 FormDefinitionMapper formDefinitionMapper,
-                                 FormTemplateServiceClient formTemplateService) {
+                                 AdminServiceProxy adminServiceProxy) {
         this.formDefinitionRepository = formDefinitionRepository;
         this.formDefinitionMapper = formDefinitionMapper;
-        this.formTemplateService = formTemplateService;
+        this.adminServiceProxy = adminServiceProxy;
     }
     
     /**
@@ -66,8 +65,7 @@ public class FormDefinitionService {
             // If based on a template, increment template usage count
             if (entity.getTemplateId() != null) {
                 logger.debug("Form is based on template ID: {}, incrementing usage count", entity.getTemplateId());
-                var authHeader = SecurityUtil.getAuthorizationHeader();
-                formTemplateService.incrementTemplateUsage(entity.getTemplateId(), authHeader);
+                adminServiceProxy.incrementTemplateUsage(entity.getTemplateId());
             }
             
             // Save entity
@@ -266,10 +264,8 @@ public class FormDefinitionService {
     public FormDefinitionDto createFormDefinitionFromTemplate(Long studyId, Long templateId, String formName) {
         logger.info("Creating form definition from template - studyId: {}, templateId: {}, formName: {}", 
                    studyId, templateId, formName);
-        
-        // Get the template
-        var authHeader = SecurityUtil.getAuthorizationHeader();
-        var response = formTemplateService.getFormTemplateById(templateId, authHeader);
+
+        var response = adminServiceProxy.getFormTemplateById(templateId);
         
         // Validate template response
         if (response == null || response.getBody() == null) {
@@ -314,7 +310,7 @@ public class FormDefinitionService {
         
         // Increment template usage after successful creation
         try {
-            formTemplateService.incrementTemplateUsage(templateId, authHeader);
+            adminServiceProxy.incrementTemplateUsage(templateId);
             logger.info("Incremented usage count for template: {}", templateId);
         } catch (Exception e) {
             logger.warn("Failed to increment template usage for template {}: {}", templateId, e.getMessage());

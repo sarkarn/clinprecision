@@ -13,4 +13,5 @@ public interface UsersService extends UserDetailsService{
 	List<UserDto> getAllUsers();
 	UserDto updateUser(String userId, UserDto userDetails, String authorization);
 	List<Long> getUserTypeIds(String userId);
+	String getUserRole(Long userId);
 }

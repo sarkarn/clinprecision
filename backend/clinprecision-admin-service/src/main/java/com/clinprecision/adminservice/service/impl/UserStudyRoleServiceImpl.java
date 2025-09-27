@@ -15,7 +15,7 @@ public class UserStudyRoleServiceImpl implements UserStudyRoleService {
         this.userStudyRoleRepository = userStudyRoleRepository;
     }
 
-    public Optional<UserStudyRoleEntity>  findHighestPriorityActiveRoleByUserId(Long userId) {
+    public Optional<UserStudyRoleEntity> findHighestPriorityActiveRoleByUserId(Long userId) {
         return userStudyRoleRepository.findHighestPriorityActiveRoleByUserId(userId);
     }
 }
