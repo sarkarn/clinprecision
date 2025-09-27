@@ -29,6 +29,9 @@ public class RoleEntity implements Serializable {
     @Column(nullable=false, length=200)
     private String name;
     
+    @Column(name = "is_system_role", nullable = false)
+    private boolean isSystemRole = false;
+    
     @ManyToMany(mappedBy="roles")
     private Collection<UserEntity> users = new ArrayList<>();
     
@@ -60,6 +63,14 @@ public class RoleEntity implements Serializable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public boolean isSystemRole() {
+        return isSystemRole;
+    }
+
+    public void setSystemRole(boolean systemRole) {
+        isSystemRole = systemRole;
     }
 
     public Collection<UserEntity> getUsers() {

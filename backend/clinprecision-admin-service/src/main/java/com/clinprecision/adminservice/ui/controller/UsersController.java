@@ -104,10 +104,11 @@ public class UsersController {
         List<UserResponseModel> returnValue = new ArrayList<>();
         for(UserDto userDto : userDtos) {
             UserResponseModel userResponseModel = new UserResponseModel();
+            userResponseModel.setId(userDto.getId());               // Set numeric primary key
+            userResponseModel.setUserId(userDto.getUserId());       // Set string username
             userResponseModel.setFirstName(userDto.getFirstName());
             userResponseModel.setLastName(userDto.getLastName());
             userResponseModel.setEmail(userDto.getEmail());
-            userResponseModel.setUserId(userDto.getUserId());
             
             // Get the user types for this user
             try {

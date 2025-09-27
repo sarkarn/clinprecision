@@ -377,7 +377,7 @@ export default function Home() {
                             <Route path="/study-design/*" element={<StudyDesignModule />} />
                             <Route path="/datacapture-management" element={<DataCaptureModule />} />
                             <Route path="/dq-management" element={<DQManagement />} />
-                            <Route path="/user-management" element={<AdminModule />} />
+                            <Route path="/user-management/*" element={<AdminModule />} />
 
                             {/* Placeholder routes for new modules */}
                             <Route path="/subject-management" element={

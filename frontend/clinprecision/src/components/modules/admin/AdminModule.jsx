@@ -8,6 +8,10 @@ import OrganizationList from "./OrganizationList";
 import OrganizationForm from "./OrganizationForm";
 import OrganizationDetail from "./OrganizationDetail";
 import FormTemplateManagement from "./FormTemplateManagement";
+import UserStudyRoleList from "./UserStudyRoleList";
+import UserStudyRoleForm from "./UserStudyRoleForm";
+import UserStudyRoleBulkAssignment from "./UserStudyRoleBulkAssignment";
+import StudyTeamManagement from "./StudyTeamManagement";
 import CRFBuilderIntegration from "../../common/forms/CRFBuilderIntegration";
 import FormVersionHistory from "../../common/forms/FormVersionHistory";
 import FormVersionViewer from "../../common/forms/FormVersionViewer";
@@ -40,6 +44,21 @@ export default function AdminModule() {
                 <Route path="organizations/create" element={<OrganizationForm />} />
                 <Route path="organizations/edit/:id" element={<OrganizationForm />} />
                 <Route path="organizations/view/:id" element={<OrganizationDetail />} />
+
+                {/* User Study Role Management Routes */}
+                <Route path="user-study-roles" element={<UserStudyRoleList />} />
+                <Route path="user-study-roles/create" element={
+                    isAuthenticated ? <UserStudyRoleForm /> : <Navigate to="/login" state={{ from: "/user-management/user-study-roles/create" }} />
+                } />
+                <Route path="user-study-roles/edit/:id" element={
+                    isAuthenticated ? <UserStudyRoleForm /> : <Navigate to="/login" state={{ from: "/user-management/user-study-roles/edit/:id" }} />
+                } />
+                <Route path="user-study-roles/bulk-assign" element={
+                    isAuthenticated ? <UserStudyRoleBulkAssignment /> : <Navigate to="/login" state={{ from: "/user-management/user-study-roles/bulk-assign" }} />
+                } />
+                <Route path="study-teams/:studyId" element={
+                    isAuthenticated ? <StudyTeamManagement /> : <Navigate to="/login" state={{ from: "/user-management/study-teams/:studyId" }} />
+                } />
 
                 {/* Form Template Management Routes */}
                 <Route path="form-templates" element={<FormTemplateManagement />} />
