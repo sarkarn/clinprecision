@@ -21,7 +21,17 @@ import feign.Logger;
 @EnableDiscoveryClient
 @EnableFeignClients
 @ComponentScan(basePackages = {"com.clinprecision.userservice", "com.clinprecision.common"})
-@EntityScan(basePackages = {"com.clinprecision.userservice", "com.clinprecision.common.entity"})
+@EntityScan(basePackageClasses = {
+    com.clinprecision.common.entity.UserEntity.class,
+    com.clinprecision.common.entity.UserSessionEntity.class,
+    com.clinprecision.common.entity.UserSiteAssignmentEntity.class,
+    com.clinprecision.common.entity.UserStudyRoleEntity.class,
+    com.clinprecision.common.entity.UserTypeEntity.class,
+    com.clinprecision.common.entity.AuthorityEntity.class,
+    com.clinprecision.common.entity.RoleEntity.class,
+    com.clinprecision.common.entity.OrganizationEntity.class,
+    com.clinprecision.common.entity.OrganizationContactEntity.class
+})
 @EnableJpaRepositories(basePackages = {"com.clinprecision.userservice.repository", "com.clinprecision.common.repository"})
 public class UsersApplication {
 

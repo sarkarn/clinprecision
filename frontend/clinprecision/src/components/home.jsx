@@ -1,4 +1,4 @@
-import { Link, Routes, Route } from "react-router-dom";
+import { Link, Routes, Route, Navigate } from "react-router-dom";
 import TopNavigationHeader from "./shared/TopNavigationHeader";
 import StudyDesignModule from "./modules/trialdesign/StudyDesignModule";
 import DataCaptureModule from "./modules/datacapture/DataCaptureModule";
@@ -10,7 +10,7 @@ import { useRoleBasedNavigation } from "../hooks/useRoleBasedNavigation";
 
 export default function Home() {
     const { user } = useAuth();
-    const { hasModuleAccess, hasCategoryAccess, userRoleDisplay, getModulePermissions } = useRoleBasedNavigation();
+    const { hasModuleAccess, hasCategoryAccess, userRoleDisplay } = useRoleBasedNavigation();
 
     return (
         <>
@@ -57,7 +57,7 @@ export default function Home() {
                                 </h2>
                                 <div className="space-y-1">
                                     {hasModuleAccess('study-design') && (
-                                        <Link to="/study-design" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 border border-transparent hover:border-blue-200">
+                                        <Link to="/study-design/studies" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 border border-transparent hover:border-blue-200">
                                             <div className="flex items-center justify-center h-5 w-5 mr-3 text-blue-400 group-hover:text-blue-600">
                                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -290,7 +290,91 @@ export default function Home() {
                     <BreadcrumbNavigation />
                     <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
                         <Routes>
-                            <Route path="/study-design" element={<StudyDesignModule />} />
+                            {/* Default dashboard route */}
+                            <Route index element={
+                                <div className="space-y-6">
+                                    {/* Welcome Section */}
+                                    <div className="bg-white rounded-lg shadow p-8">
+                                        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                                            Welcome to ClinPrecision EDC
+                                        </h1>
+                                        <p className="text-lg text-gray-600 mb-6">
+                                            Your comprehensive clinical research platform for managing clinical trials and data capture.
+                                        </p>
+
+                                        {/* Quick Actions */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {hasModuleAccess('study-design') && (
+                                                <Link
+                                                    to="/study-design/studies"
+                                                    className="group p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200 hover:from-blue-100 hover:to-blue-200 transition-all duration-200"
+                                                >
+                                                    <div className="flex items-center mb-4">
+                                                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                                                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                            </svg>
+                                                        </div>
+                                                        <h3 className="ml-4 text-lg font-semibold text-gray-900">Protocol Design</h3>
+                                                    </div>
+                                                    <p className="text-gray-600 group-hover:text-gray-700">
+                                                        Design and manage study protocols
+                                                    </p>
+                                                </Link>
+                                            )}
+
+                                            {hasModuleAccess('datacapture-management') && (
+                                                <Link
+                                                    to="/datacapture-management"
+                                                    className="group p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200"
+                                                >
+                                                    <div className="flex items-center mb-4">
+                                                        <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                                                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                            </svg>
+                                                        </div>
+                                                        <h3 className="ml-4 text-lg font-semibold text-gray-900">Data Capture</h3>
+                                                    </div>
+                                                    <p className="text-gray-600 group-hover:text-gray-700">
+                                                        Patient data entry and management
+                                                    </p>
+                                                </Link>
+                                            )}
+
+                                            {hasModuleAccess('user-management') && (
+                                                <Link
+                                                    to="/user-management"
+                                                    className="group p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200 hover:from-purple-100 hover:to-purple-200 transition-all duration-200"
+                                                >
+                                                    <div className="flex items-center mb-4">
+                                                        <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                                                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                                            </svg>
+                                                        </div>
+                                                        <h3 className="ml-4 text-lg font-semibold text-gray-900">User Management</h3>
+                                                    </div>
+                                                    <p className="text-gray-600 group-hover:text-gray-700">
+                                                        Manage users, roles & study sites
+                                                    </p>
+                                                </Link>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* System Status */}
+                                    <div className="bg-white rounded-lg shadow p-6">
+                                        <h2 className="text-xl font-semibold text-gray-900 mb-4">System Status</h2>
+                                        <div className="flex items-center space-x-2">
+                                            <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                                            <span className="text-sm text-gray-600">All systems operational</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            } />
+
+                            <Route path="/study-design/*" element={<StudyDesignModule />} />
                             <Route path="/datacapture-management" element={<DataCaptureModule />} />
                             <Route path="/dq-management" element={<DQManagement />} />
                             <Route path="/user-management" element={<AdminModule />} />

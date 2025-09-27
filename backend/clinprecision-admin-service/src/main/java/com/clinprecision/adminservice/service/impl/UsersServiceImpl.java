@@ -3,6 +3,7 @@ package com.clinprecision.adminservice.service.impl;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.HashSet;
 
@@ -10,6 +11,7 @@ import com.clinprecision.common.dto.UserTypeDto;
 import com.clinprecision.common.entity.AuthorityEntity;
 import com.clinprecision.common.entity.RoleEntity;
 import com.clinprecision.common.entity.UserEntity;
+import com.clinprecision.common.entity.UserStudyRoleEntity;
 import com.clinprecision.common.dto.UserDto;
 
 import com.clinprecision.adminservice.repository.OrganizationRepository;
@@ -18,6 +20,7 @@ import java.util.Set;
 import com.clinprecision.adminservice.repository.RoleRepository;
 import com.clinprecision.adminservice.repository.UsersRepository;
 import com.clinprecision.adminservice.service.UsersService;
+import com.clinprecision.adminservice.service.UserStudyRoleService;
 import com.clinprecision.adminservice.repository.UserTypeRepository;
 import com.clinprecision.common.entity.UserTypeEntity;
 import org.slf4j.Logger;
@@ -44,6 +47,7 @@ public class UsersServiceImpl implements UsersService {
     UserTypeRepository userTypeRepository;
     OrganizationRepository organizationRepository;
     RoleRepository roleRepository;
+    UserStudyRoleService userStudyRoleService;
 	
 	Logger logger = LoggerFactory.getLogger(this.getClass());
 	
@@ -53,13 +57,15 @@ public class UsersServiceImpl implements UsersService {
             Environment environment,
             UserTypeRepository userTypeRepository,
             OrganizationRepository organizationRepository,
-            RoleRepository roleRepository) {
+            RoleRepository roleRepository,
+            UserStudyRoleService userStudyRoleService) {
         this.usersRepository = usersRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.environment = environment;
         this.userTypeRepository = userTypeRepository;
         this.organizationRepository = organizationRepository;
         this.roleRepository = roleRepository;
+        this.userStudyRoleService = userStudyRoleService;
     }
  
 	@Override
@@ -382,5 +388,70 @@ public class UsersServiceImpl implements UsersService {
         }
         
         return userTypeIds;
+    }
+    
+    @Override
+    public String getUserRole(Long userId) {
+        logger.debug("Determining role for user ID: {}", userId);
+        
+        // Step 1: Check user_study_roles for active study-specific roles
+        // Get the highest priority active study role
+        Optional<UserStudyRoleEntity> highestStudyRole =
+                userStudyRoleService.findHighestPriorityActiveRoleByUserId(userId);
+        
+        if (highestStudyRole.isPresent()) {
+            String studyRoleName = highestStudyRole.get().getRole().getName();
+            logger.debug("Found active study role: {} for user ID: {}", studyRoleName, userId);
+            return studyRoleName;
+        }
+        
+        // Step 2: If no study role, check users_roles for general system roles
+        Optional<UserEntity> userEntityOpt = usersRepository.findById(userId);
+        if (userEntityOpt.isPresent()) {
+            UserEntity userEntity = userEntityOpt.get();
+            if (userEntity.getRoles() != null && !userEntity.getRoles().isEmpty()) {
+                // Get the highest priority general role
+                String generalRole = getHighestPriorityGeneralRole(userEntity.getRoles());
+                if (generalRole != null) {
+                    logger.debug("Found general system role: {} for user ID: {}", generalRole, userId);
+                    return generalRole;
+                }
+            }
+        }
+        
+        // Step 3: Fall back to default role
+        logger.debug("No specific role found for user ID: {}, using default: SITE_USER", userId);
+        return "SITE_USER";
+    }
+    
+    /**
+     * Determines the highest priority role from a collection of general roles.
+     * Priority order: SYSTEM_ADMIN > PRINCIPAL_INVESTIGATOR > STUDY_COORDINATOR > DATA_MANAGER > CRA > MEDICAL_CODER > AUDITOR > SITE_USER
+     * 
+     * @param roles Collection of role entities
+     * @return The highest priority role name, or null if no recognized roles found
+     */
+    private String getHighestPriorityGeneralRole(Collection<RoleEntity> roles) {
+        String[] priorityOrder = {
+            "SYSTEM_ADMIN", 
+            "PRINCIPAL_INVESTIGATOR", 
+            "STUDY_COORDINATOR", 
+            "DATA_MANAGER", 
+            "CRA", 
+            "MEDICAL_CODER", 
+            "AUDITOR", 
+            "SITE_USER"
+        };
+        
+        for (String priorityRole : priorityOrder) {
+            for (RoleEntity role : roles) {
+                if (priorityRole.equals(role.getName())) {
+                    return priorityRole;
+                }
+            }
+        }
+        
+        // If no priority role found, return the first role's name
+        return roles.iterator().next().getName();
     }
 }

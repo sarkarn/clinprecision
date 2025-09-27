@@ -416,7 +416,7 @@ const ProtocolVersionManagementModal = ({
                                         onCancel={() => handleTabChange('overview')}
                                         amendmentTypes={Object.values(AMENDMENT_TYPES)}
                                         loading={loading}
-                                        isInitialVersion={selectedVersion.amendmentType === 'INITIAL'}
+                                        isInitialVersion={selectedVersion.amendmentType === 'MINOR' && protocolVersions.length <= 1}
                                     />
                                 </div>
                             )}

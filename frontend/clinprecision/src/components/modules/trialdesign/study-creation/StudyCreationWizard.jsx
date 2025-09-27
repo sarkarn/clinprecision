@@ -23,7 +23,6 @@ const StudyCreationWizard = () => {
     const {
         formData,
         updateField,
-        updateFields,
         validateForm,
         getFieldError,
         hasFieldError,
@@ -37,7 +36,6 @@ const StudyCreationWizard = () => {
         previousStep,
         goToStep,
         markStepCompleted,
-        markStepIncomplete,
         setStepError,
         clearStepError,
         canGoNext,

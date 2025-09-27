@@ -110,47 +110,6 @@ const useProtocolVersioning = (studyId) => {
     setError(null);
   }, []);
 
-  // Load protocol versions for a study
-  const loadProtocolVersions = useCallback(async () => {
-    if (!studyId) return;
-
-    try {
-      setLoading(true);
-      clearError();
-      
-      // Use the existing StudyVersioningService to get versions
-      const versions = await StudyVersioningService.getVersionHistory(studyId);
-      
-      // Transform and sort versions
-      const transformedVersions = versions.map(version => ({
-        ...version,
-        // Ensure we have the right field names for version number
-        versionNumber: version.versionNumber || version.version,
-        statusInfo: PROTOCOL_VERSION_STATUS[version.status] || PROTOCOL_VERSION_STATUS.DRAFT
-      })).sort((a, b) => {
-        // Sort by version number (descending) and creation date (descending)
-        const versionCompare = compareVersionNumbers(b.versionNumber || '1.0', a.versionNumber || '1.0');
-        if (versionCompare !== 0) return versionCompare;
-        return new Date(b.createdDate || b.createdAt) - new Date(a.createdDate || a.createdAt);
-      });
-
-      setProtocolVersions(transformedVersions);
-      
-      // Set current version (active or latest approved)
-      const activeVersion = transformedVersions.find(v => v.status === 'ACTIVE');
-      const latestApproved = transformedVersions.find(v => v.status === 'APPROVED');
-      const latestDraft = transformedVersions.find(v => v.status === 'DRAFT' || v.status === 'PROTOCOL_REVIEW');
-      
-      setCurrentProtocolVersion(activeVersion || latestApproved || latestDraft || transformedVersions[0] || null);
-      
-    } catch (error) {
-      console.error('Error loading protocol versions:', error);
-      setError(error.message || 'Failed to load protocol versions');
-    } finally {
-      setLoading(false);
-    }
-  }, [studyId, clearError]);
-
   // Compare version numbers (e.g., "1.0", "1.1", "2.0")
   const compareVersionNumbers = useCallback((version1, version2) => {
     const parts1 = version1.split('.').map(Number);
@@ -165,6 +124,57 @@ const useProtocolVersioning = (studyId) => {
     }
     return 0;
   }, []);
+
+  // Helper function to reload versions (stable reference)
+  const reloadVersions = useCallback(async () => {
+    if (!studyId || typeof studyId !== 'string') return;
+    
+    try {
+      const versions = await StudyVersioningService.getVersionHistory(studyId);
+      const transformedVersions = versions.map(version => ({
+        ...version,
+        versionNumber: version.versionNumber || version.version,
+        statusInfo: PROTOCOL_VERSION_STATUS[version.status] || PROTOCOL_VERSION_STATUS.DRAFT
+      })).sort((a, b) => {
+        const versionCompare = compareVersionNumbers(b.versionNumber || '1.0', a.versionNumber || '1.0');
+        if (versionCompare !== 0) return versionCompare;
+        return new Date(b.createdDate || b.createdAt) - new Date(a.createdDate || a.createdAt);
+      });
+
+      setProtocolVersions(transformedVersions);
+      
+      // Set current version
+      const activeVersion = transformedVersions.find(v => v.status === 'ACTIVE');
+      const latestApproved = transformedVersions.find(v => v.status === 'APPROVED');
+      const latestDraft = transformedVersions.find(v => v.status === 'DRAFT' || v.status === 'PROTOCOL_REVIEW');
+      
+      setCurrentProtocolVersion(activeVersion || latestApproved || latestDraft || transformedVersions[0] || null);
+    } catch (error) {
+      console.error('Error reloading protocol versions:', error);
+      throw error;
+    }
+  }, [studyId, compareVersionNumbers, PROTOCOL_VERSION_STATUS]);
+
+  // Load protocol versions for a study
+  const loadProtocolVersions = useCallback(async () => {
+    if (!studyId || typeof studyId !== 'string') {
+      console.warn('Invalid studyId provided to loadProtocolVersions:', studyId);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      clearError();
+      
+      await reloadVersions();
+      
+    } catch (error) {
+      console.error('Error loading protocol versions:', error);
+      setError(error.message || 'Failed to load protocol versions');
+    } finally {
+      setLoading(false);
+    }
+  }, [studyId, clearError, reloadVersions]);
 
   // Generate next version number suggestion
   const generateNextVersionNumber = useCallback(() => {
@@ -187,6 +197,11 @@ const useProtocolVersioning = (studyId) => {
 
   // Create new protocol version
   const createProtocolVersion = useCallback(async (versionData) => {
+    if (!studyId || typeof studyId !== 'string') {
+      console.error('Invalid studyId provided to createProtocolVersion:', studyId);
+      throw new Error('Invalid study ID');
+    }
+
     try {
       setLoading(true);
       clearError();
@@ -195,9 +210,9 @@ const useProtocolVersioning = (studyId) => {
         studyId: studyId,
         versionNumber: versionData.versionNumber || generateNextVersionNumber(),
         description: versionData.description || '',
-        amendmentType: versionData.amendmentType || (protocolVersions.length === 0 ? 'INITIAL' : 'MINOR'),
-        amendmentReason: versionData.amendmentReason || '',
-        changesSummary: versionData.changesSummary || '',
+        amendmentType: versionData.amendmentType || (protocolVersions.length === 0 ? 'MINOR' : 'MINOR'), // Use MINOR instead of INITIAL until backend supports it
+        amendmentReason: versionData.amendmentReason && versionData.amendmentReason.trim() ? versionData.amendmentReason.trim() : null, // Send null instead of empty string
+        changesSummary: versionData.changesSummary && versionData.changesSummary.trim() ? versionData.changesSummary.trim() : null, // Send null instead of empty string
         effectiveDate: versionData.effectiveDate || null,
         requiresRegulatoryApproval: versionData.requiresRegulatoryApproval || false,
         notifyStakeholders: versionData.notifyStakeholders !== false, // Default true
@@ -205,10 +220,10 @@ const useProtocolVersioning = (studyId) => {
         createdBy: 1 // TODO: Get from auth context
       };
 
-      const createdVersion = await StudyVersioningService.createVersion(newVersionData);
+      const createdVersion = await StudyVersioningService.createVersion(studyId, newVersionData);
       
       // Reload versions to get updated state
-      await loadProtocolVersions();
+      await reloadVersions();
       
       return createdVersion;
     } catch (error) {
@@ -218,7 +233,7 @@ const useProtocolVersioning = (studyId) => {
     } finally {
       setLoading(false);
     }
-  }, [studyId, generateNextVersionNumber, protocolVersions.length, loadProtocolVersions, clearError]);
+  }, [studyId, generateNextVersionNumber, protocolVersions.length, clearError, reloadVersions]);
 
   // Submit protocol version for review
   const submitForReview = useCallback(async (versionId) => {
@@ -226,8 +241,8 @@ const useProtocolVersioning = (studyId) => {
       setLoading(true);
       clearError();
 
-      await StudyVersioningService.updateVersionStatus(versionId, 'PROTOCOL_REVIEW');
-      await loadProtocolVersions();
+      await StudyVersioningService.updateVersionStatus(versionId, 'AMENDMENT_REVIEW');
+      await reloadVersions();
       
     } catch (error) {
       console.error('Error submitting version for review:', error);
@@ -236,7 +251,7 @@ const useProtocolVersioning = (studyId) => {
     } finally {
       setLoading(false);
     }
-  }, [loadProtocolVersions, clearError]);
+  }, [reloadVersions, clearError]);
 
   // Approve protocol version
   const approveProtocolVersion = useCallback(async (versionId) => {
@@ -245,7 +260,7 @@ const useProtocolVersioning = (studyId) => {
       clearError();
 
       await StudyVersioningService.updateVersionStatus(versionId, 'APPROVED');
-      await loadProtocolVersions();
+      await reloadVersions();
       
     } catch (error) {
       console.error('Error approving protocol version:', error);
@@ -254,7 +269,7 @@ const useProtocolVersioning = (studyId) => {
     } finally {
       setLoading(false);
     }
-  }, [loadProtocolVersions, clearError]);
+  }, [reloadVersions, clearError]);
 
   // Activate protocol version (marks others as superseded)
   const activateProtocolVersion = useCallback(async (versionId) => {
@@ -263,7 +278,7 @@ const useProtocolVersioning = (studyId) => {
       clearError();
 
       await StudyVersioningService.updateVersionStatus(versionId, 'ACTIVE');
-      await loadProtocolVersions();
+      await reloadVersions();
       
     } catch (error) {
       console.error('Error activating protocol version:', error);
@@ -272,7 +287,7 @@ const useProtocolVersioning = (studyId) => {
     } finally {
       setLoading(false);
     }
-  }, [loadProtocolVersions, clearError]);
+  }, [reloadVersions, clearError]);
 
   // Update protocol version
   const updateProtocolVersion = useCallback(async (versionId, updateData) => {
@@ -281,7 +296,7 @@ const useProtocolVersioning = (studyId) => {
       clearError();
 
       await StudyVersioningService.updateVersion(versionId, updateData);
-      await loadProtocolVersions();
+      await reloadVersions();
       
     } catch (error) {
       console.error('Error updating protocol version:', error);
@@ -290,7 +305,7 @@ const useProtocolVersioning = (studyId) => {
     } finally {
       setLoading(false);
     }
-  }, [loadProtocolVersions, clearError]);
+  }, [reloadVersions, clearError]);
 
   // Delete protocol version (only if DRAFT)
   const deleteProtocolVersion = useCallback(async (versionId) => {
@@ -299,7 +314,7 @@ const useProtocolVersioning = (studyId) => {
       clearError();
 
       await StudyVersioningService.deleteVersion(versionId);
-      await loadProtocolVersions();
+      await reloadVersions();
       
     } catch (error) {
       console.error('Error deleting protocol version:', error);
@@ -308,7 +323,7 @@ const useProtocolVersioning = (studyId) => {
     } finally {
       setLoading(false);
     }
-  }, [loadProtocolVersions, clearError]);
+  }, [reloadVersions, clearError]);
 
   // Get versions by status
   const getVersionsByStatus = useCallback((status) => {
@@ -351,7 +366,7 @@ const useProtocolVersioning = (studyId) => {
     if (studyId) {
       loadProtocolVersions();
     }
-  }, [studyId, loadProtocolVersions]);
+  }, [studyId]); // Remove loadProtocolVersions from dependencies to prevent infinite loop
 
   return {
     // State

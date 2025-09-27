@@ -1,6 +1,7 @@
 package com.clinprecision.adminservice.ui.controller;
 
  import com.clinprecision.adminservice.service.UsersService;
+ import com.clinprecision.common.dto.AuthUserDto;
  import com.clinprecision.common.dto.UserDto;
  import com.clinprecision.common.dto.UserTypeDto;
  import org.springframework.beans.factory.annotation.Autowired;
@@ -185,6 +186,44 @@ public class UsersController {
     	// Delete user logic here
     	
     	return "Deleting user with id " + userId;
+    }
+    
+    @GetMapping(value="/{userId}/role", produces = { MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })
+    public ResponseEntity<String> getUserRole(@PathVariable("userId") Long userId) {
+        String role = usersService.getUserRole(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(role);
+    }
+    
+    @GetMapping(value="/by-email/{email}", produces = { MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })
+    public ResponseEntity<UserDto> getUserDetailsByEmail(@PathVariable("email") String email) {
+        UserDto userDto = usersService.getUserDetailsByEmail(email);
+        return ResponseEntity.status(HttpStatus.OK).body(userDto);
+    }
+    
+    @GetMapping(value="/auth/{email}", produces = { MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })
+    public ResponseEntity<AuthUserDto> loadUserByUsername(@PathVariable("email") String email) {
+        org.springframework.security.core.userdetails.UserDetails userDetails = usersService.loadUserByUsername(email);
+        
+        if (userDetails == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Convert UserDetails to AuthUserDto
+        AuthUserDto authUserDto = new AuthUserDto();
+        authUserDto.setUsername(userDetails.getUsername());
+        authUserDto.setPassword(userDetails.getPassword());
+        authUserDto.setEnabled(userDetails.isEnabled());
+        authUserDto.setAccountNonExpired(userDetails.isAccountNonExpired());
+        authUserDto.setAccountNonLocked(userDetails.isAccountNonLocked());
+        authUserDto.setCredentialsNonExpired(userDetails.isCredentialsNonExpired());
+        
+        // Convert authorities to List<String>
+        java.util.List<String> authorities = userDetails.getAuthorities().stream()
+            .map(authority -> authority.getAuthority())
+            .collect(java.util.stream.Collectors.toList());
+        authUserDto.setAuthorities(authorities);
+        
+        return ResponseEntity.status(HttpStatus.OK).body(authUserDto);
     }
 	
 	

@@ -8,6 +8,87 @@ CREATE DATABASE clinprecisiondb;
 GRANT ALL PRIVILEGES ON clinprecisiondb.* TO 'clinprecadmin'@'localhost';
 USE clinprecisiondb;
 
+
+-- ===================================================================
+-- Code Lists Schema
+-- Central management of all application code list values
+-- ===================================================================
+
+-- Main code lists table
+CREATE TABLE code_lists (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    category VARCHAR(100) NOT NULL COMMENT 'Category of the code list (e.g., AMENDMENT_TYPE, STUDY_STATUS)',
+    code VARCHAR(100) NOT NULL COMMENT 'The code value (e.g., MAJOR, ACTIVE)',
+    display_name VARCHAR(200) NOT NULL COMMENT 'Human-readable display name',
+    description TEXT COMMENT 'Detailed description of the code',
+    sort_order INT DEFAULT 0 COMMENT 'Display sort order',
+    is_active BOOLEAN DEFAULT TRUE COMMENT 'Whether this code is currently active',
+    system_code BOOLEAN DEFAULT FALSE COMMENT 'System codes that cannot be modified',
+    parent_code_id BIGINT COMMENT 'For hierarchical code lists',
+    metadata JSON COMMENT 'Additional metadata (colors, permissions, etc.)',
+    valid_from DATE COMMENT 'Valid from date',
+    valid_to DATE COMMENT 'Valid to date (null = indefinite)',
+    created_by BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    version_number INT DEFAULT 1 COMMENT 'For optimistic locking',
+    
+    -- Indexes
+    UNIQUE KEY uk_code_lists_category_code (category, code),
+    INDEX idx_code_lists_category (category),
+    INDEX idx_code_lists_active (is_active),
+    INDEX idx_code_lists_sort (category, sort_order),
+    INDEX idx_code_lists_parent (parent_code_id),
+    
+    -- Foreign key constraint for hierarchical relationships
+    FOREIGN KEY (parent_code_id) REFERENCES code_lists(id) ON DELETE CASCADE
+)COMMENT='Central repository for all application code lists';
+
+-- Audit table for code list changes
+CREATE TABLE code_lists_audit (
+    audit_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    code_list_id BIGINT NOT NULL,
+    operation_type ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+    old_values JSON COMMENT 'Previous values before change',
+    new_values JSON COMMENT 'New values after change',
+    changed_by BIGINT NOT NULL,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    change_reason TEXT COMMENT 'Reason for the change',
+    
+    INDEX idx_audit_code_list (code_list_id),
+    INDEX idx_audit_changed_at (changed_at),
+    INDEX idx_audit_changed_by (changed_by)
+) COMMENT='Audit trail for code list changes';
+
+-- Translation table for multi-language support (future enhancement)
+CREATE TABLE code_list_translations (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    code_list_id BIGINT NOT NULL,
+    language_code VARCHAR(10) NOT NULL DEFAULT 'en',
+    display_name VARCHAR(200) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    UNIQUE KEY uk_translation_code_lang (code_list_id, language_code),
+    FOREIGN KEY (code_list_id) REFERENCES code_lists(id) ON DELETE CASCADE
+)COMMENT='Multi-language translations for code lists';
+
+-- Application usage tracking (which modules use which code lists)
+CREATE TABLE code_list_usage (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    category VARCHAR(100) NOT NULL,
+    application_module VARCHAR(100) NOT NULL COMMENT 'Module/service name',
+    usage_type ENUM('DROPDOWN', 'VALIDATION', 'DISPLAY', 'FILTER') NOT NULL,
+    field_name VARCHAR(100) COMMENT 'Field/property name where used',
+    is_required BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE KEY uk_usage_category_module_field (category, application_module, field_name),
+    FOREIGN KEY (category) REFERENCES code_lists(category) ON DELETE CASCADE
+) COMMENT='Tracks which modules use which code lists';
+
 -- Core user management tables
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -1144,6 +1225,10 @@ CREATE INDEX idx_study_amendments_safety_status ON study_amendments (amendment_t
 -- Subjects table indexes for study-specific queries
 CREATE INDEX  idx_subjects_study_status ON subjects(study_id, status);
 CREATE INDEX  idx_subjects_enrollment_date ON subjects(enrollment_date);
-
+-- Create indexes for performance
+-- Create indexes for performance
+-- Note: Using CAST to convert JSON extracted value to VARCHAR for indexing
+CREATE INDEX idx_code_lists_color ON code_lists((CAST(JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.color')) AS CHAR(100))));
+CREATE INDEX idx_code_lists_valid_date ON code_lists(valid_from, valid_to);
 
 

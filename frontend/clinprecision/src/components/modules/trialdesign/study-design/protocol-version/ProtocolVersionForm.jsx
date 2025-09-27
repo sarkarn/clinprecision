@@ -18,7 +18,7 @@ const ProtocolVersionForm = ({
     const [formData, setFormData] = useState({
         versionNumber: '',
         description: '',
-        amendmentType: isInitialVersion ? 'INITIAL' : '',
+        amendmentType: isInitialVersion ? 'MINOR' : '',
         amendmentReason: '',
         changesSummary: '',
         impactAssessment: '',
@@ -37,7 +37,7 @@ const ProtocolVersionForm = ({
             setFormData({
                 versionNumber: initialData.versionNumber || '',
                 description: initialData.description || '',
-                amendmentType: initialData.amendmentType || (isInitialVersion ? 'INITIAL' : ''),
+                amendmentType: initialData.amendmentType || (isInitialVersion ? 'MINOR' : ''),
                 amendmentReason: initialData.amendmentReason || '',
                 changesSummary: initialData.changesSummary || '',
                 impactAssessment: initialData.impactAssessment || '',
@@ -50,10 +50,31 @@ const ProtocolVersionForm = ({
             setFormData(prev => ({
                 ...prev,
                 versionNumber: suggestedVersionNumber,
-                amendmentType: isInitialVersion ? 'INITIAL' : prev.amendmentType
+                amendmentType: isInitialVersion ? 'MINOR' : prev.amendmentType
             }));
         }
-    }, [mode, initialData, suggestedVersionNumber, isInitialVersion]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mode]); // Only depend on mode to avoid infinite loops
+
+    // Handle suggestedVersionNumber changes separately for create mode
+    useEffect(() => {
+        if (mode === 'create' && suggestedVersionNumber) {
+            setFormData(prev => ({
+                ...prev,
+                versionNumber: suggestedVersionNumber
+            }));
+        }
+    }, [mode, suggestedVersionNumber]);
+
+    // Handle isInitialVersion changes separately
+    useEffect(() => {
+        if (isInitialVersion) {
+            setFormData(prev => ({
+                ...prev,
+                amendmentType: 'MINOR'
+            }));
+        }
+    }, [isInitialVersion]);
 
     // Handle input changes
     const handleInputChange = (field, value) => {
@@ -132,11 +153,8 @@ const ProtocolVersionForm = ({
 
     // Get amendment type options
     const getAmendmentTypeOptions = () => {
-        if (isInitialVersion) {
-            return [{ value: 'INITIAL', label: 'Initial Protocol', description: 'Initial protocol version' }];
-        }
-
-        return amendmentTypes.map(type => ({
+        // For initial versions, pre-select MINOR but show all options except INITIAL
+        return amendmentTypes.filter(type => type.value !== 'INITIAL').map(type => ({
             value: type.value,
             label: type.label,
             description: type.description
@@ -209,7 +227,7 @@ const ProtocolVersionForm = ({
                         onChange={(e) => handleInputChange('amendmentType', e.target.value)}
                         className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.amendmentType ? 'border-red-500' : 'border-gray-300'
                             }`}
-                        disabled={isInitialVersion}
+                        disabled={false}
                     >
                         <option value="">Select amendment type...</option>
                         {getAmendmentTypeOptions().map(option => (

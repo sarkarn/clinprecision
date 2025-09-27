@@ -17,7 +17,7 @@ public class StudyVersionCreateRequestDto {
     @JsonProperty("amendmentType")
     private StudyVersionEntity.AmendmentType amendmentType;
     
-    @NotBlank(message = "Amendment reason is required")
+    // Amendment reason is only required for major amendments, not for initial or minor versions
     @JsonProperty("reason")
     private String amendmentReason;
     
