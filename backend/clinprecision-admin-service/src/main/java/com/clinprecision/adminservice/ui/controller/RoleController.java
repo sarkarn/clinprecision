@@ -26,4 +26,14 @@ public class RoleController {
 	public List<RoleDto> getAllRoles() {
 		return roleService.getAllRoles();
 	}
+	
+	@GetMapping(value = "/system", produces = { MediaType.APPLICATION_JSON_VALUE })
+	public List<RoleDto> getSystemRoles() {
+		return roleService.getSystemRoles();
+	}
+	
+	@GetMapping(value = "/non-system", produces = { MediaType.APPLICATION_JSON_VALUE })
+	public List<RoleDto> getNonSystemRoles() {
+		return roleService.getNonSystemRoles();
+	}
 }

@@ -22,7 +22,25 @@ public class RoleService {
     public List<RoleDto> getAllRoles() {
         List<RoleEntity> roles = (List<RoleEntity>) roleRepository.findAll();
         return roles.stream()
-                .map(role -> new RoleDto(role.getId(), role.getName()))
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+    
+    public List<RoleDto> getSystemRoles() {
+        List<RoleEntity> roles = roleRepository.findByIsSystemRole(true);
+        return roles.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+    
+    public List<RoleDto> getNonSystemRoles() {
+        List<RoleEntity> roles = roleRepository.findByIsSystemRole(false);
+        return roles.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+    
+    private RoleDto convertToDto(RoleEntity role) {
+        return new RoleDto(role.getId(), role.getName(), role.isSystemRole());
     }
 }

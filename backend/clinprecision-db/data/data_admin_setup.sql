@@ -48,22 +48,22 @@ INSERT INTO user_types (name, description, code,category) VALUES
 INSERT INTO roles (name, description, is_system_role) VALUES
 ('SYSTEM_ADMIN', 'Full system administration rights', TRUE),
 ('DB_ADMIN', 'Database administration rights', TRUE),
-('SPONSOR_ADMIN', 'Sponsor administrator with study oversight', TRUE),
-('CRO_ADMIN', 'CRO administrator with delegated study oversight', TRUE),
-('SITE_ADMIN', 'Site administrator with site management rights', TRUE),
-('PI', 'Principal Investigator role', TRUE),
-('SUB_I', 'Sub-investigator role', TRUE),
-('CRC', 'Clinical Research Coordinator role', TRUE),
-('CRA', 'Clinical Research Associate role', TRUE),
-('DATA_MANAGER', 'Data management role', TRUE),
-('MEDICAL_MONITOR', 'Medical monitoring role', TRUE),
-('LAB_USER', 'Laboratory user role', TRUE),
-('PATIENT', 'Patient/subject portal access', TRUE),
-('DATA_ENTRY', 'Data entry capabilities', TRUE),
-('DATA_REVIEW', 'Data review capabilities', TRUE),
-('QUERY_MANAGEMENT', 'Query creation and resolution', TRUE),
-('REPORT_VIEWER', 'Report viewing capabilities', TRUE),
-('STUDY_BUILDER', 'Study and CRF design capabilities', TRUE);
+('SPONSOR_ADMIN', 'Sponsor administrator with study oversight', FALSE),
+('CRO_ADMIN', 'CRO administrator with delegated study oversight', FALSE),
+('SITE_ADMIN', 'Site administrator with site management rights', FALSE),
+('PI', 'Principal Investigator role', FALSE),
+('SUB_I', 'Sub-investigator role', FALSE),
+('CRC', 'Clinical Research Coordinator role', FALSE),
+('CRA', 'Clinical Research Associate role', FALSE),
+('DATA_MANAGER', 'Data management role', FALSE),
+('MEDICAL_MONITOR', 'Medical monitoring role', FALSE),
+('LAB_USER', 'Laboratory user role', FALSE),
+('PATIENT', 'Patient/subject portal access', FALSE),
+('DATA_ENTRY', 'Data entry capabilities', FALSE),
+('DATA_REVIEW', 'Data review capabilities', FALSE),
+('QUERY_MANAGEMENT', 'Query creation and resolution', FALSE),
+('REPORT_VIEWER', 'Report viewing capabilities', FALSE),
+('STUDY_BUILDER', 'Study and CRF design capabilities', FALSE);
 
 -- Insert default authorities
 INSERT INTO authorities (name) VALUES

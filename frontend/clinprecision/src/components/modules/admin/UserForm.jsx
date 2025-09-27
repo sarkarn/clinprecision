@@ -40,11 +40,11 @@ export default function UserForm() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                // Fetch all user types, organizations, and roles in parallel
+                // Fetch all user types, organizations, and system roles in parallel
                 const [userTypesData, orgsData, rolesData] = await Promise.all([
                     UserTypeService.getAllUserTypes(),
                     OrganizationService.getAllOrganizations(),
-                    RoleService.getAllRoles(),
+                    RoleService.getSystemRoles(),  // Only system roles for user creation
                 ]);
                 setAvailableUserTypes(Array.isArray(userTypesData) ? userTypesData : []);
                 setAvailableOrganizations(Array.isArray(orgsData) ? orgsData : []);

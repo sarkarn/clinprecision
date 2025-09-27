@@ -925,7 +925,7 @@ export default function Login() {
                                 <span className="text-xl font-bold text-gray-900">ClinPrecision</span>
                             </div>
                             <div className="text-gray-600 text-sm">
-                                © 2024 ClinPrecision. All rights reserved. | Privacy Policy | Terms of Service
+                                © 2024 ClinPrecision is a trademark of Novatra-AI.com LLC. All rights reserved. | Privacy Policy | Terms of Service
                             </div>
                         </div>
                     </div>

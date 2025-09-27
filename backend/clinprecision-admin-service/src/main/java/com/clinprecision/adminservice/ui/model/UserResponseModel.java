@@ -9,7 +9,8 @@ import java.util.List;
 @Getter
 @Setter
 public class UserResponseModel {
-    private String userId;
+    private Long id;        // Numeric primary key needed for UserStudyRole assignments
+    private String userId;  // String username for display
     private String firstName;
     private String lastName;
     private String email;
