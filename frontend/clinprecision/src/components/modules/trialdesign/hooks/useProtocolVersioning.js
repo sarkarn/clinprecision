@@ -211,8 +211,8 @@ const useProtocolVersioning = (studyId) => {
         versionNumber: versionData.versionNumber || generateNextVersionNumber(),
         description: versionData.description || '',
         amendmentType: versionData.amendmentType || (protocolVersions.length === 0 ? 'MINOR' : 'MINOR'), // Use MINOR instead of INITIAL until backend supports it
-        amendmentReason: versionData.amendmentReason || '',
-        changesSummary: versionData.changesSummary || '',
+        amendmentReason: versionData.amendmentReason && versionData.amendmentReason.trim() ? versionData.amendmentReason.trim() : null, // Send null instead of empty string
+        changesSummary: versionData.changesSummary && versionData.changesSummary.trim() ? versionData.changesSummary.trim() : null, // Send null instead of empty string
         effectiveDate: versionData.effectiveDate || null,
         requiresRegulatoryApproval: versionData.requiresRegulatoryApproval || false,
         notifyStakeholders: versionData.notifyStakeholders !== false, // Default true
@@ -241,7 +241,7 @@ const useProtocolVersioning = (studyId) => {
       setLoading(true);
       clearError();
 
-      await StudyVersioningService.updateVersionStatus(versionId, 'PROTOCOL_REVIEW');
+      await StudyVersioningService.updateVersionStatus(versionId, 'AMENDMENT_REVIEW');
       await reloadVersions();
       
     } catch (error) {

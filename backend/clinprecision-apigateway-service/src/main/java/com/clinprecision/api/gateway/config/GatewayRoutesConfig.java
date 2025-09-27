@@ -99,9 +99,9 @@ public class GatewayRoutesConfig {
                     .uri("lb://study-design-ws")
                 )
                 
-                // Study Design Service - Direct routes for studies, arms, and visits (no auth required)
+                // Study Design Service - Direct routes for studies, arms, visits, and study-versions (no auth required)
                 .route("study-design-direct", r -> r
-                    .path("/studies/**", "/arms/**", "/api/studies/**", "/api/arms/**", "/api/visits/**")
+                    .path("/studies/**", "/arms/**", "/api/studies/**", "/api/arms/**", "/api/visits/**", "/api/study-versions/**")
                     .and()
                     .method("GET","POST","PUT","DELETE","PATCH")
                         .and()

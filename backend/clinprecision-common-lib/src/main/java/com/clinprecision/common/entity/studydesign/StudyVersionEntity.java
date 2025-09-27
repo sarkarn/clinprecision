@@ -107,6 +107,7 @@ public class StudyVersionEntity {
     public enum VersionStatus {
         DRAFT("Draft", "In development"),
         UNDER_REVIEW("Under Review", "Under internal review"),
+        AMENDMENT_REVIEW("Amendment Review", "Protocol amendment under review"),
         SUBMITTED("Submitted", "Submitted to regulatory"),
         APPROVED("Approved", "Approved by regulatory"),
         ACTIVE("Active", "Currently active version"),

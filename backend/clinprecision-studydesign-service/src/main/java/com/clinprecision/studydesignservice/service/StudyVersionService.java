@@ -72,6 +72,14 @@ public class StudyVersionService {
             throw new RuntimeException("Study not found with id: " + studyId);
         }
         
+        // Validate amendment reason based on amendment type
+        if (request.getAmendmentType() == StudyVersionEntity.AmendmentType.MAJOR || 
+            request.getAmendmentType() == StudyVersionEntity.AmendmentType.SAFETY) {
+            if (request.getAmendmentReason() == null || request.getAmendmentReason().trim().isEmpty()) {
+                throw new RuntimeException("Amendment reason is required for " + request.getAmendmentType() + " amendments");
+            }
+        }
+        
         // Get the latest version to determine next version number
         String nextVersionNumber = generateNextVersionNumber(studyId, request.getAmendmentType());
         
@@ -301,17 +309,27 @@ public class StudyVersionService {
         switch (from) {
             case DRAFT:
                 return to == StudyVersionEntity.VersionStatus.UNDER_REVIEW || 
+                       to == StudyVersionEntity.VersionStatus.AMENDMENT_REVIEW ||
                        to == StudyVersionEntity.VersionStatus.SUBMITTED ||
                        to == StudyVersionEntity.VersionStatus.WITHDRAWN;
             
             case UNDER_REVIEW:
                 return to == StudyVersionEntity.VersionStatus.DRAFT ||
+                       to == StudyVersionEntity.VersionStatus.AMENDMENT_REVIEW ||
+                       to == StudyVersionEntity.VersionStatus.SUBMITTED ||
+                       to == StudyVersionEntity.VersionStatus.APPROVED ||
+                       to == StudyVersionEntity.VersionStatus.WITHDRAWN;
+            
+            case AMENDMENT_REVIEW:
+                return to == StudyVersionEntity.VersionStatus.DRAFT ||
+                       to == StudyVersionEntity.VersionStatus.UNDER_REVIEW ||
                        to == StudyVersionEntity.VersionStatus.SUBMITTED ||
                        to == StudyVersionEntity.VersionStatus.APPROVED ||
                        to == StudyVersionEntity.VersionStatus.WITHDRAWN;
             
             case SUBMITTED:
                 return to == StudyVersionEntity.VersionStatus.UNDER_REVIEW ||
+                       to == StudyVersionEntity.VersionStatus.AMENDMENT_REVIEW ||
                        to == StudyVersionEntity.VersionStatus.APPROVED ||
                        to == StudyVersionEntity.VersionStatus.WITHDRAWN;
             
@@ -339,5 +357,18 @@ public class StudyVersionService {
         return versions.stream()
                 .map(StudyVersionDto::new)
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Update version status
+     */
+    public StudyVersionDto updateVersionStatus(Long versionId, StudyVersionEntity.VersionStatus status, Long userId) {
+        StudyVersionEntity version = studyVersionRepository.findById(versionId)
+                .orElseThrow(() -> new RuntimeException("Version not found with id: " + versionId));
+        
+        handleStatusChange(version, status, userId);
+        StudyVersionEntity savedVersion = studyVersionRepository.save(version);
+        
+        return new StudyVersionDto(savedVersion);
     }
 }

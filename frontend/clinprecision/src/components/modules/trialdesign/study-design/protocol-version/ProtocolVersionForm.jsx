@@ -53,7 +53,28 @@ const ProtocolVersionForm = ({
                 amendmentType: isInitialVersion ? 'MINOR' : prev.amendmentType
             }));
         }
-    }, [mode, initialData, suggestedVersionNumber, isInitialVersion]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mode]); // Only depend on mode to avoid infinite loops
+
+    // Handle suggestedVersionNumber changes separately for create mode
+    useEffect(() => {
+        if (mode === 'create' && suggestedVersionNumber) {
+            setFormData(prev => ({
+                ...prev,
+                versionNumber: suggestedVersionNumber
+            }));
+        }
+    }, [mode, suggestedVersionNumber]);
+
+    // Handle isInitialVersion changes separately
+    useEffect(() => {
+        if (isInitialVersion) {
+            setFormData(prev => ({
+                ...prev,
+                amendmentType: 'MINOR'
+            }));
+        }
+    }, [isInitialVersion]);
 
     // Handle input changes
     const handleInputChange = (field, value) => {
