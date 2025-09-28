@@ -8,6 +8,7 @@ import StudyListGrid from './study-management/StudyListGrid';
 import StudyOverviewDashboard from './study-management/StudyOverviewDashboard';
 import VersionManagementModal from './study-management/VersionManagementModal';
 import StudyDesignDashboard from './study-design/StudyDesignDashboard';
+import ProtocolManagementDashboard from './protocol-management/ProtocolManagementDashboard';
 import StudyViewPage from './StudyViewPage';
 import FormList from './FormList';
 import StudyFormList from './StudyFormList';
@@ -113,6 +114,10 @@ const StudyDesignModule = () => {
     navigate(`/study-design/study/${study.id}/design/basic-info`, { replace: true });
   };
 
+  const handleManageProtocols = (study) => {
+    navigate(`/study-design/study/${study.id}/protocols`, { replace: true });
+  };
+
   const handleDeleteStudy = (study) => {
     // Handle study deletion
     console.log('Delete study:', study.id);
@@ -152,6 +157,7 @@ const StudyDesignModule = () => {
         onViewStudy={handleViewStudy}
         onEditStudy={handleEditStudy}
         onDesignStudy={handleDesignStudy}
+        onManageProtocols={handleManageProtocols}
         onDeleteStudy={handleDeleteStudy}
       />
     </div>
@@ -236,6 +242,9 @@ const StudyDesignModule = () => {
 
           {/* Study Design Workflow - New comprehensive design flow */}
           <Route path="study/:studyId/design/*" element={<StudyDesignDashboard />} />
+
+          {/* Protocol Management - Dedicated protocol version management */}
+          <Route path="study/:studyId/protocols" element={<ProtocolManagementDashboard />} />
 
           {/* Default to modern study dashboard */}
           <Route index element={<Navigate to="studies" replace />} />

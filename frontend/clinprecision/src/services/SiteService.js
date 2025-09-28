@@ -295,7 +295,7 @@ export const SiteService = {
         }
       }
 
-      const response = await ApiService.post(`/admin-ws/sites/${siteId}/studies`, associationData);
+      const response = await ApiService.post(`/admin-ws/api/sites/${siteId}/studies`, associationData);
       return response.data;
     } catch (error) {
       console.error(`Error associating site ${siteId} with study:`, error);
@@ -317,7 +317,7 @@ export const SiteService = {
         throw new Error('Reason is required for study-site activation');
       }
 
-      const response = await ApiService.post(`/admin-ws/sites/${siteId}/studies/${studyId}/activate`, activationData);
+      const response = await ApiService.post(`/admin-ws/api/sites/${siteId}/studies/${studyId}/activate`, activationData);
       return response.data;
     } catch (error) {
       console.error(`Error activating site ${siteId} for study ${studyId}:`, error);
@@ -332,7 +332,7 @@ export const SiteService = {
    */
   getStudyAssociationsForSite: async (siteId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/sites/${siteId}/studies`);
+      const response = await ApiService.get(`/admin-ws/api/sites/${siteId}/studies`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching study associations for site ${siteId}:`, error);
@@ -347,7 +347,7 @@ export const SiteService = {
    */
   getSiteAssociationsForStudy: async (studyId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/sites/studies/${studyId}`);
+      const response = await ApiService.get(`/admin-ws/api/sites/studies/${studyId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching site associations for study ${studyId}:`, error);
@@ -364,7 +364,7 @@ export const SiteService = {
    */
   removeSiteStudyAssociation: async (siteId, studyId, reason = 'Administrative removal') => {
     try {
-      const response = await ApiService.delete(`/admin-ws/sites/${siteId}/studies/${studyId}?reason=${encodeURIComponent(reason)}`);
+      const response = await ApiService.delete(`/admin-ws/api/sites/${siteId}/studies/${studyId}?reason=${encodeURIComponent(reason)}`);
       return response.data;
     } catch (error) {
       console.error(`Error removing association between site ${siteId} and study ${studyId}:`, error);

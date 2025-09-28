@@ -81,7 +81,11 @@ const ProtocolVersionActions = ({
                 });
                 break;
 
-            case 'PROTOCOL_REVIEW':
+            case 'UNDER_REVIEW':
+                // Protocol is with IRB/EC - limited actions
+                break;
+
+            case 'AMENDMENT_REVIEW':
                 if (canApprove || statusInfo?.canApprove) {
                     actions.push({
                         key: 'approve',
@@ -195,12 +199,14 @@ export const ProtocolVersionStatusActions = ({ version, ...props }) => {
         switch (status) {
             case 'DRAFT':
                 return <FileText className="h-4 w-4 text-gray-500" />;
-            case 'PROTOCOL_REVIEW':
+            case 'UNDER_REVIEW':
                 return <Clock className="h-4 w-4 text-yellow-500" />;
+            case 'AMENDMENT_REVIEW':
+                return <Clock className="h-4 w-4 text-blue-500" />;
             case 'APPROVED':
                 return <CheckCircle className="h-4 w-4 text-green-500" />;
             case 'ACTIVE':
-                return <Play className="h-4 w-4 text-blue-500" />;
+                return <Play className="h-4 w-4 text-emerald-500" />;
             case 'SUPERSEDED':
                 return <GitBranch className="h-4 w-4 text-orange-500" />;
             case 'WITHDRAWN':
@@ -248,7 +254,9 @@ export const ProtocolVersionQuickActions = ({ version, ...props }) => {
                     onClick: props.onSubmitReview,
                     variant: 'primary'
                 };
-            case 'PROTOCOL_REVIEW':
+            case 'UNDER_REVIEW':
+                return null; // No actions while under external review
+            case 'AMENDMENT_REVIEW':
                 if (props.canApprove) {
                     return {
                         key: 'approve',
@@ -304,10 +312,10 @@ export const ProtocolVersionQuickActions = ({ version, ...props }) => {
                 <button
                     onClick={() => primaryAction.onClick?.(version.id)}
                     className={`px-2 py-1 text-xs font-medium rounded ${primaryAction.variant === 'primary'
-                            ? 'text-white bg-blue-600 hover:bg-blue-700'
-                            : primaryAction.variant === 'success'
-                                ? 'text-white bg-green-600 hover:bg-green-700'
-                                : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                        ? 'text-white bg-blue-600 hover:bg-blue-700'
+                        : primaryAction.variant === 'success'
+                            ? 'text-white bg-green-600 hover:bg-green-700'
+                            : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
                         }`}
                     title={primaryAction.label}
                 >

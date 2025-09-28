@@ -11,6 +11,8 @@ import FormTemplateManagement from "./FormTemplateManagement";
 import UserStudyRoleList from "./UserStudyRoleList";
 import UserStudyRoleForm from "./UserStudyRoleForm";
 import UserStudyRoleBulkAssignment from "./UserStudyRoleBulkAssignment";
+import StudySiteAssociationList from "./StudySiteAssociationList";
+import StudySiteAssociationForm from "./StudySiteAssociationForm";
 import StudyTeamManagement from "./StudyTeamManagement";
 import CRFBuilderIntegration from "../../common/forms/CRFBuilderIntegration";
 import FormVersionHistory from "../../common/forms/FormVersionHistory";
@@ -49,6 +51,15 @@ export default function AdminModule() {
                 {/* Site Management Routes */}
                 <Route path="sites" element={
                     isAuthenticated ? <SiteManagement /> : <Navigate to="/login" state={{ from: "/user-management/sites" }} />
+                } />
+
+                {/* Study Site Association Management Routes */}
+                <Route path="study-site-associations" element={<StudySiteAssociationList />} />
+                <Route path="study-site-associations/create" element={
+                    isAuthenticated ? <StudySiteAssociationForm /> : <Navigate to="/login" state={{ from: "/admin/study-site-associations/create" }} />
+                } />
+                <Route path="study-site-associations/edit/:id" element={
+                    isAuthenticated ? <StudySiteAssociationForm /> : <Navigate to="/login" state={{ from: "/admin/study-site-associations/edit/:id" }} />
                 } />
 
                 {/* User Study Role Management Routes */}

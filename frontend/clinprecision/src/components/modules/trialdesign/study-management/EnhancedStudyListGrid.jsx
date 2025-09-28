@@ -36,6 +36,7 @@ const EnhancedStudyListGrid = ({
     onStudySelect,
     onStudyEdit,
     onCreateVersion,
+    onManageProtocols,
     showActions = true,
     selectable = false,
     multiSelect = false,
@@ -669,6 +670,17 @@ const EnhancedStudyListGrid = ({
                             title="Edit study"
                         >
                             <Edit className="w-4 h-4" />
+                        </button>
+
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onManageProtocols?.(study);
+                            }}
+                            className="p-2 text-purple-600 hover:bg-purple-50 rounded"
+                            title="Manage protocols"
+                        >
+                            <FileText className="w-4 h-4" />
                         </button>
 
                         <button

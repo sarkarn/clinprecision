@@ -83,6 +83,21 @@ public class GatewayRoutesConfig {
                         )
                         .uri("lb://users-ws")
                 )
+                // Admin Service API routes (for controllers with /api/ prefix)
+                .route("admin-ws-api", r -> r
+                        .path("/admin-ws/api/**")
+                        .and()
+                        .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                        .and()
+                        .header("Authorization", "Bearer (.*)")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
+                                .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
+                                .filter(authFilter)
+                        )
+                        .uri("lb://admin-ws")
+                )
                 // Public GET routes (no auth required)
                 .route("admin-ws-get", r -> r
                         .path("/admin-ws/**")
