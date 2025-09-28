@@ -202,7 +202,7 @@ VALUES
 
 
 -- Add sample sites
-INSERT INTO sites (name,organization_id, site_number, principal_investigator_id, status, activation_date, deactivation_date, max_subjects, created_at, updated_at)
+INSERT INTO sites (name,organization_id, site_number, principal_investigator_id, status,aggregate_uuid, activation_date, deactivation_date, max_subjects, created_at, updated_at)
 VALUES
 -- Sites for Study 1
 
@@ -211,6 +211,7 @@ VALUES
   (SELECT id FROM organizations WHERE external_id = 'CMC8901'),
   'SITE-001',
   (SELECT id FROM users WHERE email = 'jsmith@biopharm.com'),
+  'a13919fc-939b-ed6f-4b5e-814a5afd1464',
   'active',
   '2024-01-20',
   NULL,
@@ -224,6 +225,7 @@ VALUES
   (SELECT id FROM organizations WHERE external_id = 'URH3456'),
   'SITE-002',
   (SELECT id FROM users WHERE email = 'echen@neurocare.org'),
+  '9a6e84e1-ee0a-abbb-2341-fb559c784cf4',
   'active',
   '2024-03-15',
   NULL,
@@ -237,6 +239,7 @@ VALUES
   (SELECT id FROM organizations WHERE external_id = 'CMC8901'),
   'SITE-003',
   (SELECT id FROM users WHERE email = 'mrodriguez@arthricare.com'),
+  '6601d3ed-7442-8166-c3f4-483c96103210',
   'active',
   '2024-05-10',
   NULL,

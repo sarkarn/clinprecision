@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircle, AlertCircle, Clock, FileText, Users, Target, Calendar, Link as LinkIcon, GitBranch, Send, Zap } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock, FileText, Users, Target, Calendar, Link as LinkIcon, Send, Zap } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
 import StudyContextHeader from '../components/StudyContextHeader';
 import NavigationSidebar, { NavigationToggle } from '../components/NavigationSidebar';
@@ -18,10 +18,6 @@ import StudyPublishWorkflow from './StudyPublishWorkflow';
 import { getStudyById } from '../../../../services/StudyService';
 import StudyDesignService from '../../../../services/StudyDesignService';
 
-// Import Protocol Version Management components
-import ProtocolVersionPanel from './protocol-version/ProtocolVersionPanel';
-import ProtocolVersionManagementModal from './protocol-version/ProtocolVersionManagementModal';
-import useProtocolVersioning from '../hooks/useProtocolVersioning';
 
 /**
  * Study Design Dashboard Component
@@ -53,10 +49,7 @@ const StudyDesignDashboard = () => {
     const [showWorkflowAssistant, setShowWorkflowAssistant] = useState(true);
     const [transitionTarget, setTransitionTarget] = useState(null);
     const [showTransitionHelper, setShowTransitionHelper] = useState(false);
-    const [showProtocolVersionModal, setShowProtocolVersionModal] = useState(false);
 
-    // Protocol Version Management
-    const protocolVersioning = useProtocolVersioning(studyId);
 
     // Design phases configuration
     const designPhases = [
@@ -114,23 +107,6 @@ const StudyDesignDashboard = () => {
             path: '/study-design/publish',
             status: 'AVAILABLE',
             category: 'design'
-        },
-        // Separator
-        {
-            id: 'separator',
-            type: 'separator',
-            label: 'Protocol Management'
-        },
-        // Independent Protocol Management
-        {
-            id: 'protocol-versions',
-            name: 'Protocol Versions',
-            description: 'Manage protocol versions and amendments',
-            icon: <FileText className="h-5 w-5" />,
-            path: '/study-design/protocol-versions',
-            status: 'AVAILABLE',
-            category: 'protocol-management',
-            independent: true
         }
     ];
 
@@ -216,7 +192,7 @@ const StudyDesignDashboard = () => {
                         'forms': { completed: false, percentage: 0, lastUpdated: null },
                         'review': { completed: false, percentage: 0, lastUpdated: null },
                         'publish': { completed: false, percentage: 0, lastUpdated: null },
-                        'protocol-versions': { completed: false, percentage: 0, lastUpdated: null }
+
                     });
                     setCompletedPhases(['basic-info']);
                 }
@@ -302,11 +278,6 @@ const StudyDesignDashboard = () => {
             return false;
         }
 
-        // Protocol versions are always accessible (independent of design workflow)
-        if (phaseId === 'protocol-versions') {
-            return true;
-        }
-
         // For development: Allow access to all design phases except publish
         // which should only be accessible after completing the review phase
         if (['basic-info', 'arms', 'visits', 'forms', 'review'].includes(phaseId)) {
@@ -339,13 +310,7 @@ const StudyDesignDashboard = () => {
     };
 
     // Handle Protocol Version Management
-    const handleCreateProtocolVersion = () => {
-        setShowProtocolVersionModal(true);
-    };
 
-    const handleManageProtocolVersions = () => {
-        setShowProtocolVersionModal(true);
-    };
 
     // Get current phase display name
     const getCurrentPhaseName = () => {
@@ -486,25 +451,7 @@ const StudyDesignDashboard = () => {
                                 {currentPhase === 'forms' && <FormBindingDesigner />}
                                 {currentPhase === 'review' && <StudyReviewPanel study={study} designProgress={designProgress} />}
                                 {currentPhase === 'publish' && <StudyPublishWorkflow />}
-                                {currentPhase === 'protocol-versions' && (
-                                    <ProtocolVersionPanel
-                                        studyId={studyId}
-                                        studyName={study?.name}
-                                        currentProtocolVersion={protocolVersioning.currentVersion}
-                                        protocolVersions={protocolVersioning.versions}
-                                        loading={protocolVersioning.loading}
-                                        onCreateVersion={handleCreateProtocolVersion}
-                                        onManageVersions={handleManageProtocolVersions}
-                                        onEditVersion={(versionId) => {
-                                            protocolVersioning.setEditingVersion(versionId);
-                                            setShowProtocolVersionModal(true);
-                                        }}
-                                        onSubmitReview={protocolVersioning.submitForReview}
-                                        onApproveVersion={protocolVersioning.approveVersion}
-                                        onActivateVersion={protocolVersioning.activateVersion}
-                                        compact={false}
-                                    />
-                                )}
+
                             </div>
                         </div>
                     </div>
@@ -521,20 +468,6 @@ const StudyDesignDashboard = () => {
                 onCancel={handleCancelTransition}
                 isVisible={showTransitionHelper}
             />
-
-            {/* Protocol Version Management Modal */}
-            {showProtocolVersionModal && (
-                <ProtocolVersionManagementModal
-                    studyId={studyId}
-                    studyName={study?.name}
-                    isOpen={showProtocolVersionModal}
-                    onClose={() => {
-                        setShowProtocolVersionModal(false);
-                        protocolVersioning.setEditingVersion(null);
-                    }}
-                    protocolVersioning={protocolVersioning}
-                />
-            )}
         </div>
     );
 };
@@ -548,8 +481,7 @@ const StudyDesignHeader = ({ study, currentPhase, overallCompletion, onBack }) =
             { id: 'visits', name: 'Visit Schedule' },
             { id: 'forms', name: 'Form Binding' },
             { id: 'review', name: 'Review & Validation' },
-            { id: 'publish', name: 'Publish Study' },
-            { id: 'protocol-versions', name: 'Protocol Versions' }
+            { id: 'publish', name: 'Publish Study' }
         ];
 
         const phase = designPhases.find(p => p.id === currentPhase);
@@ -904,6 +836,32 @@ const StudyReviewPanel = ({ study, designProgress }) => {
                         </div>
                     </div>
                 </div>
+
+                {/* Next Steps Section */}
+                <div className="border-t border-gray-200 pt-6">
+                    <h4 className="font-medium text-gray-900 mb-3">Next Steps</h4>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start">
+                            <FileText className="h-5 w-5 text-blue-600 mr-3 mt-0.5" />
+                            <div>
+                                <h5 className="text-sm font-medium text-blue-900 mb-2">Protocol Version Management</h5>
+                                <p className="text-sm text-blue-800 mb-3">
+                                    After completing your study design, create and manage protocol versions for regulatory approval and amendments.
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        window.open(`/study-design/study/${studyId}/protocols`, '_blank');
+                                    }}
+                                    className="inline-flex items-center px-3 py-2 border border-blue-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    Manage Protocol Versions
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Submit for Review Button */}
                 <div className="pt-6 flex flex-col items-end">
                     {error && <div className="text-red-600 text-sm mb-2">{error}</div>}

@@ -83,12 +83,42 @@ public class SiteProjectionHandler {
         System.out.println("[PROJECTION] Event Name: " + event.getName());
         
         try {
+            // Check if site already exists by site number or aggregate UUID
+            SiteEntity existingSite = siteRepository.findBySiteNumber(event.getSiteNumber())
+                .or(() -> siteRepository.findByAggregateUuid(event.getSiteId()))
+                .orElse(null);
+            
+            if (existingSite != null) {
+                System.out.println("[PROJECTION] Site already exists - updating aggregate UUID if needed");
+                System.out.println("[PROJECTION] Existing site ID: " + existingSite.getId());
+                System.out.println("[PROJECTION] Existing aggregate UUID: " + existingSite.getAggregateUuid());
+                System.out.println("[PROJECTION] Event aggregate UUID: " + event.getSiteId());
+                
+                // If the existing site doesn't have an aggregate UUID, set it
+                if (existingSite.getAggregateUuid() == null || existingSite.getAggregateUuid().isEmpty()) {
+                    System.out.println("[PROJECTION] Updating existing site with aggregate UUID: " + event.getSiteId());
+                    existingSite.setAggregateUuid(event.getSiteId());
+                    siteRepository.save(existingSite);
+                    System.out.println("[PROJECTION] Aggregate UUID updated successfully");
+                } else {
+                    System.out.println("[PROJECTION] Site already has aggregate UUID, no update needed");
+                }
+                
+                // Store the mapping from UUID to site number for future lookups
+                uuidToSiteNumber.put(event.getSiteId(), event.getSiteNumber());
+                System.out.println("[PROJECTION] ========== SiteCreatedEvent Processing Complete (Existing Site) ==========");
+                return;
+            }
+            
+            // Create new site entity
             SiteEntity site = new SiteEntity();
             // Don't set ID - let database auto-generate it
+            // But do set the aggregate UUID for Axon integration
+            site.setAggregateUuid(event.getSiteId());
             site.setName(event.getName());
             site.setSiteNumber(event.getSiteNumber());
             
-            System.out.println("[PROJECTION] Creating SiteEntity with name: " + event.getName() + ", siteNumber: " + event.getSiteNumber());
+            System.out.println("[PROJECTION] Creating new SiteEntity with UUID: " + event.getSiteId() + ", name: " + event.getName() + ", siteNumber: " + event.getSiteNumber());
             
             // Set organization if provided
             if (event.getOrganizationId() != null) {
@@ -106,11 +136,11 @@ public class SiteProjectionHandler {
             site.setEmail(event.getEmail());
             site.setStatus(SiteStatus.pending);
             
-            System.out.println("[PROJECTION] About to save SiteEntity to database...");
+            System.out.println("[PROJECTION] About to save new SiteEntity to database...");
             
             SiteEntity savedSite = siteRepository.save(site);
             
-            System.out.println("[PROJECTION] SUCCESS: Site saved with DB ID: " + savedSite.getId());
+            System.out.println("[PROJECTION] SUCCESS: New site saved with DB ID: " + savedSite.getId());
             System.out.println("[PROJECTION] Saved site number: " + savedSite.getSiteNumber());
             System.out.println("[PROJECTION] Saved site name: " + savedSite.getName());
             
@@ -118,7 +148,7 @@ public class SiteProjectionHandler {
             uuidToSiteNumber.put(event.getSiteId(), event.getSiteNumber());
             
             System.out.println("[PROJECTION] UUID-to-SiteNumber mapping stored: " + event.getSiteId() + " -> " + event.getSiteNumber());
-            System.out.println("[PROJECTION] ========== SiteCreatedEvent Processing Complete ==========");
+            System.out.println("[PROJECTION] ========== SiteCreatedEvent Processing Complete (New Site) ==========");
             
         } catch (Exception e) {
             System.out.println("[PROJECTION] ERROR: Failed to process SiteCreatedEvent!");
@@ -140,22 +170,14 @@ public class SiteProjectionHandler {
         System.out.println("[PROJECTION] Event Reason: " + event.getReason());
         
         try {
-            // Find site by site number using our UUID mapping
-            String siteNumber = uuidToSiteNumber.get(event.getSiteId());
-            if (siteNumber == null) {
-                System.out.println("[PROJECTION] ERROR: Site UUID not found in mapping: " + event.getSiteId());
-                System.out.println("[PROJECTION] Available UUID mappings: " + uuidToSiteNumber.keySet());
-                throw new IllegalStateException("Site UUID not found in mapping: " + event.getSiteId());
-            }
+            // Find site by aggregate UUID
+            SiteEntity site = siteRepository.findByAggregateUuid(event.getSiteId())
+                .orElseThrow(() -> new IllegalStateException("Site not found with aggregate UUID: " + event.getSiteId()));
             
-            System.out.println("[PROJECTION] Found site number mapping: " + event.getSiteId() + " → " + siteNumber);
-            
-            SiteEntity site = siteRepository.findBySiteNumber(siteNumber)
-                .orElseThrow(() -> new IllegalStateException("Site not found for UUID: " + event.getSiteId()));
-            
-            System.out.println("[PROJECTION] Found site entity: " + site.getName() + " (ID: " + site.getId() + ")");
+            System.out.println("[PROJECTION] Found site: " + site.getName() + " (" + site.getSiteNumber() + ")");
             System.out.println("[PROJECTION] Current status: " + site.getStatus());
             
+            // Update site status to active
             site.setStatus(SiteStatus.active);
             
             System.out.println("[PROJECTION] About to save site with new status: ACTIVE");
@@ -182,14 +204,9 @@ public class SiteProjectionHandler {
         UserEntity user = usersRepository.findById(event.getUserId())
             .orElseThrow(() -> new IllegalStateException("User not found: " + event.getUserId()));
         
-        // Find site by site number using our UUID mapping
-        String siteNumber = uuidToSiteNumber.get(event.getSiteId());
-        if (siteNumber == null) {
-            throw new IllegalStateException("Site UUID not found in mapping: " + event.getSiteId());
-        }
-        
-        SiteEntity site = siteRepository.findBySiteNumber(siteNumber)
-            .orElseThrow(() -> new IllegalStateException("Site not found for UUID: " + event.getSiteId()));
+        // Find site by aggregate UUID
+        SiteEntity site = siteRepository.findByAggregateUuid(event.getSiteId())
+            .orElseThrow(() -> new IllegalStateException("Site not found with aggregate UUID: " + event.getSiteId()));
             
         RoleEntity role = roleRepository.findById(event.getRoleId())
             .orElseThrow(() -> new IllegalStateException("Role not found: " + event.getRoleId()));

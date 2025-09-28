@@ -1,6 +1,7 @@
 package com.clinprecision.adminservice.site.service;
 
 import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.axonframework.modelling.command.AggregateNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -202,23 +203,69 @@ public class SiteManagementService {
         
         System.out.println("[SITE_ACTIVATE] Found site: " + site.getName() + " (" + site.getSiteNumber() + ")");
         System.out.println("[SITE_ACTIVATE] Current status: " + site.getStatus());
+        System.out.println("[SITE_ACTIVATE] Aggregate UUID: " + site.getAggregateUuid());
         
         if (site.getStatus() != SiteEntity.SiteStatus.pending) {
             System.out.println("[SITE_ACTIVATE] ERROR: Site status is not PENDING, cannot activate");
             throw new IllegalArgumentException("Site must be in PENDING status to activate");
         }
         
+        if (site.getAggregateUuid() == null || site.getAggregateUuid().isEmpty()) {
+            System.out.println("[SITE_ACTIVATE] ERROR: Site was not created through Axon (missing aggregate UUID)");
+            throw new IllegalArgumentException("Site must be created through proper Axon workflow to be activated");
+        }
+        
         try {
-            System.out.println("[SITE_ACTIVATE] Sending ActivateSiteCommand to Axon...");
+            System.out.println("[SITE_ACTIVATE] Sending ActivateSiteCommand to Axon with UUID: " + site.getAggregateUuid());
             
-            // Send command to aggregate (no longer requires studyId)
+            // Send command to aggregate using the UUID, not the database ID
             commandGateway.sendAndWait(new ActivateSiteCommand(
-                siteId.toString(),
+                site.getAggregateUuid(),
                 userId,
                 activateDto.getReason()
             ));
             
             System.out.println("[SITE_ACTIVATE] ActivateSiteCommand sent successfully!");
+            
+        } catch (AggregateNotFoundException e) {
+            System.out.println("[SITE_ACTIVATE] Aggregate not found in event store, initializing it first...");
+            
+            try {
+                // Initialize the aggregate by creating it in the event store
+                System.out.println("[SITE_ACTIVATE] Sending CreateSiteCommand to initialize aggregate...");
+                commandGateway.sendAndWait(new CreateSiteCommand(
+                    site.getAggregateUuid(),
+                    site.getName(),
+                    site.getSiteNumber(),
+                    site.getOrganization().getId(),
+                    site.getAddressLine1(),
+                    site.getAddressLine2(),
+                    site.getCity(),
+                    site.getState(),
+                    site.getPostalCode(),
+                    site.getCountry(),
+                    site.getPhone(),
+                    site.getEmail(),
+                    "system", // System initiated creation
+                    "Aggregate initialization for existing site"
+                ));
+                
+                System.out.println("[SITE_ACTIVATE] Site aggregate initialized, now sending activation command...");
+                
+                // Now try the activation command again
+                commandGateway.sendAndWait(new ActivateSiteCommand(
+                    site.getAggregateUuid(),
+                    userId,
+                    activateDto.getReason()
+                ));
+                
+                System.out.println("[SITE_ACTIVATE] ActivateSiteCommand sent successfully after initialization!");
+                
+            } catch (Exception initEx) {
+                System.out.println("[SITE_ACTIVATE] ERROR: Failed to initialize aggregate: " + initEx.getMessage());
+                initEx.printStackTrace();
+                throw new IllegalStateException("Failed to initialize site aggregate: " + initEx.getMessage(), initEx);
+            }
             
             // Small delay to allow event processing
             try {
@@ -260,9 +307,13 @@ public class SiteManagementService {
         SiteEntity site = siteRepository.findById(siteId)
             .orElseThrow(() -> new IllegalArgumentException("Site not found: " + siteId));
         
-        // Send command to aggregate
+        if (site.getAggregateUuid() == null || site.getAggregateUuid().isEmpty()) {
+            throw new IllegalArgumentException("Site must be created through proper Axon workflow to assign users");
+        }
+        
+        // Send command to aggregate using UUID
         commandGateway.sendAndWait(new AssignUserToSiteCommand(
-            siteId.toString(),
+            site.getAggregateUuid(),
             assignDto.getUserId(),
             assignDto.getRoleId(),
             assignedBy,
@@ -309,6 +360,7 @@ public class SiteManagementService {
     private SiteDto mapToDto(SiteEntity entity) {
         SiteDto dto = new SiteDto();
         dto.setId(entity.getId());
+        dto.setAggregateUuid(entity.getAggregateUuid());
         dto.setName(entity.getName());
         dto.setSiteNumber(entity.getSiteNumber());
         dto.setOrganizationId(entity.getOrganization() != null ? entity.getOrganization().getId() : null);

@@ -195,6 +195,7 @@ CREATE TABLE organization_contacts (
 
 CREATE TABLE sites (
 	  id bigint NOT NULL AUTO_INCREMENT,
+	  aggregate_uuid VARCHAR(255);
 	  organization_id bigint NOT NULL COMMENT 'Reference to the parent organization',
 	  site_number varchar(255) DEFAULT NULL,
 	  principal_investigator_id bigint DEFAULT NULL COMMENT 'Reference to the principal investigator user',
@@ -215,6 +216,7 @@ CREATE TABLE sites (
 	  state varchar(255) DEFAULT NULL,
 	  PRIMARY KEY (id),
 	  UNIQUE KEY site_number (site_number,study_id),
+	  UNIQUE KEY idx_sites_aggregate_uuid (aggregate_uuid),
 	  CONSTRAINT FKxrbt6mjphi09w4pgiwyuispo FOREIGN KEY (principal_investigator_id) REFERENCES users (id),
 	  CONSTRAINT sites_ibfk_1 FOREIGN KEY (organization_id) REFERENCES organizations (id)
 );

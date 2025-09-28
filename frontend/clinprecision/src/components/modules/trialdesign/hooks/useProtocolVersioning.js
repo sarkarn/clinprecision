@@ -16,7 +16,7 @@ const useProtocolVersioning = (studyId) => {
   const PROTOCOL_VERSION_STATUS = {
     DRAFT: {
       value: 'DRAFT',
-      label: 'Draft',
+      label: 'Initial Draft',
       description: 'Protocol version in development',
       color: 'bg-gray-100 text-gray-700',
       canEdit: true,
@@ -24,11 +24,21 @@ const useProtocolVersioning = (studyId) => {
       canApprove: false,
       canActivate: false
     },
-    PROTOCOL_REVIEW: {
-      value: 'PROTOCOL_REVIEW',
-      label: 'Protocol Review',
-      description: 'Under protocol review',
+    UNDER_REVIEW: {
+      value: 'UNDER_REVIEW',
+      label: 'Submitted for Review',
+      description: 'Submitted to IRB/EC for review',
       color: 'bg-yellow-100 text-yellow-700',
+      canEdit: false,
+      canSubmit: false,
+      canApprove: false,
+      canActivate: false
+    },
+    AMENDMENT_REVIEW: {
+      value: 'AMENDMENT_REVIEW',
+      label: 'Pending Approval',
+      description: 'Under IRB/EC review for approval',
+      color: 'bg-blue-100 text-blue-700',
       canEdit: false,
       canSubmit: false,
       canApprove: true,
@@ -37,7 +47,7 @@ const useProtocolVersioning = (studyId) => {
     APPROVED: {
       value: 'APPROVED',
       label: 'Approved',
-      description: 'Protocol version approved',
+      description: 'Approved by IRB/EC and regulatory bodies',
       color: 'bg-green-100 text-green-700',
       canEdit: false,
       canSubmit: false,
@@ -48,7 +58,7 @@ const useProtocolVersioning = (studyId) => {
       value: 'ACTIVE',
       label: 'Active',
       description: 'Currently active protocol version',
-      color: 'bg-blue-100 text-blue-700',
+      color: 'bg-emerald-100 text-emerald-700',
       canEdit: false,
       canSubmit: false,
       canApprove: false,
@@ -146,7 +156,7 @@ const useProtocolVersioning = (studyId) => {
       // Set current version
       const activeVersion = transformedVersions.find(v => v.status === 'ACTIVE');
       const latestApproved = transformedVersions.find(v => v.status === 'APPROVED');
-      const latestDraft = transformedVersions.find(v => v.status === 'DRAFT' || v.status === 'PROTOCOL_REVIEW');
+      const latestDraft = transformedVersions.find(v => v.status === 'DRAFT' || v.status === 'UNDER_REVIEW' || v.status === 'AMENDMENT_REVIEW');
       
       setCurrentProtocolVersion(activeVersion || latestApproved || latestDraft || transformedVersions[0] || null);
     } catch (error) {
@@ -241,7 +251,7 @@ const useProtocolVersioning = (studyId) => {
       setLoading(true);
       clearError();
 
-      await StudyVersioningService.updateVersionStatus(versionId, 'AMENDMENT_REVIEW');
+      await StudyVersioningService.updateVersionStatus(versionId, 'UNDER_REVIEW');
       await reloadVersions();
       
     } catch (error) {

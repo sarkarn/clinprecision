@@ -23,38 +23,9 @@ import { OrganizationService } from '../../../services/OrganizationService';
 
 import CreateSiteDialog from './CreateSiteDialog';
 import SiteDetailsDialog from './SiteDetailsDialog';
+import ActivateSiteDialog from './ActivateSiteDialog';
 
 
-
-const ActivateSiteDialog = ({ open, onClose, site, onSiteActivated }) => {
-  if (!open) return null;
-  
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-        <h2 className="text-xl font-bold mb-4">Activate Site</h2>
-        <p className="text-gray-600 mb-4">Activate {site?.name}?</p>
-        <div className="flex gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => {
-              onSiteActivated();
-              onClose();
-            }}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          >
-            Activate
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
   if (!open) return null;

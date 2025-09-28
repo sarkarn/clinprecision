@@ -2,10 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Play, Trash2, AlertCircle, CheckCircle, Building, BookOpen } from 'lucide-react';
 import { SiteService } from '../../../services/SiteService';
+import StudyService from '../../../services/StudyService';
 
 const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
   const [loading, setLoading] = useState(false);
   const [associations, setAssociations] = useState([]);
+  const [studies, setStudies] = useState([]);
+  const [studiesLoading, setStudiesLoading] = useState(false);
   const [newStudyId, setNewStudyId] = useState('');
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
@@ -14,6 +17,7 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
   useEffect(() => {
     if (open && site) {
       fetchAssociations();
+      fetchStudies();
     }
   }, [open, site]);
 
@@ -30,9 +34,33 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
     }
   };
 
+  const fetchStudies = async () => {
+    try {
+      setStudiesLoading(true);
+      const data = await StudyService.getStudies();
+      setStudies(data); // Set all studies initially, filtering will be done in render
+    } catch (error) {
+      console.error('Error fetching studies:', error);
+      // Don't set error state here, just log it - studies dropdown will show loading state
+    } finally {
+      setStudiesLoading(false);
+    }
+  };
+
+  // Get available studies (not already associated)
+  const getAvailableStudies = () => {
+    return studies.filter(study => 
+      !associations.some(assoc => 
+        assoc.studyId === study.protocolNumber || 
+        assoc.studyId === study.id?.toString() ||
+        assoc.studyId === study.name
+      )
+    );
+  };
+
   const handleAddAssociation = async () => {
     if (!newStudyId.trim() || !reason.trim()) {
-      setError('Study ID and reason are required');
+      setError('Study selection and reason are required');
       return;
     }
 
@@ -210,17 +238,32 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="studyId" className="block text-sm font-medium text-gray-700 mb-2">
-                  Study ID *
+                  Study *
                 </label>
-                <input
-                  type="text"
+                <select
                   id="studyId"
                   value={newStudyId}
                   onChange={(e) => setNewStudyId(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., STUDY-001"
-                  disabled={loading}
-                />
+                  disabled={loading || studiesLoading}
+                >
+                  <option value="">
+                    {studiesLoading ? 'Loading studies...' : 'Select a study...'}
+                  </option>
+                  {getAvailableStudies().map((study) => (
+                    <option 
+                      key={study.id || study.protocolNumber} 
+                      value={study.protocolNumber || study.id}
+                    >
+                      {study.protocolNumber || study.id} - {study.name}
+                    </option>
+                  ))}
+                </select>
+                {getAvailableStudies().length === 0 && !studiesLoading && (
+                  <p className="mt-1 text-sm text-gray-500">
+                    No available studies to associate
+                  </p>
+                )}
               </div>
               
               <div>

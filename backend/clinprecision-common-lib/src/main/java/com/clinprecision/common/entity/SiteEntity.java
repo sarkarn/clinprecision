@@ -15,6 +15,9 @@ public class SiteEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "aggregate_uuid", unique = true)
+    private String aggregateUuid;
+
     @Column(name = "name", nullable = false)
     private String name;
 
@@ -90,6 +93,14 @@ public class SiteEntity {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getAggregateUuid() {
+        return aggregateUuid;
+    }
+
+    public void setAggregateUuid(String aggregateUuid) {
+        this.aggregateUuid = aggregateUuid;
     }
 
     public String getName() {
