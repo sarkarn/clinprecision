@@ -82,18 +82,19 @@ export const SiteService = {
   },
 
   /**
-   * Activate a clinical trial site for a study
+   * Activate a clinical trial site
+   * Site activation is now independent of study context.
+   * Study-site associations are managed separately.
    * @param {string} siteId - Site ID to activate
    * @param {Object} activationData - Activation data
-   * @param {number} activationData.studyId - Study ID
    * @param {string} activationData.reason - Reason for activation (for audit)
    * @returns {Promise} - Promise with activated site data
    */
   activateSite: async (siteId, activationData) => {
     try {
       // Validate required fields
-      if (!activationData.studyId || !activationData.reason) {
-        throw new Error('Study ID and reason are required for site activation');
+      if (!activationData.reason) {
+        throw new Error('Reason is required for site activation');
       }
 
       const response = await ApiService.post(`/admin-ws/sites/${siteId}/activate`, activationData);
@@ -265,6 +266,104 @@ export const SiteService = {
       isValid: errors.length === 0,
       errors: errors
     };
+  },
+
+  // ============================================================================
+  // STUDY-SITE ASSOCIATION METHODS
+  // ============================================================================
+
+  /**
+   * Associate a site with a study
+   * @param {string} siteId - Site ID
+   * @param {Object} associationData - Association data
+   * @param {string} associationData.studyId - Study ID
+   * @param {string} associationData.reason - Reason for association
+   * @returns {Promise} - Promise with association data
+   */
+  associateSiteWithStudy: async (siteId, associationData) => {
+    try {
+      const requiredFields = ['studyId', 'reason'];
+      for (const field of requiredFields) {
+        if (!associationData[field]) {
+          throw new Error(`Required field missing: ${field}`);
+        }
+      }
+
+      const response = await ApiService.post(`/admin-ws/sites/${siteId}/studies`, associationData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error associating site ${siteId} with study:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Activate a site for a specific study
+   * @param {string} siteId - Site ID
+   * @param {string} studyId - Study ID
+   * @param {Object} activationData - Activation data
+   * @param {string} activationData.reason - Reason for activation
+   * @returns {Promise} - Promise with updated association data
+   */
+  activateSiteForStudy: async (siteId, studyId, activationData) => {
+    try {
+      if (!activationData.reason) {
+        throw new Error('Reason is required for study-site activation');
+      }
+
+      const response = await ApiService.post(`/admin-ws/sites/${siteId}/studies/${studyId}/activate`, activationData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error activating site ${siteId} for study ${studyId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get all study associations for a site
+   * @param {string} siteId - Site ID
+   * @returns {Promise} - Promise with study associations
+   */
+  getStudyAssociationsForSite: async (siteId) => {
+    try {
+      const response = await ApiService.get(`/admin-ws/sites/${siteId}/studies`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching study associations for site ${siteId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get all site associations for a study
+   * @param {string} studyId - Study ID
+   * @returns {Promise} - Promise with site associations
+   */
+  getSiteAssociationsForStudy: async (studyId) => {
+    try {
+      const response = await ApiService.get(`/admin-ws/sites/studies/${studyId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching site associations for study ${studyId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Remove association between site and study
+   * @param {string} siteId - Site ID
+   * @param {string} studyId - Study ID
+   * @param {string} reason - Reason for removal (optional)
+   * @returns {Promise} - Promise indicating success
+   */
+  removeSiteStudyAssociation: async (siteId, studyId, reason = 'Administrative removal') => {
+    try {
+      const response = await ApiService.delete(`/admin-ws/sites/${siteId}/studies/${studyId}?reason=${encodeURIComponent(reason)}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error removing association between site ${siteId} and study ${studyId}:`, error);
+      throw error;
+    }
   }
 };
 

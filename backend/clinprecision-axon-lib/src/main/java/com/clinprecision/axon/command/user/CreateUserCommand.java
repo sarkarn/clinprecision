@@ -1,6 +1,6 @@
-package com.clinprecision.common.application.command.user;
+package com.clinprecision.axon.command.user;
 
-import com.clinprecision.common.application.command.BaseCommand;
+import com.clinprecision.axon.command.BaseCommand;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

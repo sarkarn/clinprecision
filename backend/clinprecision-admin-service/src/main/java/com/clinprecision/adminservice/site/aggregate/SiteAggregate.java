@@ -64,6 +64,8 @@ public class SiteAggregate {
         
         try {
             System.out.println("[AGGREGATE] About to apply SiteCreatedEvent...");
+            System.out.println("[AGGREGATE] Event will be applied with UUID: " + command.getSiteId());
+            System.out.println("[AGGREGATE] Event will be applied with site number: " + command.getSiteNumber());
             
             // Apply the event - this triggers the event sourcing
             AggregateLifecycle.apply(new SiteCreatedEvent(
@@ -84,6 +86,7 @@ public class SiteAggregate {
             ));
             
             System.out.println("[AGGREGATE] SiteCreatedEvent applied successfully!");
+            System.out.println("[AGGREGATE] Event should now be processed by projection handlers...");
             System.out.println("[AGGREGATE] ========== CreateSiteCommand Processing Complete ==========");
             
         } catch (Exception e) {
@@ -98,27 +101,48 @@ public class SiteAggregate {
      * Command Handler: Activate Site
      * Business Rules:
      * - Site must be in PENDING status
-     * - Study must exist and be valid
      * - User must have activation privileges
+     * Site activation is now independent of study context.
      */
     @CommandHandler
     public void handle(ActivateSiteCommand command) {
-        // Business rule validation
-        if (this.status == SiteStatus.ACTIVE) {
-            throw new IllegalStateException("Site is already active");
-        }
+        System.out.println("[AGGREGATE] ========== ActivateSiteCommand Received ==========");
+        System.out.println("[AGGREGATE] Command Site ID: " + command.getSiteId());
+        System.out.println("[AGGREGATE] Command User ID: " + command.getUserId());
+        System.out.println("[AGGREGATE] Command Reason: " + command.getReason());
+        System.out.println("[AGGREGATE] Current aggregate status: " + this.status);
         
-        if (this.status != SiteStatus.PENDING) {
-            throw new IllegalStateException("Site must be in PENDING status to activate");
+        try {
+            // Business rule validation
+            if (this.status == SiteStatus.ACTIVE) {
+                System.out.println("[AGGREGATE] ERROR: Site is already active");
+                throw new IllegalStateException("Site is already active");
+            }
+            
+            if (this.status != SiteStatus.PENDING) {
+                System.out.println("[AGGREGATE] ERROR: Site status is not PENDING, cannot activate");
+                throw new IllegalStateException("Site must be in PENDING status to activate");
+            }
+            
+            System.out.println("[AGGREGATE] About to apply SiteActivatedEvent...");
+            
+            // Apply the activation event (no longer includes studyId)
+            AggregateLifecycle.apply(new SiteActivatedEvent(
+                command.getSiteId(),
+                command.getUserId(),
+                command.getReason()
+            ));
+            
+            System.out.println("[AGGREGATE] SiteActivatedEvent applied successfully!");
+            System.out.println("[AGGREGATE] Event should now be processed by projection handlers...");
+            System.out.println("[AGGREGATE] ========== ActivateSiteCommand Processing Complete ==========");
+            
+        } catch (Exception e) {
+            System.out.println("[AGGREGATE] ERROR: Failed to process ActivateSiteCommand!");
+            System.out.println("[AGGREGATE] Error message: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-        
-        // Apply the activation event
-        AggregateLifecycle.apply(new SiteActivatedEvent(
-            command.getSiteId(),
-            command.getStudyId(),
-            command.getUserId(),
-            command.getReason()
-        ));
     }
 
     /**
@@ -161,7 +185,7 @@ public class SiteAggregate {
     @EventSourcingHandler
     public void on(SiteActivatedEvent event) {
         this.status = SiteStatus.ACTIVE;
-        this.activeStudyIds.add(event.getStudyId());
+        // Note: Study-site associations are now managed separately via SiteStudyEntity
     }
 
     @EventSourcingHandler

@@ -5,10 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.clinprecision</groupId>
-    <artifactId>clinprecision-common-lib</artifactId>
+    <artifactId>clinprecision-axon-lib</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>clinprecision-common-lib</name>
+    <name>clinprecision-axon-lib</name>
     <description>Common entities, DTOs, and utilities shared across ClinPrecision microservices</description>
 
     <properties>
@@ -39,6 +39,12 @@
                 <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!-- Force newer Guava version to fix gRPC compatibility -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>32.0.1-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -72,13 +78,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- MapStruct for mapping between entities and DTOs -->
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
-            <version>${mapstruct.version}</version>
-        </dependency>
-
+     
         <!-- Jackson for JSON processing -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -96,16 +96,22 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Spring Cloud OpenFeign for microservice communication -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-openfeign</artifactId>
-        </dependency>
-
         <!-- Axon Framework for CQRS and Event Sourcing -->
         <dependency>
             <groupId>org.axonframework</groupId>
             <artifactId>axon-spring-boot-starter</artifactId>
+            <version>${axon.version}</version>
+        </dependency>
+        <!-- Axon Eventsourcing includes JPA event store -->
+        <dependency>
+            <groupId>org.axonframework</groupId>
+            <artifactId>axon-eventsourcing</artifactId>
+            <version>${axon.version}</version>
+        </dependency>
+        <!-- Axon Messaging for command/event handling -->
+        <dependency>
+            <groupId>org.axonframework</groupId>
+            <artifactId>axon-messaging</artifactId>
             <version>${axon.version}</version>
         </dependency>
         <!-- Test dependencies -->

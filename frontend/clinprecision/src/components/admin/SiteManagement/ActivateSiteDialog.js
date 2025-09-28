@@ -19,7 +19,8 @@ const ActivateSiteDialog = ({ open, onClose, site, onSiteActivated }) => {
       setLoading(true);
       setError('');
       
-      await SiteService.activateSite(site.id, reason);
+      // Site activation is now independent of study context
+      await SiteService.activateSite(site.id, { reason: reason.trim() });
       
       setNotification({
         show: true,
@@ -106,7 +107,8 @@ const ActivateSiteDialog = ({ open, onClose, site, onSiteActivated }) => {
             <div>
               <h4 className="font-medium text-yellow-800 mb-1">Important</h4>
               <p className="text-sm text-yellow-700">
-                Activating this site will allow it to participate in clinical trials. 
+                Activating this site makes it available for clinical trial operations. 
+                Study-site associations will need to be configured separately for each trial.
                 This action will be recorded in the audit trail for regulatory compliance.
               </p>
             </div>

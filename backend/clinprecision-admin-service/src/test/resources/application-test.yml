@@ -1,0 +1,39 @@
+# Test Configuration for ClinPrecision Admin Service
+
+# Test Database Configuration
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+    
+  # H2 Console (for debugging)
+  h2:
+    console:
+      enabled: true
+      
+  # JPA Configuration
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    
+  # Disable Eureka for tests
+  cloud:
+    discovery:
+      enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+# Logging configuration for tests
+logging:
+  level:
+    com.clinprecision: DEBUG
+    org.axonframework: DEBUG
+    org.springframework.transaction: DEBUG
+    org.hibernate: DEBUG
+    root: INFO
