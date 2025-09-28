@@ -15,6 +15,7 @@ import StudyTeamManagement from "./StudyTeamManagement";
 import CRFBuilderIntegration from "../../common/forms/CRFBuilderIntegration";
 import FormVersionHistory from "../../common/forms/FormVersionHistory";
 import FormVersionViewer from "../../common/forms/FormVersionViewer";
+import { SiteManagement } from "../../admin/SiteManagement";
 import { useAuth } from "../../login/AuthContext";
 import { Navigate } from "react-router-dom";
 
@@ -44,6 +45,11 @@ export default function AdminModule() {
                 <Route path="organizations/create" element={<OrganizationForm />} />
                 <Route path="organizations/edit/:id" element={<OrganizationForm />} />
                 <Route path="organizations/view/:id" element={<OrganizationDetail />} />
+
+                {/* Site Management Routes */}
+                <Route path="sites" element={
+                    isAuthenticated ? <SiteManagement /> : <Navigate to="/login" state={{ from: "/user-management/sites" }} />
+                } />
 
                 {/* User Study Role Management Routes */}
                 <Route path="user-study-roles" element={<UserStudyRoleList />} />

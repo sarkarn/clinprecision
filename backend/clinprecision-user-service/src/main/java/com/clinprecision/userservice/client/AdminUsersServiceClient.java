@@ -15,14 +15,13 @@ import java.util.Optional;
 /**
  * Feign client for accessing Admin Service user management functionality
  */
-@FeignClient(name = "admin-ws",
-         path = "/users", fallback = AdminUsersServiceClientFallback.class)
+@FeignClient(name = "admin-ws", fallback = AdminUsersServiceClientFallback.class)
 public interface AdminUsersServiceClient {
 
     /**
      * Get user details by email from Admin Service
      */
-    @GetMapping("/by-email/{email}")
+    @GetMapping("/users/by-email/{email}")
     @Retry(name="admin-ws")
     @CircuitBreaker(name="admin-ws")
     ResponseEntity<UserDto> getUserDetailsByEmail(@PathVariable String email);
@@ -30,7 +29,7 @@ public interface AdminUsersServiceClient {
     /**
      * Get user role by user ID from Admin Service
      */
-    @GetMapping("/{userId}/role")
+    @GetMapping("/users/{userId}/role")
     @Retry(name="admin-ws")
     @CircuitBreaker(name="admin-ws")
     ResponseEntity<String> getUserRole(@PathVariable Long userId);
@@ -39,15 +38,16 @@ public interface AdminUsersServiceClient {
      * Get user details for Spring Security authentication
      * This method will be used for loadUserByUsername
      */
-    @GetMapping("/auth/{email}")
+    @GetMapping("/users/auth/{email}")
     @Retry(name="admin-ws")
     @CircuitBreaker(name="admin-ws")
     ResponseEntity<AuthUserDto> loadUserByUsername(@PathVariable String email);
 
     /**
      * Get highest priority active user study role
+     * Uses the existing UserStudyRoleController endpoint
      */
-    @GetMapping("/study/{userId}")
+    @GetMapping("/api/user-study-roles/users/{userId}/highest-priority")
     @Retry(name="admin-ws")
     @CircuitBreaker(name="admin-ws")
     ResponseEntity<Optional<UserStudyRoleDto>> findHighestPriorityActiveRoleByUserId(@PathVariable Long userId);

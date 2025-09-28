@@ -7,7 +7,7 @@ export default function AdminDashboard() {
                 <h3 className="text-xl font-semibold">Administration Dashboard</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* User Types Card */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="p-5 bg-blue-50 border-b border-blue-100">
@@ -80,21 +80,45 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* Form Templates Card */}
+                {/* Site Management Card */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="p-5 bg-indigo-50 border-b border-indigo-100">
-                        <h4 className="font-medium text-lg text-indigo-800">Form Templates</h4>
+                    <div className="p-5 bg-teal-50 border-b border-teal-100">
+                        <h4 className="font-medium text-lg text-teal-800">Clinical Sites</h4>
                     </div>
                     <div className="p-5">
                         <p className="text-gray-600 mb-4">
-                            Manage reusable form templates for standardization across studies.
+                            Manage clinical trial sites, activate for studies, and assign users with full audit trail.
                         </p>
                         <Link
-                            to="/user-management/form-templates"
-                            className="inline-block bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                            to="/user-management/sites"
+                            className="inline-block bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors"
                         >
-                            Manage Form Templates
+                            Manage Sites
                         </Link>
+                    </div>
+                </div>
+            </div>
+
+            {/* Secondary Management Section */}
+            <div className="mt-8">
+                <h4 className="text-lg font-semibold mb-4">Additional Management</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Form Templates Card */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="p-5 bg-indigo-50 border-b border-indigo-100">
+                            <h4 className="font-medium text-lg text-indigo-800">Form Templates</h4>
+                        </div>
+                        <div className="p-5">
+                            <p className="text-gray-600 mb-4">
+                                Manage reusable form templates for standardization across studies.
+                            </p>
+                            <Link
+                                to="/user-management/form-templates"
+                                className="inline-block bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                            >
+                                Manage Form Templates
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -145,6 +169,22 @@ export default function AdminDashboard() {
                             </div>
                             <span className="text-sm font-medium text-gray-900">New User</span>
                             <p className="text-xs text-gray-500 mt-1">Create a new user account</p>
+                        </div>
+                    </Link>
+
+                    <Link
+                        to="/user-management/sites"
+                        className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-teal-300 hover:bg-teal-50 transition-colors"
+                    >
+                        <div className="text-center">
+                            <div className="text-teal-600 mb-2">
+                                <svg className="mx-auto h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                            <span className="text-sm font-medium text-gray-900">Manage Sites</span>
+                            <p className="text-xs text-gray-500 mt-1">Create and manage clinical sites</p>
                         </div>
                     </Link>
                 </div>

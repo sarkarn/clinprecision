@@ -1,4 +1,4 @@
-package com.clinprecision.common.application.command;
+package com.clinprecision.axon.command;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;

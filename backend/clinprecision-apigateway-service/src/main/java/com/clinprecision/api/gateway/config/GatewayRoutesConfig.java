@@ -32,6 +32,32 @@ public class GatewayRoutesConfig {
                         )
                         .uri("lb://users-ws")
                 )
+                // Site Management Routes - specific routes for better path matching
+                .route("admin-ws-sites-get", r -> r
+                        .path("/admin-ws/sites/**")
+                        .and()
+                        .method("GET")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
+                                .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
+                        )
+                        .uri("lb://admin-ws")
+                )
+                .route("admin-ws-sites-write", r -> r
+                        .path("/admin-ws/sites/**")
+                        .and()
+                        .method("POST", "PUT", "DELETE", "PATCH")
+                        .and()
+                        .header("Authorization", "Bearer (.*)")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
+                                .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
+                                .filter(authFilter)
+                        )
+                        .uri("lb://admin-ws")
+                )
                 // users-ws-get-update-delete
                 .route("admin-ws-get-update-delete", r -> r
                         .path("/admin-ws/users/**")

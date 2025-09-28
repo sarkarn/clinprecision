@@ -193,6 +193,32 @@ CREATE TABLE organization_contacts (
     FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
 );
 
+CREATE TABLE sites (
+	  id bigint NOT NULL AUTO_INCREMENT,
+	  organization_id bigint NOT NULL COMMENT 'Reference to the parent organization',
+	  site_number varchar(255) DEFAULT NULL,
+	  principal_investigator_id bigint DEFAULT NULL COMMENT 'Reference to the principal investigator user',
+	  status enum('pending','active','suspended','closed') DEFAULT 'pending',
+	  activation_date date DEFAULT NULL COMMENT 'Date when site was activated',
+	  deactivation_date date DEFAULT NULL COMMENT 'Date when site was deactivated',
+	  max_subjects int DEFAULT NULL COMMENT 'Maximum number of subjects allowed at this site',
+	  created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+	  updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	  address_line1 varchar(255) DEFAULT NULL,
+	  address_line2 varchar(255) DEFAULT NULL,
+	  city varchar(255) DEFAULT NULL,
+	  country varchar(255) DEFAULT NULL,
+	  email varchar(255) DEFAULT NULL,
+	  name varchar(255) NOT NULL,
+	  phone varchar(255) DEFAULT NULL,
+	  postal_code varchar(255) DEFAULT NULL,
+	  state varchar(255) DEFAULT NULL,
+	  PRIMARY KEY (id),
+	  UNIQUE KEY site_number (site_number,study_id),
+	  CONSTRAINT FKxrbt6mjphi09w4pgiwyuispo FOREIGN KEY (principal_investigator_id) REFERENCES users (id),
+	  CONSTRAINT sites_ibfk_1 FOREIGN KEY (organization_id) REFERENCES organizations (id)
+);
+
 -- User types and classifications
 CREATE TABLE user_types (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -626,33 +652,7 @@ CREATE TABLE study_interventions (
     CONSTRAINT chk_interventions_type CHECK (type IN ('DRUG', 'DEVICE', 'PROCEDURE', 'BEHAVIORAL', 'OTHER'))
 );
 
-CREATE TABLE sites (
-	  id bigint NOT NULL AUTO_INCREMENT,
-	  organization_id bigint NOT NULL COMMENT 'Reference to the parent organization',
-	  site_number varchar(255) DEFAULT NULL,
-	  study_id bigint NOT NULL COMMENT 'Reference to the study',
-	  principal_investigator_id bigint DEFAULT NULL COMMENT 'Reference to the principal investigator user',
-	  status enum('pending','active','suspended','closed') DEFAULT 'pending',
-	  activation_date date DEFAULT NULL COMMENT 'Date when site was activated',
-	  deactivation_date date DEFAULT NULL COMMENT 'Date when site was deactivated',
-	  max_subjects int DEFAULT NULL COMMENT 'Maximum number of subjects allowed at this site',
-	  created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-	  updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	  address_line1 varchar(255) DEFAULT NULL,
-	  address_line2 varchar(255) DEFAULT NULL,
-	  city varchar(255) DEFAULT NULL,
-	  country varchar(255) DEFAULT NULL,
-	  email varchar(255) DEFAULT NULL,
-	  name varchar(255) NOT NULL,
-	  phone varchar(255) DEFAULT NULL,
-	  postal_code varchar(255) DEFAULT NULL,
-	  state varchar(255) DEFAULT NULL,
-	  PRIMARY KEY (id),
-	  UNIQUE KEY site_number (site_number,study_id),
-	  CONSTRAINT FKxrbt6mjphi09w4pgiwyuispo FOREIGN KEY (principal_investigator_id) REFERENCES users (id),
-	  CONSTRAINT sites_ibfk_1 FOREIGN KEY (organization_id) REFERENCES organizations (id),
-	  CONSTRAINT sites_ibfk_2 FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE
-);
+
 
 CREATE TABLE visit_definitions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

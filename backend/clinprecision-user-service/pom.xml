@@ -35,6 +35,21 @@
 			<groupId>com.clinprecision</groupId>
 			<artifactId>clinprecision-common-lib</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
+			<exclusions>
+				<!-- Exclude Axon Framework - User Service doesn't need CQRS/Event Sourcing -->
+				<exclusion>
+					<groupId>org.axonframework</groupId>
+					<artifactId>axon-spring-boot-starter</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.axonframework</groupId>
+					<artifactId>axon-eventsourcing</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.axonframework</groupId>
+					<artifactId>axon-messaging</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<!-- Temporarily disabled DevTools due to Lombok annotation processor conflicts -->

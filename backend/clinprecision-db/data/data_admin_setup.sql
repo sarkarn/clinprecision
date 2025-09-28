@@ -199,3 +199,48 @@ VALUES
 ((SELECT id FROM users WHERE email = 'mrodriguez@arthricare.com'), (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN')),
 ((SELECT id FROM users WHERE email = 'swilliams@cardiohealth.org'), (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN')),
 ((SELECT id FROM users WHERE email = 'dlee@respicare.org'), (SELECT id FROM roles WHERE name = 'SPONSOR_ADMIN'));
+
+
+-- Add sample sites
+INSERT INTO sites (name,organization_id, site_number, principal_investigator_id, status, activation_date, deactivation_date, max_subjects, created_at, updated_at)
+VALUES
+-- Sites for Study 1
+
+(
+'Site 1',
+  (SELECT id FROM organizations WHERE external_id = 'CMC8901'),
+  'SITE-001',
+  (SELECT id FROM users WHERE email = 'jsmith@biopharm.com'),
+  'active',
+  '2024-01-20',
+  NULL,
+  100,
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP
+),
+-- Sites for Study 3
+(
+  'Site 3',
+  (SELECT id FROM organizations WHERE external_id = 'URH3456'),
+  'SITE-002',
+  (SELECT id FROM users WHERE email = 'echen@neurocare.org'),
+  'active',
+  '2024-03-15',
+  NULL,
+  75,
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP
+),
+-- Sites for Study 4
+(
+  'Site 4',
+  (SELECT id FROM organizations WHERE external_id = 'CMC8901'),
+  'SITE-003',
+  (SELECT id FROM users WHERE email = 'mrodriguez@arthricare.com'),
+  'active',
+  '2024-05-10',
+  NULL,
+  150,
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP
+);
