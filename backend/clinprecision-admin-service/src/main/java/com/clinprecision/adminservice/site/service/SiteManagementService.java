@@ -51,40 +51,111 @@ public class SiteManagementService {
      * @return Created site details
      */
     public SiteDto createSite(CreateSiteDto createSiteDto, String userId) {
+        System.out.println("[SITE_CREATE] Starting site creation for: " + createSiteDto.getSiteNumber());
+        
         // Validation
         if (siteRepository.findBySiteNumber(createSiteDto.getSiteNumber()).isPresent()) {
+            System.out.println("[SITE_CREATE] ERROR: Site number already exists: " + createSiteDto.getSiteNumber());
             throw new IllegalArgumentException("Site number already exists: " + createSiteDto.getSiteNumber());
         }
         
         if (!organizationRepository.existsById(createSiteDto.getOrganizationId())) {
+            System.out.println("[SITE_CREATE] ERROR: Organization not found: " + createSiteDto.getOrganizationId());
             throw new IllegalArgumentException("Organization not found: " + createSiteDto.getOrganizationId());
         }
         
+        System.out.println("[SITE_CREATE] Validation passed for site: " + createSiteDto.getSiteNumber());
+        
         // Generate unique site ID
         String siteId = UUID.randomUUID().toString();
+        System.out.println("[SITE_CREATE] Generated UUID: " + siteId + " for site: " + createSiteDto.getSiteNumber());
         
         // Send command to aggregate - this will trigger event sourcing
-        commandGateway.sendAndWait(new CreateSiteCommand(
-            siteId,
-            createSiteDto.getName(),
-            createSiteDto.getSiteNumber(),
-            createSiteDto.getOrganizationId(),
-            createSiteDto.getAddressLine1(),
-            createSiteDto.getAddressLine2(),
-            createSiteDto.getCity(),
-            createSiteDto.getState(),
-            createSiteDto.getPostalCode(),
-            createSiteDto.getCountry(),
-            createSiteDto.getPhone(),
-            createSiteDto.getEmail(),
-            userId,
-            createSiteDto.getReason()
-        ));
+        try {
+            System.out.println("[SITE_CREATE] Sending CreateSiteCommand to Axon...");
+            commandGateway.sendAndWait(new CreateSiteCommand(
+                siteId,
+                createSiteDto.getName(),
+                createSiteDto.getSiteNumber(),
+                createSiteDto.getOrganizationId(),
+                createSiteDto.getAddressLine1(),
+                createSiteDto.getAddressLine2(),
+                createSiteDto.getCity(),
+                createSiteDto.getState(),
+                createSiteDto.getPostalCode(),
+                createSiteDto.getCountry(),
+                createSiteDto.getPhone(),
+                createSiteDto.getEmail(),
+                userId,
+                createSiteDto.getReason()
+            ));
+            System.out.println("[SITE_CREATE] CreateSiteCommand sent successfully!");
+        } catch (Exception e) {
+            System.out.println("[SITE_CREATE] ERROR: Failed to send CreateSiteCommand: " + e.getMessage());
+            e.printStackTrace();
+            throw new IllegalStateException("Failed to create site - command failed: " + e.getMessage(), e);
+        }
         
-        // Return the created site (read from projection)
-        SiteEntity createdSite = siteRepository.findById(Long.valueOf(siteId))
-            .orElseThrow(() -> new IllegalStateException("Site was not created properly"));
+        System.out.println("[SITE_CREATE] Waiting for projection to create read model...");
         
+        // The projection handler should have processed the event by now
+        // Try multiple times with increasing delays to handle async processing
+        SiteEntity createdSite = null;
+        int attempts = 0;
+        int maxAttempts = 10;
+        
+        while (attempts < maxAttempts && createdSite == null) {
+            try {
+                System.out.println("[SITE_CREATE] Attempt " + (attempts + 1) + "/" + maxAttempts + " - Looking for site: " + createSiteDto.getSiteNumber());
+                
+                createdSite = siteRepository.findBySiteNumber(createSiteDto.getSiteNumber())
+                    .orElse(null);
+                
+                if (createdSite != null) {
+                    System.out.println("[SITE_CREATE] SUCCESS: Found created site with DB ID: " + createdSite.getId());
+                    break;
+                }
+                
+                System.out.println("[SITE_CREATE] Site not found yet, waiting..." + (50 + (attempts * 25)) + "ms");
+                
+                // Wait a bit longer on each attempt
+                Thread.sleep(50 + (attempts * 25)); // 50ms, 75ms, 100ms, etc.
+                attempts++;
+                
+            } catch (InterruptedException e) {
+                System.out.println("[SITE_CREATE] ERROR: Thread interrupted during site creation wait");
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Site creation was interrupted");
+            }
+        }
+        
+        if (createdSite == null) {
+            System.out.println("[SITE_CREATE] CRITICAL ERROR: Site projection failed!");
+            System.out.println("[SITE_CREATE] Site Number: " + createSiteDto.getSiteNumber());
+            System.out.println("[SITE_CREATE] UUID: " + siteId);
+            System.out.println("[SITE_CREATE] Attempts: " + attempts);
+            
+            // Check if there are any sites in the repository at all
+            long totalSites = siteRepository.count();
+            System.out.println("[SITE_CREATE] Total sites in database: " + totalSites);
+            
+            // List all site numbers for debugging
+            List<SiteEntity> allSites = siteRepository.findAll();
+            System.out.println("[SITE_CREATE] All existing site numbers: ");
+            for (SiteEntity site : allSites) {
+                System.out.println("  - " + site.getSiteNumber() + " (ID: " + site.getId() + ")");
+            }
+            
+            throw new IllegalStateException(
+                "Site projection failed after " + attempts + " attempts! " +
+                "Expected site number: '" + createSiteDto.getSiteNumber() + "', " +
+                "UUID: '" + siteId + "', " +
+                "Total sites in DB: " + totalSites + ". " +
+                "This indicates the projection handler may not be processing events correctly."
+            );
+        }
+        
+        System.out.println("[SITE_CREATE] Site creation completed successfully!");
         return mapToDto(createdSite);
     }
 

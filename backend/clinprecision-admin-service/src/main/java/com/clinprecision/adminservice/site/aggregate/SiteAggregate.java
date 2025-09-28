@@ -54,26 +54,44 @@ public class SiteAggregate {
      */
     @CommandHandler
     public SiteAggregate(CreateSiteCommand command) {
+        System.out.println("[AGGREGATE] ========== CreateSiteCommand Received ==========");
+        System.out.println("[AGGREGATE] Command UUID: " + command.getSiteId());
+        System.out.println("[AGGREGATE] Command SiteNumber: " + command.getSiteNumber());
+        System.out.println("[AGGREGATE] Command Name: " + command.getName());
+        
         // Business validation would go here
         // For now, we'll assume validation is done at the service layer
         
-        // Apply the event - this triggers the event sourcing
-        AggregateLifecycle.apply(new SiteCreatedEvent(
-            command.getSiteId(),
-            command.getName(),
-            command.getSiteNumber(),
-            command.getOrganizationId(),
-            command.getAddressLine1(),
-            command.getAddressLine2(),
-            command.getCity(),
-            command.getState(),
-            command.getPostalCode(),
-            command.getCountry(),
-            command.getPhone(),
-            command.getEmail(),
-            command.getUserId(),
-            command.getReason()
-        ));
+        try {
+            System.out.println("[AGGREGATE] About to apply SiteCreatedEvent...");
+            
+            // Apply the event - this triggers the event sourcing
+            AggregateLifecycle.apply(new SiteCreatedEvent(
+                command.getSiteId(),
+                command.getName(),
+                command.getSiteNumber(),
+                command.getOrganizationId(),
+                command.getAddressLine1(),
+                command.getAddressLine2(),
+                command.getCity(),
+                command.getState(),
+                command.getPostalCode(),
+                command.getCountry(),
+                command.getPhone(),
+                command.getEmail(),
+                command.getUserId(),
+                command.getReason()
+            ));
+            
+            System.out.println("[AGGREGATE] SiteCreatedEvent applied successfully!");
+            System.out.println("[AGGREGATE] ========== CreateSiteCommand Processing Complete ==========");
+            
+        } catch (Exception e) {
+            System.out.println("[AGGREGATE] ERROR: Failed to apply SiteCreatedEvent!");
+            System.out.println("[AGGREGATE] Error message: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to process CreateSiteCommand: " + e.getMessage(), e);
+        }
     }
 
     /**

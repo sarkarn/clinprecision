@@ -9,6 +9,7 @@ import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -20,7 +21,9 @@ import feign.Logger;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableFeignClients
-@ComponentScan(basePackages = {"com.clinprecision.userservice", "com.clinprecision.common"})
+@ComponentScan(basePackages = {"com.clinprecision.userservice", "com.clinprecision.common"},
+               excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, 
+                                                     classes = com.clinprecision.common.config.AxonConfig.class))
 @EntityScan(basePackageClasses = {
     com.clinprecision.common.entity.UserEntity.class,
     com.clinprecision.common.entity.UserSessionEntity.class,

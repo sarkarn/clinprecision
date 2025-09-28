@@ -28,9 +28,8 @@ import java.util.List;
  * All operations are audit-compliant for FDA 21 CFR Part 11
  */
 @RestController
-@RequestMapping("/admin-ws/sites")
+@RequestMapping("/sites")
 @Validated
-@CrossOrigin(origins = "*")
 public class SiteController {
 
     @Autowired
@@ -42,12 +41,33 @@ public class SiteController {
     @PostMapping
     public ResponseEntity<SiteDto> createSite(
             @Valid @RequestBody CreateSiteDto createSiteDto,
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "userEmail", required = false) String userEmail,
             Authentication authentication) {
         
-        String userId = authentication.getName();
-        SiteDto createdSite = siteManagementService.createSite(createSiteDto, userId);
+        System.out.println("[CONTROLLER] ========== Site Creation Request Received ==========");
+        System.out.println("[CONTROLLER] Site Name: " + createSiteDto.getName());
+        System.out.println("[CONTROLLER] Site Number: " + createSiteDto.getSiteNumber());
+        System.out.println("[CONTROLLER] Organization ID: " + createSiteDto.getOrganizationId());
         
-        return new ResponseEntity<>(createdSite, HttpStatus.CREATED);
+        try {
+            // Extract user ID from authentication or headers
+            String userId = getUserId(authentication, userEmail, authorization);
+            System.out.println("[CONTROLLER] User ID resolved: " + userId);
+            
+            System.out.println("[CONTROLLER] Calling SiteManagementService.createSite()...");
+            SiteDto createdSite = siteManagementService.createSite(createSiteDto, userId);
+            
+            System.out.println("[CONTROLLER] Site creation successful! Returning site with ID: " + createdSite.getId());
+            return new ResponseEntity<>(createdSite, HttpStatus.CREATED);
+            
+        } catch (Exception e) {
+            System.out.println("[CONTROLLER] ERROR: Site creation failed!");
+            System.out.println("[CONTROLLER] Error type: " + e.getClass().getSimpleName());
+            System.out.println("[CONTROLLER] Error message: " + e.getMessage());
+            e.printStackTrace();
+            throw e; // Re-throw to let the exception handler deal with it
+        }
     }
 
     /**
@@ -84,9 +104,11 @@ public class SiteController {
     public ResponseEntity<SiteDto> activateSite(
             @PathVariable Long siteId,
             @Valid @RequestBody ActivateSiteDto activateDto,
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "userEmail", required = false) String userEmail,
             Authentication authentication) {
         
-        String userId = authentication.getName();
+        String userId = getUserId(authentication, userEmail, authorization);
         SiteDto activatedSite = siteManagementService.activateSite(siteId, activateDto, userId);
         
         return ResponseEntity.ok(activatedSite);
@@ -99,9 +121,11 @@ public class SiteController {
     public ResponseEntity<SiteDto> assignUserToSite(
             @PathVariable Long siteId,
             @Valid @RequestBody AssignUserToSiteDto assignDto,
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "userEmail", required = false) String userEmail,
             Authentication authentication) {
         
-        String assignedBy = authentication.getName();
+        String assignedBy = getUserId(authentication, userEmail, authorization);
         SiteDto updatedSite = siteManagementService.assignUserToSite(siteId, assignDto, assignedBy);
         
         return ResponseEntity.ok(updatedSite);
@@ -121,5 +145,40 @@ public class SiteController {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<String> handleIllegalStateException(IllegalStateException e) {
         return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    /**
+     * Exception handler for null authentication
+     */
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<String> handleNullPointerException(NullPointerException e) {
+        if (e.getMessage() != null && e.getMessage().contains("authentication")) {
+            return new ResponseEntity<>("Authentication required", HttpStatus.UNAUTHORIZED);
+        }
+        return new ResponseEntity<>("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * Helper method to extract user ID from various sources
+     */
+    private String getUserId(Authentication authentication, String userEmail, String authorization) {
+        // Try to get from authentication first
+        if (authentication != null && authentication.getName() != null) {
+            return authentication.getName();
+        }
+        
+        // Fall back to userEmail header (from API Gateway)
+        if (userEmail != null && !userEmail.trim().isEmpty()) {
+            return userEmail;
+        }
+        
+        // Fall back to a default for testing/development
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            // In production, you would decode the JWT token here
+            return "system"; // Default user for development
+        }
+        
+        // If no authentication info available, throw exception
+        throw new IllegalArgumentException("User authentication required but not provided");
     }
 }
