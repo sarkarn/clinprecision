@@ -31,6 +31,14 @@ public interface SiteRepository extends JpaRepository<SiteEntity, Long> {
     Optional<SiteEntity> findBySiteNumber(String siteNumber);
     
     /**
+     * Find a site by its aggregate UUID (Axon identifier).
+     *
+     * @param aggregateUuid the aggregate UUID
+     * @return optional containing the site if found
+     */
+    Optional<SiteEntity> findByAggregateUuid(String aggregateUuid);
+    
+    /**
      * Find all sites by their status.
      *
      * @param status the status of the sites to find

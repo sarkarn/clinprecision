@@ -97,10 +97,16 @@ export const SiteService = {
         throw new Error('Reason is required for site activation');
       }
 
+      console.log('[SITESERVICE] About to call API for site activation:', siteId, activationData);
+      console.log('[SITESERVICE] API URL will be:', `/admin-ws/sites/${siteId}/activate`);
+      
       const response = await ApiService.post(`/admin-ws/sites/${siteId}/activate`, activationData);
+      
+      console.log('[SITESERVICE] API response received:', response);
+      
       return response.data;
     } catch (error) {
-      console.error(`Error activating site ${siteId}:`, error);
+      console.error(`[SITESERVICE] Error activating site ${siteId}:`, error);
       throw error;
     }
   },
