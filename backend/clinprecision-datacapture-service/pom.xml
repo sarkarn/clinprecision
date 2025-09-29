@@ -106,6 +106,37 @@
             <artifactId>clinprecision-common-lib</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
+        
+        <!-- Axon Framework Dependencies -->
+        <dependency>
+            <groupId>org.axonframework</groupId>
+            <artifactId>axon-spring-boot-starter</artifactId>
+            <version>4.9.1</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.axonframework</groupId>
+            <artifactId>axon-eventsourcing</artifactId>
+            <version>4.9.1</version>
+        </dependency>
+
+        <!-- Jackson for JSON serialization in event storage -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+        
+        <!-- Common Axon Library Dependency -->
+        <dependency>
+            <groupId>com.clinprecision</groupId>
+            <artifactId>clinprecision-axon-lib</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>

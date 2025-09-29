@@ -13,7 +13,11 @@ export default function SubjectEnrollment() {
         studyId: '',
         armId: '',
         enrollmentDate: new Date().toISOString().split('T')[0],
-        status: 'Active'
+        status: 'Active',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: ''
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -71,12 +75,18 @@ export default function SubjectEnrollment() {
 
         try {
             // Validate form
-            if (!formData.subjectId || !formData.studyId || !formData.armId) {
+            if (!formData.subjectId || !formData.studyId || !formData.armId || !formData.firstName || !formData.lastName) {
                 throw new Error('Please fill all required fields.');
+            }
+
+            // Validate email format if provided
+            if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+                throw new Error('Please enter a valid email address.');
             }
 
             // Enroll subject
             const result = await enrollSubject(formData);
+            console.log('Subject enrolled successfully:', result);
             navigate(`/datacapture-management/subjects/${result.id}`);
         } catch (error) {
             console.error('Error enrolling subject:', error);
@@ -109,6 +119,64 @@ export default function SubjectEnrollment() {
                             className="border border-gray-300 rounded-md w-full px-3 py-2"
                             placeholder="e.g., SUBJ-001"
                             required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            First Name*
+                        </label>
+                        <input
+                            type="text"
+                            name="firstName"
+                            value={formData.firstName}
+                            onChange={handleChange}
+                            className="border border-gray-300 rounded-md w-full px-3 py-2"
+                            placeholder="Enter first name"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Last Name*
+                        </label>
+                        <input
+                            type="text"
+                            name="lastName"
+                            value={formData.lastName}
+                            onChange={handleChange}
+                            className="border border-gray-300 rounded-md w-full px-3 py-2"
+                            placeholder="Enter last name"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            className="border border-gray-300 rounded-md w-full px-3 py-2"
+                            placeholder="subject@example.com"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Phone
+                        </label>
+                        <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            className="border border-gray-300 rounded-md w-full px-3 py-2"
+                            placeholder="+1-555-123-4567"
                         />
                     </div>
 

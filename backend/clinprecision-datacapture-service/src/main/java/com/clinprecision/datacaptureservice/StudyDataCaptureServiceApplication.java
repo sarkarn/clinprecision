@@ -9,7 +9,6 @@ import org.springframework.context.annotation.ComponentScan;
 @SpringBootApplication
 @EnableFeignClients
 @EntityScan(basePackages = {
-    "com.clinprecision.datacaptureservice.entity",
     "com.clinprecision.common.entity"
 })
 @ComponentScan(basePackages = {
