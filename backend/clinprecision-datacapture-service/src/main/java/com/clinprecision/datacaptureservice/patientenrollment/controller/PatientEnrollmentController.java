@@ -26,7 +26,6 @@ import java.util.List;
 @RequestMapping("/api/v1/patients")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class PatientEnrollmentController {
 
     private final PatientEnrollmentService patientEnrollmentService;

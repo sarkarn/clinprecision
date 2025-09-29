@@ -1,4 +1,4 @@
-﻿package com.clinprecision.datacaptureservice.patientenrollment.events;
+package com.clinprecision.datacaptureservice.patientenrollment.events;
 
 import lombok.Builder;
 import lombok.Getter;

@@ -1,4 +1,4 @@
-﻿package com.clinprecision.datacaptureservice.patientenrollment.aggregate;
+package com.clinprecision.datacaptureservice.patientenrollment.aggregate;
 
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
