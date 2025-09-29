@@ -1,0 +1,107 @@
+APPLICATION DATA SHEET (ADS)
+37 CFR 1.76
+
+Application Number: [To be assigned by USPTO]
+
+Title of Invention: METHOD AND SYSTEM FOR MULTI-LEVEL AUTOMATED STATUS MANAGEMENT IN CLINICAL TRIAL WORKFLOWS
+
+APPLICANT INFORMATION
+
+Applicant 1:
+Name: [YOUR FULL NAME]
+Residence: [CITY, STATE, COUNTRY]
+Mailing Address: [STREET ADDRESS]
+                 [CITY, STATE ZIP CODE]
+                 [COUNTRY]
+
+Citizenship: [COUNTRY OF CITIZENSHIP]
+
+Inventor: Yes ☐ No ☐
+
+Legal Representative (Attorney/Agent): [IF APPLICABLE]
+Registration No.: [ATTORNEY REGISTRATION NUMBER]
+Name: [ATTORNEY NAME]  
+Address: [ATTORNEY ADDRESS]
+
+CORRESPONDENCE INFORMATION
+
+Customer Number: [USPTO CUSTOMER NUMBER IF APPLICABLE]
+
+Name: [CORRESPONDENCE NAME]
+Address: [CORRESPONDENCE ADDRESS]
+         [CITY, STATE ZIP CODE]
+         [COUNTRY]
+
+Telephone: [TELEPHONE NUMBER]
+Email: [EMAIL ADDRESS]
+
+APPLICATION INFORMATION
+
+Subject Matter: Utility
+Small Entity Status: ☐ Claimed  ☐ Not Claimed
+Micro Entity Status: ☐ Claimed  ☐ Not Claimed
+
+Filing Date: [TO BE COMPLETED BY USPTO]
+Confirmation Number: [TO BE ASSIGNED BY USPTO]
+
+PUBLICATION INFORMATION
+
+Request Early Publication: ☐ Yes  ☐ No
+Request Non-Publication: ☐ Yes  ☐ No
+
+PRIORITY INFORMATION
+
+This application claims priority to: ☐ No Prior Applications
+
+If claiming priority, complete the following:
+Prior Application Number: [IF APPLICABLE]
+Filing Date: [IF APPLICABLE]
+Country: [IF APPLICABLE]
+
+ASSIGNEE INFORMATION
+
+Assignee Name: [COMPANY/ORGANIZATION NAME IF APPLICABLE]
+Address: [ASSIGNEE ADDRESS IF APPLICABLE]
+
+REPRESENTATIVE INFORMATION
+
+Customer Number: [IF USING CUSTOMER NUMBER]
+Attorney Docket Number: [INTERNAL TRACKING NUMBER]
+
+Firm or Individual Name: [REPRESENTATIVE NAME]
+Registration Number: [REG NUMBER]
+
+Address: [REPRESENTATIVE ADDRESS]
+Telephone: [PHONE]
+Email: [EMAIL]
+
+FEE INFORMATION
+
+Entity Size (check one):
+☐ Large Entity
+☐ Small Entity  
+☐ Micro Entity
+
+Basic Filing Fee: $______
+Search Fee: $______
+Examination Fee: $______
+Total Fees: $______
+
+DECLARATION
+
+I hereby declare that all statements made herein of my own knowledge are true and that all statements made on information and belief are believed to be true; and further that these statements were made with the knowledge that willful false statements and the like so made are punishable by fine or imprisonment, or both, under Section 1001 of Title 18 of the United States Code and that such willful false statements may jeopardize the validity of the application or any patent issued thereon.
+
+_________________________________    Date: ___________
+[INVENTOR SIGNATURE]
+[PRINTED NAME]
+
+INSTRUCTIONS FOR COMPLETION:
+
+1. Fill in all bracketed placeholders [YOUR INFORMATION] with your actual details
+2. Check appropriate boxes for entity size and other options
+3. Calculate fees based on entity size:
+   - Micro Entity: $745 total
+   - Small Entity: $1,490 total  
+   - Large Entity: $2,980 total
+4. Print, sign by hand, and scan the declaration section
+5. Submit electronically through USPTO EFS-Web system
