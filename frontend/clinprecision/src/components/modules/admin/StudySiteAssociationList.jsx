@@ -69,7 +69,7 @@ export default function StudySiteAssociationList() {
                         ...assoc,
                         siteName: site.name,
                         siteNumber: site.siteNumber,
-                        studyName: studiesData.find(s => s.protocolNumber === assoc.studyId || s.id?.toString() === assoc.studyId)?.name || 'Unknown Study'
+                        studyName: studiesData.find(s => s.protocolNumber === assoc.studyId || s.id?.toString() === assoc.studyId)?.title || 'Unknown Study'
                     }));
                     allAssociations.push(...enrichedAssociations);
                 } catch (error) {
@@ -250,7 +250,7 @@ export default function StudySiteAssociationList() {
                             Refresh
                         </button>
                         <Link
-                            to="/admin/study-site-associations/create"
+                            to="/user-management/study-site-associations/create"
                             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
                         >
                             <Plus className="w-4 h-4" />
@@ -555,8 +555,8 @@ export default function StudySiteAssociationList() {
                                                 key={page}
                                                 onClick={() => setCurrentPage(page)}
                                                 className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                                        ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                                                     }`}
                                             >
                                                 {page}
@@ -583,7 +583,7 @@ export default function StudySiteAssociationList() {
                     </p>
                     {associations.length === 0 && (
                         <Link
-                            to="/admin/study-site-associations/create"
+                            to="/user-management/study-site-associations/create"
                             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                         >
                             <Plus className="w-4 h-4 mr-2" />
@@ -597,8 +597,8 @@ export default function StudySiteAssociationList() {
             {notification.show && (
                 <div className="fixed bottom-4 right-4 z-50">
                     <div className={`p-4 rounded-md shadow-lg flex items-center gap-3 ${notification.type === 'success' ? 'bg-green-100 text-green-800' :
-                            notification.type === 'error' ? 'bg-red-100 text-red-800' :
-                                'bg-blue-100 text-blue-800'
+                        notification.type === 'error' ? 'bg-red-100 text-red-800' :
+                            'bg-blue-100 text-blue-800'
                         }`}>
                         {notification.type === 'success' && <CheckCircle className="w-5 h-5" />}
                         {notification.type === 'error' && <AlertTriangle className="w-5 h-5" />}

@@ -34,6 +34,8 @@ public class SiteController {
 
     @Autowired
     private SiteManagementService siteManagementService;
+    
+    // Study-site association operations are handled in StudySiteAssociationController
 
     /**
      * Create a new clinical trial site
@@ -181,4 +183,5 @@ public class SiteController {
         // If no authentication info available, throw exception
         throw new IllegalArgumentException("User authentication required but not provided");
     }
+    // Study-site association endpoints were moved back to StudySiteAssociationController (/api/sites/*)
 }

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './components/login/AuthContext';
 import Login from './components/login/Login';
 import ProtectedRoute from './components/login/ProtectedRoute';
@@ -12,11 +12,9 @@ function AppContent() {
                 <Routes>
                     <Route path="/login" element={
                         <Login />} />
-                    <Route path="/*" element={
-                        <ProtectedRoute>
-                            <Home />
-                        </ProtectedRoute>
-                    } />
+                    <Route path="/*" element={<Home />} />
+                    {/* Legacy redirect: forward old /admin paths to new /user-management */}
+                    <Route path="/admin/*" element={<Navigate to="/user-management" replace />} />
                 </Routes>
             </div>
         </Router>

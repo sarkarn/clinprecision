@@ -54,12 +54,14 @@ export default function AdminModule() {
                 } />
 
                 {/* Study Site Association Management Routes */}
-                <Route path="study-site-associations" element={<StudySiteAssociationList />} />
+                <Route path="study-site-associations" element={
+                    isAuthenticated ? <StudySiteAssociationList /> : <Navigate to="/login" state={{ from: "/user-management/study-site-associations" }} />
+                } />
                 <Route path="study-site-associations/create" element={
-                    isAuthenticated ? <StudySiteAssociationForm /> : <Navigate to="/login" state={{ from: "/admin/study-site-associations/create" }} />
+                    isAuthenticated ? <StudySiteAssociationForm /> : <Navigate to="/login" state={{ from: "/user-management/study-site-associations/create" }} />
                 } />
                 <Route path="study-site-associations/edit/:id" element={
-                    isAuthenticated ? <StudySiteAssociationForm /> : <Navigate to="/login" state={{ from: "/admin/study-site-associations/edit/:id" }} />
+                    isAuthenticated ? <StudySiteAssociationForm /> : <Navigate to="/login" state={{ from: "/user-management/study-site-associations/edit/:id" }} />
                 } />
 
                 {/* User Study Role Management Routes */}
