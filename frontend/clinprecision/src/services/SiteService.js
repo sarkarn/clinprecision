@@ -318,8 +318,9 @@ export const SiteService = {
         throw new Error('Reason is required for study-site activation');
       }
 
-  // Use StudySiteAssociationController via API Gateway prefix
-  const response = await ApiService.post(`/admin-ws/api/sites/${siteId}/studies/${studyId}/activate`, activationData);
+  // Use StudySiteAssociationController via API Gateway prefix and include studyId in payload
+  const payload = { studyId, ...activationData };
+  const response = await ApiService.post(`/admin-ws/api/sites/${siteId}/studies/${studyId}/activate`, payload);
       return response.data;
     } catch (error) {
       console.error(`Error activating site ${siteId} for study ${studyId}:`, error);
