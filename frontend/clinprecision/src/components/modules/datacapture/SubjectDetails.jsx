@@ -75,10 +75,10 @@ export default function SubjectDetails() {
             <div className="text-center py-8 bg-gray-50 border border-gray-200 rounded-md">
                 <p className="text-gray-700">Subject not found</p>
                 <button
-                    onClick={() => navigate('/datacapture-management')}
+                    onClick={() => navigate('/subject-management')}
                     className="mt-3 text-blue-600 hover:underline"
                 >
-                    Return to Subject List
+                    Return to Subject Management
                 </button>
             </div>
         );
@@ -87,8 +87,8 @@ export default function SubjectDetails() {
     return (
         <div className="bg-white shadow rounded-lg p-6">
             <div className="mb-6">
-                <Link to="/datacapture-management" className="text-blue-600 hover:underline">
-                    &larr; Back to Subject List
+                <Link to="/subject-management" className="text-blue-600 hover:underline">
+                    &larr; Back to Subject Management
                 </Link>
                 <div className="flex justify-between items-center mt-2">
                     <h3 className="text-xl font-bold">Subject Details: {subject.subjectId}</h3>

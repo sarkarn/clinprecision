@@ -1,0 +1,23 @@
+// SubjectManagementModule.jsx
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import SubjectManagementDashboard from './SubjectManagementDashboard';
+import SubjectList from '../datacapture/SubjectList';
+import SubjectEnrollment from '../datacapture/SubjectEnrollment';
+import SubjectDetails from '../datacapture/SubjectDetails';
+
+export default function SubjectManagementModule() {
+    return (
+        <div className="container mx-auto px-4 pb-4">
+            <Routes>
+                {/* Default route - Subject Management Dashboard */}
+                <Route index element={<SubjectManagementDashboard />} />
+
+                {/* Subject Management Routes */}
+                <Route path="subjects" element={<SubjectList />} />
+                <Route path="enroll" element={<SubjectEnrollment />} />
+                <Route path="subjects/:subjectId" element={<SubjectDetails />} />
+            </Routes>
+        </div>
+    );
+}

@@ -137,6 +137,20 @@
             <artifactId>clinprecision-axon-lib</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
+        
+        <!-- Axon Common Library Dependency -->
+        <dependency>
+            <groupId>com.clinprecision</groupId>
+            <artifactId>clinprecision-common-lib</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        
+        <!-- Fix Guava version compatibility issue with gRPC -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>32.1.3-jre</version>
+        </dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>

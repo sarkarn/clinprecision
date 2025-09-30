@@ -33,7 +33,8 @@ import feign.Logger;
     com.clinprecision.common.entity.OrganizationContactEntity.class
 })
 @EnableJpaRepositories(basePackages = {"com.clinprecision.userservice.repository", "com.clinprecision.common.repository"})
-public class UsersApplication {
+public class
+UsersApplication {
 
 	@Autowired
 	Environment environment;

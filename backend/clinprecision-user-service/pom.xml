@@ -198,8 +198,6 @@
 					<target>${java.version}</target>
 					<debug>true</debug>
 					<debuglevel>lines,vars,source</debuglevel>
-					<!-- Temporarily disable annotation processors to isolate duplicate method issue -->
-					<!--
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
@@ -217,7 +215,6 @@
 							<version>0.2.0</version>
 						</path>
 					</annotationProcessorPaths>
-					-->
 				</configuration>
 			</plugin>
 		</plugins>

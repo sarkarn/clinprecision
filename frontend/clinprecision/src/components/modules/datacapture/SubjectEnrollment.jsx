@@ -87,7 +87,7 @@ export default function SubjectEnrollment() {
             // Enroll subject
             const result = await enrollSubject(formData);
             console.log('Subject enrolled successfully:', result);
-            navigate(`/datacapture-management/subjects/${result.id}`);
+            navigate(`/subject-management/subjects/${result.id}`);
         } catch (error) {
             console.error('Error enrolling subject:', error);
             setError(error.message || 'Failed to enroll subject.');
@@ -235,7 +235,7 @@ export default function SubjectEnrollment() {
                 <div className="flex justify-end">
                     <button
                         type="button"
-                        onClick={() => navigate('/datacapture-management')}
+                        onClick={() => navigate('/subject-management')}
                         className="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2"
                     >
                         Cancel

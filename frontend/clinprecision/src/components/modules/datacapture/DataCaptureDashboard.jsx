@@ -27,44 +27,6 @@ export default function DataCaptureDashboard() {
 
     const dashboardCards = [
         {
-            title: 'Patient Management',
-            description: 'Register and manage patients in the system',
-            icon: (
-                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-            ),
-            stats: patientStats ? [
-                { label: 'Total Patients', value: patientStats.totalPatients, color: 'text-blue-600' },
-                { label: 'Enrolled', value: patientStats.enrolledPatients, color: 'text-green-600' },
-                { label: 'Screening', value: patientStats.screeningPatients, color: 'text-yellow-600' }
-            ] : null,
-            actions: [
-                { label: 'View All Patients', action: () => navigate('/datacapture-management/patients'), variant: 'secondary' },
-                { label: 'Register New Patient', action: () => navigate('/datacapture-management/patients/register'), variant: 'primary' }
-            ],
-            bgColor: 'bg-blue-50',
-            borderColor: 'border-blue-200',
-            iconColor: 'text-blue-600'
-        },
-        {
-            title: 'Subject Management',
-            description: 'Manage study subjects and enrollments',
-            icon: (
-                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-            ),
-            stats: null,
-            actions: [
-                { label: 'View All Subjects', action: () => navigate('/datacapture-management/subjects'), variant: 'secondary' },
-                { label: 'Enroll Subject', action: () => navigate('/datacapture-management/enroll'), variant: 'primary' }
-            ],
-            bgColor: 'bg-green-50',
-            borderColor: 'border-green-200',
-            iconColor: 'text-green-600'
-        },
-        {
             title: 'Data Entry',
             description: 'Electronic case report forms and data collection',
             icon: (
@@ -74,8 +36,9 @@ export default function DataCaptureDashboard() {
             ),
             stats: null,
             actions: [
-                { label: 'View Forms', action: () => navigate('/datacapture-management/forms'), variant: 'secondary' },
-                { label: 'Data Entry', action: () => navigate('/datacapture-management/entry'), variant: 'primary' }
+                { label: 'Subject Management', action: () => navigate('/subject-management'), variant: 'secondary' },
+                { label: 'View Forms', action: () => navigate('/datacapture-management/forms'), variant: 'primary' },
+                { label: 'Data Entry', action: () => navigate('/datacapture-management/entry'), variant: 'secondary' }
             ],
             bgColor: 'bg-purple-50',
             borderColor: 'border-purple-200',
@@ -91,7 +54,7 @@ export default function DataCaptureDashboard() {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Data Capture & Entry Dashboard</h1>
                         <p className="text-gray-600 mt-2">
-                            Manage patients, subjects, and clinical data collection
+                            Electronic case report forms and clinical data collection
                         </p>
                     </div>
                     <div className="text-right">
@@ -160,8 +123,8 @@ export default function DataCaptureDashboard() {
                                     key={actionIndex}
                                     onClick={action.action}
                                     className={`w-full px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${action.variant === 'primary'
-                                            ? `bg-${card.iconColor.split('-')[1]}-600 text-white hover:bg-${card.iconColor.split('-')[1]}-700`
-                                            : `border border-gray-300 text-gray-700 hover:bg-gray-50`
+                                        ? `bg-${card.iconColor.split('-')[1]}-600 text-white hover:bg-${card.iconColor.split('-')[1]}-700`
+                                        : `border border-gray-300 text-gray-700 hover:bg-gray-50`
                                         }`}
                                 >
                                     {action.label}

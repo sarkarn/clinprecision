@@ -15,11 +15,15 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 })
 @EntityScan(basePackages = {
     "com.clinprecision.common.entity",
-    "com.clinprecision.datacaptureservice.patientenrollment.entity"
+    "com.clinprecision.datacaptureservice.patientenrollment.entity",
+    "org.axonframework.eventsourcing.eventstore.jpa",
+    "org.axonframework.modelling.saga.repository.jpa",
+    "org.axonframework.eventhandling.tokenstore.jpa"
 })
 @ComponentScan(basePackages = {
     "com.clinprecision.datacaptureservice",
-    "com.clinprecision.common"
+    "com.clinprecision.common",
+    "com.clinprecision.axon"
 })
 public class StudyDataCaptureServiceApplication {
 

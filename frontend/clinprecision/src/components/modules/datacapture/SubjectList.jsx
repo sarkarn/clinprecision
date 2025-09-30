@@ -50,7 +50,7 @@ export default function SubjectList() {
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-semibold">Subject Management</h3>
                 <button
-                    onClick={() => navigate('/datacapture-management/enroll')}
+                    onClick={() => navigate('/subject-management/enroll')}
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
                     + Enroll New Subject
