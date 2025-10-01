@@ -30,7 +30,7 @@ public interface SiteStudyRepository extends JpaRepository<SiteStudyEntity, Long
      * @param studyId the ID of the study
      * @return list of site relationships for the specified study
      */
-    List<SiteStudyEntity> findByStudyId(String studyId);
+    List<SiteStudyEntity> findByStudyId(Long studyId);
     
     /**
      * Find all active site relationships for a specific study.
@@ -39,7 +39,7 @@ public interface SiteStudyRepository extends JpaRepository<SiteStudyEntity, Long
      * @param status the status of the relationships to find
      * @return list of active site relationships for the specified study
      */
-    List<SiteStudyEntity> findByStudyIdAndStatus(String studyId, SiteStudyEntity.SiteStudyStatus status);
+    List<SiteStudyEntity> findByStudyIdAndStatus(Long studyId, SiteStudyEntity.SiteStudyStatus status);
     
     /**
      * Find a specific relationship for a site in a study.
@@ -48,7 +48,7 @@ public interface SiteStudyRepository extends JpaRepository<SiteStudyEntity, Long
      * @param studyId the ID of the study
      * @return optional containing the site study relationship if found
      */
-    Optional<SiteStudyEntity> findBySite_IdAndStudyId(Long siteId, String studyId);
+    Optional<SiteStudyEntity> findBySite_IdAndStudyId(Long siteId, Long studyId);
     
     /**
      * Find a site study relationship by its site study ID.

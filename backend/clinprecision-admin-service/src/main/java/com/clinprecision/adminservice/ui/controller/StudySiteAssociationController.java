@@ -51,7 +51,7 @@ public class StudySiteAssociationController {
     @PostMapping("/{siteId}/studies/{studyId}/activate")
     public ResponseEntity<SiteStudyDto> activateSiteForStudy(
             @PathVariable Long siteId,
-            @PathVariable String studyId,
+        @PathVariable Long studyId,
             @Valid @RequestBody ActivateSiteForStudyDto activationDto,
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestHeader(value = "userEmail", required = false) String userEmail,
@@ -81,7 +81,7 @@ public class StudySiteAssociationController {
      * Get all site associations for a study
      */
     @GetMapping("/studies/{studyId}")
-    public ResponseEntity<List<SiteStudyDto>> getSiteAssociationsForStudy(@PathVariable String studyId) {
+    public ResponseEntity<List<SiteStudyDto>> getSiteAssociationsForStudy(@PathVariable Long studyId) {
         List<SiteStudyDto> associations = studySiteAssociationService.getSiteAssociationsForStudy(studyId);
         return ResponseEntity.ok(associations);
     }
@@ -92,7 +92,7 @@ public class StudySiteAssociationController {
     @DeleteMapping("/{siteId}/studies/{studyId}")
     public ResponseEntity<Void> removeSiteStudyAssociation(
             @PathVariable Long siteId,
-            @PathVariable String studyId,
+            @PathVariable Long studyId,
             @RequestParam(required = false) String reason,
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestHeader(value = "userEmail", required = false) String userEmail,

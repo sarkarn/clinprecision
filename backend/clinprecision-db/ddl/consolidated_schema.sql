@@ -195,7 +195,7 @@ CREATE TABLE organization_contacts (
 
 CREATE TABLE sites (
 	  id bigint NOT NULL AUTO_INCREMENT,
-	  aggregate_uuid VARCHAR(255);
+	  aggregate_uuid VARCHAR(255)  COMMENT 'UUID used by Axon Framework as aggregate identifier for CQRS/Event Sourcing',
 	  organization_id bigint NOT NULL COMMENT 'Reference to the parent organization',
 	  site_number varchar(255) DEFAULT NULL,
 	  principal_investigator_id bigint DEFAULT NULL COMMENT 'Reference to the principal investigator user',
@@ -215,7 +215,7 @@ CREATE TABLE sites (
 	  postal_code varchar(255) DEFAULT NULL,
 	  state varchar(255) DEFAULT NULL,
 	  PRIMARY KEY (id),
-	  UNIQUE KEY site_number (site_number,study_id),
+	  UNIQUE KEY site_number (site_number),
 	  UNIQUE KEY idx_sites_aggregate_uuid (aggregate_uuid),
 	  CONSTRAINT FKxrbt6mjphi09w4pgiwyuispo FOREIGN KEY (principal_investigator_id) REFERENCES users (id),
 	  CONSTRAINT sites_ibfk_1 FOREIGN KEY (organization_id) REFERENCES organizations (id)
@@ -586,6 +586,8 @@ CREATE TABLE study_documents (
     INDEX idx_study_documents_uploaded_at (uploaded_at)
 ) COMMENT 'Store study documents and their metadata';
 
+
+
 -- Document audit trail for tracking changes
 CREATE TABLE study_document_audit (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -751,6 +753,24 @@ CREATE TABLE user_study_roles (
     FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE SET NULL,
     UNIQUE KEY (user_id, study_id, role_id, site_id)
 );
+
+CREATE TABLE site_studies (
+	id bigint AUTO_INCREMENT PRIMARY KEY,
+	activation_date datetime(6) DEFAULT NULL,
+	created_at datetime(6) DEFAULT NULL,
+	deactivation_date datetime(6) DEFAULT NULL,
+	site_study_id varchar(255) DEFAULT NULL,
+	status enum('ACTIVE','CLOSED','INACTIVE','PENDING','SUSPENDED') DEFAULT NULL,
+	study_id bigint NOT NULL,
+	subject_enrollment_cap int DEFAULT NULL,
+	subject_enrollment_count int DEFAULT NULL,
+	updated_at datetime(6) DEFAULT NULL,
+	site_id bigint NOT NULL,
+    UNIQUE KEY UK_site_study_id_study_sites (site_id,study_id),
+    CONSTRAINT FK_SITES_ID_SITE_STUDIES FOREIGN KEY (site_id) REFERENCES sites (id),
+	CONSTRAINT FK_STUDY_ID_SITE_STUDIES FOREIGN KEY (study_id) REFERENCES studies (id)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 CREATE TABLE user_site_assignments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -1021,15 +1041,8 @@ ALTER TABLE study_lookup_audit COMMENT = 'Audit trail for changes to lookup tabl
 
 -- Create indexes for common query patterns
 CREATE INDEX idx_form_definitions_study ON form_definitions(study_id);
-CREATE INDEX idx_subjects_study ON subjects(study_id);
-CREATE INDEX idx_subject_visits_subject ON subject_visits(subject_id);
-CREATE INDEX idx_form_data_subject ON form_data(subject_id);
-CREATE INDEX idx_form_data_visit ON form_data(subject_visit_id);
-CREATE INDEX idx_field_verifications_form ON field_verifications(form_data_id);
-CREATE INDEX idx_data_queries_form ON data_queries(form_data_id);
 CREATE INDEX idx_audit_trail_entity ON audit_trail(entity_type, entity_id);
 CREATE INDEX idx_users_organization ON users(organization_id);
-CREATE INDEX idx_sites_study ON sites(study_id);
 CREATE INDEX idx_sites_organization ON sites(organization_id);
 CREATE INDEX idx_user_study_roles_user ON user_study_roles(user_id);
 CREATE INDEX idx_user_study_roles_study ON user_study_roles(study_id);

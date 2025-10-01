@@ -67,6 +67,11 @@ public interface PatientEnrollmentRepository extends JpaRepository<PatientEnroll
     boolean existsByScreeningNumber(String screeningNumber);
 
     /**
+     * Check if a screening number exists within a specific study (industry norm)
+     */
+    boolean existsByStudyIdAndScreeningNumber(Long studyId, String screeningNumber);
+
+    /**
      * Find enrollments by enrolled by user
      */
     List<PatientEnrollmentEntity> findByEnrolledBy(String enrolledBy);

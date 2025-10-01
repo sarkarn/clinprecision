@@ -197,55 +197,67 @@ export const enrollSubject = async (subjectData) => {
 
   try {
     console.log('Enrolling subject with data:', subjectData);
-    
-    // Transform frontend subject enrollment data to backend patient registration format
+
+    // Step 1: Register patient (if not already registered). Backend requires registration fields.
     const patientRegistrationData = {
       firstName: subjectData.firstName || 'Subject',
       lastName: subjectData.lastName || subjectData.subjectId || `Patient-${Date.now()}`,
       email: subjectData.email || `${subjectData.subjectId}@clinprecision.local`,
-      phone: subjectData.phone || '+1-000-000-0000',
-      studyId: parseInt(subjectData.studyId),
-      treatmentArm: subjectData.armId ? parseInt(subjectData.armId) : null,
-      enrollmentDate: subjectData.enrollmentDate,
-      patientNumber: subjectData.subjectId,
-      status: 'ENROLLED', // Map from frontend status to backend status
-      metadata: {
-        subjectId: subjectData.subjectId,
-        enrollmentSource: 'UI_ENROLLMENT',
-        originalData: subjectData
-      }
+      phoneNumber: subjectData.phone || '+1-000-000-0000',
+      // Minimal valid DOB/Gender placeholders if UI doesn't collect yet
+      dateOfBirth: subjectData.dateOfBirth || '1990-01-01',
+      gender: subjectData.gender || 'OTHER'
     };
-    
-    console.log('Transformed to backend patient registration format:', patientRegistrationData);
-    
-    const response = await ApiService.post(API_PATH, patientRegistrationData);
-    
-    if (response?.data) {
-      const patient = response.data;
-      
-      // Transform backend response back to frontend subject format
-      const enrolledSubject = {
-        id: patient.id.toString(),
-        subjectId: patient.patientNumber || subjectData.subjectId,
-        studyId: patient.studyId?.toString(),
-        armId: patient.treatmentArm?.toString(),
-        armName: 'Treatment Arm', // TODO: Get from study arms data
-        enrollmentDate: patient.enrollmentDate || subjectData.enrollmentDate,
-        status: mapPatientStatusToSubjectStatus(patient.status),
-        firstName: patient.firstName,
-        lastName: patient.lastName,
-        email: patient.email,
-        phone: patient.phone,
-        aggregateUuid: patient.aggregateUuid,
-        visits: []
-      };
-      
-      console.log('Subject enrolled successfully:', enrolledSubject);
-      return enrolledSubject;
+
+    console.log('Registering patient with payload:', patientRegistrationData);
+    const registerResp = await ApiService.post(API_PATH, patientRegistrationData);
+
+    if (!registerResp?.data || !registerResp.data.id) {
+      throw new Error('Patient registration failed');
     }
-    
-    throw new Error('Invalid response from server');
-    
+
+    const patient = registerResp.data;
+    const patientId = patient.id;
+
+    // Step 2: Enroll patient into study at a site (persist siteId)
+    const enrollmentPayload = {
+      studyId: parseInt(subjectData.studyId),
+      // siteId here represents site_studies.id (the study-site association)
+      siteId: parseInt(subjectData.siteId),
+      screeningNumber: subjectData.subjectId,
+      enrollmentDate: subjectData.enrollmentDate
+    };
+    console.log('Calling enroll endpoint with:', enrollmentPayload);
+    const enrollResp = await ApiService.post(`${API_PATH}/${patientId}/enroll`, enrollmentPayload);
+
+    if (!enrollResp?.data) {
+      throw new Error('Enrollment failed');
+    }
+
+    const enrollment = enrollResp.data;
+
+    // Compose frontend subject result
+    const enrolledSubject = {
+      id: patientId.toString(),
+      subjectId: subjectData.subjectId,
+      studyId: subjectData.studyId?.toString(),
+      armId: subjectData.armId?.toString() || null,
+      armName: 'Treatment Arm', // Optional: resolve by armId from StudyDesignService
+      siteId: subjectData.siteId?.toString(),
+      enrollmentDate: subjectData.enrollmentDate,
+      status: 'Enrolled',
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      email: patient.email,
+      phone: patient.phoneNumber,
+      aggregateUuid: patient.aggregateUuid,
+      enrollmentRecordId: enrollment.id,
+      visits: []
+    };
+
+    console.log('Subject enrolled successfully:', enrolledSubject);
+    return enrolledSubject;
+
   } catch (error) {
     console.error('Error enrolling subject:', error);
     

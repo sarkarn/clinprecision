@@ -37,7 +37,7 @@ public class StudySiteAssociationService {
      * @param reason Reason for the association (audit compliance)
      * @return The created site-study association
      */
-    public SiteStudyDto associateSiteWithStudy(Long siteId, String studyId, String userId, String reason) {
+    public SiteStudyDto associateSiteWithStudy(Long siteId, Long studyId, String userId, String reason) {
         // Validate site exists
         SiteEntity site = siteRepository.findById(siteId)
             .orElseThrow(() -> new IllegalArgumentException("Site not found: " + siteId));
@@ -49,10 +49,10 @@ public class StudySiteAssociationService {
         
         // Create the association
         SiteStudyEntity siteStudy = new SiteStudyEntity();
-        siteStudy.setSite(site);
-        siteStudy.setStudyId(studyId);
+    siteStudy.setSite(site);
+    siteStudy.setStudyId(studyId);
         siteStudy.setStatus(SiteStudyEntity.SiteStudyStatus.PENDING);
-        siteStudy.setSiteStudyId(generateSiteStudyId(site.getSiteNumber(), studyId));
+    siteStudy.setSiteStudyId(generateSiteStudyId(site.getSiteNumber(), studyId));
         
         SiteStudyEntity savedSiteStudy = siteStudyRepository.save(siteStudy);
         
@@ -68,7 +68,7 @@ public class StudySiteAssociationService {
      * @param reason Reason for activation
      * @return Updated site-study association
      */
-    public SiteStudyDto activateSiteForStudy(Long siteId, String studyId, String userId, String reason) {
+    public SiteStudyDto activateSiteForStudy(Long siteId, Long studyId, String userId, String reason) {
         SiteStudyEntity siteStudy = siteStudyRepository.findBySite_IdAndStudyId(siteId, studyId)
             .orElseThrow(() -> new IllegalArgumentException(
                 "Site " + siteId + " is not associated with study " + studyId));
@@ -103,7 +103,7 @@ public class StudySiteAssociationService {
      * @param studyId Study ID
      * @return List of site associations
      */
-    public List<SiteStudyDto> getSiteAssociationsForStudy(String studyId) {
+    public List<SiteStudyDto> getSiteAssociationsForStudy(Long studyId) {
         return siteStudyRepository.findByStudyId(studyId).stream()
             .map(this::mapToDto)
             .collect(Collectors.toList());
@@ -117,7 +117,7 @@ public class StudySiteAssociationService {
      * @param userId User performing removal
      * @param reason Reason for removal
      */
-    public void removeSiteStudyAssociation(Long siteId, String studyId, String userId, String reason) {
+    public void removeSiteStudyAssociation(Long siteId, Long studyId, String userId, String reason) {
         SiteStudyEntity siteStudy = siteStudyRepository.findBySite_IdAndStudyId(siteId, studyId)
             .orElseThrow(() -> new IllegalArgumentException(
                 "Site " + siteId + " is not associated with study " + studyId));
@@ -131,8 +131,8 @@ public class StudySiteAssociationService {
     /**
      * Generate a unique site-study identifier
      */
-    private String generateSiteStudyId(String siteNumber, String studyId) {
-        return siteNumber + "-" + studyId;
+    private String generateSiteStudyId(String siteNumber, Long studyId) {
+        return siteNumber + "-" + String.valueOf(studyId);
     }
 
     /**
@@ -142,7 +142,7 @@ public class StudySiteAssociationService {
         SiteStudyDto dto = new SiteStudyDto();
         dto.setId(entity.getId());
         dto.setSiteId(entity.getSite().getId());
-        dto.setStudyId(entity.getStudyId());
+    dto.setStudyId(entity.getStudyId());
         dto.setSiteStudyId(entity.getSiteStudyId());
         dto.setStatus(entity.getStatus());
         dto.setActivationDate(entity.getActivationDate());

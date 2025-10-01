@@ -282,7 +282,7 @@ export const SiteService = {
    * Associate a site with a study
    * @param {string} siteId - Site ID
    * @param {Object} associationData - Association data
-   * @param {string} associationData.studyId - Study ID
+  * @param {number} associationData.studyId - Study ID (numeric)
    * @param {string} associationData.reason - Reason for association
    * @returns {Promise} - Promise with association data
    */
@@ -307,7 +307,7 @@ export const SiteService = {
   /**
    * Activate a site for a specific study
    * @param {string} siteId - Site ID
-   * @param {string} studyId - Study ID
+  * @param {number|string} studyId - Study ID (numeric)
    * @param {Object} activationData - Activation data
    * @param {string} activationData.reason - Reason for activation
    * @returns {Promise} - Promise with updated association data
@@ -352,8 +352,17 @@ export const SiteService = {
   getSiteAssociationsForStudy: async (studyId) => {
     try {
   // Use StudySiteAssociationController via API Gateway prefix
-  const response = await ApiService.get(`/admin-ws/api/sites/studies/${studyId}`);
-      return response.data;
+  const url = `/admin-ws/api/sites/studies/${studyId}`;
+  console.log('[SiteService] GET site associations for study ->', url);
+  const response = await ApiService.get(url);
+  // Basic diagnostics about the response shape
+  const data = response?.data;
+  if (Array.isArray(data)) {
+        console.log(`[SiteService] Associations received: ${data.length}`);
+      } else {
+        console.warn('[SiteService] Unexpected response shape for associations:', data);
+      }
+      return data;
     } catch (error) {
       console.error(`Error fetching site associations for study ${studyId}:`, error);
       throw error;

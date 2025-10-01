@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class SiteStudyDto {
     private Long id;
     private Long siteId; // Reference to site ID only to avoid circular references
-    private String studyId;
+    private Long studyId;
     private String siteStudyId;
     private SiteStudyEntity.SiteStudyStatus status;
     private LocalDateTime activationDate;

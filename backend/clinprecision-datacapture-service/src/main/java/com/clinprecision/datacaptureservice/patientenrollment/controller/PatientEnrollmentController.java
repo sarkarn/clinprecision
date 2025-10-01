@@ -1,6 +1,8 @@
 package com.clinprecision.datacaptureservice.patientenrollment.controller;
 
 import com.clinprecision.datacaptureservice.patientenrollment.dto.RegisterPatientDto;
+import com.clinprecision.datacaptureservice.patientenrollment.dto.EnrollPatientDto;
+import com.clinprecision.datacaptureservice.patientenrollment.entity.PatientEnrollmentEntity;
 import com.clinprecision.datacaptureservice.patientenrollment.dto.PatientDto;
 import com.clinprecision.datacaptureservice.patientenrollment.service.PatientEnrollmentService;
 
@@ -58,6 +60,36 @@ public class PatientEnrollmentController {
         } catch (Exception e) {
             log.error("Error registering patient: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to register patient", e);
+        }
+    }
+
+    /**
+     * Enroll an existing patient into a study at a specific site
+     * Persists siteId as part of the enrollment record
+     *
+     * @param patientId Database ID of the patient to enroll
+     * @param enrollDto Enrollment details including studyId, siteId, screeningNumber, enrollmentDate
+     * @return Created enrollment record
+     */
+    @PostMapping("/{patientId}/enroll")
+    public ResponseEntity<PatientEnrollmentEntity> enrollPatient(
+            @PathVariable Long patientId,
+            @Valid @RequestBody EnrollPatientDto enrollDto) {
+
+        log.info("API Request: Enroll patient {} into study {} at site {} with screening {}",
+                patientId, enrollDto.getStudyId(), enrollDto.getSiteId(), enrollDto.getScreeningNumber());
+
+        try {
+            String currentUser = "system"; // TODO: replace with authenticated user
+            PatientEnrollmentEntity result = patientEnrollmentService.enrollPatient(patientId, enrollDto, currentUser);
+            log.info("API Response: Patient {} enrolled with enrollment ID {}", patientId, result.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid patient enrollment request: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Error enrolling patient {}: {}", patientId, e.getMessage(), e);
+            throw new RuntimeException("Failed to enroll patient", e);
         }
     }
 

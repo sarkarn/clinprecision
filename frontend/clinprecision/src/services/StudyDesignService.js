@@ -20,7 +20,8 @@ class StudyDesignService {
     // Study Arms Management
     async getStudyArms(studyId) {
         try {
-            const response = await ApiService.get(`/studies/${studyId}/arms`);
+            // Use API Gateway prefix for Study Design service
+            const response = await ApiService.get(`/study-design-ws/api/studies/${studyId}/arms`);
             return response.data;
         } catch (error) {
             console.error('Error fetching study arms:', error);

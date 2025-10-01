@@ -178,17 +178,23 @@ LEFT JOIN study_status ss ON s.study_status_id = ss.id
 LEFT JOIN regulatory_status rs ON s.regulatory_status_id = rs.id  
 LEFT JOIN study_phase sp ON s.study_phase_id = sp.id;
 
--- Create a view for study metrics summary
+-- Study Metrics Summary View (replaces old subjects-based view)
+-- Maps enrollment_status values to legacy metrics fields
+-- active_subjects      -> ENROLLED
+-- completed_subjects   -> COMPLETED
+-- withdrawn_subjects   -> WITHDRAWN
+-- screening_subjects   -> SCREENING
+-- total_subjects       -> COUNT of all enrollments per study
 CREATE OR REPLACE VIEW v_study_metrics_summary AS
 SELECT 
-    study_id,
-    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_subjects,
-    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_subjects,
-    SUM(CASE WHEN status = 'withdrawn' THEN 1 ELSE 0 END) as withdrawn_subjects,
-    SUM(CASE WHEN status = 'screening' THEN 1 ELSE 0 END) as screening_subjects,
-    COUNT(*) as total_subjects
-FROM subjects 
-GROUP BY study_id;
+    pe.study_id,
+    SUM(CASE WHEN pe.enrollment_status = 'ENROLLED'  THEN 1 ELSE 0 END) AS active_subjects,
+    SUM(CASE WHEN pe.enrollment_status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_subjects,
+    SUM(CASE WHEN pe.enrollment_status = 'WITHDRAWN' THEN 1 ELSE 0 END) AS withdrawn_subjects,
+    SUM(CASE WHEN pe.enrollment_status = 'SCREENING' THEN 1 ELSE 0 END) AS screening_subjects,
+    COUNT(*) AS total_subjects
+FROM patient_enrollments pe
+GROUP BY pe.study_id;
 
 -- Grant permissions to the database user
 GRANT SELECT ON v_study_overview_summary TO 'clinprecadmin'@'localhost';

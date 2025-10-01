@@ -17,13 +17,14 @@ CREATE TABLE IF NOT EXISTS patients (
     created_by VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     INDEX idx_patients_aggregate_uuid (aggregate_uuid),
     INDEX idx_patients_patient_number (patient_number),
     INDEX idx_patients_email (email),
     INDEX idx_patients_status (status),
     INDEX idx_patients_created_at (created_at)
 ) COMMENT 'Patient registration records for clinical trials';
+
 
 -- Patient Enrollment table (many-to-many: patients can be enrolled in multiple studies)
 CREATE TABLE IF NOT EXISTS patient_enrollments (
@@ -33,7 +34,7 @@ CREATE TABLE IF NOT EXISTS patient_enrollments (
     patient_id BIGINT NOT NULL,
     patient_aggregate_uuid VARCHAR(255) NOT NULL COMMENT 'Reference to patient aggregate',
     study_id BIGINT NOT NULL,
-    site_id BIGINT NOT NULL,
+    study_site_id BIGINT NOT NULL,
     site_aggregate_uuid VARCHAR(255) NOT NULL COMMENT 'Reference to site aggregate',
     screening_number VARCHAR(50) NOT NULL,
     enrollment_date DATE NOT NULL,
@@ -48,13 +49,13 @@ CREATE TABLE IF NOT EXISTS patient_enrollments (
     
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (study_id) REFERENCES studies(id),
-    FOREIGN KEY (site_id) REFERENCES sites(id),
+    FOREIGN KEY (study_site_id) REFERENCES site_studies(id),
     
     INDEX idx_enrollments_aggregate_uuid (aggregate_uuid),
     INDEX idx_enrollments_patient (patient_id),
     INDEX idx_enrollments_patient_uuid (patient_aggregate_uuid),
     INDEX idx_enrollments_study (study_id),
-    INDEX idx_enrollments_site (site_id),
+    INDEX idx_enrollments_site (study_site_id),
     INDEX idx_enrollments_site_uuid (site_aggregate_uuid),
     INDEX idx_enrollments_status (enrollment_status),
     INDEX idx_enrollments_screening_number (screening_number),
@@ -111,10 +112,10 @@ CREATE TABLE IF NOT EXISTS patient_demographics (
 -- Audit trail for patient enrollment events (for FDA 21 CFR Part 11 compliance)
 CREATE TABLE IF NOT EXISTS patient_enrollment_audit (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    entity_type ENUM('PATIENT', 'ENROLLMENT', 'ELIGIBILITY') NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
     entity_id BIGINT NOT NULL,
     entity_aggregate_uuid VARCHAR(255) NOT NULL,
-    action_type ENUM('REGISTER', 'ENROLL', 'CONFIRM_ELIGIBILITY', 'WITHDRAW', 'UPDATE') NOT NULL,
+    action_type VARCHAR(50) NOT NULL,
     old_values JSON COMMENT 'Previous values before change',
     new_values JSON COMMENT 'New values after change',
     performed_by VARCHAR(255) NOT NULL,
@@ -130,3 +131,4 @@ CREATE TABLE IF NOT EXISTS patient_enrollment_audit (
     INDEX idx_audit_performed_at (performed_at),
     INDEX idx_audit_performed_by (performed_by)
 ) COMMENT 'Complete audit trail for patient enrollment activities';
+

@@ -29,6 +29,7 @@ public class PatientDto {
     private String gender;
     private String phoneNumber;
     private String email;
+    private Long siteId;
     private String fullName;
     private Integer age;
     private String status;

@@ -1,10 +1,18 @@
 package com.clinprecision.datacaptureservice.patientenrollment.service;
 
 import com.clinprecision.datacaptureservice.patientenrollment.domain.commands.RegisterPatientCommand;
+import com.clinprecision.datacaptureservice.patientenrollment.dto.EnrollPatientDto;
 import com.clinprecision.datacaptureservice.patientenrollment.dto.RegisterPatientDto;
 import com.clinprecision.datacaptureservice.patientenrollment.dto.PatientDto;
 import com.clinprecision.datacaptureservice.patientenrollment.entity.PatientEntity;
+import com.clinprecision.datacaptureservice.patientenrollment.entity.PatientEnrollmentEntity;
+import com.clinprecision.datacaptureservice.patientenrollment.entity.EnrollmentStatus;
 import com.clinprecision.datacaptureservice.patientenrollment.repository.PatientRepository;
+import com.clinprecision.datacaptureservice.patientenrollment.repository.PatientEnrollmentRepository;
+import com.clinprecision.datacaptureservice.patientenrollment.repository.PatientEnrollmentAuditRepository;
+import com.clinprecision.datacaptureservice.patientenrollment.entity.PatientEnrollmentAuditEntity;
+import com.clinprecision.datacaptureservice.patientenrollment.repository.SiteStudyRepository;
+import com.clinprecision.common.entity.SiteStudyEntity;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +42,9 @@ public class PatientEnrollmentService {
 
     private final CommandGateway commandGateway;
     private final PatientRepository patientRepository;
+    private final PatientEnrollmentRepository patientEnrollmentRepository;
+    private final SiteStudyRepository siteStudyRepository;
+    private final PatientEnrollmentAuditRepository auditRepository;
 
     /**
      * Register a new patient in the system
@@ -147,6 +158,7 @@ public class PatientEnrollmentService {
                 .gender(entity.getGender() != null ? entity.getGender().name() : null)
                 .phoneNumber(entity.getPhoneNumber())
                 .email(entity.getEmail())
+        .siteId(entity.getSiteId())
                 .fullName(entity.getFullName())
                 .age(entity.getAge())
                 .status(entity.getStatus() != null ? entity.getStatus().name() : null)
@@ -154,5 +166,116 @@ public class PatientEnrollmentService {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * Enroll an existing patient into a study at a site.
+     * This is a minimal persistence flow to ensure siteId is stored.
+     * In future iterations, wire this to an Axon command + event + projection.
+     */
+    public PatientEnrollmentEntity enrollPatient(Long patientId, EnrollPatientDto dto, String createdBy) {
+        log.info("Enrolling patient {} into study {} at site {}", patientId, dto.getStudyId(), dto.getSiteId());
+
+        if (patientId == null) {
+            throw new IllegalArgumentException("Patient ID is required");
+        }
+        if (dto.getStudyId() == null) {
+            throw new IllegalArgumentException("Study ID is required");
+        }
+        if (dto.getSiteId() == null) {
+            throw new IllegalArgumentException("Site ID is required");
+        }
+        if (dto.getScreeningNumber() == null || dto.getScreeningNumber().trim().isEmpty()) {
+            throw new IllegalArgumentException("Screening number is required");
+        }
+
+        // Validate patient exists
+        PatientEntity patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new IllegalArgumentException("Patient not found: " + patientId));
+
+        // Uniqueness checks
+        if (patientEnrollmentRepository.existsByPatientIdAndStudyId(patientId, dto.getStudyId())) {
+            throw new IllegalArgumentException("Patient is already enrolled in this study");
+        }
+        if (patientEnrollmentRepository.existsByStudyIdAndScreeningNumber(dto.getStudyId(), dto.getScreeningNumber())) {
+            throw new IllegalArgumentException("Screening number already exists for this study");
+        }
+
+    // Validate site-studies association exists and matches the study
+    SiteStudyEntity association = siteStudyRepository
+        .findByIdAndStudyId(dto.getSiteId(), dto.getStudyId())
+        .orElseThrow(() -> new IllegalArgumentException("Invalid site association: siteId does not belong to study"));
+
+    // Optional: ensure association is ACTIVE
+    if (association.getStatus() != null && association.getStatus() != SiteStudyEntity.SiteStudyStatus.ACTIVE) {
+        throw new IllegalArgumentException("Site is not ACTIVE for the selected study");
+    }
+
+        // Determine site aggregate UUID from linked site if present
+    String siteAggregateUuid = association.getSite() != null ? association.getSite().getAggregateUuid() : "SITE-UUID-N/A";
+
+        // Enforce site enrollment cap if configured
+        if (association.getSubjectEnrollmentCap() != null) {
+            long currentCount = patientEnrollmentRepository.countBySiteId(association.getId());
+            if (currentCount >= association.getSubjectEnrollmentCap()) {
+                throw new IllegalArgumentException("Site enrollment cap reached for this study site");
+            }
+        }
+
+    // Minimal enrollment persistence
+        UUID enrollmentUuid = UUID.randomUUID();
+        PatientEnrollmentEntity enrollment = PatientEnrollmentEntity.builder()
+                .aggregateUuid(enrollmentUuid.toString())
+                .enrollmentNumber(generateEnrollmentNumber(dto))
+                .patientId(patient.getId())
+                .patientAggregateUuid(patient.getAggregateUuid())
+                .studyId(dto.getStudyId())
+        // Store association id in site_id as per schema FK to site_studies(id)
+        .siteId(dto.getSiteId())
+        .siteAggregateUuid(siteAggregateUuid != null ? siteAggregateUuid : "SITE-UUID-N/A")
+                .screeningNumber(dto.getScreeningNumber())
+                .enrollmentDate(dto.getEnrollmentDate() != null ? dto.getEnrollmentDate() : java.time.LocalDate.now())
+                .enrollmentStatus(EnrollmentStatus.ENROLLED)
+                .eligibilityConfirmed(false)
+                .enrolledBy(createdBy != null ? createdBy : "system")
+                .build();
+
+    PatientEnrollmentEntity saved = patientEnrollmentRepository.save(enrollment);
+
+        // Update association enrollment count (best-effort)
+        try {
+            Integer count = association.getSubjectEnrollmentCount();
+            association.setSubjectEnrollmentCount((count == null ? 0 : count) + 1);
+            siteStudyRepository.save(association);
+        } catch (Exception ex) {
+            log.warn("Failed to update subjectEnrollmentCount for association {}: {}", association.getId(), ex.getMessage());
+        }
+
+    // Write audit entry
+        try {
+            PatientEnrollmentAuditEntity audit = PatientEnrollmentAuditEntity.builder()
+            .entityType(PatientEnrollmentAuditEntity.AuditEntityType.ENROLLMENT)
+                    .entityId(saved.getId())
+                    .entityAggregateUuid(saved.getAggregateUuid())
+            .actionType(PatientEnrollmentAuditEntity.AuditActionType.ENROLL)
+                    .oldValues(null)
+            .newValues("{\"patientId\": " + saved.getPatientId() + ", \"studyId\": " + saved.getStudyId() + ", \"siteAssociationId\": " + saved.getSiteId() + "}")
+                    .performedBy(createdBy != null ? createdBy : "system")
+                    .performedAt(java.time.LocalDateTime.now())
+                    .reason("Patient enrolled")
+                    .build();
+            auditRepository.save(audit);
+        } catch (Exception ex) {
+            log.warn("Failed to write enrollment audit for enrollment {}: {}", saved.getId(), ex.getMessage());
+        }
+        log.info("Enrollment persisted with ID {} and UUID {}", saved.getId(), saved.getAggregateUuid());
+        return saved;
+    }
+
+    private String generateEnrollmentNumber(EnrollPatientDto dto) {
+        String studyPart = String.valueOf(dto.getStudyId());
+        String sitePart = String.valueOf(dto.getSiteId());
+        String ts = String.valueOf(System.currentTimeMillis()).substring(6);
+        return "ENR-" + studyPart + "-" + sitePart + "-" + ts;
     }
 }

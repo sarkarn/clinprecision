@@ -20,8 +20,8 @@ public class SiteStudyEntity {
     @JoinColumn(name = "site_id", nullable = false)
     private SiteEntity site;
 
-    @Column(name = "study_id", nullable = false, length = 36)
-    private String studyId;
+    @Column(name = "study_id", nullable = false)
+    private Long studyId;
 
     @Column(name = "site_study_id")
     private String siteStudyId;
@@ -79,11 +79,11 @@ public class SiteStudyEntity {
         this.site = site;
     }
 
-    public String getStudyId() {
+    public Long getStudyId() {
         return studyId;
     }
 
-    public void setStudyId(String studyId) {
+    public void setStudyId(Long studyId) {
         this.studyId = studyId;
     }
 

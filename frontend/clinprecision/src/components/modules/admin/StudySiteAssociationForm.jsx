@@ -46,9 +46,9 @@ export default function StudySiteAssociationForm() {
 
     const availableStudies = useMemo(() => {
         if (!Array.isArray(studies)) return [];
-        // StudyService.getStudies returns objects with id and title, and protocolNumber; SSA uses studyId string often protocolNumber
+        // Use numeric study.id as the association key; display protocolNumber for readability
         return studies.map(s => ({
-            key: s.protocolNumber || String(s.id),
+            key: String(s.id),
             label: `${s.protocolNumber || s.id} - ${s.title || s.name || 'Untitled'}`
         })).filter(s => !associatedStudyIdsForSelectedSite.includes(s.key));
     }, [studies, associatedStudyIdsForSelectedSite]);
@@ -71,7 +71,7 @@ export default function StudySiteAssociationForm() {
         try {
             setSubmitting(true);
             setError(null);
-            await SiteService.associateSiteWithStudy(Number(selectedSiteId), { studyId: selectedStudyId, reason });
+            await SiteService.associateSiteWithStudy(Number(selectedSiteId), { studyId: Number(selectedStudyId), reason });
             setNotice('Association created successfully');
             // small delay for UX, then go back to list
             setTimeout(() => navigate('/user-management/study-site-associations'), 600);

@@ -1,17 +1,21 @@
 // SubjectEnrollment.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStudies, getStudyById } from '../../../services/StudyService';
+import { getStudies } from '../../../services/StudyService';
 import { enrollSubject } from '../../../services/SubjectService';
+import StudyDesignService from '../../../services/StudyDesignService';
+import { SiteService } from '../../../services/SiteService';
 
 export default function SubjectEnrollment() {
     const [studies, setStudies] = useState([]);
     const [selectedStudy, setSelectedStudy] = useState('');
     const [studyArms, setStudyArms] = useState([]);
+    const [studySites, setStudySites] = useState([]);
     const [formData, setFormData] = useState({
         subjectId: '',
         studyId: '',
         armId: '',
+        siteId: '',
         enrollmentDate: new Date().toISOString().split('T')[0],
         status: 'Active',
         firstName: '',
@@ -24,12 +28,14 @@ export default function SubjectEnrollment() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        // Load all studies (not limited by user assignments)
         const fetchStudies = async () => {
             try {
+                setError(null);
                 const studiesData = await getStudies();
                 setStudies(studiesData);
-            } catch (error) {
-                console.error('Error fetching studies:', error);
+            } catch (err) {
+                console.error('Error fetching studies:', err);
                 setError('Failed to load studies.');
             }
         };
@@ -38,24 +44,72 @@ export default function SubjectEnrollment() {
     }, []);
 
     useEffect(() => {
-        if (!selectedStudy) return;
+        if (!selectedStudy) {
+            setStudyArms([]);
+            setStudySites([]);
+            setFormData(prev => ({ ...prev, studyId: '', armId: '', siteId: '' }));
+            return;
+        }
 
-        const fetchStudyDetails = async () => {
+        const fetchStudyDependentData = async () => {
             try {
-                const studyData = await getStudyById(selectedStudy);
-                setStudyArms(studyData.arms || []);
+                setError(null);
+                // Fetch arms via StudyDesignService (gateway-prefixed)
+                const arms = await StudyDesignService.getStudyArms(selectedStudy);
+                setStudyArms(Array.isArray(arms) ? arms : []);
+
+                // Fetch site-study associations and populate dropdown
+                const associations = await SiteService.getSiteAssociationsForStudy(selectedStudy);
+                console.log('[SubjectEnrollment] Associations API raw:', associations);
+                const assocList = Array.isArray(associations) ? associations : [];
+
+                // Normalize status and pick ACTIVE; if none active, fall back to all
+                const normalized = assocList.map(a => {
+                    // status may be string or enum object; normalize to uppercase string
+                    let rawStatus = a?.status;
+                    let statusStr = '';
+                    if (rawStatus && typeof rawStatus === 'object') {
+                        // Common enum serialization shape { name: 'ACTIVE', ... } or { status: 'ACTIVE' }
+                        statusStr = (rawStatus.name || rawStatus.status || '').toString();
+                    } else {
+                        statusStr = (rawStatus ?? '').toString();
+                    }
+                    const __status = statusStr.toUpperCase();
+                    return { ...a, __status };
+                });
+                const activeOnly = normalized.filter(a => a.__status === 'ACTIVE');
+                const chosen = activeOnly.length > 0 ? activeOnly : normalized;
+
+                const sitesOptions = chosen.map(a => {
+                    // association id to send to backend enrollment = site_studies.id
+                    const associationId = (a.id ?? a.siteStudyId ?? a.siteId);
+                    const value = associationId != null ? String(associationId) : '';
+                    // site display fields may not be present on DTO; build a reasonable label
+                    const siteNum = a.siteNumber || a.site_num || a.siteCode || null;
+                    const siteName = a.siteName || a.site_name || a.name || null;
+                    const fallback = value ? `Assoc ${value}` : 'Associated Site';
+                    const base = siteNum && siteName
+                        ? `${siteNum} - ${siteName}`
+                        : (siteName || fallback);
+                    const label = activeOnly.length > 0 ? base : `${base} [${a.__status || 'UNKNOWN'}]`;
+                    return { siteId: value, label };
+                });
+
+                setStudySites(sitesOptions);
+
                 setFormData(prev => ({
                     ...prev,
                     studyId: selectedStudy,
-                    armId: studyData.arms?.length > 0 ? studyData.arms[0].id : ''
+                    armId: (Array.isArray(arms) && arms.length > 0) ? (arms[0].id?.toString() || arms[0].id) : '',
+                    siteId: (sitesOptions.length > 0) ? sitesOptions[0].siteId : ''
                 }));
             } catch (error) {
-                console.error('Error fetching study details:', error);
-                setError('Failed to load study details.');
+                console.error('Error fetching study dependent data:', error);
+                setError('Failed to load study details (arms/sites).');
             }
         };
 
-        fetchStudyDetails();
+        fetchStudyDependentData();
     }, [selectedStudy]);
 
     const handleChange = (e) => {
@@ -75,7 +129,7 @@ export default function SubjectEnrollment() {
 
         try {
             // Validate form
-            if (!formData.subjectId || !formData.studyId || !formData.armId || !formData.firstName || !formData.lastName) {
+            if (!formData.subjectId || !formData.studyId || !formData.armId || !formData.siteId || !formData.firstName || !formData.lastName) {
                 throw new Error('Please fill all required fields.');
             }
 
@@ -193,7 +247,7 @@ export default function SubjectEnrollment() {
                         >
                             <option value="">Select a study</option>
                             {studies.map(study => (
-                                <option key={study.id} value={study.id}>{study.name}</option>
+                                <option key={study.id} value={study.id}>{study.title || study.name}</option>
                             ))}
                         </select>
                     </div>
@@ -212,9 +266,33 @@ export default function SubjectEnrollment() {
                         >
                             <option value="">Select an arm</option>
                             {studyArms.map(arm => (
-                                <option key={arm.id} value={arm.id}>{arm.name}</option>
+                                <option key={arm.id} value={arm.id}>{arm.name || arm.title || `Arm ${arm.id}`}</option>
                             ))}
                         </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Study Site*
+                        </label>
+                        <select
+                            name="siteId"
+                            value={formData.siteId}
+                            onChange={handleChange}
+                            className="border border-gray-300 rounded-md w-full px-3 py-2"
+                            required
+                            disabled={studySites.length === 0}
+                        >
+                            <option value="">Select a study site</option>
+                            {studySites.map(s => (
+                                <option key={s.siteId} value={s.siteId}>{s.label}</option>
+                            ))}
+                        </select>
+                        {selectedStudy && studySites.length === 0 && (
+                            <p className="text-xs text-gray-500 mt-1">
+                                No site associations found for this study. Ensure at least one site is associated and ACTIVE in User Management.
+                            </p>
+                        )}
                     </div>
 
                     <div>
