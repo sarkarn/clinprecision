@@ -15,7 +15,7 @@ public class UserSiteAssignmentDto {
     private Long siteId; // Reference to site ID only to avoid circular references
     private String roleCode;
     private String roleName;
-    private String studyId;
+    private Long studyId;
     private UserSiteAssignmentEntity.AssignmentStatus status;
     private LocalDateTime startDate;
     private LocalDateTime endDate;

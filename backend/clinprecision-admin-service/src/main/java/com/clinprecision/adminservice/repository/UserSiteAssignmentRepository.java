@@ -56,7 +56,7 @@ public interface UserSiteAssignmentRepository extends JpaRepository<UserSiteAssi
      * @param studyId the ID of the study
      * @return list of user assignments for the specified study
      */
-    List<UserSiteAssignmentEntity> findByStudyId(String studyId);
+    List<UserSiteAssignmentEntity> findByStudyId(Long studyId);
     
     /**
      * Find all user assignments with end dates before a specific date.

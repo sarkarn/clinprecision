@@ -49,10 +49,10 @@ public class StudySiteAssociationService {
         
         // Create the association
         SiteStudyEntity siteStudy = new SiteStudyEntity();
-    siteStudy.setSite(site);
-    siteStudy.setStudyId(studyId);
+        siteStudy.setSite(site);
+        siteStudy.setStudyId(studyId);
         siteStudy.setStatus(SiteStudyEntity.SiteStudyStatus.PENDING);
-    siteStudy.setSiteStudyId(generateSiteStudyId(site.getSiteNumber(), studyId));
+        siteStudy.setSiteStudyId(generateSiteStudyId(site.getSiteNumber(), studyId));
         
         SiteStudyEntity savedSiteStudy = siteStudyRepository.save(siteStudy);
         

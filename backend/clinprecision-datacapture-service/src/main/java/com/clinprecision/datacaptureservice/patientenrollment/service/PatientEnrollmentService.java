@@ -158,7 +158,6 @@ public class PatientEnrollmentService {
                 .gender(entity.getGender() != null ? entity.getGender().name() : null)
                 .phoneNumber(entity.getPhoneNumber())
                 .email(entity.getEmail())
-        .siteId(entity.getSiteId())
                 .fullName(entity.getFullName())
                 .age(entity.getAge())
                 .status(entity.getStatus() != null ? entity.getStatus().name() : null)
@@ -216,7 +215,7 @@ public class PatientEnrollmentService {
 
         // Enforce site enrollment cap if configured
         if (association.getSubjectEnrollmentCap() != null) {
-            long currentCount = patientEnrollmentRepository.countBySiteId(association.getId());
+            long currentCount = patientEnrollmentRepository.countByStudySiteId(association.getId());
             if (currentCount >= association.getSubjectEnrollmentCap()) {
                 throw new IllegalArgumentException("Site enrollment cap reached for this study site");
             }
@@ -230,8 +229,8 @@ public class PatientEnrollmentService {
                 .patientId(patient.getId())
                 .patientAggregateUuid(patient.getAggregateUuid())
                 .studyId(dto.getStudyId())
-        // Store association id in site_id as per schema FK to site_studies(id)
-        .siteId(dto.getSiteId())
+        // Store association id in study_site_id as per schema FK to site_studies(id)
+        .studySiteId(dto.getSiteId())
         .siteAggregateUuid(siteAggregateUuid != null ? siteAggregateUuid : "SITE-UUID-N/A")
                 .screeningNumber(dto.getScreeningNumber())
                 .enrollmentDate(dto.getEnrollmentDate() != null ? dto.getEnrollmentDate() : java.time.LocalDate.now())
@@ -259,7 +258,7 @@ public class PatientEnrollmentService {
                     .entityAggregateUuid(saved.getAggregateUuid())
             .actionType(PatientEnrollmentAuditEntity.AuditActionType.ENROLL)
                     .oldValues(null)
-            .newValues("{\"patientId\": " + saved.getPatientId() + ", \"studyId\": " + saved.getStudyId() + ", \"siteAssociationId\": " + saved.getSiteId() + "}")
+            .newValues("{\"patientId\": " + saved.getPatientId() + ", \"studyId\": " + saved.getStudyId() + ", \"siteAssociationId\": " + saved.getStudySiteId() + "}")
                     .performedBy(createdBy != null ? createdBy : "system")
                     .performedAt(java.time.LocalDateTime.now())
                     .reason("Patient enrolled")

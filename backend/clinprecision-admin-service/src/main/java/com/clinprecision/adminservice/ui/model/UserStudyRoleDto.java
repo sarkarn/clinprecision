@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class UserStudyRoleDto {
     private Long id;
     private Long userId; // Reference to user ID only to avoid circular references
-    private String studyId;
+    private Long studyId;
     private String roleCode;
     private String roleName;
     private String description;

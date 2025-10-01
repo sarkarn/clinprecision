@@ -22,8 +22,8 @@ CREATE TABLE  domain_event_entry (
     aggregate_identifier VARCHAR(255) NOT NULL,
     sequence_number BIGINT NOT NULL,
     type VARCHAR(255),
-    meta_data LONGBLOB,
-    payload LONGBLOB NOT NULL,
+    meta_data BLOB,
+    payload BLOB NOT NULL,
     payload_revision VARCHAR(255),
     payload_type VARCHAR(255) NOT NULL,
     time_stamp VARCHAR(255) NOT NULL,
@@ -39,13 +39,15 @@ CREATE TABLE  snapshot_event_entry (
     aggregate_identifier VARCHAR(255) NOT NULL,
     sequence_number BIGINT NOT NULL,
     type VARCHAR(255) NOT NULL,
-    meta_data LONGBLOB,
-    payload LONGBLOB NOT NULL,
+    event_identifier VARCHAR(255) NOT NULL UNIQUE,
+    meta_data BLOB,
+    payload BLOB NOT NULL,
     payload_revision VARCHAR(255),
     payload_type VARCHAR(255) NOT NULL,
     time_stamp VARCHAR(255) NOT NULL,
     
-    PRIMARY KEY (aggregate_identifier, sequence_number)
+    PRIMARY KEY (aggregate_identifier, sequence_number),
+    KEY IDX_snapshot_event_entry_event_identifier (event_identifier)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Association Value Entry Table
@@ -67,13 +69,55 @@ CREATE TABLE  association_value_entry (
 CREATE TABLE  token_entry (
     processor_name VARCHAR(255) NOT NULL,
     segment INTEGER NOT NULL DEFAULT 0,
-    token LONGBLOB,
+    token BLOB,
     token_type VARCHAR(255),
     timestamp VARCHAR(255),
     owner VARCHAR(255),
     
     PRIMARY KEY (processor_name, segment)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Hibernate Sequence Tables for ID Generation
+-- Required for JPA sequence ID generation used by Axon Framework
+
+-- Domain Event Entry sequence table
+CREATE TABLE domain_event_entry_seq (
+    next_val BIGINT
+) ENGINE=InnoDB;
+
+-- Association Value Entry sequence table  
+CREATE TABLE association_value_entry_seq (
+    next_val BIGINT
+) ENGINE=InnoDB;
+
+-- Token Entry sequence table (if needed)
+CREATE TABLE token_entry_seq (
+    next_val BIGINT
+) ENGINE=InnoDB;
+
+
+-- Saga Entry Table
+-- Stores saga instances and their state
+CREATE TABLE IF NOT EXISTS saga_entry (
+    saga_id VARCHAR(255) NOT NULL,
+    revision VARCHAR(255),
+    saga_type VARCHAR(255),
+    serialized_saga BLOB,
+    
+    PRIMARY KEY (saga_id),
+    KEY IDX_saga_entry_saga_type (saga_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Hibernate Sequence Table for Saga Entry (if needed)
+CREATE TABLE IF NOT EXISTS saga_entry_seq (
+    next_val BIGINT
+) ENGINE=InnoDB;
+
+-- Initialize the sequence tables
+INSERT INTO domain_event_entry_seq VALUES (1);
+INSERT INTO association_value_entry_seq VALUES (1);
+INSERT INTO token_entry_seq VALUES (1);
+INSERT IGNORE INTO saga_entry_seq VALUES (1);
 
 -- =====================================================
 -- Verification Queries

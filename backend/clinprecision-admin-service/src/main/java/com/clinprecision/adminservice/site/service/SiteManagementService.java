@@ -5,7 +5,6 @@ import org.axonframework.modelling.command.AggregateNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.annotation.Propagation;
 
 import com.clinprecision.adminservice.repository.OrganizationRepository;
 import com.clinprecision.adminservice.repository.SiteRepository;
@@ -74,9 +73,9 @@ public class SiteManagementService {
         
         System.out.println("[SITE_CREATE] Validation passed for site: " + createSiteDto.getSiteNumber());
         
-        // Generate unique site ID
-        String siteId = UUID.randomUUID().toString();
-        System.out.println("[SITE_CREATE] Generated UUID: " + siteId + " for site: " + createSiteDto.getSiteNumber());
+        // Generate unique site ID with collision detection
+        String siteId = generateUniqueSiteId();
+        System.out.println("[SITE_CREATE] Generated unique UUID: " + siteId + " for site: " + createSiteDto.getSiteNumber());
         
         // Send command to aggregate - this will trigger event sourcing
         try {
@@ -227,6 +226,9 @@ public class SiteManagementService {
             
             System.out.println("[SITE_ACTIVATE] ActivateSiteCommand sent successfully!");
             
+            // Force a flush to make sure any database changes from the projection are committed
+            entityManager.flush();
+            
         } catch (AggregateNotFoundException e) {
             System.out.println("[SITE_ACTIVATE] Aggregate not found in event store, initializing it first...");
             
@@ -283,6 +285,14 @@ public class SiteManagementService {
         }
         
         System.out.println("[SITE_ACTIVATE] Checking for status update...");
+        
+        // Small delay to ensure projection handler completes
+        try {
+            Thread.sleep(100);
+            entityManager.clear(); // Clear the persistence context to ensure fresh data
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
         
         // Return updated site
         SiteEntity updatedSite = siteRepository.findById(siteId)
@@ -352,6 +362,35 @@ public class SiteManagementService {
         return siteRepository.findByOrganization_Id(organizationId).stream()
             .map(this::mapToDto)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Generate a unique UUID that doesn't conflict with existing aggregates
+     * This prevents the "Cannot reuse aggregate identifier" error
+     */
+    private String generateUniqueSiteId() {
+        String uuid;
+        int attempts = 0;
+        int maxAttempts = 10; // Reasonable limit to prevent infinite loops
+        
+        do {
+            uuid = UUID.randomUUID().toString();
+            attempts++;
+            
+            // Check if UUID already exists in the database
+            boolean existsInDb = siteRepository.findByAggregateUuid(uuid).isPresent();
+            
+            if (!existsInDb) {
+                System.out.println("[UUID_GENERATION] Generated unique UUID: " + uuid + " (attempt " + attempts + ")");
+                return uuid;
+            }
+            
+            System.out.println("[UUID_GENERATION] UUID collision detected: " + uuid + " (attempt " + attempts + "), generating new one...");
+            
+        } while (attempts < maxAttempts);
+        
+        // If we reach here, we've had too many collisions (very unlikely with UUIDs)
+        throw new IllegalStateException("Failed to generate unique UUID after " + maxAttempts + " attempts");
     }
 
     /**

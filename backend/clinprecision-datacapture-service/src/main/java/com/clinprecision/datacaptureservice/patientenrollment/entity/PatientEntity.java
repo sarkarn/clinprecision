@@ -53,9 +53,7 @@ public class PatientEntity {
     @Column(name = "email")
     private String email;
 
-    // When set, this stores site_studies.id (association) for patient's current site
-    @Column(name = "site_id")
-    private Long siteId;
+    // No direct site/study linkage here: patients is a global table
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

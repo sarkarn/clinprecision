@@ -40,8 +40,8 @@ public class PatientEnrollmentEntity {
     @Column(name = "study_id", nullable = false)
     private Long studyId;
 
-    @Column(name = "site_id", nullable = false)
-    private Long siteId;
+    @Column(name = "study_site_id", nullable = false)
+    private Long studySiteId;
 
     @Column(name = "site_aggregate_uuid", nullable = false)
     private String siteAggregateUuid;

@@ -57,6 +57,10 @@ export default function StudySiteAssociationList() {
                 StudyService.getStudies()
             ]);
 
+            console.log('Loaded sites:', sitesData.length);
+            console.log('Loaded studies:', studiesData.length);
+            console.log('Studies data structure:', studiesData.map(s => ({ id: s.id, name: s.name, title: s.title, protocolNumber: s.protocolNumber })));
+
             setSites(sitesData);
             setStudies(studiesData);
 
@@ -65,12 +69,30 @@ export default function StudySiteAssociationList() {
             for (const site of sitesData) {
                 try {
                     const siteAssociations = await StudySiteService.getStudyAssociationsForSite(site.id);
-                    const enrichedAssociations = siteAssociations.map(assoc => ({
-                        ...assoc,
-                        siteName: site.name,
-                        siteNumber: site.siteNumber,
-                        studyName: studiesData.find(s => s.protocolNumber === assoc.studyId || s.id?.toString() === assoc.studyId)?.title || 'Unknown Study'
-                    }));
+                    const enrichedAssociations = siteAssociations.map(assoc => {
+                        // Convert studyId to number for proper comparison
+                        const studyIdAsNumber = Number(assoc.studyId);
+
+                        // Find study by ID (primary match) or fallback to protocol number
+                        const matchedStudy = studiesData.find(s =>
+                            s.id === studyIdAsNumber ||
+                            s.id === assoc.studyId ||
+                            s.protocolNumber === assoc.studyId?.toString()
+                        );
+
+                        console.log(`Study lookup for association ${assoc.id}:`, {
+                            studyId: assoc.studyId,
+                            studyIdAsNumber,
+                            matchedStudy: matchedStudy ? { id: matchedStudy.id, name: matchedStudy.name, title: matchedStudy.title } : null
+                        });
+
+                        return {
+                            ...assoc,
+                            siteName: site.name,
+                            siteNumber: site.siteNumber,
+                            studyName: matchedStudy?.title || matchedStudy?.name || `Study ID: ${assoc.studyId}`
+                        };
+                    });
                     allAssociations.push(...enrichedAssociations);
                 } catch (error) {
                     console.warn(`Failed to load associations for site ${site.id}:`, error);

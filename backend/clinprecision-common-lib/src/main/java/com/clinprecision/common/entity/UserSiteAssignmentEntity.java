@@ -30,8 +30,8 @@ public class UserSiteAssignmentEntity {
     @Column(name = "role_name", nullable = false)
     private String roleName;
     
-    @Column(name = "study_id", length = 36)
-    private String studyId;
+    @Column(name = "study_id")
+    private Long studyId;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
@@ -107,11 +107,11 @@ public class UserSiteAssignmentEntity {
         this.roleName = roleName;
     }
 
-    public String getStudyId() {
+    public Long getStudyId() {
         return studyId;
     }
 
-    public void setStudyId(String studyId) {
+    public void setStudyId(Long studyId) {
         this.studyId = studyId;
     }
 

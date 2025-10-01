@@ -42,9 +42,9 @@ public interface PatientEnrollmentRepository extends JpaRepository<PatientEnroll
     List<PatientEnrollmentEntity> findByStudyId(Long studyId);
 
     /**
-     * Find enrollments by site ID
+     * Find enrollments by study site ID (site association ID)
      */
-    List<PatientEnrollmentEntity> findBySiteId(Long siteId);
+    List<PatientEnrollmentEntity> findByStudySiteId(Long studySiteId);
 
     /**
      * Find enrollments by site aggregate UUID
@@ -89,7 +89,7 @@ public interface PatientEnrollmentRepository extends JpaRepository<PatientEnroll
     /**
      * Find enrollments by site and status
      */
-    List<PatientEnrollmentEntity> findBySiteIdAndEnrollmentStatus(Long siteId, String enrollmentStatus);
+    List<PatientEnrollmentEntity> findByStudySiteIdAndEnrollmentStatus(Long studySiteId, String enrollmentStatus);
 
     /**
      * Count enrollments by study
@@ -100,8 +100,8 @@ public interface PatientEnrollmentRepository extends JpaRepository<PatientEnroll
     /**
      * Count enrollments by site
      */
-    @Query("SELECT COUNT(e) FROM PatientEnrollmentEntity e WHERE e.siteId = :siteId")
-    long countBySiteId(@Param("siteId") Long siteId);
+    @Query("SELECT COUNT(e) FROM PatientEnrollmentEntity e WHERE e.studySiteId = :studySiteId")
+    long countByStudySiteId(@Param("studySiteId") Long studySiteId);
 
     /**
      * Find enrollments by date range
