@@ -15,13 +15,13 @@ import com.clinprecision.axon.config.AxonConfig;
 @Import(AxonConfig.class)
 @EnableJpaRepositories(basePackages = {
     "com.clinprecision.common.repository",
-    "com.clinprecision.datacaptureservice.patientenrollment.repository",
-    "com.clinprecision.datacaptureservice.studydatabase.repository"
+    "com.clinprecision.datacaptureservice.patientenrollment.repository"
+    // NOTE: studydatabase.repository REMOVED - migrated to Study Design Service (Oct 2, 2025)
 })
 @EntityScan(basePackages = {
     "com.clinprecision.common.entity",
     "com.clinprecision.datacaptureservice.patientenrollment.entity",
-    "com.clinprecision.datacaptureservice.studydatabase.entity",
+    // NOTE: studydatabase.entity REMOVED - migrated to Study Design Service (Oct 2, 2025)
     "org.axonframework.eventsourcing.eventstore.jpa",
     "org.axonframework.modelling.saga.repository.jpa",
     "org.axonframework.eventhandling.tokenstore.jpa"
