@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -59,7 +60,50 @@ public class PatientEnrollmentService {
         try {
             // Generate patient UUID for Axon
             UUID patientUuid = UUID.randomUUID();
+            log.info("Generated patient UUID: {} for registration", patientUuid);
             
+            // Send command in separate transaction context
+            sendPatientRegistrationCommand(patientUuid, registerDto, createdBy);
+            
+            log.info("RegisterPatientCommand completed successfully for UUID: {}", patientUuid);
+            
+            // Simple approach: wait a moment for projection, then fetch directly
+            try {
+                Thread.sleep(100); // Give projection a moment to process
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            
+            // Try direct fetch first
+            Optional<PatientEntity> optionalEntity = patientRepository.findByAggregateUuid(patientUuid.toString());
+            PatientEntity entity;
+            
+            if (optionalEntity.isPresent()) {
+                log.info("Patient projection found immediately for UUID: {}", patientUuid);
+                entity = optionalEntity.get();
+            } else {
+                log.warn("Patient projection not found immediately, using retry mechanism for UUID: {}", patientUuid);
+                // Fallback to retry mechanism if immediate fetch fails
+                entity = waitForPatientProjection(patientUuid.toString(), 5000); // 5 second timeout
+            }
+            
+            PatientDto result = mapToDto(entity);
+            
+            log.info("Patient registered successfully: ID={}, UUID={}", result.getId(), result.getAggregateUuid());
+            return result;
+            
+        } catch (Exception e) {
+            log.error("Error registering patient: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to register patient: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Send patient registration command in separate transaction context
+     */
+    @Transactional
+    private void sendPatientRegistrationCommand(UUID patientUuid, RegisterPatientDto registerDto, String createdBy) {
+        try {
             // Create and send Axon command
             RegisterPatientCommand command = RegisterPatientCommand.builder()
                     .patientId(patientUuid)
@@ -73,25 +117,15 @@ public class PatientEnrollmentService {
                     .createdBy(createdBy)
                     .build();
             
+            log.info("Sending RegisterPatientCommand to Axon for UUID: {}", patientUuid);
+            
             // Send command and wait for completion
             CompletableFuture<Void> future = commandGateway.send(command);
             future.get(); // Wait for event to be processed
             
-            // Wait a brief moment for projection to be updated
-            Thread.sleep(100);
-            
-            // Fetch the created patient entity from read model
-            PatientEntity entity = patientRepository.findByAggregateUuid(patientUuid.toString())
-                    .orElseThrow(() -> new RuntimeException("Patient not found after creation"));
-            
-            PatientDto result = mapToDto(entity);
-            
-            log.info("Patient registered successfully: ID={}, UUID={}", result.getId(), result.getAggregateUuid());
-            return result;
-            
         } catch (Exception e) {
-            log.error("Error registering patient: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to register patient: " + e.getMessage(), e);
+            log.error("Error sending patient registration command for UUID {}: {}", patientUuid, e.getMessage(), e);
+            throw new RuntimeException("Failed to send patient registration command", e);
         }
     }
 
@@ -276,5 +310,47 @@ public class PatientEnrollmentService {
         String sitePart = String.valueOf(dto.getSiteId());
         String ts = String.valueOf(System.currentTimeMillis()).substring(6);
         return "ENR-" + studyPart + "-" + sitePart + "-" + ts;
+    }
+
+    /**
+     * Wait for patient projection to be updated with retry logic
+     * 
+     * @param patientUuid The patient UUID to look for
+     * @param timeoutMs Maximum time to wait in milliseconds
+     * @return The patient entity when found
+     * @throws RuntimeException if patient not found within timeout
+     */
+    private PatientEntity waitForPatientProjection(String patientUuid, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        long delay = 50; // Start with 50ms delay
+        int attempts = 0;
+        
+        log.info("Waiting for patient projection with UUID: {}", patientUuid);
+        
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            try {
+                attempts++;
+                Optional<PatientEntity> entity = patientRepository.findByAggregateUuid(patientUuid);
+                if (entity.isPresent()) {
+                    log.info("Patient projection found after {}ms and {} attempts", System.currentTimeMillis() - startTime, attempts);
+                    return entity.get();
+                }
+                
+                log.debug("Patient projection not found yet, attempt {}, waiting {}ms", attempts, delay);
+                
+                // Wait before retrying
+                Thread.sleep(delay);
+                
+                // Exponential backoff up to 500ms
+                delay = Math.min(delay * 2, 500);
+                
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while waiting for patient projection", e);
+            }
+        }
+        
+        log.error("Patient projection timeout after {}ms and {} attempts for UUID: {}", timeoutMs, attempts, patientUuid);
+        throw new RuntimeException("Patient not found after creation - projection timeout after " + timeoutMs + "ms");
     }
 }

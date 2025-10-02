@@ -73,6 +73,7 @@ public class PatientAggregate {
             .gender(command.getGender())
             .phoneNumber(command.getPhoneNumber())
             .email(command.getEmail())
+            .createdBy(command.getCreatedBy())
             .registeredBy(command.getCreatedBy())
             .registeredAt(LocalDateTime.now())
             .build());
