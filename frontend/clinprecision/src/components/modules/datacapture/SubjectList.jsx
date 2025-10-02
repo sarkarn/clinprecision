@@ -50,7 +50,7 @@ export default function SubjectList() {
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-semibold">Subject Management</h3>
                 <button
-                    onClick={() => navigate('/datacapture-management/enroll')}
+                    onClick={() => navigate('/subject-management/enroll')}
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
                     + Enroll New Subject
@@ -82,6 +82,7 @@ export default function SubjectList() {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollment Date</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Study Arm</th>
@@ -91,13 +92,21 @@ export default function SubjectList() {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {subjects.map(subject => (
                                 <tr key={subject.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap">{subject.subjectId}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{subject.subjectId}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {subject.firstName && subject.lastName ?
+                                            `${subject.firstName} ${subject.lastName}` :
+                                            'N/A'
+                                        }
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${subject.status === 'Active' ? 'bg-green-100 text-green-800' :
+                      ${subject.status === 'Active' || subject.status === 'Enrolled' ? 'bg-green-100 text-green-800' :
                                                 subject.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
                                                     subject.status === 'Withdrawn' ? 'bg-red-100 text-red-800' :
-                                                        'bg-gray-100 text-gray-800'}`}>
+                                                        subject.status === 'Screening' ? 'bg-yellow-100 text-yellow-800' :
+                                                            subject.status === 'Screen Failed' ? 'bg-red-100 text-red-800' :
+                                                                'bg-gray-100 text-gray-800'}`}>
                                             {subject.status}
                                         </span>
                                     </td>

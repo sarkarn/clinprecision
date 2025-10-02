@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotNull;
 public class ActivateSiteForStudyDto {
     
     @NotNull(message = "Study ID is required")
-    private String studyId;
+    private Long studyId;
     
     @NotBlank(message = "Reason is required for audit compliance")
     private String reason;
@@ -17,14 +17,14 @@ public class ActivateSiteForStudyDto {
     // Constructors
     public ActivateSiteForStudyDto() {}
 
-    public ActivateSiteForStudyDto(String studyId, String reason) {
+    public ActivateSiteForStudyDto(Long studyId, String reason) {
         this.studyId = studyId;
         this.reason = reason;
     }
 
     // Getters and Setters
-    public String getStudyId() { return studyId; }
-    public void setStudyId(String studyId) { this.studyId = studyId; }
+    public Long getStudyId() { return studyId; }
+    public void setStudyId(Long studyId) { this.studyId = studyId; }
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }

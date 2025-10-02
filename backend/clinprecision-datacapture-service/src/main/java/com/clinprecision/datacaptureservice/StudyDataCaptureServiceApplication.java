@@ -5,16 +5,25 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
 @EnableFeignClients
+@EnableJpaRepositories(basePackages = {
+    "com.clinprecision.common.repository",
+    "com.clinprecision.datacaptureservice.patientenrollment.repository"
+})
 @EntityScan(basePackages = {
-    "com.clinprecision.datacaptureservice.entity",
-    "com.clinprecision.common.entity"
+    "com.clinprecision.common.entity",
+    "com.clinprecision.datacaptureservice.patientenrollment.entity",
+    "org.axonframework.eventsourcing.eventstore.jpa",
+    "org.axonframework.modelling.saga.repository.jpa",
+    "org.axonframework.eventhandling.tokenstore.jpa"
 })
 @ComponentScan(basePackages = {
     "com.clinprecision.datacaptureservice",
-    "com.clinprecision.common"
+    "com.clinprecision.common",
+    "com.clinprecision.axon"
 })
 public class StudyDataCaptureServiceApplication {
 

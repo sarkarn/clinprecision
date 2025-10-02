@@ -51,15 +51,24 @@ public class StudySiteAssociationController {
     @PostMapping("/{siteId}/studies/{studyId}/activate")
     public ResponseEntity<SiteStudyDto> activateSiteForStudy(
             @PathVariable Long siteId,
-            @PathVariable String studyId,
+        @PathVariable Long studyId,
             @Valid @RequestBody ActivateSiteForStudyDto activationDto,
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestHeader(value = "userEmail", required = false) String userEmail,
             Authentication authentication) {
         
         String userId = getUserId(authentication, userEmail, authorization);
+        
+        // First find the association by siteId and studyId
+        List<SiteStudyDto> associations = studySiteAssociationService.getStudyAssociationsForSite(siteId);
+        SiteStudyDto association = associations.stream()
+            .filter(a -> a.getStudyId().equals(studyId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Site-study association not found"));
+        
+        // Now activate using the association ID
         SiteStudyDto activatedAssociation = studySiteAssociationService.activateSiteForStudy(
-            siteId, 
+            association.getId(), 
             studyId, 
             userId, 
             activationDto.getReason()
@@ -81,7 +90,7 @@ public class StudySiteAssociationController {
      * Get all site associations for a study
      */
     @GetMapping("/studies/{studyId}")
-    public ResponseEntity<List<SiteStudyDto>> getSiteAssociationsForStudy(@PathVariable String studyId) {
+    public ResponseEntity<List<SiteStudyDto>> getSiteAssociationsForStudy(@PathVariable Long studyId) {
         List<SiteStudyDto> associations = studySiteAssociationService.getSiteAssociationsForStudy(studyId);
         return ResponseEntity.ok(associations);
     }
@@ -92,15 +101,24 @@ public class StudySiteAssociationController {
     @DeleteMapping("/{siteId}/studies/{studyId}")
     public ResponseEntity<Void> removeSiteStudyAssociation(
             @PathVariable Long siteId,
-            @PathVariable String studyId,
+            @PathVariable Long studyId,
             @RequestParam(required = false) String reason,
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestHeader(value = "userEmail", required = false) String userEmail,
             Authentication authentication) {
         
         String userId = getUserId(authentication, userEmail, authorization);
+        
+        // First find the association by siteId and studyId
+        List<SiteStudyDto> associations = studySiteAssociationService.getStudyAssociationsForSite(siteId);
+        SiteStudyDto association = associations.stream()
+            .filter(a -> a.getStudyId().equals(studyId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Site-study association not found"));
+        
+        // Now remove using the association ID
         studySiteAssociationService.removeSiteStudyAssociation(
-            siteId, 
+            association.getId(), 
             studyId, 
             userId, 
             reason != null ? reason : "Administrative removal"

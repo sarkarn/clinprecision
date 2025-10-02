@@ -75,10 +75,10 @@ export default function SubjectDetails() {
             <div className="text-center py-8 bg-gray-50 border border-gray-200 rounded-md">
                 <p className="text-gray-700">Subject not found</p>
                 <button
-                    onClick={() => navigate('/datacapture-management')}
+                    onClick={() => navigate('/subject-management')}
                     className="mt-3 text-blue-600 hover:underline"
                 >
-                    Return to Subject List
+                    Return to Subject Management
                 </button>
             </div>
         );
@@ -87,8 +87,8 @@ export default function SubjectDetails() {
     return (
         <div className="bg-white shadow rounded-lg p-6">
             <div className="mb-6">
-                <Link to="/datacapture-management" className="text-blue-600 hover:underline">
-                    &larr; Back to Subject List
+                <Link to="/subject-management" className="text-blue-600 hover:underline">
+                    &larr; Back to Subject Management
                 </Link>
                 <div className="flex justify-between items-center mt-2">
                     <h3 className="text-xl font-bold">Subject Details: {subject.subjectId}</h3>
@@ -130,13 +130,43 @@ export default function SubjectDetails() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Subject Name
+                    </label>
+                    <div className="bg-gray-50 border border-gray-300 rounded-md p-2">
+                        {subject.firstName && subject.lastName ?
+                            `${subject.firstName} ${subject.lastName}` :
+                            'N/A'
+                        }
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                    </label>
+                    <div className="bg-gray-50 border border-gray-300 rounded-md p-2">
+                        {subject.email || 'N/A'}
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Phone
+                    </label>
+                    <div className="bg-gray-50 border border-gray-300 rounded-md p-2">
+                        {subject.phone || 'N/A'}
+                    </div>
+                </div>
+
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                         Study
                     </label>
                     <div className="bg-gray-50 border border-gray-300 rounded-md p-2">
-                        {subject.studyName || 'N/A'}
+                        {subject.studyName || `Study ID: ${subject.studyId}`}
                     </div>
                 </div>
 
@@ -145,7 +175,7 @@ export default function SubjectDetails() {
                         Study Arm
                     </label>
                     <div className="bg-gray-50 border border-gray-300 rounded-md p-2">
-                        {subject.armName || 'N/A'}
+                        {subject.armName || 'Not Assigned'}
                     </div>
                 </div>
 
@@ -158,6 +188,19 @@ export default function SubjectDetails() {
                     </div>
                 </div>
             </div>
+
+            {subject.aggregateUuid && (
+                <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        System Details
+                    </label>
+                    <div className="bg-gray-50 border border-gray-300 rounded-md p-2 text-xs text-gray-600">
+                        <p><strong>Aggregate ID:</strong> {subject.aggregateUuid}</p>
+                        {subject.createdAt && <p><strong>Created:</strong> {new Date(subject.createdAt).toLocaleString()}</p>}
+                        {subject.lastModifiedAt && <p><strong>Last Modified:</strong> {new Date(subject.lastModifiedAt).toLocaleString()}</p>}
+                    </div>
+                </div>
+            )}
 
             <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">

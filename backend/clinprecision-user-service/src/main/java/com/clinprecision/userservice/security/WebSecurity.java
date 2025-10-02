@@ -52,7 +52,9 @@ public class WebSecurity {
         http.csrf(AbstractHttpConfigurer::disable);
         http.authorizeHttpRequests((authz) -> authz
         .requestMatchers("/login").permitAll()
+        .requestMatchers("/users/login").permitAll()
         .requestMatchers("/h2-console/**").permitAll()
+        .requestMatchers("/actuator/**").permitAll()
         .anyRequest().authenticated())
         .addFilter(new AuthorizationFilter(authenticationManager, environment))
         .addFilter(authenticationFilter)

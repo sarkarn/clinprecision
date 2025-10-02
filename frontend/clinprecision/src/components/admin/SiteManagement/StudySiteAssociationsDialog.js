@@ -368,7 +368,7 @@ const StudyAssociationCard = ({ association, onActivate, onRemove, disabled }) =
           </div>
           
           <div className="mt-2 text-sm text-gray-600 space-y-1">
-            <p>Site Study ID: {association.siteStudyId}</p>
+            <p>Association ID: {association.id}</p>
             {association.activationDate && (
               <p>Activated: {new Date(association.activationDate).toLocaleDateString()}</p>
             )}

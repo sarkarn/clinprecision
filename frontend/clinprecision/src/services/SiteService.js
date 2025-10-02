@@ -282,7 +282,7 @@ export const SiteService = {
    * Associate a site with a study
    * @param {string} siteId - Site ID
    * @param {Object} associationData - Association data
-   * @param {string} associationData.studyId - Study ID
+  * @param {number} associationData.studyId - Study ID (numeric)
    * @param {string} associationData.reason - Reason for association
    * @returns {Promise} - Promise with association data
    */
@@ -295,7 +295,8 @@ export const SiteService = {
         }
       }
 
-      const response = await ApiService.post(`/admin-ws/api/sites/${siteId}/studies`, associationData);
+  // Use StudySiteAssociationController via API Gateway prefix
+  const response = await ApiService.post(`/admin-ws/api/sites/${siteId}/studies`, associationData);
       return response.data;
     } catch (error) {
       console.error(`Error associating site ${siteId} with study:`, error);
@@ -306,7 +307,7 @@ export const SiteService = {
   /**
    * Activate a site for a specific study
    * @param {string} siteId - Site ID
-   * @param {string} studyId - Study ID
+  * @param {number|string} studyId - Study ID (numeric)
    * @param {Object} activationData - Activation data
    * @param {string} activationData.reason - Reason for activation
    * @returns {Promise} - Promise with updated association data
@@ -317,7 +318,9 @@ export const SiteService = {
         throw new Error('Reason is required for study-site activation');
       }
 
-      const response = await ApiService.post(`/admin-ws/api/sites/${siteId}/studies/${studyId}/activate`, activationData);
+  // Use StudySiteAssociationController via API Gateway prefix and include studyId in payload
+  const payload = { studyId, ...activationData };
+  const response = await ApiService.post(`/admin-ws/api/sites/${siteId}/studies/${studyId}/activate`, payload);
       return response.data;
     } catch (error) {
       console.error(`Error activating site ${siteId} for study ${studyId}:`, error);
@@ -332,7 +335,8 @@ export const SiteService = {
    */
   getStudyAssociationsForSite: async (siteId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/sites/${siteId}/studies`);
+  // Use StudySiteAssociationController via API Gateway prefix
+  const response = await ApiService.get(`/admin-ws/api/sites/${siteId}/studies`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching study associations for site ${siteId}:`, error);
@@ -347,8 +351,18 @@ export const SiteService = {
    */
   getSiteAssociationsForStudy: async (studyId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/sites/studies/${studyId}`);
-      return response.data;
+  // Use StudySiteAssociationController via API Gateway prefix
+  const url = `/admin-ws/api/sites/studies/${studyId}`;
+  console.log('[SiteService] GET site associations for study ->', url);
+  const response = await ApiService.get(url);
+  // Basic diagnostics about the response shape
+  const data = response?.data;
+  if (Array.isArray(data)) {
+        console.log(`[SiteService] Associations received: ${data.length}`);
+      } else {
+        console.warn('[SiteService] Unexpected response shape for associations:', data);
+      }
+      return data;
     } catch (error) {
       console.error(`Error fetching site associations for study ${studyId}:`, error);
       throw error;
@@ -364,7 +378,8 @@ export const SiteService = {
    */
   removeSiteStudyAssociation: async (siteId, studyId, reason = 'Administrative removal') => {
     try {
-      const response = await ApiService.delete(`/admin-ws/api/sites/${siteId}/studies/${studyId}?reason=${encodeURIComponent(reason)}`);
+  // Use StudySiteAssociationController via API Gateway prefix
+  const response = await ApiService.delete(`/admin-ws/api/sites/${siteId}/studies/${studyId}?reason=${encodeURIComponent(reason)}`);
       return response.data;
     } catch (error) {
       console.error(`Error removing association between site ${siteId} and study ${studyId}:`, error);

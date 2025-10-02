@@ -45,12 +45,9 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 	public Authentication attemptAuthentication(HttpServletRequest req, HttpServletResponse res)
 			throws AuthenticationException {
 		try {
-
 			LoginRequestModel creds = new ObjectMapper().readValue(req.getInputStream(), LoginRequestModel.class);
-
 			return getAuthenticationManager().authenticate(
-					new UsernamePasswordAuthenticationToken(creds.getEmail(), creds.getPassword(), new ArrayList<>()));
-
+				new UsernamePasswordAuthenticationToken(creds.getEmail(), creds.getPassword(), new ArrayList<>()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -62,20 +59,17 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
 		String userName = ((User) auth.getPrincipal()).getUsername();
 		UserDto userDetails = usersService.getUserDetailsByEmail(userName);
+		
 		String tokenSecret = environment.getProperty("token.secret");
         SecretKey key = Keys.hmacShaKeyFor(tokenSecret.getBytes());
         SecureDigestAlgorithm<SecretKey, ?> algorithm = Jwts.SIG.HS512;
 
 		Instant now = Instant.now();
-		
-		// Determine user role using proper RBAC hierarchy:
-		// 1. First check user_study_roles for study-specific roles
-		// 2. If no study role, check users_roles for general system roles
-		// 3. Fall back to default role if none found
 		String userRole = usersService.getUserRole(userDetails.getId());
 
 		String token = Jwts.builder()
 				.claim("scope", auth.getAuthorities())
+				.claim("authorities", auth.getAuthorities()) // Add authorities explicitly
 				.claim("email", userName) // Add email to the token
 				.claim("role", userRole) // Add role to the token
 				.subject(userDetails.getUserId())
@@ -90,5 +84,11 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 		
 		// Add Access-Control-Expose-Headers to make custom headers available to the client
 		res.addHeader("Access-Control-Expose-Headers", "token, userId, userEmail, userRole");
+	}
+	
+	@Override
+	protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
+			AuthenticationException failed) throws IOException, ServletException {
+		super.unsuccessfulAuthentication(request, response, failed);
 	}
 }

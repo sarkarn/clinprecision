@@ -195,7 +195,7 @@ CREATE TABLE organization_contacts (
 
 CREATE TABLE sites (
 	  id bigint NOT NULL AUTO_INCREMENT,
-	  aggregate_uuid VARCHAR(255);
+	  aggregate_uuid VARCHAR(255)  COMMENT 'UUID used by Axon Framework as aggregate identifier for CQRS/Event Sourcing',
 	  organization_id bigint NOT NULL COMMENT 'Reference to the parent organization',
 	  site_number varchar(255) DEFAULT NULL,
 	  principal_investigator_id bigint DEFAULT NULL COMMENT 'Reference to the principal investigator user',
@@ -215,7 +215,7 @@ CREATE TABLE sites (
 	  postal_code varchar(255) DEFAULT NULL,
 	  state varchar(255) DEFAULT NULL,
 	  PRIMARY KEY (id),
-	  UNIQUE KEY site_number (site_number,study_id),
+	  UNIQUE KEY site_number (site_number),
 	  UNIQUE KEY idx_sites_aggregate_uuid (aggregate_uuid),
 	  CONSTRAINT FKxrbt6mjphi09w4pgiwyuispo FOREIGN KEY (principal_investigator_id) REFERENCES users (id),
 	  CONSTRAINT sites_ibfk_1 FOREIGN KEY (organization_id) REFERENCES organizations (id)
@@ -586,6 +586,8 @@ CREATE TABLE study_documents (
     INDEX idx_study_documents_uploaded_at (uploaded_at)
 ) COMMENT 'Store study documents and their metadata';
 
+
+
 -- Document audit trail for tracking changes
 CREATE TABLE study_document_audit (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -732,129 +734,7 @@ CREATE TABLE visit_forms (
     UNIQUE KEY (visit_definition_id, form_definition_id)
 );
 
--- Subjects and data entry
-CREATE TABLE subjects (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    protocol_subject_id VARCHAR(100) NOT NULL,
-    study_id BIGINT NOT NULL,
-    arm_id BIGINT,
-    enrollment_date DATE NOT NULL,
-    status ENUM('screening', 'active', 'completed', 'withdrawn', 'screen_failed') DEFAULT 'screening',
-    withdrawal_reason TEXT,
-    demographics JSON,
-    created_by BIGINT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (study_id) REFERENCES studies(id),
-    FOREIGN KEY (arm_id) REFERENCES study_arms(id),
-    FOREIGN KEY (created_by) REFERENCES users(id),
-    UNIQUE KEY (protocol_subject_id, study_id)
-);
 
-CREATE TABLE subject_visits (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    subject_id BIGINT NOT NULL,
-    visit_definition_id BIGINT NOT NULL,
-    scheduled_date DATE,
-    actual_date DATE,
-    status ENUM('scheduled', 'in_progress', 'completed', 'missed', 'not_applicable') DEFAULT 'scheduled',
-    completion_notes TEXT,
-    created_by BIGINT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
-    FOREIGN KEY (visit_definition_id) REFERENCES visit_definitions(id),
-    FOREIGN KEY (created_by) REFERENCES users(id)
-);
-
-CREATE TABLE form_data (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    subject_id BIGINT NOT NULL,
-    subject_visit_id BIGINT NOT NULL,
-    form_definition_id BIGINT NOT NULL,
-    form_version BIGINT NOT NULL,
-    uses_latest_form_version BOOLEAN DEFAULT TRUE,
-    status ENUM('not_started', 'incomplete', 'complete', 'signed', 'locked', 'superseded') DEFAULT 'not_started',
-    data JSON COMMENT 'The actual form data values keyed by field ID',
-    entry_reason VARCHAR(255),
-    form_version_used VARCHAR(255),
-    created_by BIGINT,
-    updated_by BIGINT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    signed_by BIGINT,
-    signed_at TIMESTAMP NULL,
-    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
-    FOREIGN KEY (subject_visit_id) REFERENCES subject_visits(id) ON DELETE CASCADE,
-    FOREIGN KEY (form_definition_id) REFERENCES form_definitions(id),
-    FOREIGN KEY (created_by) REFERENCES users(id),
-    FOREIGN KEY (updated_by) REFERENCES users(id),
-    FOREIGN KEY (signed_by) REFERENCES users(id),
-    UNIQUE KEY (subject_visit_id, form_definition_id)
-);
-
-CREATE TABLE form_data_history (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    form_data_id BIGINT NOT NULL,
-    subject_id BIGINT NOT NULL,
-    subject_visit_id BIGINT NOT NULL,
-    form_definition_id BIGINT NOT NULL,
-    form_version VARCHAR(20) NOT NULL,
-    status VARCHAR(20) NOT NULL,
-    data JSON,
-    changed_by BIGINT,
-    change_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    change_type ENUM('create', 'update', 'sign', 'lock', 'unlock', 'version_upgrade') NOT NULL,
-    change_reason TEXT,
-    FOREIGN KEY (form_data_id) REFERENCES form_data(id),
-    FOREIGN KEY (changed_by) REFERENCES users(id)
-);
-
--- Quality control and verification
-CREATE TABLE field_verifications (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    form_data_id BIGINT NOT NULL,
-    field_id VARCHAR(100) NOT NULL,
-    verification_type ENUM('sdv', 'medical_review', 'data_review') NOT NULL,
-    status ENUM('pending', 'verified', 'queried', 'resolved') DEFAULT 'pending',
-    verified_by BIGINT,
-    verified_at TIMESTAMP NULL,
-    comment TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (form_data_id) REFERENCES form_data(id) ON DELETE CASCADE,
-    FOREIGN KEY (verified_by) REFERENCES users(id),
-    UNIQUE KEY (form_data_id, field_id, verification_type)
-);
-
--- Data queries
-CREATE TABLE data_queries (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    form_data_id BIGINT NOT NULL,
-    field_id VARCHAR(100),
-    query_text TEXT NOT NULL,
-    status ENUM('open', 'answered', 'closed') DEFAULT 'open',
-    created_by BIGINT NOT NULL,
-    assigned_to BIGINT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    closed_at TIMESTAMP NULL,
-    closed_by BIGINT,
-    FOREIGN KEY (form_data_id) REFERENCES form_data(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES users(id),
-    FOREIGN KEY (assigned_to) REFERENCES users(id),
-    FOREIGN KEY (closed_by) REFERENCES users(id)
-);
-
-CREATE TABLE query_responses (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    query_id BIGINT NOT NULL,
-    response_text TEXT NOT NULL,
-    created_by BIGINT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (query_id) REFERENCES data_queries(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES users(id)
-);
 
 -- User-study relationships
 CREATE TABLE user_study_roles (
@@ -874,6 +754,23 @@ CREATE TABLE user_study_roles (
     UNIQUE KEY (user_id, study_id, role_id, site_id)
 );
 
+CREATE TABLE site_studies (
+	id bigint AUTO_INCREMENT PRIMARY KEY,
+	activation_date datetime(6) DEFAULT NULL,
+	created_at datetime(6) DEFAULT NULL,
+	deactivation_date datetime(6) DEFAULT NULL,
+	status enum('ACTIVE','CLOSED','INACTIVE','PENDING','SUSPENDED') DEFAULT NULL,
+	study_id bigint NOT NULL,
+	subject_enrollment_cap int DEFAULT NULL,
+	subject_enrollment_count int DEFAULT NULL,
+	updated_at datetime(6) DEFAULT NULL,
+	site_id bigint NOT NULL,
+    UNIQUE KEY UK_site_study_id_study_sites (site_id,study_id),
+    CONSTRAINT FK_SITES_ID_SITE_STUDIES FOREIGN KEY (site_id) REFERENCES sites (id),
+	CONSTRAINT FK_STUDY_ID_SITE_STUDIES FOREIGN KEY (study_id) REFERENCES studies (id)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
 CREATE TABLE user_site_assignments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
@@ -889,19 +786,6 @@ CREATE TABLE user_site_assignments (
     UNIQUE KEY (user_id, site_id, role_id)
 );
 
--- Patient users
-CREATE TABLE patient_users (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL COMMENT 'Reference to base user record',
-    subject_id BIGINT COMMENT 'Optional link to subject record',
-    consent_status ENUM('pending', 'consented', 'withdrawn') DEFAULT 'pending',
-    consent_date DATE COMMENT 'Date when consent was provided',
-    device_id VARCHAR(255) COMMENT 'ID of patient device if applicable',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL
-);
 
 -- Delegation and qualifications
 CREATE TABLE data_delegations (
@@ -1156,22 +1040,15 @@ ALTER TABLE study_lookup_audit COMMENT = 'Audit trail for changes to lookup tabl
 
 -- Create indexes for common query patterns
 CREATE INDEX idx_form_definitions_study ON form_definitions(study_id);
-CREATE INDEX idx_subjects_study ON subjects(study_id);
-CREATE INDEX idx_subject_visits_subject ON subject_visits(subject_id);
-CREATE INDEX idx_form_data_subject ON form_data(subject_id);
-CREATE INDEX idx_form_data_visit ON form_data(subject_visit_id);
-CREATE INDEX idx_field_verifications_form ON field_verifications(form_data_id);
-CREATE INDEX idx_data_queries_form ON data_queries(form_data_id);
 CREATE INDEX idx_audit_trail_entity ON audit_trail(entity_type, entity_id);
 CREATE INDEX idx_users_organization ON users(organization_id);
-CREATE INDEX idx_sites_study ON sites(study_id);
 CREATE INDEX idx_sites_organization ON sites(organization_id);
 CREATE INDEX idx_user_study_roles_user ON user_study_roles(user_id);
 CREATE INDEX idx_user_study_roles_study ON user_study_roles(study_id);
 CREATE INDEX idx_user_study_roles_site ON user_study_roles(site_id);
 CREATE INDEX idx_user_site_assignments_user ON user_site_assignments(user_id);
 CREATE INDEX idx_user_site_assignments_site ON user_site_assignments(site_id);
-CREATE INDEX idx_patient_users_subject ON patient_users(subject_id);
+
 -- Create index for efficient querying of primary organizations
 CREATE INDEX idx_organization_studies_primary ON organization_studies(study_id, role, is_primary);
 CREATE INDEX idx_studies_sponsor ON studies(sponsor);
@@ -1224,9 +1101,7 @@ CREATE INDEX idx_study_amendments_version_status ON study_amendments (study_vers
 CREATE INDEX idx_study_amendments_type_status ON study_amendments (amendment_type, status);
 CREATE INDEX idx_study_amendments_safety_status ON study_amendments (amendment_type, status, requires_regulatory_notification);
 
--- Subjects table indexes for study-specific queries
-CREATE INDEX  idx_subjects_study_status ON subjects(study_id, status);
-CREATE INDEX  idx_subjects_enrollment_date ON subjects(enrollment_date);
+
 -- Create indexes for performance
 -- Create indexes for performance
 -- Note: Using CAST to convert JSON extracted value to VARCHAR for indexing

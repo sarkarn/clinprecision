@@ -2,6 +2,7 @@ import { Link, Routes, Route, Navigate } from "react-router-dom";
 import TopNavigationHeader from "./shared/TopNavigationHeader";
 import StudyDesignModule from "./modules/trialdesign/StudyDesignModule";
 import DataCaptureModule from "./modules/datacapture/DataCaptureModule";
+import SubjectManagementModule from "./modules/subjectmanagement/SubjectManagementModule";
 import DQManagement from "./modules/dqmgmt/DQManagement";
 import AdminModule from "./modules/admin/AdminModule";
 import BreadcrumbNavigation from "./shared/BreadcrumbNavigation";
@@ -379,13 +380,10 @@ export default function Home() {
                             <Route path="/dq-management" element={<DQManagement />} />
                             <Route path="/user-management/*" element={<AdminModule />} />
 
+                            {/* Subject Management Module */}
+                            <Route path="/subject-management/*" element={<SubjectManagementModule />} />
+
                             {/* Placeholder routes for new modules */}
-                            <Route path="/subject-management" element={
-                                <div className="bg-white rounded-lg shadow p-8 text-center">
-                                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Subject Management</h2>
-                                    <p className="text-gray-600">Patient enrollment and tracking module coming soon.</p>
-                                </div>
-                            } />
                             <Route path="/audit-trail" element={
                                 <div className="bg-white rounded-lg shadow p-8 text-center">
                                     <h2 className="text-2xl font-bold text-gray-900 mb-4">Audit Trail</h2>

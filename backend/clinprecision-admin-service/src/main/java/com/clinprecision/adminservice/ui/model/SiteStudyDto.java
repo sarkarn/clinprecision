@@ -12,9 +12,7 @@ import java.time.LocalDateTime;
 @Data
 public class SiteStudyDto {
     private Long id;
-    private Long siteId; // Reference to site ID only to avoid circular references
-    private String studyId;
-    private String siteStudyId;
+    private Long studyId;
     private SiteStudyEntity.SiteStudyStatus status;
     private LocalDateTime activationDate;
     private LocalDateTime deactivationDate;
@@ -22,6 +20,10 @@ public class SiteStudyDto {
     private Integer subjectEnrollmentCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    // Site details for display purposes
+    private String siteName;
+    private String siteNumber;
     
     // Constructor, getters, setters are handled by Lombok
 }

@@ -202,7 +202,7 @@ VALUES
 
 
 -- Add sample sites
-INSERT INTO sites (name,organization_id, site_number, principal_investigator_id, status,aggregate_uuid, activation_date, deactivation_date, max_subjects, created_at, updated_at)
+INSERT INTO sites (name,organization_id, site_number, principal_investigator_id,aggregate_uuid,status, activation_date, deactivation_date, max_subjects, created_at, updated_at)
 VALUES
 -- Sites for Study 1
 

@@ -4,10 +4,8 @@ import org.axonframework.common.transaction.TransactionManager;
 import org.axonframework.eventsourcing.eventstore.EventStore;
 import org.axonframework.eventsourcing.eventstore.jpa.JpaEventStorageEngine;
 import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore;
-import org.axonframework.config.EventProcessingConfigurer;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.json.JacksonSerializer;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -71,15 +69,5 @@ public class AxonConfig {
         return EmbeddedEventStore.builder()
                 .storageEngine(eventStorageEngine)
                 .build();
-    }
-    
-    /**
-     * Configure site-projection processing group to use subscribing event processor
-     * This makes event processing synchronous and immediate
-     */
-    @Autowired
-    public void configureEventProcessing(EventProcessingConfigurer configurer) {
-        // Configure site-projection to use subscribing (synchronous) event processor
-        configurer.registerSubscribingEventProcessor("site-projection");
     }
 }

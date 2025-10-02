@@ -57,6 +57,10 @@ export default function StudySiteAssociationList() {
                 StudyService.getStudies()
             ]);
 
+            console.log('Loaded sites:', sitesData.length);
+            console.log('Loaded studies:', studiesData.length);
+            console.log('Studies data structure:', studiesData.map(s => ({ id: s.id, name: s.name, title: s.title, protocolNumber: s.protocolNumber })));
+
             setSites(sitesData);
             setStudies(studiesData);
 
@@ -65,12 +69,31 @@ export default function StudySiteAssociationList() {
             for (const site of sitesData) {
                 try {
                     const siteAssociations = await StudySiteService.getStudyAssociationsForSite(site.id);
-                    const enrichedAssociations = siteAssociations.map(assoc => ({
-                        ...assoc,
-                        siteName: site.name,
-                        siteNumber: site.siteNumber,
-                        studyName: studiesData.find(s => s.protocolNumber === assoc.studyId || s.id?.toString() === assoc.studyId)?.name || 'Unknown Study'
-                    }));
+                    const enrichedAssociations = siteAssociations.map(assoc => {
+                        // Convert studyId to number for proper comparison
+                        const studyIdAsNumber = Number(assoc.studyId);
+
+                        // Find study by ID (primary match) or fallback to protocol number
+                        const matchedStudy = studiesData.find(s =>
+                            s.id === studyIdAsNumber ||
+                            s.id === assoc.studyId ||
+                            s.protocolNumber === assoc.studyId?.toString()
+                        );
+
+                        console.log(`Study lookup for association ${assoc.id}:`, {
+                            studyId: assoc.studyId,
+                            studyIdAsNumber,
+                            matchedStudy: matchedStudy ? { id: matchedStudy.id, name: matchedStudy.name, title: matchedStudy.title } : null
+                        });
+
+                        return {
+                            ...assoc,
+                            siteId: site.id, // Add site ID for backend calls
+                            siteName: site.name,
+                            siteNumber: site.siteNumber,
+                            studyName: matchedStudy?.title || matchedStudy?.name || `Study ID: ${assoc.studyId}`
+                        };
+                    });
                     allAssociations.push(...enrichedAssociations);
                 } catch (error) {
                     console.warn(`Failed to load associations for site ${site.id}:`, error);
@@ -250,7 +273,7 @@ export default function StudySiteAssociationList() {
                             Refresh
                         </button>
                         <Link
-                            to="/admin/study-site-associations/create"
+                            to="/user-management/study-site-associations/create"
                             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
                         >
                             <Plus className="w-4 h-4" />
@@ -427,7 +450,7 @@ export default function StudySiteAssociationList() {
                                     Status
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Site Study ID
+                                    Association ID
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Created
@@ -470,7 +493,7 @@ export default function StudySiteAssociationList() {
                                         {getStatusBadge(association.status)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {association.siteStudyId || 'Not assigned'}
+                                        {association.id || 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {association.createdAt ? new Date(association.createdAt).toLocaleDateString() : 'Unknown'}
@@ -555,8 +578,8 @@ export default function StudySiteAssociationList() {
                                                 key={page}
                                                 onClick={() => setCurrentPage(page)}
                                                 className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                                        ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                                                     }`}
                                             >
                                                 {page}
@@ -583,7 +606,7 @@ export default function StudySiteAssociationList() {
                     </p>
                     {associations.length === 0 && (
                         <Link
-                            to="/admin/study-site-associations/create"
+                            to="/user-management/study-site-associations/create"
                             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                         >
                             <Plus className="w-4 h-4 mr-2" />
@@ -597,8 +620,8 @@ export default function StudySiteAssociationList() {
             {notification.show && (
                 <div className="fixed bottom-4 right-4 z-50">
                     <div className={`p-4 rounded-md shadow-lg flex items-center gap-3 ${notification.type === 'success' ? 'bg-green-100 text-green-800' :
-                            notification.type === 'error' ? 'bg-red-100 text-red-800' :
-                                'bg-blue-100 text-blue-800'
+                        notification.type === 'error' ? 'bg-red-100 text-red-800' :
+                            'bg-blue-100 text-blue-800'
                         }`}>
                         {notification.type === 'success' && <CheckCircle className="w-5 h-5" />}
                         {notification.type === 'error' && <AlertTriangle className="w-5 h-5" />}
