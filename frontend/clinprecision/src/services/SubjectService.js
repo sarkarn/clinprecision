@@ -2,7 +2,7 @@
 // Service functions for clinical trial subjects - integrates with backend PatientEnrollmentController
 import ApiService from './ApiService';
 
-const API_PATH = '/data-capture-ws/api/v1/patients'; // Uses existing PatientEnrollmentController
+const API_PATH = '/datacapture-ws/api/v1/patients'; // Uses existing PatientEnrollmentController
 const USE_MOCK_DATA = false; // Set to false to use real backend
 
 // Mock data store (for fallback if backend is unavailable)

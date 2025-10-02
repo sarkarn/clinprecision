@@ -152,6 +152,29 @@ public class GatewayRoutesConfig {
                     )
                     .uri("lb://study-design-ws")
                 )
+                
+                // Data Capture Service - API routes
+                .route("datacapture-ws-api", r -> r
+                    .path("/datacapture-ws/api/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .rewritePath("/datacapture-ws/(?<segment>.*)", "/${segment}")
+                    )
+                    .uri("lb://datacapture-ws")
+                )
+                
+                // Data Capture Service - Direct routes (if needed)
+                .route("datacapture-ws-direct", r -> r
+                    .path("/datacapture/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                    )
+                    .uri("lb://datacapture-ws")
+                )
                 .build();
     }
 }

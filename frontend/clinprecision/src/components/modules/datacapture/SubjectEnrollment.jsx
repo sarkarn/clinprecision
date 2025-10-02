@@ -81,16 +81,25 @@ export default function SubjectEnrollment() {
                 const chosen = activeOnly.length > 0 ? activeOnly : normalized;
 
                 const sitesOptions = chosen.map(a => {
-                    // association id to send to backend enrollment = site_studies.id
-                    const associationId = (a.id ?? a.siteStudyId ?? a.siteId);
+                    // Use association ID for enrollment
+                    const associationId = a.id;
                     const value = associationId != null ? String(associationId) : '';
-                    // site display fields may not be present on DTO; build a reasonable label
+
+                    // Build display label using enhanced DTO fields
                     const siteNum = a.siteNumber || a.site_num || a.siteCode || null;
                     const siteName = a.siteName || a.site_name || a.name || null;
-                    const fallback = value ? `Assoc ${value}` : 'Associated Site';
-                    const base = siteNum && siteName
-                        ? `${siteNum} - ${siteName}`
-                        : (siteName || fallback);
+
+                    let base;
+                    if (siteNum && siteName) {
+                        base = `Site ${siteNum} - ${siteName}`;
+                    } else if (siteName) {
+                        base = siteName;
+                    } else if (siteNum) {
+                        base = `Site ${siteNum}`;
+                    } else {
+                        base = value ? `Assoc ${value}` : 'Associated Site';
+                    }
+
                     const label = activeOnly.length > 0 ? base : `${base} [${a.__status || 'UNKNOWN'}]`;
                     return { siteId: value, label };
                 });

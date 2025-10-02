@@ -759,7 +759,6 @@ CREATE TABLE site_studies (
 	activation_date datetime(6) DEFAULT NULL,
 	created_at datetime(6) DEFAULT NULL,
 	deactivation_date datetime(6) DEFAULT NULL,
-	site_study_id varchar(255) DEFAULT NULL,
 	status enum('ACTIVE','CLOSED','INACTIVE','PENDING','SUSPENDED') DEFAULT NULL,
 	study_id bigint NOT NULL,
 	subject_enrollment_cap int DEFAULT NULL,

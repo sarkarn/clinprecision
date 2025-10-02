@@ -88,6 +88,7 @@ export default function StudySiteAssociationList() {
 
                         return {
                             ...assoc,
+                            siteId: site.id, // Add site ID for backend calls
                             siteName: site.name,
                             siteNumber: site.siteNumber,
                             studyName: matchedStudy?.title || matchedStudy?.name || `Study ID: ${assoc.studyId}`
@@ -449,7 +450,7 @@ export default function StudySiteAssociationList() {
                                     Status
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Site Study ID
+                                    Association ID
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Created
@@ -492,7 +493,7 @@ export default function StudySiteAssociationList() {
                                         {getStatusBadge(association.status)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {association.siteStudyId || 'Not assigned'}
+                                        {association.id || 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {association.createdAt ? new Date(association.createdAt).toLocaleDateString() : 'Unknown'}

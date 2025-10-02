@@ -58,8 +58,17 @@ public class StudySiteAssociationController {
             Authentication authentication) {
         
         String userId = getUserId(authentication, userEmail, authorization);
+        
+        // First find the association by siteId and studyId
+        List<SiteStudyDto> associations = studySiteAssociationService.getStudyAssociationsForSite(siteId);
+        SiteStudyDto association = associations.stream()
+            .filter(a -> a.getStudyId().equals(studyId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Site-study association not found"));
+        
+        // Now activate using the association ID
         SiteStudyDto activatedAssociation = studySiteAssociationService.activateSiteForStudy(
-            siteId, 
+            association.getId(), 
             studyId, 
             userId, 
             activationDto.getReason()
@@ -99,8 +108,17 @@ public class StudySiteAssociationController {
             Authentication authentication) {
         
         String userId = getUserId(authentication, userEmail, authorization);
+        
+        // First find the association by siteId and studyId
+        List<SiteStudyDto> associations = studySiteAssociationService.getStudyAssociationsForSite(siteId);
+        SiteStudyDto association = associations.stream()
+            .filter(a -> a.getStudyId().equals(studyId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Site-study association not found"));
+        
+        // Now remove using the association ID
         studySiteAssociationService.removeSiteStudyAssociation(
-            siteId, 
+            association.getId(), 
             studyId, 
             userId, 
             reason != null ? reason : "Administrative removal"

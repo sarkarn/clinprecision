@@ -23,9 +23,6 @@ public class SiteStudyEntity {
     @Column(name = "study_id", nullable = false)
     private Long studyId;
 
-    @Column(name = "site_study_id")
-    private String siteStudyId;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private SiteStudyStatus status = SiteStudyStatus.PENDING;
@@ -85,14 +82,6 @@ public class SiteStudyEntity {
 
     public void setStudyId(Long studyId) {
         this.studyId = studyId;
-    }
-
-    public String getSiteStudyId() {
-        return siteStudyId;
-    }
-
-    public void setSiteStudyId(String siteStudyId) {
-        this.siteStudyId = siteStudyId;
     }
 
     public SiteStudyStatus getStatus() {
