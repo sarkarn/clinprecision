@@ -96,7 +96,7 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
                 setCheckingActive(true);
                 const hasActive = await studyDatabaseBuildService.hasActiveBuild(formData.studyId);
                 setHasActiveBuild(hasActive);
-                
+
                 if (hasActive) {
                     setValidationErrors(prev => ({
                         ...prev,
@@ -201,8 +201,8 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
             studyName: formData.studyName,
             studyProtocol: formData.studyProtocol,
             requestedBy: formData.requestedBy,
-            buildConfiguration: formData.buildConfiguration 
-                ? JSON.parse(formData.buildConfiguration) 
+            buildConfiguration: formData.buildConfiguration
+                ? JSON.parse(formData.buildConfiguration)
                 : {},
         };
 
@@ -338,9 +338,8 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
                                         }}
                                         onFocus={() => setShowStudyDropdown(true)}
                                         disabled={submitting || loadingStudies}
-                                        className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed ${
-                                            validationErrors.studyId ? 'border-red-300' : 'border-gray-300'
-                                        }`}
+                                        className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed ${validationErrors.studyId ? 'border-red-300' : 'border-gray-300'
+                                            }`}
                                     />
                                     <MagnifyingGlassIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                                 </div>
@@ -422,9 +421,8 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
                                 value={formData.requestedBy}
                                 onChange={(e) => setFormData({ ...formData, requestedBy: e.target.value })}
                                 disabled={submitting}
-                                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 ${
-                                    validationErrors.requestedBy ? 'border-red-300' : 'border-gray-300'
-                                }`}
+                                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 ${validationErrors.requestedBy ? 'border-red-300' : 'border-gray-300'
+                                    }`}
                                 placeholder="Enter your name"
                             />
                             {validationErrors.requestedBy && (
@@ -442,9 +440,8 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
                                 onChange={(e) => setFormData({ ...formData, buildConfiguration: e.target.value })}
                                 disabled={submitting}
                                 rows={4}
-                                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 font-mono text-sm ${
-                                    validationErrors.buildConfiguration ? 'border-red-300' : 'border-gray-300'
-                                }`}
+                                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 font-mono text-sm ${validationErrors.buildConfiguration ? 'border-red-300' : 'border-gray-300'
+                                    }`}
                                 placeholder='{"forms": ["Form1", "Form2"], "validations": ["Required"]}'
                             />
                             {validationErrors.buildConfiguration && (
