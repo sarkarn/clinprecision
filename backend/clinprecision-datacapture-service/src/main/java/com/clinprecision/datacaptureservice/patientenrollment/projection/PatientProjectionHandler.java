@@ -10,7 +10,6 @@ import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
@@ -26,7 +25,6 @@ import java.util.Optional;
  */
 @Component
 @ProcessingGroup("patient-projection")
-@Transactional
 public class PatientProjectionHandler {
 
     @Autowired
@@ -34,7 +32,11 @@ public class PatientProjectionHandler {
 
     @PostConstruct
     public void init() {
-        System.out.println("[PATIENT_PROJECTION] Patient Projection Handler initialized");
+        System.out.println("[PATIENT_PROJECTION] ========== Patient Projection Handler INITIALIZED ==========");
+        System.out.println("[PATIENT_PROJECTION] Handler is ready to process PatientRegisteredEvent");
+        System.out.println("[PATIENT_PROJECTION] Processing Group: patient-projection");
+        System.out.println("[PATIENT_PROJECTION] Repository: " + (patientRepository != null ? "INJECTED" : "NULL"));
+        System.out.println("[PATIENT_PROJECTION] ========== Handler Registration Complete ==========");
     }
 
     /**
@@ -42,7 +44,6 @@ public class PatientProjectionHandler {
      * Creates or updates the patient read model entity
      */
     @EventHandler
-    @Transactional
     public void on(PatientRegisteredEvent event) {
         System.out.println("[PATIENT_PROJECTION] Processing PatientRegisteredEvent for patient: " + event.getPatientId());
         

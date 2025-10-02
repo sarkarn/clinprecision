@@ -32,6 +32,11 @@ public interface PatientEnrollmentRepository extends JpaRepository<PatientEnroll
     List<PatientEnrollmentEntity> findByPatientId(Long patientId);
 
     /**
+     * Find the most recent enrollment by patient ID
+     */
+    Optional<PatientEnrollmentEntity> findTopByPatientIdOrderByEnrollmentDateDesc(Long patientId);
+
+    /**
      * Find enrollments by patient aggregate UUID
      */
     List<PatientEnrollmentEntity> findByPatientAggregateUuid(String patientAggregateUuid);

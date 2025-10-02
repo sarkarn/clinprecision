@@ -1,26 +1,37 @@
-// SubjectList.jsx
+// SubjectList.jsx - Enhanced for Clinical Trial Standards
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getStudies } from '../../../services/StudyService';
 import { getSubjectsByStudy } from '../../../services/SubjectService';
+import ApiService from '../../../services/ApiService';
 
 export default function SubjectList() {
     const [studies, setStudies] = useState([]);
     const [selectedStudy, setSelectedStudy] = useState('');
     const [subjects, setSubjects] = useState([]);
+    const [allPatients, setAllPatients] = useState([]);
+    const [showAllPatients, setShowAllPatients] = useState(false);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchStudies = async () => {
             try {
+                console.log('[SUBJECT LIST] Fetching studies...');
                 const studiesData = await getStudies();
-                setStudies(studiesData);
+                console.log('[SUBJECT LIST] Studies received:', studiesData);
+                console.log('[SUBJECT LIST] Number of studies:', studiesData.length);
+
                 if (studiesData.length > 0) {
-                    setSelectedStudy(studiesData[0].id);
+                    console.log('[SUBJECT LIST] First study:', studiesData[0]);
+                    console.log('[SUBJECT LIST] First study title:', studiesData[0].title);
+                    console.log('[SUBJECT LIST] First study name:', studiesData[0].name);
                 }
+
+                setStudies(studiesData);
+                // No automatic selection - user must choose a study
             } catch (error) {
-                console.error('Error fetching studies:', error);
+                console.error('[SUBJECT LIST] Error fetching studies:', error);
             }
         };
 
@@ -31,12 +42,15 @@ export default function SubjectList() {
         if (!selectedStudy) return;
 
         const fetchSubjects = async () => {
+            console.log('[SUBJECT LIST] Fetching subjects for study ID:', selectedStudy);
             setLoading(true);
             try {
                 const subjectsData = await getSubjectsByStudy(selectedStudy);
+                console.log('[SUBJECT LIST] Subjects received for study', selectedStudy, ':', subjectsData);
+                console.log('[SUBJECT LIST] Number of subjects:', subjectsData.length);
                 setSubjects(subjectsData);
             } catch (error) {
-                console.error('Error fetching subjects:', error);
+                console.error('[SUBJECT LIST] Error fetching subjects:', error);
             } finally {
                 setLoading(false);
             }
@@ -48,81 +62,247 @@ export default function SubjectList() {
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold">Subject Management</h3>
-                <button
-                    onClick={() => navigate('/subject-management/enroll')}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    + Enroll New Subject
-                </button>
+                <div>
+                    <h3 className="text-xl font-semibold">Subject Management</h3>
+                    <p className="text-sm text-gray-600 mt-1">Manage study subjects, enrollment status, and protocol compliance</p>
+                </div>
+                <div className="flex space-x-2">
+                    <button
+                        onClick={() => navigate('/subject-management/enroll')}
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center"
+                    >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Enroll New Subject
+                    </button>
+                </div>
             </div>
 
-            <div className="bg-white p-4 rounded-lg shadow mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Study
-                </label>
-                <select
-                    value={selectedStudy}
-                    onChange={(e) => setSelectedStudy(e.target.value)}
-                    className="border border-gray-300 rounded-md w-full px-3 py-2 mb-4"
-                >
-                    {studies.map(study => (
-                        <option key={study.id} value={study.id}>{study.name}</option>
-                    ))}
-                </select>
+            <div className="bg-white p-6 rounded-lg shadow mb-6">
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Study Protocol
+                        {studies.length > 0 && <span className="text-green-600 ml-2">({studies.length} active studies)</span>}
+                    </label>
+                    <select
+                        value={selectedStudy}
+                        onChange={(e) => setSelectedStudy(e.target.value)}
+                        className="border border-gray-300 rounded-md w-full px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">-- Select a Study Protocol --</option>
+                        {studies.length === 0 ? (
+                            <option value="" disabled>Loading studies...</option>
+                        ) : (
+                            studies.map(study => (
+                                <option key={study.id} value={study.id}>
+                                    {study.protocolNumber ? `${study.protocolNumber} - ` : ''}
+                                    {study.title || study.name || 'Untitled Study'}
+                                    {study.phase ? ` (${study.phase})` : ''}
+                                </option>
+                            ))
+                        )}
+                    </select>
+                </div>
+
+                {/* Subject Summary Statistics */}
+                {selectedStudy && subjects.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-600">{subjects.length}</div>
+                            <div className="text-sm text-gray-600">Total Enrolled</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">
+                                {subjects.filter(s => s.status === 'Active' || s.status === 'Enrolled').length}
+                            </div>
+                            <div className="text-sm text-gray-600">Active Subjects</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-yellow-600">
+                                {subjects.filter(s => s.status === 'Screening').length}
+                            </div>
+                            <div className="text-sm text-gray-600">Screening</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-red-600">
+                                {subjects.filter(s => s.status === 'Withdrawn' || s.status === 'Screen Failed').length}
+                            </div>
+                            <div className="text-sm text-gray-600">Discontinued</div>
+                        </div>
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="text-center py-4">Loading subjects...</div>
+                ) : !selectedStudy ? (
+                    <div className="text-center py-8">
+                        <div className="text-gray-500 mb-4">
+                            Please select a study protocol from the dropdown above to view enrolled subjects.
+                        </div>
+                    </div>
                 ) : subjects.length === 0 ? (
-                    <div className="text-center py-4 text-gray-500">
-                        No subjects enrolled in this study yet.
+                    <div className="text-center py-4">
+                        <div className="text-gray-500 mb-4">
+                            No subjects enrolled in this study yet.
+                        </div>
+
+                        {/* Show option to view all registered patients */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 className="font-medium text-blue-800 mb-2">Looking for registered patients?</h4>
+                            <p className="text-blue-700 text-sm mb-3">
+                                There are registered patients who haven't been enrolled in any study yet.
+                            </p>
+                            <button
+                                onClick={async () => {
+                                    if (!showAllPatients) {
+                                        // Fetch all patients when showing for the first time
+                                        try {
+                                            const response = await ApiService.get('/datacapture-ws/api/v1/patients');
+                                            if (response?.data) {
+                                                setAllPatients(response.data);
+                                            }
+                                        } catch (error) {
+                                            console.error('Error fetching all patients:', error);
+                                        }
+                                    }
+                                    setShowAllPatients(!showAllPatients);
+                                }}
+                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                            >
+                                {showAllPatients ? 'Hide' : 'Show'} All Registered Patients
+                            </button>
+                        </div>
                     </div>
                 ) : (
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollment Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Study Arm</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {subjects.map(subject => (
-                                <tr key={subject.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{subject.subjectId}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {subject.firstName && subject.lastName ?
-                                            `${subject.firstName} ${subject.lastName}` :
-                                            'N/A'
-                                        }
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${subject.status === 'Active' || subject.status === 'Enrolled' ? 'bg-green-100 text-green-800' :
-                                                subject.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                                                    subject.status === 'Withdrawn' ? 'bg-red-100 text-red-800' :
-                                                        subject.status === 'Screening' ? 'bg-yellow-100 text-yellow-800' :
-                                                            subject.status === 'Screen Failed' ? 'bg-red-100 text-red-800' :
-                                                                'bg-gray-100 text-gray-800'}`}>
-                                            {subject.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{new Date(subject.enrollmentDate).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{subject.armName}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <Link to={`/datacapture-management/subjects/${subject.id}`} className="text-indigo-600 hover:text-indigo-900 mr-3">
-                                            View Details
-                                        </Link>
-                                    </td>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject ID</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Number</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollment Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Treatment Arm</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {subjects.map(subject => (
+                                    <tr key={subject.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex flex-col">
+                                                <span className="font-medium text-gray-900">{subject.subjectId}</span>
+                                                <span className="text-xs text-gray-500">Screening #{subject.subjectId}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            <div className="flex flex-col">
+                                                <span>{subject.patientNumber || 'N/A'}</span>
+                                                {subject.firstName && subject.lastName && (
+                                                    <span className="text-xs text-gray-400">Initials: {subject.firstName.charAt(0)}{subject.lastName.charAt(0)}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                ${subject.status === 'Active' || subject.status === 'Enrolled' ? 'bg-green-100 text-green-800' :
+                                                    subject.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
+                                                        subject.status === 'Withdrawn' ? 'bg-red-100 text-red-800' :
+                                                            subject.status === 'Screening' ? 'bg-yellow-100 text-yellow-800' :
+                                                                subject.status === 'Screen Failed' ? 'bg-red-100 text-red-800' :
+                                                                    'bg-gray-100 text-gray-800'}`}>
+                                                {subject.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {subject.enrollmentDate ? new Date(subject.enrollmentDate).toLocaleDateString() : 'N/A'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {subject.armName || 'Not Assigned'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {subject.siteId ? `Site ${subject.siteId}` : 'N/A'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div className="flex space-x-2">
+                                                <Link
+                                                    to={`/datacapture-management/subjects/${subject.id}`}
+                                                    className="text-indigo-600 hover:text-indigo-900"
+                                                >
+                                                    View
+                                                </Link>
+                                                <button className="text-gray-600 hover:text-gray-900">
+                                                    Edit
+                                                </button>
+                                                <button className="text-red-600 hover:text-red-900">
+                                                    Withdraw
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
+
+            {/* Show All Registered Patients Section */}
+            {showAllPatients && (
+                <div className="bg-white p-4 rounded-lg shadow mb-6">
+                    <h4 className="text-lg font-medium text-gray-800 mb-4">All Registered Patients</h4>
+                    {allPatients.length === 0 ? (
+                        <div className="text-center py-4 text-gray-500">No registered patients found.</div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Screening Number</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Number</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Study</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {allPatients.map(patient => (
+                                        <tr key={patient.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                                                {patient.screeningNumber || 'N/A'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                {patient.patientNumber}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {patient.firstName && patient.lastName ?
+                                                    `${patient.firstName} ${patient.lastName}` :
+                                                    'N/A'
+                                                }
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                    ${patient.studyId ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                    {patient.studyId ? 'Enrolled' : 'Registered Only'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                {patient.studyId ? `Study ${patient.studyId}` : 'Not Enrolled'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                {patient.createdAt ? new Date(patient.createdAt).toLocaleDateString() : 'N/A'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

@@ -68,32 +68,57 @@ export const getSubjectsByStudy = async (studyId) => {
   }
 
   try {
-    console.log('Fetching subjects from backend at:', API_PATH);
+    console.log('[SUBJECT SERVICE] Fetching subjects from backend at:', API_PATH);
+    console.log('[SUBJECT SERVICE] Requested study ID:', studyId, 'Type:', typeof studyId);
     const response = await ApiService.get(API_PATH);
     
     console.log('=== SUBJECT SERVICE BACKEND RESPONSE ===');
+    console.log('Response status:', response?.status);
     console.log('Response data:', response?.data);
+    console.log('Response data type:', typeof response?.data);
+    console.log('Is response data an array?', Array.isArray(response?.data));
     
     if (response?.data && Array.isArray(response.data)) {
-      // Transform backend patient data to frontend subject format
-      const transformedSubjects = response.data
-        .filter(patient => patient.studyId && patient.studyId.toString() === studyId.toString())
-        .map(patient => ({
-          id: patient.id.toString(),
-          subjectId: patient.patientNumber || `SUBJ-${patient.id}`,
-          studyId: patient.studyId?.toString() || studyId.toString(),
-          armId: patient.treatmentArm || null,
-          armName: patient.treatmentArmName || 'Not Assigned',
-          enrollmentDate: patient.enrollmentDate || patient.createdAt?.split('T')[0],
-          status: mapPatientStatusToSubjectStatus(patient.status || 'Active'),
-          firstName: patient.firstName,
-          lastName: patient.lastName,
-          aggregateUuid: patient.aggregateUuid,
-          visits: [] // Will be populated separately if needed
-        }));
+      console.log('Total patients in backend:', response.data.length);
       
-      console.log('Transformed subjects for study', studyId, ':', transformedSubjects);
-      return transformedSubjects;
+      // Log each patient's studyId for debugging
+      response.data.forEach((patient, index) => {
+        console.log(`Patient ${index + 1}:`, {
+          id: patient.id,
+          patientNumber: patient.patientNumber,
+          studyId: patient.studyId,
+          studyIdType: typeof patient.studyId,
+          status: patient.status
+        });
+      });
+      
+      // Transform backend patient data to frontend subject format
+      const allTransformed = response.data.map(patient => ({
+        id: patient.id.toString(),
+        subjectId: patient.screeningNumber || patient.patientNumber || `SUBJ-${patient.id}`,
+        patientNumber: patient.patientNumber, // Keep auto-generated number separate
+        studyId: patient.studyId?.toString() || null,
+        armId: patient.treatmentArm || null,
+        armName: patient.treatmentArmName || 'Not Assigned',
+        enrollmentDate: patient.enrollmentDate || patient.createdAt?.split('T')[0],
+        status: mapPatientStatusToSubjectStatus(patient.status || 'Active'),
+        firstName: patient.firstName,
+        lastName: patient.lastName,
+        aggregateUuid: patient.aggregateUuid,
+        visits: [] // Will be populated separately if needed
+      }));
+      
+      console.log('All transformed subjects:', allTransformed);
+      
+      // Filter by studyId
+      const filteredSubjects = allTransformed.filter(subject => {
+        const match = subject.studyId && subject.studyId.toString() === studyId.toString();
+        console.log(`Subject ${subject.subjectId}: studyId=${subject.studyId}, requested=${studyId}, match=${match}`);
+        return match;
+      });
+      
+      console.log('Filtered subjects for study', studyId, ':', filteredSubjects);
+      return filteredSubjects;
     }
     
     console.log('No subjects found or invalid response format');
@@ -134,7 +159,8 @@ export const getSubjectById = async (subjectId) => {
       // Transform backend patient data to frontend subject format
       const transformedSubject = {
         id: patient.id.toString(),
-        subjectId: patient.patientNumber || `SUBJ-${patient.id}`,
+        subjectId: patient.screeningNumber || patient.patientNumber || `SUBJ-${patient.id}`,
+        patientNumber: patient.patientNumber, // Keep auto-generated number separate
         studyId: patient.studyId?.toString(),
         studyName: patient.studyName,
         armId: patient.treatmentArm,
@@ -326,7 +352,8 @@ export const searchSubjects = async (searchTerm) => {
       // Transform backend patient data to frontend subject format
       const transformedSubjects = response.data.map(patient => ({
         id: patient.id.toString(),
-        subjectId: patient.patientNumber || `SUBJ-${patient.id}`,
+        subjectId: patient.screeningNumber || patient.patientNumber || `SUBJ-${patient.id}`,
+        patientNumber: patient.patientNumber, // Keep auto-generated number separate
         studyId: patient.studyId?.toString(),
         armId: patient.treatmentArm?.toString(),
         armName: patient.treatmentArmName || 'Not Assigned',

@@ -9,6 +9,7 @@ import StudyOverviewDashboard from './study-management/StudyOverviewDashboard';
 import VersionManagementModal from './study-management/VersionManagementModal';
 import StudyDesignDashboard from './study-design/StudyDesignDashboard';
 import ProtocolManagementDashboard from './protocol-management/ProtocolManagementDashboard';
+import StudyDatabaseBuildPage from './database-build/StudyDatabaseBuildPage';
 import StudyViewPage from './StudyViewPage';
 import FormList from './FormList';
 import StudyFormList from './StudyFormList';
@@ -245,6 +246,9 @@ const StudyDesignModule = () => {
 
           {/* Protocol Management - Dedicated protocol version management */}
           <Route path="study/:studyId/protocols" element={<ProtocolManagementDashboard />} />
+
+          {/* Database Build - Study database build management */}
+          <Route path="database-builds" element={<StudyDatabaseBuildPage />} />
 
           {/* Default to modern study dashboard */}
           <Route index element={<Navigate to="studies" replace />} />

@@ -172,7 +172,7 @@ export default function SubjectEnrollment() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Subject ID*
+                            Screening Number*
                         </label>
                         <input
                             type="text"
@@ -180,7 +180,7 @@ export default function SubjectEnrollment() {
                             value={formData.subjectId}
                             onChange={handleChange}
                             className="border border-gray-300 rounded-md w-full px-3 py-2"
-                            placeholder="e.g., SUBJ-001"
+                            placeholder="e.g., SCR-001, SUBJ-001"
                             required
                         />
                     </div>

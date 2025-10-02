@@ -35,4 +35,16 @@ public class PatientDto {
     private String createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    // Enrollment information (when patient is enrolled in a study)
+    private Long studyId;               // Study ID if patient is enrolled
+    private String studyName;           // Study name for display
+    private Long enrollmentId;          // Enrollment record ID
+    private String enrollmentStatus;    // Enrollment status (ENROLLED, ACTIVE, etc.)
+    private LocalDate enrollmentDate;   // Date of enrollment
+    private String screeningNumber;     // Study-specific screening number
+    private Long siteId;               // Site association ID
+    private String siteName;           // Site name for display
+    private String treatmentArm;       // Treatment arm assignment
+    private String treatmentArmName;   // Treatment arm name for display
 }
