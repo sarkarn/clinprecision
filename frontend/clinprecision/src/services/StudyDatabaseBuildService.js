@@ -1,6 +1,6 @@
 import ApiService from './ApiService';
+import { API_BASE_URL } from '../config';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8081';
 const STUDY_DB_BUILD_API = `${API_BASE_URL}/api/v1/study-database-builds`;
 
 /**
