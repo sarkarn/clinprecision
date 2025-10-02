@@ -8,7 +8,7 @@
  * while all reference data is handled by CodeList hooks and components
  */
 import ApiService from './ApiService';
-import { getApiConfig } from '../config';
+import { API_BASE_URL } from '../config';
 
 const API_PATH = '/study-design-ws/api/studies';
 
@@ -264,9 +264,8 @@ export const searchStudies = async (query, options = {}) => {
  * Used by CodeList hooks for API calls
  */
 export const getCodeListApiUrl = () => {
-  const config = getApiConfig();
-  const baseUrl = config.studyDesignServiceUrl || 'http://localhost:8082';
-  return `${baseUrl}/api/v2/reference-data`;
+  // Use API Gateway base URL for all service calls
+  return `${API_BASE_URL}/api/v2/reference-data`;
 };
 
 /**

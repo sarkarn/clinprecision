@@ -826,35 +826,44 @@ CREATE TABLE user_qualifications (
 
 
 CREATE TABLE study_database_builds (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    study_id BIGINT NOT NULL,
-    build_request_id VARCHAR(100) UNIQUE NOT NULL,
-    build_status ENUM('IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELLED') NOT NULL DEFAULT 'IN_PROGRESS',
-    build_start_time TIMESTAMP NULL,
-    build_end_time TIMESTAMP NULL,
-    requested_by BIGINT NOT NULL,
-    build_configuration LONGTEXT COMMENT 'JSON configuration for the build',
-    validation_results LONGTEXT COMMENT 'JSON validation results',
-    error_details LONGTEXT COMMENT 'Error details if build failed',
-    tables_created INT DEFAULT 0 COMMENT 'Number of tables created',
-    indexes_created INT DEFAULT 0 COMMENT 'Number of indexes created',
-    triggers_created INT DEFAULT 0 COMMENT 'Number of triggers created',
-    forms_configured INT DEFAULT 0 COMMENT 'Number of forms configured in form_definitions table',
-    validation_rules_created INT DEFAULT 0 COMMENT 'Number of validation rules created',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    -- Foreign key constraints
-    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
-    FOREIGN KEY (requested_by) REFERENCES users(id),
-    
-    -- Indexes for performance
-    INDEX idx_study_db_builds_study (study_id),
-    INDEX idx_study_db_builds_status (build_status),
-    INDEX idx_study_db_builds_requested_by (requested_by),
-    INDEX idx_study_db_builds_start_time (build_start_time),
-    INDEX idx_study_db_builds_request_id (build_request_id)
-) COMMENT='Tracks database build processes for clinical studies';
+  id bigint NOT NULL AUTO_INCREMENT,
+  aggregate_uuid varchar(255) DEFAULT NULL COMMENT 'Aggregate UUID from Axon Framework - links to event-sourced aggregate',
+  study_id bigint NOT NULL,
+  study_name varchar(500) DEFAULT NULL COMMENT 'Study name for display purposes',
+  study_protocol varchar(100) DEFAULT NULL COMMENT 'Study protocol identifier',
+  build_request_id varchar(100) NOT NULL,
+  build_status enum('IN_PROGRESS','COMPLETED','FAILED','CANCELLED') NOT NULL DEFAULT 'IN_PROGRESS' COMMENT 'Current build status - aligned with StudyDatabaseBuildAggregate',
+  build_start_time timestamp NULL DEFAULT NULL,
+  build_end_time timestamp NULL DEFAULT NULL,
+  requested_by bigint NOT NULL COMMENT 'User ID who requested the build',
+  build_configuration longtext COMMENT 'JSON configuration for the build',
+  validation_results longtext COMMENT 'JSON validation results',
+  validation_status varchar(50) DEFAULT NULL COMMENT 'Validation status (PASSED, FAILED, WARNING)',
+  validated_at timestamp NULL DEFAULT NULL COMMENT 'When validation was completed',
+  validated_by varchar(255) DEFAULT NULL COMMENT 'User ID who performed validation',
+  error_details longtext COMMENT 'Error details if build failed',
+  cancelled_by varchar(255) DEFAULT NULL COMMENT 'User ID who cancelled the build',
+  cancelled_at timestamp NULL DEFAULT NULL COMMENT 'When the build was cancelled',
+  cancellation_reason text COMMENT 'Reason for cancellation',
+  tables_created int DEFAULT '0' COMMENT 'Number of tables created',
+  indexes_created int DEFAULT '0' COMMENT 'Number of indexes created',
+  triggers_created int DEFAULT '0' COMMENT 'Number of triggers created',
+  forms_configured int DEFAULT '0' COMMENT 'Number of forms configured in form_definitions table',
+  validation_rules_created int DEFAULT '0' COMMENT 'Number of validation rules created',
+  created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY build_request_id (build_request_id),
+  UNIQUE KEY aggregate_uuid (aggregate_uuid),
+  KEY idx_study_db_builds_study (study_id),
+  KEY idx_study_db_builds_status (build_status),
+  KEY idx_study_db_builds_requested_by (requested_by),
+  KEY idx_study_db_builds_start_time (build_start_time),
+  KEY idx_study_db_builds_request_id (build_request_id),
+  KEY idx_study_db_builds_aggregate_uuid (aggregate_uuid),
+  CONSTRAINT study_database_builds_ibfk_1 FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE,
+  CONSTRAINT study_database_builds_ibfk_2 FOREIGN KEY (requested_by) REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Tracks database build processes for clinical studies';
 
 -- Study Validation Rules table
 -- Note: References form_definitions from consolidated schema instead of redundant study_form_definitions

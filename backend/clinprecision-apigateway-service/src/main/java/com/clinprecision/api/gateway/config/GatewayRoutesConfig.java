@@ -125,6 +125,18 @@ public class GatewayRoutesConfig {
                         )
                         .uri("lb://admin-ws")
                 )
+                // Study Database Build API - Route to Study Design Service (migrated from Data Capture)
+                .route("study-database-build-api", r -> r
+                    .path("/api/v1/study-database-builds/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
+                    )
+                    .uri("lb://study-design-ws")
+                )
+                
                 // Study Design Service - API routes
                 .route("study-design-ws-api", r -> r
                     .path("/study-design-ws/api/**")

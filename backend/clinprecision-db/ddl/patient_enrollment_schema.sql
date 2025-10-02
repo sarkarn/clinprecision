@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS patient_enrollments (
     INDEX idx_enrollments_screening_number (screening_number),
     INDEX idx_enrollments_enrollment_date (enrollment_date),
     
-    UNIQUE KEY uk_screening_number (screening_number),
+    UNIQUE KEY uk_screening_number (screening_number, study_id),
     UNIQUE KEY uk_patient_study_enrollment (patient_id, study_id)
 ) COMMENT 'Patient enrollment records linking patients to specific studies and sites';
 

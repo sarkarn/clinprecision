@@ -149,17 +149,18 @@ public class PatientEnrollmentController {
     }
 
     /**
-     * Get all patients
+     * Get all patients with enrollment information
+     * Returns patients with their current enrollment status and study associations
      * 
-     * @return List of all patients
+     * @return List of all patients with enrollment data
      */
     @GetMapping
     public ResponseEntity<List<PatientDto>> getAllPatients() {
         
-        log.info("API Request: Get all patients");
+        log.info("API Request: Get all patients with enrollment data");
         
         try {
-            List<PatientDto> results = patientEnrollmentService.getAllPatients();
+            List<PatientDto> results = patientEnrollmentService.getAllPatientsWithEnrollments();
             
             log.info("API Response: Found {} patients", results.size());
             return ResponseEntity.ok(results);
@@ -167,6 +168,29 @@ public class PatientEnrollmentController {
         } catch (Exception e) {
             log.error("Error retrieving all patients: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to retrieve patients", e);
+        }
+    }
+
+    /**
+     * Get enrolled patients by study ID
+     * 
+     * @param studyId Study ID to filter patients
+     * @return List of patients enrolled in the specified study
+     */
+    @GetMapping("/study/{studyId}")
+    public ResponseEntity<List<PatientDto>> getPatientsByStudy(@PathVariable Long studyId) {
+        
+        log.info("API Request: Get patients for study ID {}", studyId);
+        
+        try {
+            List<PatientDto> results = patientEnrollmentService.getPatientsByStudy(studyId);
+            
+            log.info("API Response: Found {} patients for study {}", results.size(), studyId);
+            return ResponseEntity.ok(results);
+            
+        } catch (Exception e) {
+            log.error("Error retrieving patients for study {}: {}", studyId, e.getMessage(), e);
+            throw new RuntimeException("Failed to retrieve patients for study", e);
         }
     }
 
@@ -225,5 +249,24 @@ public class PatientEnrollmentController {
     @GetMapping("/health")
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("Patient Enrollment Service is healthy");
+    }
+
+    /**
+     * Test endpoint: Enroll the first registered patient into the first study
+     * This is a temporary endpoint for testing the enrollment workflow
+     * 
+     * @return Result of test enrollment
+     */
+    @PostMapping("/test-enroll")
+    public ResponseEntity<String> testEnrollment() {
+        log.info("API Request: Test enrollment workflow");
+        
+        try {
+            String result = patientEnrollmentService.performTestEnrollment();
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Test enrollment failed: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body("Test enrollment failed: " + e.getMessage());
+        }
     }
 }

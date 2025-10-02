@@ -127,21 +127,18 @@
             <groupId>com.clinprecision</groupId>
             <artifactId>clinprecision-common-lib</artifactId>
             <version>0.0.1-SNAPSHOT</version>
-            <exclusions>
-                <!-- Exclude Axon Framework - Study Design Service doesn't need CQRS/Event Sourcing -->
-                <exclusion>
-                    <groupId>org.axonframework</groupId>
-                    <artifactId>axon-spring-boot-starter</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.axonframework</groupId>
-                    <artifactId>axon-eventsourcing</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.axonframework</groupId>
-                    <artifactId>axon-messaging</artifactId>
-                </exclusion>
-            </exclusions>
+            <!-- Axon Framework now included for Study Database Build feature (CQRS/Event Sourcing) -->
+        </dependency>
+        <!-- Axon Framework for Study Database Build (CQRS/Event Sourcing) -->
+        <dependency>
+            <groupId>org.axonframework</groupId>
+            <artifactId>axon-spring-boot-starter</artifactId>
+            <version>4.9.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clinprecision</groupId>
+            <artifactId>clinprecision-axon-lib</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 	<dependencyManagement>

@@ -154,7 +154,40 @@ public class PatientEnrollmentService {
     }
 
     /**
-     * Get all patients
+     * Get all patients with their enrollment information
+     */
+    public List<PatientDto> getAllPatientsWithEnrollments() {
+        log.info("Fetching all patients with enrollment data");
+        
+        List<PatientEntity> patients = patientRepository.findAll();
+        return patients.stream()
+                .map(this::mapToDtoWithEnrollment)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get patients enrolled in a specific study
+     */
+    public List<PatientDto> getPatientsByStudy(Long studyId) {
+        log.info("Fetching patients for study: {}", studyId);
+        
+        List<PatientEnrollmentEntity> enrollments = patientEnrollmentRepository.findByStudyId(studyId);
+        
+        return enrollments.stream()
+                .map(enrollment -> {
+                    PatientEntity patient = patientRepository.findById(enrollment.getPatientId())
+                            .orElse(null);
+                    if (patient != null) {
+                        return mapToDtoWithEnrollment(patient, enrollment);
+                    }
+                    return null;
+                })
+                .filter(dto -> dto != null)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get all patients (simple version without enrollment data)
      */
     public List<PatientDto> getAllPatients() {
         log.info("Fetching all patients");
@@ -199,6 +232,61 @@ public class PatientEnrollmentService {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * Map entity to DTO with enrollment information
+     */
+    private PatientDto mapToDtoWithEnrollment(PatientEntity entity) {
+        // Get the most recent enrollment for this patient
+        Optional<PatientEnrollmentEntity> latestEnrollment = patientEnrollmentRepository
+                .findTopByPatientIdOrderByEnrollmentDateDesc(entity.getId());
+        
+        if (latestEnrollment.isPresent()) {
+            return mapToDtoWithEnrollment(entity, latestEnrollment.get());
+        } else {
+            // Return basic patient data without enrollment info
+            return mapToDto(entity);
+        }
+    }
+
+    /**
+     * Map entity to DTO with specific enrollment information
+     */
+    private PatientDto mapToDtoWithEnrollment(PatientEntity entity, PatientEnrollmentEntity enrollment) {
+        PatientDto.PatientDtoBuilder builder = PatientDto.builder()
+                .id(entity.getId())
+                .aggregateUuid(entity.getAggregateUuid())
+                .patientNumber(entity.getPatientNumber())
+                .firstName(entity.getFirstName())
+                .middleName(entity.getMiddleName())
+                .lastName(entity.getLastName())
+                .dateOfBirth(entity.getDateOfBirth())
+                .gender(entity.getGender() != null ? entity.getGender().name() : null)
+                .phoneNumber(entity.getPhoneNumber())
+                .email(entity.getEmail())
+                .fullName(entity.getFullName())
+                .age(entity.getAge())
+                .status(entity.getStatus() != null ? entity.getStatus().name() : null)
+                .createdBy(entity.getCreatedBy())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt());
+
+        // Add enrollment information if available
+        if (enrollment != null) {
+            builder
+                .studyId(enrollment.getStudyId())
+                .enrollmentId(enrollment.getId())
+                .enrollmentStatus(enrollment.getEnrollmentStatus() != null ? enrollment.getEnrollmentStatus().name() : null)
+                .enrollmentDate(enrollment.getEnrollmentDate())
+                .screeningNumber(enrollment.getScreeningNumber())
+                .siteId(enrollment.getStudySiteId());
+            
+            // TODO: Add study name and site name lookup when available
+            // For now, these will be null and can be populated by frontend
+        }
+
+        return builder.build();
     }
 
     /**
@@ -352,5 +440,65 @@ public class PatientEnrollmentService {
         
         log.error("Patient projection timeout after {}ms and {} attempts for UUID: {}", timeoutMs, attempts, patientUuid);
         throw new RuntimeException("Patient not found after creation - projection timeout after " + timeoutMs + "ms");
+    }
+
+    /**
+     * Test method to enroll a registered patient into a study
+     * This helps validate the enrollment workflow
+     */
+    public String performTestEnrollment() {
+        log.info("Performing test enrollment...");
+        
+        // Get the first registered patient
+        List<PatientEntity> patients = patientRepository.findAll();
+        if (patients.isEmpty()) {
+            return "No patients found. Please register a patient first.";
+        }
+        
+        PatientEntity firstPatient = patients.get(0);
+        log.info("Using patient {} for test enrollment", firstPatient.getId());
+        
+        // Check if this patient is already enrolled
+        List<PatientEnrollmentEntity> existingEnrollments = patientEnrollmentRepository.findByPatientId(firstPatient.getId());
+        if (!existingEnrollments.isEmpty()) {
+            return "Patient " + firstPatient.getPatientNumber() + " is already enrolled in " + existingEnrollments.size() + " study(ies)";
+        }
+        
+        // Get site-study associations to use a valid siteId
+        List<SiteStudyEntity> siteStudies = siteStudyRepository.findAll();
+        if (siteStudies.isEmpty()) {
+            return "No site-study associations found. Please activate a site for a study first.";
+        }
+        
+        SiteStudyEntity firstAssociation = siteStudies.get(0);
+        log.info("Using site-study association {} (study {}, site {})", 
+                firstAssociation.getId(), firstAssociation.getStudyId(), firstAssociation.getSite().getName());
+        
+        // Create enrollment DTO
+        EnrollPatientDto enrollDto = EnrollPatientDto.builder()
+                .studyId(firstAssociation.getStudyId())
+                .siteId(firstAssociation.getId()) // This is the site-study association ID
+                .screeningNumber("TEST-SCR-" + System.currentTimeMillis())
+                .enrollmentDate(java.time.LocalDate.now())
+                .build();
+        
+        try {
+            // Perform enrollment
+            PatientEnrollmentEntity enrollment = enrollPatient(firstPatient.getId(), enrollDto, "test-system");
+            
+            return String.format(
+                "Successfully enrolled patient %s (ID: %d) into study %d at site '%s'. Enrollment ID: %d, Screening Number: %s",
+                firstPatient.getPatientNumber(),
+                firstPatient.getId(),
+                enrollDto.getStudyId(),
+                firstAssociation.getSite().getName(),
+                enrollment.getId(),
+                enrollment.getScreeningNumber()
+            );
+            
+        } catch (Exception e) {
+            log.error("Test enrollment failed: {}", e.getMessage(), e);
+            return "Test enrollment failed: " + e.getMessage();
+        }
     }
 }
