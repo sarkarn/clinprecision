@@ -139,7 +139,7 @@ const StudyDatabaseBuildPage = () => {
                                     {error.message || 'Please check if the backend service is running and try again.'}
                                 </p>
                                 <p className="mt-1 text-xs text-yellow-600">
-                                    Expected endpoint: http://localhost:8081/api/v1/study-database-builds
+                                    Expected endpoint: http://localhost:8083/api/v1/study-database-builds (via API Gateway)
                                 </p>
                             </div>
                             <button
