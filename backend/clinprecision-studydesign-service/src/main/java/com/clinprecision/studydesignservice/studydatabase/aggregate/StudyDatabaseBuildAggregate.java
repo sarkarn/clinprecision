@@ -77,7 +77,7 @@ public class StudyDatabaseBuildAggregate {
         validateBuildCommand(command);
         
         // Apply domain event
-        AggregateLifecycle.apply(StudyDatabaseBuildStartedEvent.builder()
+    AggregateLifecycle.apply(StudyDatabaseBuildStartedEvent.builder()
                 .studyDatabaseBuildId(command.getStudyDatabaseBuildId())
                 .studyId(command.getStudyId())
                 .studyName(command.getStudyName())
@@ -85,7 +85,7 @@ public class StudyDatabaseBuildAggregate {
                 .requestedBy(command.getRequestedBy())
                 .startedAt(LocalDateTime.now())
                 .buildConfiguration(command.getStudyDesignConfiguration())
-                .buildRequestId(UUID.randomUUID().toString())
+        .buildRequestId(command.getBuildRequestId())
                 .build());
         
         log.info("Study database build started event applied for build ID: {}", 

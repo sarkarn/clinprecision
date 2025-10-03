@@ -31,19 +31,22 @@ export const LoginService = {
       
       // Extract authentication data from headers
       const token = loginResponse.headers.token;
-      const userId = loginResponse.headers.userid;
+      const userId = loginResponse.headers.userid; // String username
+      const userNumericId = loginResponse.headers.usernumericid; // Long numeric ID
       const userEmail = loginResponse.headers.useremail;
       const userRole = loginResponse.headers.userrole;
 
       console.log("Response headers:", loginResponse.headers);
+      console.log("User IDs - userId (string):", userId, "userNumericId (long):", userNumericId);
       
-      if (!token || !userId) {
-        throw new Error("Authentication successful but token or userId is missing");
+      if (!token || !userId || !userNumericId) {
+        throw new Error("Authentication successful but token, userId, or userNumericId is missing");
       }
       
       // Save authentication data to local storage
       localStorage.setItem('authToken', token);
-      localStorage.setItem('userId', userId);
+      localStorage.setItem('userId', userId); // String username
+      localStorage.setItem('userNumericId', userNumericId); // Long numeric ID for API calls
       localStorage.setItem('userEmail', userEmail || email);
       localStorage.setItem('userRole', userRole || 'USER');
       
@@ -57,7 +60,8 @@ export const LoginService = {
         success: true,
         authData: {
           token,
-          userId,
+          userId, // String username
+          userNumericId, // Long numeric ID
           userEmail: userEmail || email,
           userRole: userRole || 'USER'
         }
@@ -77,6 +81,7 @@ export const LoginService = {
       // Clear all authentication data from local storage
       localStorage.removeItem('authToken');
       localStorage.removeItem('userId');
+      localStorage.removeItem('userNumericId');
       localStorage.removeItem('userEmail');
       localStorage.removeItem('userRole');
       localStorage.removeItem('tokenExpiration');

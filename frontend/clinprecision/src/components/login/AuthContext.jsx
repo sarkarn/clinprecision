@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const userId = localStorage.getItem('userId');
+    const userNumericId = localStorage.getItem('userNumericId');
     const userEmail = localStorage.getItem('userEmail');
     const userRole = localStorage.getItem('userRole');
 
@@ -17,7 +18,8 @@ export function AuthProvider({ children }) {
       setUser({
         email: userEmail || 'user@example.com',
         role: userRole || 'SITE_USER', // Changed from 'USER' to 'SITE_USER'
-        userId,
+        userId, // String username
+        userNumericId, // Long numeric ID
         token
       });
     }
@@ -45,6 +47,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
+    localStorage.removeItem('userNumericId');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userRole');
     localStorage.removeItem('tokenExpiration');

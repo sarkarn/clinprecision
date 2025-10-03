@@ -3,18 +3,32 @@ import { XMarkIcon, ExclamationTriangleIcon, CheckCircleIcon, MagnifyingGlassIco
 import { getStudies } from '../../../../../services/StudyServiceModern';
 import { useBuildActions } from '../hooks/useBuildActions';
 import studyDatabaseBuildService from '../../../../../services/StudyDatabaseBuildService';
+import { useAuth } from '../../../../login/AuthContext';
+import { useStudyNavigation } from '../../hooks/useStudyNavigation';
 
 /**
  * Modal for building a study database
  * User Journey Step 3-7: Complete build form with validation and submission
+ * 
+ * UX IMPROVEMENTS:
+ * 1. Auto-fills current user from auth context in requestedBy field
+ * 2. Filters studies to show only APPROVED or ACTIVE status (ready for build)
+ * 3. Pre-selects study if accessed from Study Design Dashboard context
+ * 4. Prevents showing studies that already have active builds
  */
 const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) => {
+    // Get current user from auth context
+    const { user } = useAuth();
+
+    // Get study navigation context
+    const { getCurrentStudyId, isInStudyContext } = useStudyNavigation();
     // Form state
     const [formData, setFormData] = useState({
         studyId: selectedStudy?.id || '',
         studyName: selectedStudy?.name || '',
         studyProtocol: selectedStudy?.protocolNumber || '',
-        requestedBy: '', // Will be set from user context
+        requestedBy: '', // User ID (Long) - required by backend
+        requestedByDisplay: '', // User name/email for display only
         buildConfiguration: '{}', // JSON configuration
     });
 
@@ -56,14 +70,26 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
     );
 
     /**
-     * Load studies for dropdown
+     * Load studies for dropdown - FILTERED to show only build-ready studies
+     * Only shows studies with status APPROVED or ACTIVE
      */
     useEffect(() => {
         const loadStudies = async () => {
             try {
                 setLoadingStudies(true);
                 const data = await getStudies();
-                setStudies(data || []);
+
+                // Filter studies to show only those ready for database build
+                // Only APPROVED or ACTIVE studies can have databases built
+                const buildReadyStudies = (data || []).filter(study => {
+                    const status = study.studyStatus?.code || study.status;
+                    return status === 'APPROVED' || status === 'ACTIVE';
+                });
+
+                console.log('Total studies:', data?.length || 0);
+                console.log('Build-ready studies (APPROVED/ACTIVE):', buildReadyStudies.length);
+
+                setStudies(buildReadyStudies);
             } catch (error) {
                 console.error('Error loading studies:', error);
                 setStudies([]);
@@ -74,13 +100,61 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
 
         if (isOpen) {
             loadStudies();
-            // Set default requestedBy from user context (would normally come from auth)
+
+            // Set requestedBy from authenticated user
+            // Backend expects Long numeric user ID (not String username)
+            const userNumericId = user?.userNumericId ? parseInt(user.userNumericId) : null;
+            const displayName = user?.email || user?.name || 'Unknown User';
+
+            console.log('Setting requestedBy from auth context:', {
+                userNumericId,
+                displayName,
+                userObject: user
+            });
+
+            if (!userNumericId) {
+                console.warn('Numeric User ID not found in auth context. Build request may fail. Please re-login.');
+            }
+
+            // Check if we're in a study context (accessed from Study Design Dashboard)
+            const contextStudyId = getCurrentStudyId();
+            console.log('Study context:', { contextStudyId, isInStudyContext: isInStudyContext() });
+
             setFormData(prev => ({
                 ...prev,
-                requestedBy: 'Current User', // TODO: Get from auth context
+                requestedBy: userNumericId, // Long numeric user ID for backend
+                requestedByDisplay: displayName, // Display name for UI
             }));
         }
-    }, [isOpen]);
+    }, [isOpen, user, getCurrentStudyId, isInStudyContext]);
+
+    /**
+     * Pre-select study if provided via prop or from study context
+     */
+    useEffect(() => {
+        if (isOpen && studies.length > 0) {
+            // Priority 1: Use selectedStudy prop if provided
+            if (selectedStudy) {
+                console.log('Pre-selecting study from prop:', selectedStudy);
+                handleStudySelect(selectedStudy);
+                return;
+            }
+
+            // Priority 2: Use study from URL context if in Study Design Dashboard
+            const contextStudyId = getCurrentStudyId();
+            if (contextStudyId && isInStudyContext()) {
+                // Find the study in the loaded studies list
+                const contextStudy = studies.find(s =>
+                    s.id === parseInt(contextStudyId) || s.id === contextStudyId
+                );
+
+                if (contextStudy) {
+                    console.log('Pre-selecting study from context:', contextStudy);
+                    handleStudySelect(contextStudy);
+                }
+            }
+        }
+    }, [isOpen, studies, selectedStudy, getCurrentStudyId, isInStudyContext]);
 
     /**
      * Check if selected study has active build
@@ -165,7 +239,11 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
         }
 
         if (!formData.requestedBy) {
-            errors.requestedBy = 'Requested by is required';
+            errors.requestedBy = 'Numeric User ID is required. Please re-login to refresh your session.';
+        }
+
+        if (formData.requestedBy && (isNaN(formData.requestedBy) || formData.requestedBy <= 0)) {
+            errors.requestedBy = 'Invalid numeric user ID. Please re-login to refresh your session.';
         }
 
         // Validate JSON configuration if provided
@@ -225,6 +303,7 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
                 studyName: '',
                 studyProtocol: '',
                 requestedBy: '',
+                requestedByDisplay: '',
                 buildConfiguration: '{}',
             });
             setValidationErrors({});
@@ -326,6 +405,9 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Select Study <span className="text-red-500">*</span>
                             </label>
+                            <p className="text-xs text-gray-500 mb-2">
+                                Only studies with status APPROVED or ACTIVE can have databases built
+                            </p>
                             <div className="relative">
                                 <div className="relative">
                                     <input
@@ -352,24 +434,37 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
                                                 Loading studies...
                                             </div>
                                         ) : filteredStudies.length > 0 ? (
-                                            filteredStudies.map((study) => (
-                                                <button
-                                                    key={study.id}
-                                                    type="button"
-                                                    onClick={() => handleStudySelect(study)}
-                                                    className="w-full px-4 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-100 last:border-b-0"
-                                                >
-                                                    <div className="font-medium text-gray-900">
-                                                        {study.name || study.studyName}
-                                                    </div>
-                                                    <div className="text-sm text-gray-500">
-                                                        Protocol: {study.protocolNumber || study.studyProtocol || 'N/A'} • ID: {study.id}
-                                                    </div>
-                                                </button>
-                                            ))
+                                            filteredStudies.map((study) => {
+                                                const status = study.studyStatus?.code || study.status;
+                                                const statusLabel = study.studyStatus?.name || status;
+                                                const statusColor = status === 'ACTIVE' ? 'text-green-600' : 'text-blue-600';
+
+                                                return (
+                                                    <button
+                                                        key={study.id}
+                                                        type="button"
+                                                        onClick={() => handleStudySelect(study)}
+                                                        className="w-full px-4 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="font-medium text-gray-900">
+                                                                {study.name || study.studyName}
+                                                            </div>
+                                                            <span className={`text-xs font-medium px-2 py-1 rounded ${statusColor} bg-opacity-10`}>
+                                                                {statusLabel}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-sm text-gray-500 mt-1">
+                                                            Protocol: {study.protocolNumber || study.studyProtocol || 'N/A'} • ID: {study.id}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })
                                         ) : (
                                             <div className="px-4 py-3 text-sm text-gray-500">
-                                                No studies found
+                                                {searchTerm ?
+                                                    'No build-ready studies match your search' :
+                                                    'No build-ready studies available. Only APPROVED or ACTIVE studies can have databases built.'}
                                             </div>
                                         )}
                                     </div>
@@ -416,15 +511,21 @@ const BuildStudyDatabaseModal = ({ isOpen, onClose, onSuccess, selectedStudy }) 
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Requested By <span className="text-red-500">*</span>
                             </label>
+                            <p className="text-xs text-gray-500 mb-2">
+                                Auto-filled from your user profile
+                            </p>
                             <input
                                 type="text"
-                                value={formData.requestedBy}
-                                onChange={(e) => setFormData({ ...formData, requestedBy: e.target.value })}
-                                disabled={submitting}
-                                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 ${validationErrors.requestedBy ? 'border-red-300' : 'border-gray-300'
-                                    }`}
-                                placeholder="Enter your name"
+                                value={formData.requestedByDisplay || ''}
+                                readOnly
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                                placeholder="User information will be auto-filled"
                             />
+                            {formData.requestedBy && (
+                                <p className="mt-1 text-xs text-gray-500">
+                                    User ID: {formData.requestedBy}
+                                </p>
+                            )}
                             {validationErrors.requestedBy && (
                                 <p className="mt-1 text-sm text-red-600">{validationErrors.requestedBy}</p>
                             )}
