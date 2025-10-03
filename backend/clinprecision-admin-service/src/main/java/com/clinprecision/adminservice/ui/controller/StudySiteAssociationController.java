@@ -3,6 +3,7 @@ package com.clinprecision.adminservice.ui.controller;
 import com.clinprecision.adminservice.site.service.StudySiteAssociationService;
 import com.clinprecision.adminservice.ui.model.ActivateSiteForStudyDto;
 import com.clinprecision.adminservice.ui.model.CreateStudySiteAssociationDto;
+import com.clinprecision.adminservice.ui.model.UpdateStudySiteAssociationDto;
 import com.clinprecision.adminservice.ui.model.SiteStudyDto;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,12 +88,64 @@ public class StudySiteAssociationController {
     }
 
     /**
+     * Get a specific study association by ID
+     */
+    @GetMapping("/{siteId}/studies/{studyId}/association/{associationId}")
+    public ResponseEntity<SiteStudyDto> getStudyAssociationById(
+            @PathVariable Long siteId,
+            @PathVariable Long studyId,
+            @PathVariable Long associationId) {
+        
+        List<SiteStudyDto> associations = studySiteAssociationService.getStudyAssociationsForSite(siteId);
+        SiteStudyDto association = associations.stream()
+            .filter(a -> a.getId().equals(associationId) && a.getStudyId().equals(studyId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Site-study association not found"));
+        
+        return ResponseEntity.ok(association);
+    }
+
+    /**
      * Get all site associations for a study
      */
     @GetMapping("/studies/{studyId}")
     public ResponseEntity<List<SiteStudyDto>> getSiteAssociationsForStudy(@PathVariable Long studyId) {
         List<SiteStudyDto> associations = studySiteAssociationService.getSiteAssociationsForStudy(studyId);
         return ResponseEntity.ok(associations);
+    }
+
+    /**
+     * Update a site-study association
+     */
+    @PutMapping("/{siteId}/studies/{studyId}")
+    public ResponseEntity<SiteStudyDto> updateSiteStudyAssociation(
+            @PathVariable Long siteId,
+            @PathVariable Long studyId,
+            @Valid @RequestBody UpdateStudySiteAssociationDto updateDto,
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "userEmail", required = false) String userEmail,
+            Authentication authentication) {
+        
+        String userId = getUserId(authentication, userEmail, authorization);
+        
+        // First find the association by siteId and studyId
+        List<SiteStudyDto> associations = studySiteAssociationService.getStudyAssociationsForSite(siteId);
+        SiteStudyDto association = associations.stream()
+            .filter(a -> a.getStudyId().equals(studyId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Site-study association not found"));
+        
+        // Now update using the association ID
+        SiteStudyDto updatedAssociation = studySiteAssociationService.updateSiteStudyAssociation(
+            association.getId(), 
+            studyId,
+            updateDto.getSubjectEnrollmentCap(),
+            updateDto.getSubjectEnrollmentCount(),
+            userId, 
+            updateDto.getReason()
+        );
+        
+        return ResponseEntity.ok(updatedAssociation);
     }
 
     /**

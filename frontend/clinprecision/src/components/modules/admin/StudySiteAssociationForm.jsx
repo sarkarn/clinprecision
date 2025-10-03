@@ -6,17 +6,21 @@ import StudyService from '../../../services/StudyService';
 
 export default function StudySiteAssociationForm() {
     const navigate = useNavigate();
-    const { id } = useParams(); // optional: edit mode in future
+    const { id } = useParams(); // association ID for edit mode
 
     const [sites, setSites] = useState([]);
     const [studies, setStudies] = useState([]);
     const [selectedSiteId, setSelectedSiteId] = useState('');
     const [selectedStudyId, setSelectedStudyId] = useState('');
     const [reason, setReason] = useState('Initial site onboarding to study');
+    const [enrollmentCap, setEnrollmentCap] = useState('');
+    const [enrollmentCount, setEnrollmentCount] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [notice, setNotice] = useState(null);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [existingAssociation, setExistingAssociation] = useState(null);
 
     useEffect(() => {
         const load = async () => {
@@ -29,6 +33,41 @@ export default function StudySiteAssociationForm() {
                 ]);
                 setSites(siteList || []);
                 setStudies(studyList || []);
+
+                // If id is present, we're in edit mode - find the association
+                if (id) {
+                    setIsEditMode(true);
+                    setReason('Updating study site association');
+
+                    // Load all associations to find the one we need
+                    const allAssociations = [];
+                    for (const site of siteList) {
+                        try {
+                            const siteAssociations = await SiteService.getStudyAssociationsForSite(site.id);
+                            const enrichedAssociations = siteAssociations.map(assoc => ({
+                                ...assoc,
+                                siteId: site.id,
+                                siteName: site.name,
+                                siteNumber: site.siteNumber
+                            }));
+                            allAssociations.push(...enrichedAssociations);
+                        } catch (error) {
+                            console.warn(`Failed to load associations for site ${site.id}:`, error);
+                        }
+                    }
+
+                    // Find the association with matching ID
+                    const association = allAssociations.find(a => a.id === id);
+                    if (association) {
+                        setExistingAssociation(association);
+                        setSelectedSiteId(String(association.siteId));
+                        setSelectedStudyId(String(association.studyId));
+                        setEnrollmentCap(association.subjectEnrollmentCap || '');
+                        setEnrollmentCount(association.subjectEnrollmentCount || '');
+                    } else {
+                        setError(`Association with ID ${id} not found`);
+                    }
+                }
             } catch (e) {
                 console.error('Failed to load form data', e);
                 setError('Failed to load sites or studies');
@@ -37,7 +76,7 @@ export default function StudySiteAssociationForm() {
             }
         };
         load();
-    }, []);
+    }, [id]);
 
     // Optionally: filter out studies already associated with selected site
     const associatedStudyIdsForSelectedSite = useMemo(() => {
@@ -58,6 +97,18 @@ export default function StudySiteAssociationForm() {
         if (!selectedSiteId) errs.push('Please select a site');
         if (!selectedStudyId) errs.push('Please select a study');
         if (!reason || reason.trim().length < 4) errs.push('Please provide a brief reason (min 4 chars)');
+
+        // Validate enrollment numbers if provided
+        if (enrollmentCap && (isNaN(enrollmentCap) || Number(enrollmentCap) < 0)) {
+            errs.push('Enrollment cap must be a positive number');
+        }
+        if (enrollmentCount && (isNaN(enrollmentCount) || Number(enrollmentCount) < 0)) {
+            errs.push('Enrollment count must be a positive number');
+        }
+        if (enrollmentCap && enrollmentCount && Number(enrollmentCount) > Number(enrollmentCap)) {
+            errs.push('Enrollment count cannot exceed enrollment cap');
+        }
+
         return errs;
     };
 
@@ -71,13 +122,34 @@ export default function StudySiteAssociationForm() {
         try {
             setSubmitting(true);
             setError(null);
-            await SiteService.associateSiteWithStudy(Number(selectedSiteId), { studyId: Number(selectedStudyId), reason });
-            setNotice('Association created successfully');
+
+            if (isEditMode) {
+                // Update existing association
+                const updateData = {
+                    reason,
+                    subjectEnrollmentCap: enrollmentCap ? Number(enrollmentCap) : null,
+                    subjectEnrollmentCount: enrollmentCount ? Number(enrollmentCount) : null
+                };
+                await SiteService.updateSiteStudyAssociation(
+                    Number(selectedSiteId),
+                    Number(selectedStudyId),
+                    updateData
+                );
+                setNotice('Association updated successfully');
+            } else {
+                // Create new association
+                await SiteService.associateSiteWithStudy(
+                    Number(selectedSiteId),
+                    { studyId: Number(selectedStudyId), reason }
+                );
+                setNotice('Association created successfully');
+            }
+
             // small delay for UX, then go back to list
             setTimeout(() => navigate('/site-operations/study-sites'), 600);
         } catch (e) {
-            console.error('Create association failed', e);
-            setError(e?.response?.data || e.message || 'Failed to create association');
+            console.error(`${isEditMode ? 'Update' : 'Create'} association failed`, e);
+            setError(e?.response?.data || e.message || `Failed to ${isEditMode ? 'update' : 'create'} association`);
         } finally {
             setSubmitting(false);
         }
@@ -96,8 +168,14 @@ export default function StudySiteAssociationForm() {
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-3xl mx-auto">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Study Site Association</h1>
-                <p className="text-gray-600 mb-6">Link an existing site to a study for activation and tracking.</p>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    {isEditMode ? 'Edit Study Site Association' : 'Create Study Site Association'}
+                </h1>
+                <p className="text-gray-600 mb-6">
+                    {isEditMode
+                        ? 'Update the enrollment settings for this study-site association.'
+                        : 'Link an existing site to a study for activation and tracking.'}
+                </p>
 
                 {error && (
                     <div className="mb-4 p-3 rounded border border-red-200 bg-red-50 text-red-800 flex items-center">
@@ -119,12 +197,16 @@ export default function StudySiteAssociationForm() {
                             className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             value={selectedSiteId}
                             onChange={e => setSelectedSiteId(e.target.value)}
+                            disabled={isEditMode}
                         >
                             <option value="">Select a site...</option>
                             {sites.map(s => (
                                 <option key={s.id} value={s.id}>{s.siteNumber} - {s.name}</option>
                             ))}
                         </select>
+                        {isEditMode && (
+                            <p className="mt-1 text-sm text-gray-500">Site cannot be changed in edit mode</p>
+                        )}
                     </div>
 
                     <div>
@@ -133,20 +215,58 @@ export default function StudySiteAssociationForm() {
                             className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             value={selectedStudyId}
                             onChange={e => setSelectedStudyId(e.target.value)}
+                            disabled={isEditMode}
                         >
                             <option value="">Select a study...</option>
                             {availableStudies.map(s => (
                                 <option key={s.key} value={s.key}>{s.label}</option>
                             ))}
                         </select>
+                        {isEditMode && (
+                            <p className="mt-1 text-sm text-gray-500">Study cannot be changed in edit mode</p>
+                        )}
                     </div>
+
+                    {isEditMode && (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Subject Enrollment Cap
+                                </label>
+                                <input
+                                    type="number"
+                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Maximum number of subjects"
+                                    value={enrollmentCap}
+                                    onChange={e => setEnrollmentCap(e.target.value)}
+                                    min="0"
+                                />
+                                <p className="mt-1 text-sm text-gray-500">Leave blank for no limit</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Current Enrollment Count
+                                </label>
+                                <input
+                                    type="number"
+                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Current number of enrolled subjects"
+                                    value={enrollmentCount}
+                                    onChange={e => setEnrollmentCount(e.target.value)}
+                                    min="0"
+                                />
+                                <p className="mt-1 text-sm text-gray-500">Current enrollment status</p>
+                            </div>
+                        </>
+                    )}
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
                         <textarea
                             className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             rows={3}
-                            placeholder="Provide an audit reason for this association"
+                            placeholder={isEditMode ? "Provide a reason for this update" : "Provide an audit reason for this association"}
                             value={reason}
                             onChange={e => setReason(e.target.value)}
                         />
@@ -166,7 +286,8 @@ export default function StudySiteAssociationForm() {
                             className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 flex items-center"
                             disabled={submitting}
                         >
-                            {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />} Create Association
+                            {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                            {isEditMode ? 'Update Association' : 'Create Association'}
                         </button>
                     </div>
                 </form>

@@ -381,6 +381,23 @@ export const SiteService = {
   },
 
   /**
+   * Get a specific study association by ID
+   * @param {string} siteId - Site ID
+   * @param {number|string} studyId - Study ID
+   * @param {string} associationId - Association ID
+   * @returns {Promise} - Promise with association data
+   */
+  getStudyAssociationById: async (siteId, studyId, associationId) => {
+    try {
+      const response = await ApiService.get(`/admin-ws/api/sites/${siteId}/studies/${studyId}/association/${associationId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching study association ${associationId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
    * Get all site associations for a study
    * @param {string} studyId - Study ID
    * @returns {Promise} - Promise with site associations
@@ -401,6 +418,29 @@ export const SiteService = {
       return data;
     } catch (error) {
       console.error(`Error fetching site associations for study ${studyId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update a site-study association
+   * @param {string} siteId - Site ID
+   * @param {number|string} studyId - Study ID
+   * @param {Object} updateData - Update data
+   * @param {number} updateData.subjectEnrollmentCap - Optional enrollment cap
+   * @param {number} updateData.subjectEnrollmentCount - Optional enrollment count
+   * @param {string} updateData.reason - Reason for update (required)
+   * @returns {Promise} - Promise with updated association data
+   */
+  updateSiteStudyAssociation: async (siteId, studyId, updateData) => {
+    try {
+      if (!updateData.reason) {
+        throw new Error('Reason is required for updating association');
+      }
+      const response = await ApiService.put(`/admin-ws/api/sites/${siteId}/studies/${studyId}`, updateData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating association between site ${siteId} and study ${studyId}:`, error);
       throw error;
     }
   },
