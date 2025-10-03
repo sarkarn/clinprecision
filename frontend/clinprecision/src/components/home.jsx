@@ -308,82 +308,497 @@ export default function Home() {
                             {/* Default dashboard route */}
                             <Route index element={
                                 <div className="space-y-6">
-                                    {/* Welcome Section */}
-                                    <div className="bg-white rounded-lg shadow p-8">
-                                        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                                            Welcome to ClinPrecision EDC
-                                        </h1>
-                                        <p className="text-lg text-gray-600 mb-6">
-                                            Your comprehensive clinical research platform for managing clinical trials and data capture.
-                                        </p>
+                                    {/* Hero Welcome Section */}
+                                    <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-xl shadow-2xl overflow-hidden">
+                                        <div className="px-8 py-12 md:px-12 md:py-16">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1">
+                                                    <div className="inline-flex items-center space-x-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full mb-4">
+                                                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                                        <span className="text-white text-sm font-medium">System Operational</span>
+                                                    </div>
+                                                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                                                        Welcome back, {user?.name || 'User'}
+                                                    </h1>
+                                                    <p className="text-xl text-blue-100 mb-6 max-w-3xl">
+                                                        Accelerate clinical research with AI-powered trial management, real-time data capture, and end-to-end compliance automation.
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-3">
+                                                        <div className="flex items-center space-x-2 text-white">
+                                                            <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            <span className="text-sm font-medium">FDA 21 CFR Part 11</span>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2 text-white">
+                                                            <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            <span className="text-sm font-medium">ICH-GCP Compliant</span>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2 text-white">
+                                                            <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            <span className="text-sm font-medium">HIPAA Secure</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="hidden lg:block">
+                                                    <div className="w-32 h-32 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                                                        <svg className="w-20 h-20 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                        {/* Quick Actions */}
+                                    {/* Platform Capabilities */}
+                                    <div className="bg-white rounded-xl shadow-lg p-8">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h2 className="text-2xl font-bold text-gray-900">Platform Capabilities</h2>
+                                            <span className="text-sm text-gray-500">Everything you need in one platform</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                            {/* Capability Card 1 */}
+                                            <div className="text-center">
+                                                <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                                                    <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                    </svg>
+                                                </div>
+                                                <h3 className="font-semibold text-gray-900 mb-1">Study Design</h3>
+                                                <p className="text-sm text-gray-600">Dynamic CRF builder with drag-and-drop interface</p>
+                                            </div>
+
+                                            {/* Capability Card 2 */}
+                                            <div className="text-center">
+                                                <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                                                    <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                </div>
+                                                <h3 className="font-semibold text-gray-900 mb-1">Data Capture</h3>
+                                                <p className="text-sm text-gray-600">Real-time validation with offline capabilities</p>
+                                            </div>
+
+                                            {/* Capability Card 3 */}
+                                            <div className="text-center">
+                                                <div className="w-16 h-16 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                                                    <svg className="w-8 h-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                                    </svg>
+                                                </div>
+                                                <h3 className="font-semibold text-gray-900 mb-1">Data Quality</h3>
+                                                <p className="text-sm text-gray-600">Automated validation & query management</p>
+                                            </div>
+
+                                            {/* Capability Card 4 */}
+                                            <div className="text-center">
+                                                <div className="w-16 h-16 bg-orange-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                                                    <svg className="w-8 h-8 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                    </svg>
+                                                </div>
+                                                <h3 className="font-semibold text-gray-900 mb-1">Analytics</h3>
+                                                <p className="text-sm text-gray-600">Real-time dashboards & custom reports</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Key Statistics */}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-gray-200">
+                                            <div className="text-center">
+                                                <div className="text-3xl font-bold text-blue-600 mb-1">50%</div>
+                                                <div className="text-sm text-gray-600">Faster Data Entry</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-3xl font-bold text-green-600 mb-1">95%</div>
+                                                <div className="text-sm text-gray-600">Query Reduction</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-3xl font-bold text-purple-600 mb-1">100%</div>
+                                                <div className="text-sm text-gray-600">Regulatory Compliant</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-3xl font-bold text-orange-600 mb-1">24/7</div>
+                                                <div className="text-sm text-gray-600">Global Access</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Quick Actions - Role Based */}
+                                    <div className="bg-white rounded-xl shadow-lg p-8">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <div>
+                                                <h2 className="text-2xl font-bold text-gray-900">Quick Actions</h2>
+                                                <p className="text-sm text-gray-600 mt-1">Get started with common tasks</p>
+                                            </div>
+                                            <div className="text-sm text-gray-500">
+                                                Role: <span className="font-semibold text-blue-600">{userRoleDisplay}</span>
+                                            </div>
+                                        </div>
+
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {hasModuleAccess('study-design') && (
                                                 <Link
                                                     to="/study-design/studies"
-                                                    className="group p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200 hover:from-blue-100 hover:to-blue-200 transition-all duration-200"
+                                                    className="group relative p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:shadow-lg transition-all duration-200"
                                                 >
-                                                    <div className="flex items-center mb-4">
-                                                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                                                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                                            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                                             </svg>
                                                         </div>
-                                                        <h3 className="ml-4 text-lg font-semibold text-gray-900">Protocol Design</h3>
+                                                        <span className="text-xs px-2 py-1 bg-blue-200 text-blue-700 rounded-full font-medium">CRF</span>
                                                     </div>
-                                                    <p className="text-gray-600 group-hover:text-gray-700">
-                                                        Design and manage study protocols
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-700 transition-colors">
+                                                        Protocol Design
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600 mb-4 group-hover:text-gray-700">
+                                                        Create study protocols with dynamic CRF builder
                                                     </p>
+                                                    <div className="flex items-center text-blue-600 text-sm font-medium group-hover:text-blue-700">
+                                                        Get Started
+                                                        <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </div>
+                                                </Link>
+                                            )}
+
+                                            {hasModuleAccess('study-design') && (
+                                                <Link
+                                                    to="/study-design/database-builds"
+                                                    className="group relative p-6 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl border-2 border-indigo-200 hover:border-indigo-400 hover:shadow-lg transition-all duration-200"
+                                                >
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                                            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                                            </svg>
+                                                        </div>
+                                                        <span className="text-xs px-2 py-1 bg-indigo-200 text-indigo-700 rounded-full font-medium">NEW</span>
+                                                    </div>
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-indigo-700 transition-colors">
+                                                        Database Build
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600 mb-4 group-hover:text-gray-700">
+                                                        Build & deploy study databases with live tracking
+                                                    </p>
+                                                    <div className="flex items-center text-indigo-600 text-sm font-medium group-hover:text-indigo-700">
+                                                        Get Started
+                                                        <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </div>
                                                 </Link>
                                             )}
 
                                             {hasModuleAccess('datacapture-management') && (
                                                 <Link
                                                     to="/datacapture-management"
-                                                    className="group p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200"
+                                                    className="group relative p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-200 hover:border-green-400 hover:shadow-lg transition-all duration-200"
                                                 >
-                                                    <div className="flex items-center mb-4">
-                                                        <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                                                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                                            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                             </svg>
                                                         </div>
-                                                        <h3 className="ml-4 text-lg font-semibold text-gray-900">Data Capture</h3>
+                                                        <span className="text-xs px-2 py-1 bg-green-200 text-green-700 rounded-full font-medium">eCRF</span>
                                                     </div>
-                                                    <p className="text-gray-600 group-hover:text-gray-700">
-                                                        Patient data entry and management
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-green-700 transition-colors">
+                                                        Data Capture
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600 mb-4 group-hover:text-gray-700">
+                                                        Enter and manage patient data with real-time validation
                                                     </p>
+                                                    <div className="flex items-center text-green-600 text-sm font-medium group-hover:text-green-700">
+                                                        Get Started
+                                                        <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </div>
+                                                </Link>
+                                            )}
+
+                                            {hasModuleAccess('subject-management') && (
+                                                <Link
+                                                    to="/subject-management"
+                                                    className="group relative p-6 bg-gradient-to-br from-teal-50 to-teal-100 rounded-xl border-2 border-teal-200 hover:border-teal-400 hover:shadow-lg transition-all duration-200"
+                                                >
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="w-12 h-12 bg-teal-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                                            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                            </svg>
+                                                        </div>
+                                                        <span className="text-xs px-2 py-1 bg-teal-200 text-teal-700 rounded-full font-medium">SDV</span>
+                                                    </div>
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-teal-700 transition-colors">
+                                                        Subject Management
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600 mb-4 group-hover:text-gray-700">
+                                                        Manage patient enrollment and tracking across sites
+                                                    </p>
+                                                    <div className="flex items-center text-teal-600 text-sm font-medium group-hover:text-teal-700">
+                                                        Get Started
+                                                        <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </div>
+                                                </Link>
+                                            )}
+
+                                            {hasModuleAccess('dq-management') && (
+                                                <Link
+                                                    to="/dq-management"
+                                                    className="group relative p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border-2 border-purple-200 hover:border-purple-400 hover:shadow-lg transition-all duration-200"
+                                                >
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                                            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        </div>
+                                                        <span className="text-xs px-2 py-1 bg-purple-200 text-purple-700 rounded-full font-medium">21 CFR</span>
+                                                    </div>
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-purple-700 transition-colors">
+                                                        Data Quality
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600 mb-4 group-hover:text-gray-700">
+                                                        Query management and data validation workflows
+                                                    </p>
+                                                    <div className="flex items-center text-purple-600 text-sm font-medium group-hover:text-purple-700">
+                                                        Get Started
+                                                        <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </div>
                                                 </Link>
                                             )}
 
                                             {hasModuleAccess('user-management') && (
                                                 <Link
                                                     to="/user-management"
-                                                    className="group p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200 hover:from-purple-100 hover:to-purple-200 transition-all duration-200"
+                                                    className="group relative p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:shadow-lg transition-all duration-200"
                                                 >
-                                                    <div className="flex items-center mb-4">
-                                                        <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                                                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                                            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                                             </svg>
                                                         </div>
-                                                        <h3 className="ml-4 text-lg font-semibold text-gray-900">User Management</h3>
+                                                        <span className="text-xs px-2 py-1 bg-blue-200 text-blue-700 rounded-full font-medium">IAM</span>
                                                     </div>
-                                                    <p className="text-gray-600 group-hover:text-gray-700">
-                                                        Manage users, roles & study sites
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-700 transition-colors">
+                                                        Identity & Access Management
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600 mb-4 group-hover:text-gray-700">
+                                                        Manage users, roles, permissions & study assignments
                                                     </p>
+                                                    <div className="flex items-center text-blue-600 text-sm font-medium group-hover:text-blue-700">
+                                                        Get Started
+                                                        <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </div>
+                                                </Link>
+                                            )}
+
+                                            {hasModuleAccess('user-management') && (
+                                                <Link
+                                                    to="/user-management/organizations"
+                                                    className="group relative p-6 bg-gradient-to-br from-violet-50 to-violet-100 rounded-xl border-2 border-violet-200 hover:border-violet-400 hover:shadow-lg transition-all duration-200"
+                                                >
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="w-12 h-12 bg-violet-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                                            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                            </svg>
+                                                        </div>
+                                                        <span className="text-xs px-2 py-1 bg-violet-200 text-violet-700 rounded-full font-medium">ORG</span>
+                                                    </div>
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-violet-700 transition-colors">
+                                                        Organization Administration
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600 mb-4 group-hover:text-gray-700">
+                                                        Manage sponsors, CROs, and organizational hierarchy
+                                                    </p>
+                                                    <div className="flex items-center text-violet-600 text-sm font-medium group-hover:text-violet-700">
+                                                        Get Started
+                                                        <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </div>
+                                                </Link>
+                                            )}
+
+                                            {hasModuleAccess('user-management') && (
+                                                <Link
+                                                    to="/user-management/sites"
+                                                    className="group relative p-6 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl border-2 border-amber-200 hover:border-amber-400 hover:shadow-lg transition-all duration-200"
+                                                >
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                                            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                                                            </svg>
+                                                        </div>
+                                                        <span className="text-xs px-2 py-1 bg-amber-200 text-amber-700 rounded-full font-medium">SITES</span>
+                                                    </div>
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-amber-700 transition-colors">
+                                                        Site Operations Management
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600 mb-4 group-hover:text-gray-700">
+                                                        Manage clinical sites, activation & study associations
+                                                    </p>
+                                                    <div className="flex items-center text-amber-600 text-sm font-medium group-hover:text-amber-700">
+                                                        Get Started
+                                                        <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </div>
                                                 </Link>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* System Status */}
-                                    <div className="bg-white rounded-lg shadow p-6">
-                                        <h2 className="text-xl font-semibold text-gray-900 mb-4">System Status</h2>
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                                            <span className="text-sm text-gray-600">All systems operational</span>
+                                    {/* Getting Started Guide */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Quick Start Guide */}
+                                        <div className="bg-white rounded-xl shadow-lg p-8">
+                                            <div className="flex items-center mb-6">
+                                                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                                    <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                    </svg>
+                                                </div>
+                                                <h2 className="text-xl font-bold text-gray-900">Quick Start Guide</h2>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm mr-3">1</div>
+                                                    <div>
+                                                        <h4 className="font-semibold text-gray-900 mb-1">Design Your Protocol</h4>
+                                                        <p className="text-sm text-gray-600">Use the CRF builder to create case report forms</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm mr-3">2</div>
+                                                    <div>
+                                                        <h4 className="font-semibold text-gray-900 mb-1">Build Your Database</h4>
+                                                        <p className="text-sm text-gray-600">Deploy study databases with automated validation</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm mr-3">3</div>
+                                                    <div>
+                                                        <h4 className="font-semibold text-gray-900 mb-1">Set Up Organizations & Sites</h4>
+                                                        <p className="text-sm text-gray-600">Configure sponsors, CROs, and activate clinical sites</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm mr-3">4</div>
+                                                    <div>
+                                                        <h4 className="font-semibold text-gray-900 mb-1">Configure Users & Access</h4>
+                                                        <p className="text-sm text-gray-600">Create users, assign roles, and grant study access</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm mr-3">5</div>
+                                                    <div>
+                                                        <h4 className="font-semibold text-gray-900 mb-1">Start Data Capture</h4>
+                                                        <p className="text-sm text-gray-600">Begin enrolling subjects and capturing clinical data</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Resources & Support */}
+                                        <div className="bg-white rounded-xl shadow-lg p-8">
+                                            <div className="flex items-center mb-6">
+                                                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                                                    <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                                    </svg>
+                                                </div>
+                                                <h2 className="text-xl font-bold text-gray-900">Resources & Support</h2>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <a href="#" className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group">
+                                                    <div className="flex items-center">
+                                                        <svg className="w-5 h-5 text-blue-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                        </svg>
+                                                        <span className="font-medium text-gray-900">User Documentation</span>
+                                                    </div>
+                                                    <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </a>
+
+                                                <a href="#" className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group">
+                                                    <div className="flex items-center">
+                                                        <svg className="w-5 h-5 text-green-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                        </svg>
+                                                        <span className="font-medium text-gray-900">Video Tutorials</span>
+                                                    </div>
+                                                    <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </a>
+
+                                                <a href="#" className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group">
+                                                    <div className="flex items-center">
+                                                        <svg className="w-5 h-5 text-purple-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span className="font-medium text-gray-900">Help Center & FAQ</span>
+                                                    </div>
+                                                    <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </a>
+
+                                                <a href="#" className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group">
+                                                    <div className="flex items-center">
+                                                        <svg className="w-5 h-5 text-orange-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                        </svg>
+                                                        <span className="font-medium text-gray-900">Contact Support</span>
+                                                    </div>
+                                                    <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* System Information Footer */}
+                                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl shadow p-6">
+                                        <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+                                            <div className="flex items-center space-x-4">
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                                                    <span className="text-sm font-medium text-gray-700">All Systems Operational</span>
+                                                </div>
+                                                <div className="h-4 w-px bg-gray-300"></div>
+                                                <span className="text-sm text-gray-600">Last sync: 2 mins ago</span>
+                                            </div>
+                                            <div className="flex items-center space-x-2 text-xs text-gray-600">
+                                                <span>Platform Version: 2.1.0</span>
+                                                <div className="h-3 w-px bg-gray-300"></div>
+                                                <span>© 2025 ClinPrecision</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
