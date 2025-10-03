@@ -56,15 +56,20 @@ export default function StudySiteAssociationForm() {
                         }
                     }
 
-                    // Find the association with matching ID
-                    const association = allAssociations.find(a => a.id === id);
+                    // Find the association with matching ID (convert to string for comparison)
+                    console.log('Looking for association ID:', id, 'Type:', typeof id);
+                    console.log('Available associations:', allAssociations.map(a => ({ id: a.id, type: typeof a.id })));
+
+                    const association = allAssociations.find(a => String(a.id) === String(id));
                     if (association) {
+                        console.log('Found association:', association);
                         setExistingAssociation(association);
                         setSelectedSiteId(String(association.siteId));
                         setSelectedStudyId(String(association.studyId));
                         setEnrollmentCap(association.subjectEnrollmentCap || '');
                         setEnrollmentCount(association.subjectEnrollmentCount || '');
                     } else {
+                        console.error('Association not found. Searched ID:', id, 'Available IDs:', allAssociations.map(a => a.id));
                         setError(`Association with ID ${id} not found`);
                     }
                 }
