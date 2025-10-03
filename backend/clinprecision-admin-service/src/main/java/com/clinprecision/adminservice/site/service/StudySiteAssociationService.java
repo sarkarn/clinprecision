@@ -108,6 +108,40 @@ public class StudySiteAssociationService {
     }
 
     /**
+     * Update a site-study association
+     * 
+     * @param associationId Site-Study association ID
+     * @param studyId Study ID
+     * @param subjectEnrollmentCap Optional enrollment cap
+     * @param subjectEnrollmentCount Optional enrollment count
+     * @param userId User performing update
+     * @param reason Reason for update
+     * @return Updated site-study association
+     */
+    public SiteStudyDto updateSiteStudyAssociation(Long associationId, Long studyId, 
+                                                   Integer subjectEnrollmentCap, 
+                                                   Integer subjectEnrollmentCount,
+                                                   String userId, String reason) {
+        SiteStudyEntity siteStudy = siteStudyRepository.findByIdAndStudyId(associationId, studyId);
+        
+        if (siteStudy == null) {
+            throw new IllegalArgumentException("Site-study association not found");
+        }
+        
+        // Update fields if provided
+        if (subjectEnrollmentCap != null) {
+            siteStudy.setSubjectEnrollmentCap(subjectEnrollmentCap);
+        }
+        if (subjectEnrollmentCount != null) {
+            siteStudy.setSubjectEnrollmentCount(subjectEnrollmentCount);
+        }
+        
+        SiteStudyEntity updatedSiteStudy = siteStudyRepository.save(siteStudy);
+        
+        return mapToDto(updatedSiteStudy);
+    }
+
+    /**
      * Remove association between site and study
      * 
      * @param associationId Site-Study association ID

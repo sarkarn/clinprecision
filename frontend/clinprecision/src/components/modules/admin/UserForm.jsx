@@ -15,7 +15,7 @@ export default function UserForm() {
     // Check if user is authenticated, redirect to login if not
     useEffect(() => {
         if (!user) {
-            navigate('/login', { state: { from: isEditMode ? `/user-management/users/edit/${userId}` : '/user-management/users/create' } });
+            navigate('/login', { state: { from: isEditMode ? `/identity-access/users/edit/${userId}` : '/identity-access/users/create' } });
         }
     }, [user, navigate, isEditMode, userId]);
 
@@ -168,7 +168,7 @@ export default function UserForm() {
 
             setSuccess(true);
             setTimeout(() => {
-                navigate("/user-management/users");
+                navigate("/identity-access/users");
             }, 1500);
         } catch (err) {
             console.error("Error saving user:", err);
@@ -341,7 +341,7 @@ export default function UserForm() {
                     <div className="flex justify-end space-x-3 pt-2">
                         <button
                             type="button"
-                            onClick={() => navigate("/user-management/users")}
+                            onClick={() => navigate("/identity-access/users")}
                             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                             disabled={loading}
                         >

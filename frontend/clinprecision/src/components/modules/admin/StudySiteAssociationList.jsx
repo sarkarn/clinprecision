@@ -273,7 +273,7 @@ export default function StudySiteAssociationList() {
                             Refresh
                         </button>
                         <Link
-                            to="/user-management/study-site-associations/create"
+                            to="/site-operations/study-sites/create"
                             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
                         >
                             <Plus className="w-4 h-4" />
@@ -506,12 +506,13 @@ export default function StudySiteAssociationList() {
                                             >
                                                 <Eye className="w-4 h-4" />
                                             </button>
-                                            <button
+                                            <Link
+                                                to={`/site-operations/study-sites/edit/${association.id}`}
                                                 className="text-green-600 hover:text-green-900"
                                                 title="Edit Association"
                                             >
                                                 <Edit className="w-4 h-4" />
-                                            </button>
+                                            </Link>
                                             {association.status === 'PENDING' && (
                                                 <button
                                                     onClick={() => handleActivateAssociation(association)}
@@ -606,7 +607,7 @@ export default function StudySiteAssociationList() {
                     </p>
                     {associations.length === 0 && (
                         <Link
-                            to="/user-management/study-site-associations/create"
+                            to="/site-operations/study-sites/create"
                             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                         >
                             <Plus className="w-4 h-4 mr-2" />

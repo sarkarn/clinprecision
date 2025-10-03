@@ -7,6 +7,9 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.factory.Mappers;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 /**
  * MapStruct mapper for UserStudyRole entity and DTO conversions
  */
@@ -23,10 +26,28 @@ public interface UserStudyRoleMapper {
     @Mapping(source = "role.name", target = "roleName")
     @Mapping(target = "description", ignore = true)      // Not available in entity
     @Mapping(source = "studyId", target = "studyId")
+    @Mapping(source = "startDate", target = "startDate", qualifiedByName = "localDateToLocalDateTime")
+    @Mapping(source = "endDate", target = "endDate", qualifiedByName = "localDateToLocalDateTime")
     @Mapping(target = "studyName", ignore = true)        // Not available in entity
     @Mapping(target = "studyCode", ignore = true)        // Not available in entity
     @Mapping(target = "rolePriority", ignore = true)     // Not available in entity
     UserStudyRoleDto entityToDto(UserStudyRoleEntity entity);
+    
+    /**
+     * Convert LocalDate to LocalDateTime (at start of day)
+     */
+    @Named("localDateToLocalDateTime")
+    default LocalDateTime localDateToLocalDateTime(LocalDate date) {
+        return date != null ? date.atStartOfDay() : null;
+    }
+    
+    /**
+     * Convert LocalDateTime to LocalDate
+     */
+    @Named("localDateTimeToLocalDate")
+    default LocalDate localDateTimeToLocalDate(LocalDateTime dateTime) {
+        return dateTime != null ? dateTime.toLocalDate() : null;
+    }
     
     /**
      * Converts UserStudyRoleDto to UserStudyRoleEntity
@@ -35,6 +56,8 @@ public interface UserStudyRoleMapper {
     @Mapping(target = "user", ignore = true)             // Set separately using userId
     @Mapping(target = "role", ignore = true)             // Set separately using roleCode
     @Mapping(target = "siteId", ignore = true)           // Not available in DTO
+    @Mapping(source = "startDate", target = "startDate", qualifiedByName = "localDateTimeToLocalDate")
+    @Mapping(source = "endDate", target = "endDate", qualifiedByName = "localDateTimeToLocalDate")
     UserStudyRoleEntity dtoToEntity(UserStudyRoleDto dto);
     
     /**

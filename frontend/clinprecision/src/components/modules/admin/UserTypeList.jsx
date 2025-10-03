@@ -27,11 +27,11 @@ export default function UserTypeList() {
     };
 
     const handleCreateUserType = () => {
-        navigate('/user-management/usertypes/create');
+        navigate('/identity-access/user-types/create');
     };
 
     const handleEditUserType = (id) => {
-        navigate(`/user-management/usertypes/edit/${id}`);
+        navigate(`/identity-access/user-types/edit/${id}`);
     };
 
     const handleDeleteUserType = async (id) => {

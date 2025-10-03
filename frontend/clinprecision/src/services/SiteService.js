@@ -82,6 +82,42 @@ export const SiteService = {
   },
 
   /**
+   * Update an existing clinical trial site
+   * @param {string} siteId - Site ID to update
+   * @param {Object} siteData - Site update data
+   * @param {string} siteData.name - Site name
+   * @param {string} siteData.siteNumber - Unique site number
+   * @param {number} siteData.organizationId - Organization ID
+   * @param {string} siteData.addressLine1 - Primary address
+   * @param {string} siteData.addressLine2 - Secondary address (optional)
+   * @param {string} siteData.city - City
+   * @param {string} siteData.state - State/Province
+   * @param {string} siteData.postalCode - Postal code
+   * @param {string} siteData.country - Country
+   * @param {string} siteData.phone - Phone number
+   * @param {string} siteData.email - Email address
+   * @param {string} siteData.reason - Reason for updating site (for audit)
+   * @returns {Promise} - Promise with updated site data
+   */
+  updateSite: async (siteId, siteData) => {
+    try {
+      // Validate required fields
+      const requiredFields = ['name', 'siteNumber', 'organizationId', 'reason'];
+      for (const field of requiredFields) {
+        if (!siteData[field]) {
+          throw new Error(`Required field missing: ${field}`);
+        }
+      }
+
+      const response = await ApiService.put(`/admin-ws/sites/${siteId}`, siteData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating site ${siteId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
    * Activate a clinical trial site
    * Site activation is now independent of study context.
    * Study-site associations are managed separately.
@@ -345,6 +381,23 @@ export const SiteService = {
   },
 
   /**
+   * Get a specific study association by ID
+   * @param {string} siteId - Site ID
+   * @param {number|string} studyId - Study ID
+   * @param {string} associationId - Association ID
+   * @returns {Promise} - Promise with association data
+   */
+  getStudyAssociationById: async (siteId, studyId, associationId) => {
+    try {
+      const response = await ApiService.get(`/admin-ws/api/sites/${siteId}/studies/${studyId}/association/${associationId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching study association ${associationId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
    * Get all site associations for a study
    * @param {string} studyId - Study ID
    * @returns {Promise} - Promise with site associations
@@ -365,6 +418,29 @@ export const SiteService = {
       return data;
     } catch (error) {
       console.error(`Error fetching site associations for study ${studyId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update a site-study association
+   * @param {string} siteId - Site ID
+   * @param {number|string} studyId - Study ID
+   * @param {Object} updateData - Update data
+   * @param {number} updateData.subjectEnrollmentCap - Optional enrollment cap
+   * @param {number} updateData.subjectEnrollmentCount - Optional enrollment count
+   * @param {string} updateData.reason - Reason for update (required)
+   * @returns {Promise} - Promise with updated association data
+   */
+  updateSiteStudyAssociation: async (siteId, studyId, updateData) => {
+    try {
+      if (!updateData.reason) {
+        throw new Error('Reason is required for updating association');
+      }
+      const response = await ApiService.put(`/admin-ws/api/sites/${siteId}/studies/${studyId}`, updateData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating association between site ${siteId} and study ${studyId}:`, error);
       throw error;
     }
   },

@@ -76,7 +76,7 @@ export default function UserTypeForm() {
 
             // Navigate back to the list after a short delay
             setTimeout(() => {
-                navigate("/user-management/usertypes");
+                navigate("/identity-access/user-types");
             }, 1500);
         } catch (err) {
             console.error("Error saving user type:", err);
@@ -186,7 +186,7 @@ export default function UserTypeForm() {
                     <div className="flex justify-end space-x-3 pt-2">
                         <button
                             type="button"
-                            onClick={() => navigate("/user-management/usertypes")}
+                            onClick={() => navigate("/identity-access/user-types")}
                             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                             disabled={loading}
                         >

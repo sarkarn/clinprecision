@@ -14,14 +14,23 @@ export function AuthProvider({ children }) {
     const userEmail = localStorage.getItem('userEmail');
     const userRole = localStorage.getItem('userRole');
 
-    if (token && userId) {
+    // Only restore user if we have valid authentication data
+    if (token && userId && userEmail && userRole) {
       setUser({
-        email: userEmail || 'user@example.com',
-        role: userRole || 'SITE_USER', // Changed from 'USER' to 'SITE_USER'
+        email: userEmail,
+        role: userRole,
         userId, // String username
         userNumericId, // Long numeric ID
         token
       });
+    } else {
+      // Clear invalid/incomplete session data
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userNumericId');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('tokenExpiration');
     }
 
     // Mark loading as complete after checking localStorage
