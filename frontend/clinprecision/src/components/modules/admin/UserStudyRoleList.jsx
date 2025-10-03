@@ -212,7 +212,7 @@ export default function UserStudyRoleList() {
             <div className="mb-6 flex justify-between items-center">
                 <h3 className="text-2xl font-bold">User Study Role Assignments</h3>
                 <Link
-                    to="/user-management/user-study-roles/create"
+                    to="/identity-access/study-assignments/create"
                     className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
                 >
                     New Assignment
@@ -311,7 +311,7 @@ export default function UserStudyRoleList() {
                     </button>
 
                     <Link
-                        to="/user-management/user-study-roles/bulk-assign"
+                        to="/identity-access/study-assignments/bulk-assign"
                         className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
                     >
                         Bulk Assignment
@@ -430,7 +430,7 @@ export default function UserStudyRoleList() {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex space-x-2">
                                             <Link
-                                                to={`/user-management/user-study-roles/edit/${role.id}`}
+                                                to={`/identity-access/study-assignments/edit/${role.id}`}
                                                 className="text-blue-600 hover:text-blue-900"
                                             >
                                                 Edit

@@ -9,6 +9,11 @@ import BreadcrumbNavigation from "./shared/BreadcrumbNavigation";
 import { useAuth } from "./login/AuthContext";
 import { useRoleBasedNavigation } from "../hooks/useRoleBasedNavigation";
 
+// New Module Imports
+import IdentityAccessModule from "./modules/identity-access/IdentityAccessModule";
+import OrganizationAdminModule from "./modules/organization-admin/OrganizationAdminModule";
+import SiteOperationsModule from "./modules/site-operations/SiteOperationsModule";
+
 export default function Home() {
     const { user } = useAuth();
     const { hasModuleAccess, hasCategoryAccess, userRoleDisplay } = useRoleBasedNavigation();
@@ -71,18 +76,51 @@ export default function Home() {
                                             <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-200">CRF</span>
                                         </Link>
                                     )}
+                                    {/* Identity & Access Management */}
                                     {hasModuleAccess('user-management') && (
-                                        <Link to="/user-management" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 border border-transparent hover:border-blue-200">
+                                        <Link to="/identity-access" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 border border-transparent hover:border-blue-200">
                                             <div className="flex items-center justify-center h-5 w-5 mr-3 text-blue-400 group-hover:text-blue-600">
                                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <div>User & Site Management</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-blue-500">Manage users, roles & study sites</div>
+                                                <div>Identity & Access</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-blue-500">User & role management</div>
                                             </div>
-                                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-200">RBAC</span>
+                                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-200">IAM</span>
+                                        </Link>
+                                    )}
+
+                                    {/* Organization Administration */}
+                                    {hasModuleAccess('user-management') && (
+                                        <Link to="/organization-admin" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition-all duration-200 border border-transparent hover:border-violet-200">
+                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-violet-400 group-hover:text-violet-600">
+                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div>Organization Admin</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-violet-500">Sponsors & CROs</div>
+                                            </div>
+                                            <span className="text-xs px-2 py-1 bg-violet-100 text-violet-600 rounded-full group-hover:bg-violet-200">ORG</span>
+                                        </Link>
+                                    )}
+
+                                    {/* Site Operations Management */}
+                                    {hasModuleAccess('user-management') && (
+                                        <Link to="/site-operations" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-amber-50 hover:text-amber-700 transition-all duration-200 border border-transparent hover:border-amber-200">
+                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-amber-400 group-hover:text-amber-600">
+                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div>Site Operations</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-amber-500">Clinical site management</div>
+                                            </div>
+                                            <span className="text-xs px-2 py-1 bg-amber-100 text-amber-600 rounded-full group-hover:bg-amber-200">SITES</span>
                                         </Link>
                                     )}
                                     {hasModuleAccess('study-design') && (
@@ -807,6 +845,13 @@ export default function Home() {
                             <Route path="/study-design/*" element={<StudyDesignModule />} />
                             <Route path="/datacapture-management" element={<DataCaptureModule />} />
                             <Route path="/dq-management" element={<DQManagement />} />
+
+                            {/* New Module Routes - Phase 2 Implementation */}
+                            <Route path="/identity-access/*" element={<IdentityAccessModule />} />
+                            <Route path="/organization-admin/*" element={<OrganizationAdminModule />} />
+                            <Route path="/site-operations/*" element={<SiteOperationsModule />} />
+
+                            {/* Legacy Routes - Deprecated (Remove after 3 months) */}
                             <Route path="/user-management/*" element={<AdminModule />} />
 
                             {/* Subject Management Module */}

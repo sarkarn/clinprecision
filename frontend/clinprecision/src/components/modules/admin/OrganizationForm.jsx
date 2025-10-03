@@ -90,7 +90,7 @@ export default function OrganizationForm() {
 
             // Navigate back to the list after a short delay
             setTimeout(() => {
-                navigate("/user-management/organizations");
+                navigate("/organization-admin/organizations");
             }, 1500);
         } catch (err) {
             console.error("Error saving organization:", err);
@@ -336,7 +336,7 @@ export default function OrganizationForm() {
                     <div className="flex justify-end space-x-3 pt-2">
                         <button
                             type="button"
-                            onClick={() => navigate("/user-management/organizations")}
+                            onClick={() => navigate("/organization-admin/organizations")}
                             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                             disabled={loading}
                         >

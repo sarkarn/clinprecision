@@ -11,6 +11,7 @@ import com.clinprecision.adminservice.site.service.SiteManagementService;
 import com.clinprecision.adminservice.ui.model.ActivateSiteDto;
 import com.clinprecision.adminservice.ui.model.AssignUserToSiteDto;
 import com.clinprecision.adminservice.ui.model.CreateSiteDto;
+import com.clinprecision.adminservice.ui.model.UpdateSiteDto;
 import com.clinprecision.adminservice.ui.model.SiteDto;
 
 import jakarta.validation.Valid;
@@ -65,6 +66,43 @@ public class SiteController {
             
         } catch (Exception e) {
             System.out.println("[CONTROLLER] ERROR: Site creation failed!");
+            System.out.println("[CONTROLLER] Error type: " + e.getClass().getSimpleName());
+            System.out.println("[CONTROLLER] Error message: " + e.getMessage());
+            e.printStackTrace();
+            throw e; // Re-throw to let the exception handler deal with it
+        }
+    }
+
+    /**
+     * Update an existing clinical trial site
+     */
+    @PutMapping("/{siteId}")
+    public ResponseEntity<SiteDto> updateSite(
+            @PathVariable Long siteId,
+            @Valid @RequestBody UpdateSiteDto updateSiteDto,
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "userEmail", required = false) String userEmail,
+            Authentication authentication) {
+        
+        System.out.println("[CONTROLLER] ========== Site Update Request Received ==========");
+        System.out.println("[CONTROLLER] Site ID: " + siteId);
+        System.out.println("[CONTROLLER] Site Name: " + updateSiteDto.getName());
+        System.out.println("[CONTROLLER] Site Number: " + updateSiteDto.getSiteNumber());
+        System.out.println("[CONTROLLER] Organization ID: " + updateSiteDto.getOrganizationId());
+        
+        try {
+            // Extract user ID from authentication or headers
+            String userId = getUserId(authentication, userEmail, authorization);
+            System.out.println("[CONTROLLER] User ID resolved: " + userId);
+            
+            System.out.println("[CONTROLLER] Calling SiteManagementService.updateSite()...");
+            SiteDto updatedSite = siteManagementService.updateSite(siteId, updateSiteDto, userId);
+            
+            System.out.println("[CONTROLLER] Site update successful! Returning site with ID: " + updatedSite.getId());
+            return ResponseEntity.ok(updatedSite);
+            
+        } catch (Exception e) {
+            System.out.println("[CONTROLLER] ERROR: Site update failed!");
             System.out.println("[CONTROLLER] Error type: " + e.getClass().getSimpleName());
             System.out.println("[CONTROLLER] Error message: " + e.getMessage());
             e.printStackTrace();

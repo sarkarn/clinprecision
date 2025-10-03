@@ -13,6 +13,7 @@ import com.clinprecision.adminservice.repository.RoleRepository;
 import com.clinprecision.adminservice.repository.OrganizationRepository;
 import com.clinprecision.adminservice.site.event.SiteActivatedEvent;
 import com.clinprecision.adminservice.site.event.SiteCreatedEvent;
+import com.clinprecision.adminservice.site.event.SiteUpdatedEvent;
 import com.clinprecision.adminservice.site.event.UserAssignedToSiteEvent;
 import com.clinprecision.common.entity.SiteEntity;
 import com.clinprecision.common.entity.SiteEntity.SiteStatus;
@@ -65,7 +66,7 @@ public class SiteProjectionHandler {
     @PostConstruct
     public void init() {
         System.out.println("[PROJECTION] ========== SiteProjectionHandler INITIALIZED ==========");
-        System.out.println("[PROJECTION] Handler is ready to process SiteCreatedEvent, SiteActivatedEvent, UserAssignedToSiteEvent");
+        System.out.println("[PROJECTION] Handler is ready to process SiteCreatedEvent, SiteUpdatedEvent, SiteActivatedEvent, UserAssignedToSiteEvent");
         System.out.println("[PROJECTION] Processing Group: site-projection (subscribing/synchronous)");
         System.out.println("[PROJECTION] ========== Handler Registration Complete ==========");
     }
@@ -138,7 +139,7 @@ public class SiteProjectionHandler {
             
             System.out.println("[PROJECTION] About to save new SiteEntity to database...");
             
-            SiteEntity savedSite = siteRepository.save(site);
+            SiteEntity savedSite = siteRepository.saveAndFlush(site);
             
             System.out.println("[PROJECTION] SUCCESS: New site saved with DB ID: " + savedSite.getId());
             System.out.println("[PROJECTION] Saved site number: " + savedSite.getSiteNumber());
@@ -155,6 +156,67 @@ public class SiteProjectionHandler {
             System.out.println("[PROJECTION] Error message: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Failed to process SiteCreatedEvent: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Handle Site Updated Event
+     * Updates the site information in the read model
+     */
+    @EventHandler
+    @Transactional
+    public void on(SiteUpdatedEvent event) {
+        System.out.println("[PROJECTION] ========== SiteUpdatedEvent Received ==========");
+        System.out.println("[PROJECTION] Event UUID: " + event.getSiteId());
+        System.out.println("[PROJECTION] Event SiteNumber: " + event.getSiteNumber());
+        System.out.println("[PROJECTION] Event Name: " + event.getName());
+        
+        try {
+            // Find site by aggregate UUID
+            SiteEntity site = siteRepository.findByAggregateUuid(event.getSiteId())
+                .orElseThrow(() -> new IllegalStateException("Site not found with aggregate UUID: " + event.getSiteId()));
+            
+            System.out.println("[PROJECTION] Found site: " + site.getName() + " (" + site.getSiteNumber() + ")");
+            System.out.println("[PROJECTION] Database ID: " + site.getId());
+            
+            // Update site fields
+            site.setName(event.getName());
+            site.setSiteNumber(event.getSiteNumber());
+            
+            // Update organization if provided
+            if (event.getOrganizationId() != null) {
+                System.out.println("[PROJECTION] Updating organization ID: " + event.getOrganizationId());
+                organizationRepository.findById(event.getOrganizationId()).ifPresent(site::setOrganization);
+            }
+            
+            site.setAddressLine1(event.getAddressLine1());
+            site.setAddressLine2(event.getAddressLine2());
+            site.setCity(event.getCity());
+            site.setState(event.getState());
+            site.setPostalCode(event.getPostalCode());
+            site.setCountry(event.getCountry());
+            site.setPhone(event.getPhone());
+            site.setEmail(event.getEmail());
+            // Note: Status is not updated here, only through activation/deactivation events
+            
+            System.out.println("[PROJECTION] About to save updated SiteEntity to database...");
+            
+            SiteEntity savedSite = siteRepository.saveAndFlush(site);
+            
+            System.out.println("[PROJECTION] SUCCESS: Site updated with DB ID: " + savedSite.getId());
+            System.out.println("[PROJECTION] Updated site number: " + savedSite.getSiteNumber());
+            System.out.println("[PROJECTION] Updated site name: " + savedSite.getName());
+            
+            // Update the mapping from UUID to site number
+            uuidToSiteNumber.put(event.getSiteId(), event.getSiteNumber());
+            
+            System.out.println("[PROJECTION] ========== SiteUpdatedEvent Processing Complete ==========");
+            
+        } catch (Exception e) {
+            System.out.println("[PROJECTION] ERROR: Failed to process SiteUpdatedEvent!");
+            System.out.println("[PROJECTION] Error message: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to process SiteUpdatedEvent: " + e.getMessage(), e);
         }
     }
 
@@ -181,7 +243,7 @@ public class SiteProjectionHandler {
             site.setStatus(SiteStatus.active);
             
             System.out.println("[PROJECTION] About to save site with new status: ACTIVE");
-            siteRepository.save(site);
+            siteRepository.saveAndFlush(site);
             
             System.out.println("[PROJECTION] Site activation completed successfully!");
             System.out.println("[PROJECTION] ========== SiteActivatedEvent Processing Complete ===========");

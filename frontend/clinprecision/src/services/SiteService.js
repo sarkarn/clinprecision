@@ -82,6 +82,42 @@ export const SiteService = {
   },
 
   /**
+   * Update an existing clinical trial site
+   * @param {string} siteId - Site ID to update
+   * @param {Object} siteData - Site update data
+   * @param {string} siteData.name - Site name
+   * @param {string} siteData.siteNumber - Unique site number
+   * @param {number} siteData.organizationId - Organization ID
+   * @param {string} siteData.addressLine1 - Primary address
+   * @param {string} siteData.addressLine2 - Secondary address (optional)
+   * @param {string} siteData.city - City
+   * @param {string} siteData.state - State/Province
+   * @param {string} siteData.postalCode - Postal code
+   * @param {string} siteData.country - Country
+   * @param {string} siteData.phone - Phone number
+   * @param {string} siteData.email - Email address
+   * @param {string} siteData.reason - Reason for updating site (for audit)
+   * @returns {Promise} - Promise with updated site data
+   */
+  updateSite: async (siteId, siteData) => {
+    try {
+      // Validate required fields
+      const requiredFields = ['name', 'siteNumber', 'organizationId', 'reason'];
+      for (const field of requiredFields) {
+        if (!siteData[field]) {
+          throw new Error(`Required field missing: ${field}`);
+        }
+      }
+
+      const response = await ApiService.put(`/admin-ws/sites/${siteId}`, siteData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating site ${siteId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
    * Activate a clinical trial site
    * Site activation is now independent of study context.
    * Study-site associations are managed separately.

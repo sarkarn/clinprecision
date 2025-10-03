@@ -11,7 +11,9 @@ import com.clinprecision.adminservice.repository.SiteRepository;
 import com.clinprecision.adminservice.site.command.ActivateSiteCommand;
 import com.clinprecision.adminservice.site.command.AssignUserToSiteCommand;
 import com.clinprecision.adminservice.site.command.CreateSiteCommand;
+import com.clinprecision.adminservice.site.command.UpdateSiteCommand;
 import com.clinprecision.adminservice.ui.model.CreateSiteDto;
+import com.clinprecision.adminservice.ui.model.UpdateSiteDto;
 import com.clinprecision.adminservice.ui.model.SiteDto;
 import com.clinprecision.adminservice.ui.model.ActivateSiteDto;
 import com.clinprecision.adminservice.ui.model.AssignUserToSiteDto;
@@ -129,7 +131,11 @@ public class SiteManagementService {
                 
                 // Try to find the site by site number
                 createdSite = siteRepository.findBySiteNumber(createSiteDto.getSiteNumber())
-                    .orElse(null);
+                    .orElseGet(() -> siteRepository.findByAggregateUuid(siteId).orElse(null));
+                
+                if (createdSite != null && !createSiteDto.getSiteNumber().equals(createdSite.getSiteNumber())) {
+                    System.out.println("[SITE_CREATE] Found site via aggregate UUID lookup; stored site number: " + createdSite.getSiteNumber());
+                }
                 
                 if (createdSite != null) {
                     System.out.println("[SITE_CREATE] SUCCESS: Found created site with DB ID: " + createdSite.getId());
@@ -178,6 +184,91 @@ public class SiteManagementService {
         
         System.out.println("[SITE_CREATE] Site creation completed successfully!");
         return mapToDto(createdSite);
+    }
+
+    /**
+     * Update an existing clinical trial site
+     * 
+     * @param siteId Database ID of the site to update
+     * @param updateSiteDto Site update details
+     * @param userId User updating the site (for audit)
+     * @return Updated site details
+     */
+    public SiteDto updateSite(Long siteId, UpdateSiteDto updateSiteDto, String userId) {
+        System.out.println("[SITE_UPDATE] Starting site update for ID: " + siteId);
+        
+        // Get existing site
+        SiteEntity existingSite = siteRepository.findById(siteId)
+            .orElseThrow(() -> new IllegalArgumentException("Site not found: " + siteId));
+        
+        System.out.println("[SITE_UPDATE] Found existing site: " + existingSite.getName() + " (" + existingSite.getSiteNumber() + ")");
+        System.out.println("[SITE_UPDATE] Aggregate UUID: " + existingSite.getAggregateUuid());
+        
+        // Validation
+        // Check if site number is being changed and if it already exists
+        if (!existingSite.getSiteNumber().equals(updateSiteDto.getSiteNumber())) {
+            if (siteRepository.findBySiteNumber(updateSiteDto.getSiteNumber()).isPresent()) {
+                System.out.println("[SITE_UPDATE] ERROR: Site number already exists: " + updateSiteDto.getSiteNumber());
+                throw new IllegalArgumentException("Site number already exists: " + updateSiteDto.getSiteNumber());
+            }
+        }
+        
+        if (!organizationRepository.existsById(updateSiteDto.getOrganizationId())) {
+            System.out.println("[SITE_UPDATE] ERROR: Organization not found: " + updateSiteDto.getOrganizationId());
+            throw new IllegalArgumentException("Organization not found: " + updateSiteDto.getOrganizationId());
+        }
+        
+        if (existingSite.getAggregateUuid() == null || existingSite.getAggregateUuid().isEmpty()) {
+            System.out.println("[SITE_UPDATE] ERROR: Site was not created through Axon (missing aggregate UUID)");
+            throw new IllegalArgumentException("Site must be created through proper Axon workflow to be updated");
+        }
+        
+        System.out.println("[SITE_UPDATE] Validation passed for site update");
+        
+        // Send command to aggregate - this will trigger event sourcing
+        try {
+            System.out.println("[SITE_UPDATE] Sending UpdateSiteCommand to Axon...");
+            commandGateway.sendAndWait(new UpdateSiteCommand(
+                existingSite.getAggregateUuid(),
+                updateSiteDto.getName(),
+                updateSiteDto.getSiteNumber(),
+                updateSiteDto.getOrganizationId(),
+                updateSiteDto.getAddressLine1(),
+                updateSiteDto.getAddressLine2(),
+                updateSiteDto.getCity(),
+                updateSiteDto.getState(),
+                updateSiteDto.getPostalCode(),
+                updateSiteDto.getCountry(),
+                updateSiteDto.getPhone(),
+                updateSiteDto.getEmail(),
+                userId,
+                updateSiteDto.getReason()
+            ));
+            System.out.println("[SITE_UPDATE] UpdateSiteCommand sent successfully!");
+            
+            // Small delay to allow event processing
+            try {
+                Thread.sleep(50);
+                entityManager.flush();
+                entityManager.clear();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+            
+        } catch (Exception e) {
+            System.out.println("[SITE_UPDATE] ERROR: Failed to send UpdateSiteCommand: " + e.getMessage());
+            e.printStackTrace();
+            throw new IllegalStateException("Failed to update site - command failed: " + e.getMessage(), e);
+        }
+        
+        System.out.println("[SITE_UPDATE] Fetching updated site from database...");
+        
+        // Return updated site
+        SiteEntity updatedSite = siteRepository.findById(siteId)
+            .orElseThrow(() -> new IllegalStateException("Site not found after update"));
+        
+        System.out.println("[SITE_UPDATE] Site update completed successfully!");
+        return mapToDto(updatedSite);
     }
 
     /**

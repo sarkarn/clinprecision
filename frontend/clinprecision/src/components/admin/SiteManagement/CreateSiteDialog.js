@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { X, Building, MapPin, Phone, Mail, AlertCircle, CheckCircle } from 'lucide-react';
 import { SiteService } from '../../../services/SiteService';
 
-const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [] }) => {
+const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], site = null }) => {
+  const isEditMode = !!site;
+  
   const [formData, setFormData] = useState({
     name: '',
     siteNumber: '',
@@ -24,28 +26,48 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [] }) 
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
 
-  // Reset form when dialog opens/closes
+  // Reset or populate form when dialog opens/closes
   useEffect(() => {
     if (open) {
-      setFormData({
-        name: '',
-        siteNumber: '',
-        organizationId: '',
-        addressLine1: '',
-        addressLine2: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        country: '',
-        phone: '',
-        email: '',
-        principalInvestigator: '',
-        reason: ''
-      });
+      if (site) {
+        // Edit mode - populate with site data
+        setFormData({
+          name: site.name || '',
+          siteNumber: site.siteNumber || '',
+          organizationId: site.organizationId || '',
+          addressLine1: site.addressLine1 || '',
+          addressLine2: site.addressLine2 || '',
+          city: site.city || '',
+          state: site.state || '',
+          zipCode: site.zipCode || '',
+          country: site.country || '',
+          phone: site.phone || '',
+          email: site.email || '',
+          principalInvestigator: site.principalInvestigator || '',
+          reason: ''
+        });
+      } else {
+        // Create mode - reset form
+        setFormData({
+          name: '',
+          siteNumber: '',
+          organizationId: '',
+          addressLine1: '',
+          addressLine2: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: '',
+          phone: '',
+          email: '',
+          principalInvestigator: '',
+          reason: ''
+        });
+      }
       setErrors({});
       setNotification({ show: false, message: '', type: 'success' });
     }
-  }, [open]);
+  }, [open, site]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -120,17 +142,27 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [] }) 
       
       const siteData = {
         ...formData,
-        organizationId: parseInt(formData.organizationId),
-        status: 'pending' // New sites start as pending
+        organizationId: parseInt(formData.organizationId)
       };
 
-      await SiteService.createSite(siteData);
-      
-      setNotification({
-        show: true,
-        message: 'Site created successfully!',
-        type: 'success'
-      });
+      if (isEditMode) {
+        // Update existing site
+        await SiteService.updateSite(site.id, siteData);
+        setNotification({
+          show: true,
+          message: 'Site updated successfully!',
+          type: 'success'
+        });
+      } else {
+        // Create new site
+        siteData.status = 'pending'; // New sites start as pending
+        await SiteService.createSite(siteData);
+        setNotification({
+          show: true,
+          message: 'Site created successfully!',
+          type: 'success'
+        });
+      }
 
       setTimeout(() => {
         onSiteCreated();
@@ -138,10 +170,10 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [] }) 
       }, 1000);
 
     } catch (error) {
-      console.error('Error creating site:', error);
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} site:`, error);
       setNotification({
         show: true,
-        message: error.message || 'Failed to create site. Please try again.',
+        message: error.message || `Failed to ${isEditMode ? 'update' : 'create'} site. Please try again.`,
         type: 'error'
       });
     } finally {
@@ -172,8 +204,8 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [] }) 
               <Building className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Create New Clinical Trial Site</h2>
-              <p className="text-sm text-gray-600">All site creations are recorded in the audit trail for regulatory compliance</p>
+              <h2 className="text-xl font-semibold text-gray-900">{isEditMode ? 'Edit' : 'Create New'} Clinical Trial Site</h2>
+              <p className="text-sm text-gray-600">All site {isEditMode ? 'changes' : 'creations'} are recorded in the audit trail for regulatory compliance</p>
             </div>
           </div>
           <button
@@ -481,12 +513,12 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [] }) 
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Creating...
+                {isEditMode ? 'Updating...' : 'Creating...'}
               </>
             ) : (
               <>
                 <Building className="w-4 h-4" />
-                Create Site
+                {isEditMode ? 'Update Site' : 'Create Site'}
               </>
             )}
           </button>

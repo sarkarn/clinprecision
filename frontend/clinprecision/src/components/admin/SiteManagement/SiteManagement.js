@@ -70,6 +70,7 @@ const SiteManagement = () => {
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [activateDialogOpen, setActivateDialogOpen] = useState(false);
   const [assignUserDialogOpen, setAssignUserDialogOpen] = useState(false);
@@ -166,6 +167,13 @@ const SiteManagement = () => {
     loadStatistics();
     setCreateDialogOpen(false);
     showNotification('Site created successfully!');
+  };
+
+  const handleSiteEdited = () => {
+    loadSites();
+    loadStatistics();
+    setEditDialogOpen(false);
+    showNotification('Site updated successfully!');
   };
 
   const handleSiteActivated = () => {
@@ -395,6 +403,10 @@ const SiteManagement = () => {
                     <Eye className="w-4 h-4" />
                   </button>
                   <button
+                    onClick={() => {
+                      setSelectedSite(site);
+                      setEditDialogOpen(true);
+                    }}
                     className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
                     title="Edit Site"
                   >
@@ -459,6 +471,17 @@ const SiteManagement = () => {
         onClose={() => setCreateDialogOpen(false)}
         onSiteCreated={handleSiteCreated}
         organizations={organizations}
+      />
+
+      <CreateSiteDialog
+        open={editDialogOpen}
+        onClose={() => {
+          setEditDialogOpen(false);
+          setSelectedSite(null);
+        }}
+        onSiteCreated={handleSiteEdited}
+        organizations={organizations}
+        site={selectedSite}
       />
 
       <SiteDetailsDialog

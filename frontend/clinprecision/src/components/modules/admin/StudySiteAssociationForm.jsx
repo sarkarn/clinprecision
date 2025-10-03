@@ -74,7 +74,7 @@ export default function StudySiteAssociationForm() {
             await SiteService.associateSiteWithStudy(Number(selectedSiteId), { studyId: Number(selectedStudyId), reason });
             setNotice('Association created successfully');
             // small delay for UX, then go back to list
-            setTimeout(() => navigate('/user-management/study-site-associations'), 600);
+            setTimeout(() => navigate('/site-operations/study-sites'), 600);
         } catch (e) {
             console.error('Create association failed', e);
             setError(e?.response?.data || e.message || 'Failed to create association');
@@ -155,7 +155,7 @@ export default function StudySiteAssociationForm() {
                     <div className="flex items-center justify-between">
                         <button
                             type="button"
-                            onClick={() => navigate('/user-management/study-site-associations')}
+                            onClick={() => navigate('/site-operations/study-sites')}
                             className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
                             disabled={submitting}
                         >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { UserStudyRoleService } from '../../../services/UserStudyRoleService';
 import { UserService } from '../../../services/UserService';
@@ -27,14 +27,7 @@ export default function UserStudyRoleForm() {
     const [error, setError] = useState(null);
     const [validationErrors, setValidationErrors] = useState({});
 
-    useEffect(() => {
-        loadReferenceData();
-        if (isEditing) {
-            loadUserStudyRole();
-        }
-    }, [id, isEditing]);
-
-    const loadReferenceData = async () => {
+    const loadReferenceData = useCallback(async () => {
         try {
             const [usersData, studiesData, rolesData] = await Promise.all([
                 UserService.getAllUsers(),
@@ -49,19 +42,46 @@ export default function UserStudyRoleForm() {
             setError('Failed to load reference data');
             console.error('Error loading reference data:', err);
         }
-    };
+    }, []);
 
-    const loadUserStudyRole = async () => {
+    const loadUserStudyRole = useCallback(async () => {
         try {
             setLoading(true);
             const data = await UserStudyRoleService.getUserStudyRoleById(id);
+
+            // Helper function to safely format date
+            const formatDate = (dateValue) => {
+                if (!dateValue) return '';
+
+                // If it's already a string in YYYY-MM-DD format, return it
+                if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                    return dateValue;
+                }
+
+                // If it contains time (ISO format), split it
+                if (typeof dateValue === 'string' && dateValue.includes('T')) {
+                    return dateValue.split('T')[0];
+                }
+
+                // If it's a Date object or timestamp, convert it
+                try {
+                    const date = new Date(dateValue);
+                    if (!isNaN(date.getTime())) {
+                        return date.toISOString().split('T')[0];
+                    }
+                } catch (e) {
+                    console.error('Error parsing date:', dateValue, e);
+                }
+
+                return '';
+            };
 
             setFormData({
                 userId: data.userId || '',
                 studyId: data.studyId || '',
                 roleCode: data.roleCode || '',
-                startDate: data.startDate ? data.startDate.split('T')[0] : '',
-                endDate: data.endDate ? data.endDate.split('T')[0] : '',
+                startDate: formatDate(data.startDate),
+                endDate: formatDate(data.endDate),
                 active: data.active !== undefined ? data.active : true,
                 notes: data.notes || ''
             });
@@ -71,7 +91,14 @@ export default function UserStudyRoleForm() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        loadReferenceData();
+        if (isEditing) {
+            loadUserStudyRole();
+        }
+    }, [id, isEditing, loadReferenceData, loadUserStudyRole]);
 
     const validateForm = () => {
         const errors = {};
@@ -200,7 +227,7 @@ export default function UserStudyRoleForm() {
     };
 
     const handleCancel = () => {
-        navigate('/user-management/user-study-roles');
+        navigate('/identity-access/study-assignments');
     };
 
     const getUserDisplayName = (user) => {

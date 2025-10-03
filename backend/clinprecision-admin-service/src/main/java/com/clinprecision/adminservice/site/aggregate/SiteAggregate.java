@@ -9,8 +9,10 @@ import org.axonframework.spring.stereotype.Aggregate;
 import com.clinprecision.adminservice.site.command.ActivateSiteCommand;
 import com.clinprecision.adminservice.site.command.AssignUserToSiteCommand;
 import com.clinprecision.adminservice.site.command.CreateSiteCommand;
+import com.clinprecision.adminservice.site.command.UpdateSiteCommand;
 import com.clinprecision.adminservice.site.event.SiteActivatedEvent;
 import com.clinprecision.adminservice.site.event.SiteCreatedEvent;
+import com.clinprecision.adminservice.site.event.SiteUpdatedEvent;
 import com.clinprecision.adminservice.site.event.UserAssignedToSiteEvent;
 
 import java.util.HashSet;
@@ -146,6 +148,53 @@ public class SiteAggregate {
     }
 
     /**
+     * Command Handler: Update Site
+     * Business Rules:
+     * - Site must exist
+     * - Site number must remain unique if changed
+     * - Organization must exist
+     */
+    @CommandHandler
+    public void handle(UpdateSiteCommand command) {
+        System.out.println("[AGGREGATE] ========== UpdateSiteCommand Received ==========");
+        System.out.println("[AGGREGATE] Command Site ID: " + command.getSiteId());
+        System.out.println("[AGGREGATE] Command Site Number: " + command.getSiteNumber());
+        System.out.println("[AGGREGATE] Command Name: " + command.getName());
+        
+        try {
+            System.out.println("[AGGREGATE] About to apply SiteUpdatedEvent...");
+            
+            // Apply the site updated event
+            AggregateLifecycle.apply(new SiteUpdatedEvent(
+                command.getSiteId(),
+                command.getName(),
+                command.getSiteNumber(),
+                command.getOrganizationId(),
+                command.getAddressLine1(),
+                command.getAddressLine2(),
+                command.getCity(),
+                command.getState(),
+                command.getPostalCode(),
+                command.getCountry(),
+                command.getPhone(),
+                command.getEmail(),
+                command.getUserId(),
+                command.getReason()
+            ));
+            
+            System.out.println("[AGGREGATE] SiteUpdatedEvent applied successfully!");
+            System.out.println("[AGGREGATE] Event should now be processed by projection handlers...");
+            System.out.println("[AGGREGATE] ========== UpdateSiteCommand Processing Complete ==========");
+            
+        } catch (Exception e) {
+            System.out.println("[AGGREGATE] ERROR: Failed to process UpdateSiteCommand!");
+            System.out.println("[AGGREGATE] Error message: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    /**
      * Command Handler: Assign User to Site
      * Business Rules:
      * - Site must be active or pending
@@ -180,6 +229,14 @@ public class SiteAggregate {
         this.status = SiteStatus.PENDING; // New sites start as pending
         this.assignedUserIds = new HashSet<>();
         this.activeStudyIds = new HashSet<>();
+    }
+
+    @EventSourcingHandler
+    public void on(SiteUpdatedEvent event) {
+        this.name = event.getName();
+        this.siteNumber = event.getSiteNumber();
+        this.organizationId = event.getOrganizationId();
+        // Status is not changed during update
     }
 
     @EventSourcingHandler

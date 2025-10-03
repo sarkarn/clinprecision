@@ -10,9 +10,12 @@ function AppContent() {
         <Router>
             <div className="min-h-screen bg-gray-100">
                 <Routes>
-                    <Route path="/login" element={
-                        <Login />} />
-                    <Route path="/*" element={<Home />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/*" element={
+                        <ProtectedRoute>
+                            <Home />
+                        </ProtectedRoute>
+                    } />
                     {/* Legacy redirect: forward old /admin paths to new /user-management */}
                     <Route path="/admin/*" element={<Navigate to="/user-management" replace />} />
                 </Routes>
