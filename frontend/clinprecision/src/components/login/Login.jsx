@@ -50,6 +50,7 @@ export default function Login() {
             // Store token and userId in localStorage
             localStorage.setItem('authToken', authData.token);
             localStorage.setItem('userId', authData.userId);
+            localStorage.setItem('userNumericId', authData.userNumericId);
             localStorage.setItem('userEmail', authData.userEmail);
             localStorage.setItem('userRole', authData.userRole);
 
@@ -59,6 +60,7 @@ export default function Login() {
                 authData.userRole,
                 {
                     userId: authData.userId,
+                    userNumericId: authData.userNumericId,
                     token: authData.token
                 }
             );

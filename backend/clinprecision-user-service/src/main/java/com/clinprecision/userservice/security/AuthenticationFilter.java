@@ -78,12 +78,13 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 				.issuedAt(Date.from(now)).signWith(key, algorithm).compact();
 
 		res.addHeader("token", token);
-		res.addHeader("userId", userDetails.getUserId());
+		res.addHeader("userId", userDetails.getUserId()); // String username
+		res.addHeader("userNumericId", String.valueOf(userDetails.getId())); // Long numeric ID
 		res.addHeader("userEmail", userName);
 		res.addHeader("userRole", userRole);
 		
 		// Add Access-Control-Expose-Headers to make custom headers available to the client
-		res.addHeader("Access-Control-Expose-Headers", "token, userId, userEmail, userRole");
+		res.addHeader("Access-Control-Expose-Headers", "token, userId, userNumericId, userEmail, userRole");
 	}
 	
 	@Override
