@@ -74,6 +74,16 @@ public class UsersController {
         returnValue.setEmail(userDto.getEmail());
         returnValue.setUserId(userDto.getUserId());
         
+        // Map organizationId if present
+        if (userDto.getOrganizationId() != null) {
+            returnValue.setOrganizationId(userDto.getOrganizationId());
+        }
+        
+        // Map roleIds if present
+        if (userDto.getRoleIds() != null && !userDto.getRoleIds().isEmpty()) {
+            returnValue.setRoleIds(new ArrayList<>(userDto.getRoleIds()));
+        }
+        
         // Get the user types for this user
         try {
             List<Long> userTypeIds = usersService.getUserTypeIds(userId);

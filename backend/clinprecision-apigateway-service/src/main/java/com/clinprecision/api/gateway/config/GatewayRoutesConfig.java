@@ -33,30 +33,30 @@ public class GatewayRoutesConfig {
                         .uri("lb://users-ws")
                 )
                 // Site Management Routes - specific routes for better path matching
-                .route("admin-ws-sites-get", r -> r
-                        .path("/admin-ws/sites/**")
+                .route("site-ws-sites-get", r -> r
+                        .path("/site-ws/sites/**")
                         .and()
                         .method("GET")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
+                                .rewritePath("/site-ws/(?<segment>.*)", "/${segment}")
                                 .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                         )
-                        .uri("lb://admin-ws")
+                        .uri("lb://site-ws")
                 )
-                .route("admin-ws-sites-write", r -> r
-                        .path("/admin-ws/sites/**")
+                .route("site-ws-sites-write", r -> r
+                        .path("/site-ws/sites/**")
                         .and()
                         .method("POST", "PUT", "DELETE", "PATCH")
                         .and()
                         .header("Authorization", "Bearer (.*)")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
+                                .rewritePath("/site-ws/(?<segment>.*)", "/${segment}")
                                 .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                                 .filter(authFilter)
                         )
-                        .uri("lb://admin-ws")
+                        .uri("lb://site-ws")
                 )
                 // Users Service - API routes for roles, user-study-roles, and user types (with /api/ prefix)
                 .route("users-ws-api", r -> r
@@ -88,6 +88,21 @@ public class GatewayRoutesConfig {
                         )
                         .uri("lb://users-ws")
                 )
+                // Organization Service - API routes for organizations and contacts
+                .route("organization-ws-api", r -> r
+                        .path("/organization-ws/api/**")
+                        .and()
+                        .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                        .and()
+                        .header("Authorization", "Bearer (.*)")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/organization-ws/(?<segment>.*)", "/${segment}")
+                                .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
+                                .filter(authFilter)
+                        )
+                        .uri("lb://organization-ws")
+                )
                 .route("users-ws-h2-console", r -> r
                         .path("/users-ws/h2-console")
                         .and()
@@ -99,46 +114,46 @@ public class GatewayRoutesConfig {
                         .uri("lb://users-ws")
                 )
                 // Admin Service API routes (for controllers with /api/ prefix)
-                .route("admin-ws-api", r -> r
-                        .path("/admin-ws/api/**")
+                .route("site-ws-api", r -> r
+                        .path("/site-ws/api/**")
                         .and()
                         .method("GET", "POST", "PUT", "DELETE", "PATCH")
                         .and()
                         .header("Authorization", "Bearer (.*)")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
+                                .rewritePath("/site-ws/(?<segment>.*)", "/${segment}")
                                 .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                                 .filter(authFilter)
                         )
-                        .uri("lb://admin-ws")
+                        .uri("lb://site-ws")
                 )
                 // Public GET routes (no auth required)
-                .route("admin-ws-get", r -> r
-                        .path("/admin-ws/**")
+                .route("site-ws-get", r -> r
+                        .path("/site-ws/**")
                         .and()
                         .method("GET")
                         .and()
                         .header("Authorization", "Bearer (.*)")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
+                                .rewritePath("/site-ws/(?<segment>.*)", "/${segment}")
                         )
-                        .uri("lb://admin-ws")
+                        .uri("lb://site-ws")
                 )
                 // Protected write routes (auth required)
-                .route("admin-ws-write", r -> r
-                        .path("/admin-ws/**")
+                .route("site-ws-write", r -> r
+                        .path("/site-ws/**")
                         .and()
                         .method("POST", "PUT", "DELETE", "PATCH")
                         .and()
                         .header("Authorization", "Bearer (.*)")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
+                                .rewritePath("/site-ws/(?<segment>.*)", "/${segment}")
                                 .filter(authFilter) // enforce authentication
                         )
-                        .uri("lb://admin-ws")
+                        .uri("lb://site-ws")
                 )
                 // Study Database Build API - Route to Study Design Service (migrated from Data Capture)
                 .route("study-database-build-api", r -> r

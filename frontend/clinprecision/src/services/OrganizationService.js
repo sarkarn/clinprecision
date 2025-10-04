@@ -8,7 +8,7 @@ export const OrganizationService = {
    */
   getAllOrganizations: async () => {
     try {
-      const response = await ApiService.get('/admin-ws/organizations');
+      const response = await ApiService.get('/organization-ws/api/organizations');
       return response.data;
     } catch (error) {
       console.error("Error fetching organizations:", error);
@@ -23,7 +23,7 @@ export const OrganizationService = {
    */
   getOrganizationById: async (id) => {
     try {
-      const response = await ApiService.get(`/admin-ws/organizations/${id}`);
+      const response = await ApiService.get(`/organization-ws/api/organizations/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching organization ${id}:`, error);
@@ -38,7 +38,7 @@ export const OrganizationService = {
    */
   createOrganization: async (organizationData) => {
     try {
-      const response = await ApiService.post('/admin-ws/organizations', organizationData);
+      const response = await ApiService.post('/organization-ws/api/organizations', organizationData);
       return response.data;
     } catch (error) {
       console.error("Error creating organization:", error);
@@ -54,7 +54,7 @@ export const OrganizationService = {
    */
   updateOrganization: async (id, organizationData) => {
     try {
-      const response = await ApiService.put(`/admin-ws/organizations/${id}`, organizationData);
+      const response = await ApiService.put(`/organization-ws/api/organizations/${id}`, organizationData);
       return response.data;
     } catch (error) {
       console.error(`Error updating organization ${id}:`, error);
@@ -69,7 +69,7 @@ export const OrganizationService = {
    */
   deleteOrganization: async (id) => {
     try {
-      const response = await ApiService.delete(`/admin-ws/organizations/${id}`);
+      const response = await ApiService.delete(`/organization-ws/api/organizations/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting organization ${id}:`, error);
@@ -85,7 +85,7 @@ export const OrganizationService = {
    */
   addOrganizationContact: async (organizationId, contactData) => {
     try {
-      const response = await ApiService.post(`/admin-ws/organizations/${organizationId}/contacts`, contactData);
+      const response = await ApiService.post(`/organization-ws/api/organizations/${organizationId}/contacts`, contactData);
       return response.data;
     } catch (error) {
       console.error(`Error adding contact to organization ${organizationId}:`, error);
@@ -102,7 +102,7 @@ export const OrganizationService = {
    */
   updateOrganizationContact: async (organizationId, contactId, contactData) => {
     try {
-      const response = await ApiService.put(`/admin-ws/organizations/${organizationId}/contacts/${contactId}`, contactData);
+      const response = await ApiService.put(`/organization-ws/api/organizations/${organizationId}/contacts/${contactId}`, contactData);
       return response.data;
     } catch (error) {
       console.error(`Error updating contact ${contactId} for organization ${organizationId}:`, error);
@@ -118,7 +118,7 @@ export const OrganizationService = {
    */
   deleteOrganizationContact: async (organizationId, contactId) => {
     try {
-      const response = await ApiService.delete(`/admin-ws/organizations/${organizationId}/contacts/${contactId}`);
+      const response = await ApiService.delete(`/organization-ws/api/organizations/${organizationId}/contacts/${contactId}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting contact ${contactId} from organization ${organizationId}:`, error);
@@ -133,7 +133,7 @@ export const OrganizationService = {
    */
   getOrganizationContacts: async (organizationId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/organizations/${organizationId}/contacts`);
+      const response = await ApiService.get(`/organization-ws/api/organizations/${organizationId}/contacts`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching contacts for organization ${organizationId}:`, error);

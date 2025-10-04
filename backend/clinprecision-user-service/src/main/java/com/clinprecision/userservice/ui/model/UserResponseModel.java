@@ -15,4 +15,6 @@ public class UserResponseModel {
     private String lastName;
     private String email;
     private List<Long> userTypes; // Added field for user types IDs
+    private Long organizationId;  // Added field for organization ID
+    private List<Long> roleIds;   // Added field for role IDs
 }
