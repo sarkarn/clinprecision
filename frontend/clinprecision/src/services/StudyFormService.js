@@ -1,7 +1,7 @@
 import ApiService from './ApiService';
 
-const FORM_DEFINITIONS_PATH = '/study-design-ws/api/form-definitions';
-const FORM_TEMPLATES_PATH = '/site-ws/api/form-templates'; // Updated to site-ws since templates moved to Site Management module
+const FORM_DEFINITIONS_PATH = '/clinops-ws/api/form-definitions';
+const FORM_TEMPLATES_PATH = '/clinops-ws/api/form-templates'; // Updated to clinops-ws since templates moved to Clinical Operations Service
 
 /**
  * Service for handling Study-specific Form operations
@@ -66,7 +66,7 @@ class StudyFormService {
       console.log('Enhanced form data being sent to API:', enhancedFormData);
       console.log('*** API endpoint:', FORM_DEFINITIONS_PATH);
       console.log('*** Full URL will be: API_BASE_URL + FORM_DEFINITIONS_PATH');
-      console.log('*** Expected: http://localhost:8083/study-design-ws/api/form-definitions');
+      console.log('*** Expected: http://localhost:8083/clinops-ws/api/form-definitions');
       console.log('*** This should route to FormDefinitionController.createFormDefinition()');
       
       const response = await ApiService.post(FORM_DEFINITIONS_PATH, enhancedFormData);

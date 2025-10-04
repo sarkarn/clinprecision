@@ -207,10 +207,10 @@ const ProtocolVersionPanel = ({
                                 onClick={primaryAction.onClick}
                                 disabled={primaryAction.disabled || loading}
                                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${primaryAction.variant === 'primary'
-                                        ? 'text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50'
-                                        : primaryAction.variant === 'success'
-                                            ? 'text-white bg-green-600 hover:bg-green-700 disabled:opacity-50'
-                                            : 'text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50'
+                                    ? 'text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50'
+                                    : primaryAction.variant === 'success'
+                                        ? 'text-white bg-green-600 hover:bg-green-700 disabled:opacity-50'
+                                        : 'text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50'
                                     } disabled:cursor-not-allowed`}
                             >
                                 <primaryAction.icon className="h-4 w-4 inline mr-1" />
@@ -264,10 +264,10 @@ const ProtocolVersionPanel = ({
                             onClick={primaryAction.onClick}
                             disabled={primaryAction.disabled || loading}
                             className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${primaryAction.variant === 'primary'
-                                    ? 'text-white bg-blue-600 border-transparent hover:bg-blue-700 focus:ring-blue-500'
-                                    : primaryAction.variant === 'success'
-                                        ? 'text-white bg-green-600 border-transparent hover:bg-green-700 focus:ring-green-500'
-                                        : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50 focus:ring-blue-500'
+                                ? 'text-white bg-blue-600 border-transparent hover:bg-blue-700 focus:ring-blue-500'
+                                : primaryAction.variant === 'success'
+                                    ? 'text-white bg-green-600 border-transparent hover:bg-green-700 focus:ring-green-500'
+                                    : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50 focus:ring-blue-500'
                                 }`}
                         >
                             <primaryAction.icon className="h-4 w-4" />
@@ -313,7 +313,7 @@ const ProtocolVersionPanel = ({
                                     )}
                                     <div>
                                         <h4 className="font-semibold text-gray-900">
-                                            Protocol Version {currentProtocolVersion.versionNumber}
+                                            Protocol {currentProtocolVersion.versionNumber}
                                         </h4>
                                         <p className="text-sm text-gray-600 mt-1">
                                             Status: {statusDisplay?.label || currentProtocolVersion.status}

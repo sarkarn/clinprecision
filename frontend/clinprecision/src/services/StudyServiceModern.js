@@ -10,7 +10,7 @@
 import ApiService from './ApiService';
 import { API_BASE_URL } from '../config';
 
-const API_PATH = '/study-design-ws/api/studies';
+const API_PATH = '/clinops-ws/api/studies';
 
 /**
  * Get all studies with optional filtering

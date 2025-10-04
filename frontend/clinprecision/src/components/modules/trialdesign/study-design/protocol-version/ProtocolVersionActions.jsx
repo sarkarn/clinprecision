@@ -224,7 +224,7 @@ export const ProtocolVersionStatusActions = ({ version, ...props }) => {
                     {version.statusInfo?.label || version.status}
                 </span>
                 <span className="text-sm text-gray-500">
-                    v{version.versionNumber}
+                    {version.versionNumber}
                 </span>
             </div>
 

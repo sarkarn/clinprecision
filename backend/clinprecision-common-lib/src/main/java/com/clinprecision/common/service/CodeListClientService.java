@@ -1,7 +1,7 @@
 package com.clinprecision.common.service;
 
 import com.clinprecision.common.client.CodeListClient;
-import com.clinprecision.common.dto.admin.CodeListDto;
+import com.clinprecision.common.dto.CodeListDto;
 import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

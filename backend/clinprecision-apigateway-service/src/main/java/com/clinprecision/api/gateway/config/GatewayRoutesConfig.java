@@ -155,8 +155,24 @@ public class GatewayRoutesConfig {
                         )
                         .uri("lb://site-ws")
                 )
-                // Study Database Build API - Route to Study Design Service (migrated from Data Capture)
-                .route("study-database-build-api", r -> r
+                // Clinical Operations Service - API routes (merged from study-design-ws and datacapture-ws)
+                .route("clinops-ws-api", r -> r
+                    .path("/clinops-ws/api/**")
+                    .and()
+                    .method("GET","POST","PUT","DELETE","PATCH")
+                    .and()
+                    .header("Authorization", "Bearer (.*)")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .rewritePath("/clinops-ws/api/(?<segment>.*)", "/api/${segment}")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
+                            .filter(authFilter)
+                    )
+                    .uri("lb://clinops-ws")
+                )
+                
+                // Clinical Operations Service - Study Database Build API
+                .route("clinops-database-build-api", r -> r
                     .path("/api/v1/study-database-builds/**")
                     .and()
                     .method("GET", "POST", "PUT", "DELETE", "PATCH")
@@ -164,58 +180,58 @@ public class GatewayRoutesConfig {
                             .removeRequestHeader("Cookie")
                             .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                     )
-                    .uri("lb://study-design-ws")
+                    .uri("lb://clinops-ws")
                 )
                 
-                // Study Design Service - API routes
-                .route("study-design-ws-api", r -> r
-                    .path("/study-design-ws/api/**")
+                // Clinical Operations Service - Patient Enrollment API
+                .route("clinops-patients-api", r -> r
+                    .path("/api/v1/patients/**", "/api/v1/patient-query/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
+                    )
+                    .uri("lb://clinops-ws")
+                )
+                
+                // Clinical Operations Service - Direct routes for studies, arms, visits, study-versions
+                .route("clinops-direct", r -> r
+                    .path("/studies/**", "/arms/**", "/api/studies/**", "/api/arms/**", "/api/visits/**", "/api/study-versions/**")
                     .and()
                     .method("GET","POST","PUT","DELETE","PATCH")
                     .and()
                     .header("Authorization", "Bearer (.*)")
                     .filters(f -> f
                             .removeRequestHeader("Cookie")
-                            .rewritePath("/study-design-ws/api/(?<segment>.*)", "/api/${segment}")
-                            .filter(authFilter)
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                     )
-                    .uri("lb://study-design-ws")
+                    .uri("lb://clinops-ws")
                 )
                 
-                // Study Design Service - Direct routes for studies, arms, visits, and study-versions (no auth required)
-                .route("study-design-direct", r -> r
-                    .path("/studies/**", "/arms/**", "/api/studies/**", "/api/arms/**", "/api/visits/**", "/api/study-versions/**")
+                // Legacy routes for backward compatibility (redirect to clinops-ws)
+                .route("study-design-ws-legacy", r -> r
+                    .path("/study-design-ws/**")
                     .and()
                     .method("GET","POST","PUT","DELETE","PATCH")
-                        .and()
-                        .header("Authorization", "Bearer (.*)")
                     .filters(f -> f
                             .removeRequestHeader("Cookie")
+                            .rewritePath("/study-design-ws/(?<segment>.*)", "/${segment}")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                     )
-                    .uri("lb://study-design-ws")
+                    .uri("lb://clinops-ws")
                 )
                 
-                // Data Capture Service - API routes
-                .route("datacapture-ws-api", r -> r
-                    .path("/datacapture-ws/api/**")
+                .route("datacapture-ws-legacy", r -> r
+                    .path("/datacapture-ws/**")
                     .and()
                     .method("GET", "POST", "PUT", "DELETE", "PATCH")
                     .filters(f -> f
                             .removeRequestHeader("Cookie")
                             .rewritePath("/datacapture-ws/(?<segment>.*)", "/${segment}")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                     )
-                    .uri("lb://datacapture-ws")
-                )
-                
-                // Data Capture Service - Direct routes (if needed)
-                .route("datacapture-ws-direct", r -> r
-                    .path("/datacapture/**")
-                    .and()
-                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
-                    .filters(f -> f
-                            .removeRequestHeader("Cookie")
-                    )
-                    .uri("lb://datacapture-ws")
+                    .uri("lb://clinops-ws")
                 )
                 .build();
     }

@@ -1,6 +1,6 @@
 package com.clinprecision.common.client;
 
-import com.clinprecision.common.dto.admin.CodeListDto;
+import com.clinprecision.common.dto.CodeListDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

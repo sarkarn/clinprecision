@@ -1,6 +1,6 @@
 import ApiService from './ApiService';
 
-const API_PATH = '/study-design-ws/api/form-templates'; // Updated to use correct backend endpoint
+const API_PATH = '/clinops-ws/api/form-templates'; // Updated to use correct backend endpoint (clinops-ws)
 
 /**
  * Service for handling Form Version operations

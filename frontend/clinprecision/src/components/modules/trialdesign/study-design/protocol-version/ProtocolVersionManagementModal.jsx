@@ -288,7 +288,7 @@ const ProtocolVersionManagementModal = ({
                                                     <div className="flex items-start justify-between mb-4">
                                                         <div>
                                                             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                                                Protocol Version {selectedVersion.versionNumber}
+                                                                Protocol {selectedVersion.versionNumber}
                                                                 {selectedVersion.status === 'ACTIVE' && (
                                                                     <span className="ml-2 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-full">
                                                                         Active

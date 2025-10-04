@@ -419,7 +419,7 @@ const ProtocolManagementDashboard = () => {
                                                 </div>
                                                 <div>
                                                     <h4 className="text-lg font-medium text-gray-900">
-                                                        Protocol Version {version.versionNumber}
+                                                        Protocol {version.versionNumber}
                                                         {version.status === 'ACTIVE' && (
                                                             <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                                 Active

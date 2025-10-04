@@ -1,6 +1,6 @@
 package com.clinprecision.common.client;
 
-import com.clinprecision.common.dto.admin.CodeListDto;
+import com.clinprecision.common.dto.CodeListDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
