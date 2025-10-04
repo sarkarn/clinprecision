@@ -7,7 +7,7 @@ export const RoleService = {
    */
   getAllRoles: async () => {
     try {
-      const response = await ApiService.get('/admin-ws/roles');
+      const response = await ApiService.get('/users-ws/roles');
       return response.data;
     } catch (error) {
       console.error('Error fetching roles:', error);
@@ -21,7 +21,7 @@ export const RoleService = {
    */
   getSystemRoles: async () => {
     try {
-      const response = await ApiService.get('/admin-ws/roles/system');
+      const response = await ApiService.get('/users-ws/roles/system');
       return response.data;
     } catch (error) {
       console.error('Error fetching system roles:', error);
@@ -35,7 +35,7 @@ export const RoleService = {
    */
   getNonSystemRoles: async () => {
     try {
-      const response = await ApiService.get('/admin-ws/roles/non-system');
+      const response = await ApiService.get('/users-ws/roles/non-system');
       return response.data;
     } catch (error) {
       console.error('Error fetching non-system roles:', error);

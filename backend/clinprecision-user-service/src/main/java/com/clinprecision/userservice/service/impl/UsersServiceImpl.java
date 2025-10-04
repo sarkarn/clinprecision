@@ -1,39 +1,29 @@
-package com.clinprecision.adminservice.service.impl;
+package com.clinprecision.userservice.service.impl;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.HashSet;
 
+import com.clinprecision.common.dto.UserDto;
 import com.clinprecision.common.dto.UserTypeDto;
-import com.clinprecision.common.entity.AuthorityEntity;
 import com.clinprecision.common.entity.RoleEntity;
 import com.clinprecision.common.entity.UserEntity;
-import com.clinprecision.common.entity.UserStudyRoleEntity;
-import com.clinprecision.common.dto.UserDto;
-
-import com.clinprecision.adminservice.repository.OrganizationRepository;
-import java.util.Set;
-
-import com.clinprecision.adminservice.repository.RoleRepository;
-import com.clinprecision.adminservice.repository.UsersRepository;
-import com.clinprecision.adminservice.service.UsersService;
-import com.clinprecision.adminservice.service.UserStudyRoleService;
-import com.clinprecision.adminservice.repository.UserTypeRepository;
 import com.clinprecision.common.entity.UserTypeEntity;
+import com.clinprecision.userservice.repository.OrganizationRepository;
+import com.clinprecision.userservice.repository.RoleRepository;
+import com.clinprecision.userservice.repository.UserTypeRepository;
+import com.clinprecision.userservice.repository.UsersRepository;
+import com.clinprecision.userservice.service.UserStudyRoleService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
+import com.clinprecision.userservice.service.UsersService;
+
+import java.util.*;
 
 
 @Service
@@ -45,9 +35,9 @@ public class UsersServiceImpl implements UsersService {
     //RestTemplate restTemplate;
     Environment environment;
     UserTypeRepository userTypeRepository;
-    OrganizationRepository organizationRepository;
     RoleRepository roleRepository;
     UserStudyRoleService userStudyRoleService;
+    OrganizationRepository organizationRepository;
 	
 	Logger logger = LoggerFactory.getLogger(this.getClass());
 	
@@ -56,15 +46,15 @@ public class UsersServiceImpl implements UsersService {
             BCryptPasswordEncoder bCryptPasswordEncoder,
             Environment environment,
             UserTypeRepository userTypeRepository,
-            OrganizationRepository organizationRepository,
             RoleRepository roleRepository,
+                            OrganizationRepository organizationRepository,
             UserStudyRoleService userStudyRoleService) {
         this.usersRepository = usersRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.environment = environment;
         this.userTypeRepository = userTypeRepository;
-        this.organizationRepository = organizationRepository;
         this.roleRepository = roleRepository;
+        this.organizationRepository = organizationRepository;
         this.userStudyRoleService = userStudyRoleService;
     }
  
@@ -122,63 +112,144 @@ public class UsersServiceImpl implements UsersService {
 
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		UserEntity userEntity = usersRepository.findByEmail(username);
-		
-		if(userEntity == null) throw new UsernameNotFoundException(username);	
-		
-		Collection<GrantedAuthority> authorities = new ArrayList<>();
-		Collection<RoleEntity> roles = userEntity.getRoles();
-		
-		roles.forEach((role) -> {
-			authorities.add(new SimpleGrantedAuthority(role.getName()));
+		try {
+			UserEntity userEntity = usersRepository.findByEmailWithRoles(username);
 			
-			Collection<AuthorityEntity> authorityEntities = role.getAuthorities();
-			authorityEntities.forEach((authorityEntity) -> {
-				authorities.add(new SimpleGrantedAuthority(authorityEntity.getName()));
-			});
-		});
-		
-		return new User(userEntity.getEmail(), 
-				userEntity.getEncryptedPassword(), 
-				true, true, true, true, 
-				authorities);
-	}
+			if (userEntity == null) {
+				throw new UsernameNotFoundException("User not found: " + username);
+			}
+			
+			// Check if user is active
+			if (userEntity.getStatus() != UserEntity.UserStatus.active) {
+				throw new UsernameNotFoundException("User account is not active: " + username);
+			}
+			
+			// Load user's actual roles for authentication
+			Collection<SimpleGrantedAuthority> authorities = loadUserAuthorities(userEntity.getId());
+				
+			User userDetails = new User(
+				userEntity.getEmail(),
+				userEntity.getEncryptedPassword(),
+				true, // enabled
+				true, // accountNonExpired
+				true, // credentialsNonExpired - Always true for now; password reset is separate from expiration
+				userEntity.getStatus() != UserEntity.UserStatus.locked, // accountNonLocked
+				authorities
+			);
+			
+			return userDetails;
+			
+		} catch (Exception ex) {
+			logger.error("Error in loadUserByUsername: {}", ex.getMessage(), ex);
+			throw ex;
+		}
+	}	
 
 	@Override
-	public UserDto getUserDetailsByEmail(String email) { 
-		UserEntity userEntity = usersRepository.findByEmail(email);
+	public UserDto getUserDetailsByEmail(String email) {
 		
-		if(userEntity == null) throw new UsernameNotFoundException(email);
+		try {
+			logger.debug("Getting user details by email: {}", email);
+			
+			logger.info("Calling usersRepository.findByEmail({})", email);
+			UserEntity userEntity = usersRepository.findByEmail(email);
+			
+			if (userEntity == null) {
+				logger.error("User not found by email: {}", email);
+				throw new UsernameNotFoundException("User not found: " + email);
+			}
+			
+			logger.info("User found - ID: {}, UserId: {}, Name: {} {}", 
+				userEntity.getId(), userEntity.getUserId(), 
+				userEntity.getFirstName(), userEntity.getLastName());
+			
+			// Manual conversion from UserEntity to UserDto
+			UserDto userDto = new UserDto();
+			userDto.setId(userEntity.getId());
+			userDto.setUserId(userEntity.getUserId());
+			userDto.setFirstName(userEntity.getFirstName());
+			userDto.setLastName(userEntity.getLastName());
+			userDto.setEmail(userEntity.getEmail());
+			userDto.setTitle(userEntity.getTitle());
+			userDto.setProfession(userEntity.getProfession());
+			userDto.setPhone(userEntity.getPhone());
+			userDto.setMobilePhone(userEntity.getMobilePhone());
+			userDto.setAddressLine1(userEntity.getAddressLine1());
+			userDto.setAddressLine2(userEntity.getAddressLine2());
+			userDto.setCity(userEntity.getCity());
+			userDto.setState(userEntity.getState());
+			userDto.setPostalCode(userEntity.getPostalCode());
+			userDto.setCountry(userEntity.getCountry());
+			userDto.setStatus(userEntity.getStatus());
+			
+			logger.info("User details retrieved successfully for email: {}", email);
+			logger.info("=== GET USER DETAILS SUCCESS ====");
+			return userDto;
+			
+		} catch (Exception ex) {
+			logger.error("=== GET USER DETAILS FAILED ==== Error: {}", ex.getMessage(), ex);
+			throw ex;
+		}
+	}
+	
+	@Override
+	public String getUserRole(Long userId) {
+		logger.info("=== GET USER ROLE ====");
+		logger.info("getUserRole called with userId: [{}]", userId);
+		logger.info("Current thread: {}", Thread.currentThread().getName());
 		
-		// Create DTO and manually map the fields to avoid collection mapping issues
-		UserDto userDto = new UserDto();
-		userDto.setId(userEntity.getId());
-		userDto.setUserId(userEntity.getUserId());
-		userDto.setFirstName(userEntity.getFirstName());
-		userDto.setMiddleName(userEntity.getMiddleName());
-		userDto.setLastName(userEntity.getLastName());
-		userDto.setEmail(userEntity.getEmail());
-		userDto.setTitle(userEntity.getTitle());
-		userDto.setProfession(userEntity.getProfession());
-		userDto.setPhone(userEntity.getPhone());
-		userDto.setMobilePhone(userEntity.getMobilePhone());
-		userDto.setAddressLine1(userEntity.getAddressLine1());
-		userDto.setAddressLine2(userEntity.getAddressLine2());
-		userDto.setCity(userEntity.getCity());
-		userDto.setState(userEntity.getState());
-		userDto.setPostalCode(userEntity.getPostalCode());
-		userDto.setCountry(userEntity.getCountry());
-		userDto.setStatus(userEntity.getStatus());
-		userDto.setLastLoginAt(userEntity.getLastLoginAt());
-		userDto.setPasswordResetRequired(userEntity.isPasswordResetRequired());
-		userDto.setNotes(userEntity.getNotes());
-		userDto.setCreatedAt(userEntity.getCreatedAt());
-		userDto.setUpdatedAt(userEntity.getUpdatedAt());
-		userDto.setEncryptedPassword(userEntity.getEncryptedPassword());
-		
-		// Don't try to map userTypes collection - leave it as an empty set
-		
-		return userDto;
+	    try {
+	        // STEP 1: First check for study roles (priority)
+	        logger.info("STEP 1: Checking for study roles for user ID: {}", userId);
+	        var activeStudyRole = userStudyRoleService.findHighestPriorityActiveRoleByUserId(userId);
+	        
+	        if (activeStudyRole.isPresent()) {
+	            String roleName = activeStudyRole.get().getRole().getName();
+	            logger.info("Found active study role: {} for user ID: {}", roleName, userId);
+	            logger.info("=== GET USER ROLE SUCCESS (Study Role) ====");
+	            return roleName;
+	        }
+	        
+	        logger.info("No active study roles found for user ID: {}, checking system roles", userId);
+	        
+	        // STEP 2: Fall back to system roles if no study roles
+	        logger.info("STEP 2: Checking for system roles for user ID: {}", userId);
+	        Optional<UserEntity> userOptional = usersRepository.findByIdWithRoles(userId);
+	        if (userOptional.isPresent()) {
+	            UserEntity userEntity = userOptional.get();
+	            logger.info("User entity found, checking roles collection...");
+	            
+	            if (userEntity.getRoles() != null && !userEntity.getRoles().isEmpty()) {
+	                logger.info("User has {} roles assigned", userEntity.getRoles().size());
+	                userEntity.getRoles().forEach(role -> 
+	                    logger.info("- Role: {} (System Role: {})", role.getName(), role.isSystemRole())
+	                );
+	                
+	                // Get the highest priority general role
+	                String generalRole = getHighestPriorityGeneralRole(userEntity.getRoles());
+	                if (generalRole != null) {
+	                    logger.info("Found general system role: {} for user ID: {}", generalRole, userId);
+	                    logger.info("=== GET USER ROLE SUCCESS (System Role) ====");
+	                    return generalRole;
+	                } else {
+	                    logger.warn("getHighestPriorityGeneralRole returned null for user ID: {}", userId);
+	                }
+	            } else {
+	                logger.warn("User has no roles assigned or roles collection is empty for user ID: {}", userId);
+	            }
+	        } else {
+	            logger.warn("User entity not found for user ID: {}", userId);
+	        }
+	        
+	        // STEP 3: Fall back to default role if no roles found
+	        logger.info("STEP 3: No system or study roles found for user ID: {}, using default: SITE_USER", userId);
+	        logger.info("=== GET USER ROLE SUCCESS (Default Role) ====");
+	        return "SITE_USER";
+	        
+	    } catch (Exception ex) {
+	        logger.error("=== GET USER ROLE FAILED ==== Error for user ID: {}. Error: {}", userId, ex.getMessage(), ex);
+	        return "SITE_USER"; // Default role on error
+	    }
 	}
 
 	@Override
@@ -390,68 +461,88 @@ public class UsersServiceImpl implements UsersService {
         return userTypeIds;
     }
     
-    @Override
-    public String getUserRole(Long userId) {
-        logger.debug("Determining role for user ID: {}", userId);
-        
-        // Step 1: Check user_study_roles for active study-specific roles
-        // Get the highest priority active study role
-        Optional<UserStudyRoleEntity> highestStudyRole =
-                userStudyRoleService.findHighestPriorityActiveRoleByUserId(userId);
-        
-        if (highestStudyRole.isPresent()) {
-            String studyRoleName = highestStudyRole.get().getRole().getName();
-            logger.debug("Found active study role: {} for user ID: {}", studyRoleName, userId);
-            return studyRoleName;
-        }
-        
-        // Step 2: If no study role, check users_roles for general system roles
-        Optional<UserEntity> userEntityOpt = usersRepository.findById(userId);
-        if (userEntityOpt.isPresent()) {
-            UserEntity userEntity = userEntityOpt.get();
-            if (userEntity.getRoles() != null && !userEntity.getRoles().isEmpty()) {
-                // Get the highest priority general role
-                String generalRole = getHighestPriorityGeneralRole(userEntity.getRoles());
-                if (generalRole != null) {
-                    logger.debug("Found general system role: {} for user ID: {}", generalRole, userId);
-                    return generalRole;
-                }
-            }
-        }
-        
-        // Step 3: Fall back to default role
-        logger.debug("No specific role found for user ID: {}, using default: SITE_USER", userId);
-        return "SITE_USER";
-    }
-    
+  
     /**
-     * Determines the highest priority role from a collection of general roles.
-     * Priority order: SYSTEM_ADMIN > PRINCIPAL_INVESTIGATOR > STUDY_COORDINATOR > DATA_MANAGER > CRA > MEDICAL_CODER > AUDITOR > SITE_USER
-     * 
-     * @param roles Collection of role entities
-     * @return The highest priority role name, or null if no recognized roles found
-     */
-    private String getHighestPriorityGeneralRole(Collection<RoleEntity> roles) {
-        String[] priorityOrder = {
-            "SYSTEM_ADMIN", 
-            "PRINCIPAL_INVESTIGATOR", 
-            "STUDY_COORDINATOR", 
-            "DATA_MANAGER", 
-            "CRA", 
-            "MEDICAL_CODER", 
-            "AUDITOR", 
-            "SITE_USER"
-        };
-        
-        for (String priorityRole : priorityOrder) {
-            for (RoleEntity role : roles) {
-                if (priorityRole.equals(role.getName())) {
-                    return priorityRole;
-                }
-            }
-        }
-        
-        // If no priority role found, return the first role's name
-        return roles.iterator().next().getName();
-    }
+	 * Determines the highest priority role from a collection of general roles.
+	 * Priority order: SYSTEM_ADMIN > PRINCIPAL_INVESTIGATOR > STUDY_COORDINATOR > DATA_MANAGER > CRA > MEDICAL_CODER > AUDITOR > SITE_USER
+	 */
+	private String getHighestPriorityGeneralRole(Collection<com.clinprecision.common.entity.RoleEntity> roles) {
+	    // Priority mapping - lower number = higher priority
+	    java.util.Map<String, Integer> rolePriority = new java.util.HashMap<>();
+	    rolePriority.put("SYSTEM_ADMIN", 1);
+	    rolePriority.put("PRINCIPAL_INVESTIGATOR", 2);
+	    rolePriority.put("STUDY_COORDINATOR", 3);
+	    rolePriority.put("DATA_MANAGER", 4);
+	    rolePriority.put("CRA", 5);
+	    rolePriority.put("MEDICAL_CODER", 6);
+	    rolePriority.put("AUDITOR", 7);
+	    rolePriority.put("SITE_USER", 8);
+	    
+	    return roles.stream()
+	        .filter(role -> role.isSystemRole()) // Only system roles
+	        .map(role -> role.getName())
+	        .min((role1, role2) -> {
+	            int priority1 = rolePriority.getOrDefault(role1, 999);
+	            int priority2 = rolePriority.getOrDefault(role2, 999);
+	            return Integer.compare(priority1, priority2);
+	        })
+	        .orElse(null);
+	}
+	
+	/**
+	 * Loads the user's authorities (roles) for Spring Security authentication.
+	 * This method follows the same priority logic as getUserRole but returns all relevant authorities.
+	 */
+	private Collection<SimpleGrantedAuthority> loadUserAuthorities(Long userId) {
+	    Collection<SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
+	    
+	    try {
+	        // STEP 1: Check for study roles first (highest priority)
+	        var activeStudyRoles = userStudyRoleService.findHighestPriorityActiveRoleByUserId(userId);
+	        
+	        if (activeStudyRoles.isPresent()) {
+	            String studyRoleName = activeStudyRoles.get().getRole().getName();
+	            authorities.add(new SimpleGrantedAuthority("ROLE_" + studyRoleName));
+	        } else {
+	            logger.info("No active study roles found");
+	        }
+	        
+	        // STEP 2: Add system roles as well (they might be needed for certain operations)
+	        logger.info("Checking for system roles...");
+	        Optional<UserEntity> userOptional = usersRepository.findByIdWithRoles(userId);
+	        if (userOptional.isPresent()) {
+	            UserEntity userEntity = userOptional.get();
+	            if (userEntity.getRoles() != null && !userEntity.getRoles().isEmpty()) {
+	                logger.info("User has {} system roles", userEntity.getRoles().size());
+	                userEntity.getRoles().stream()
+	                    .filter(role -> role.isSystemRole())
+	                    .forEach(role -> {
+	                        authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
+	                        logger.info("Added system role authority: ROLE_{}", role.getName());
+	                    });
+	            } else {
+	                logger.warn("User has no system roles assigned");
+	            }
+	        } else {
+	            logger.warn("User entity not found when loading authorities");
+	        }
+	        
+	        // STEP 3: If no roles found, assign default
+	        if (authorities.isEmpty()) {
+	            authorities.add(new SimpleGrantedAuthority("ROLE_SITE_USER"));
+	            logger.info("No specific roles found, assigned default: ROLE_SITE_USER");
+	        }
+	        
+	        logger.info("Final authorities list: {}", authorities);
+	        logger.info("=== LOADING USER AUTHORITIES COMPLETE ====");
+	        
+	    } catch (Exception ex) {
+	        logger.error("=== LOADING USER AUTHORITIES FAILED ==== Error for user ID: {}. Error: {}", userId, ex.getMessage(), ex);
+	        authorities.clear();
+	        authorities.add(new SimpleGrantedAuthority("ROLE_SITE_USER"));
+	        logger.info("Fallback: assigned ROLE_SITE_USER due to error");
+	    }
+	    
+	    return authorities;
+	}
 }

@@ -8,7 +8,6 @@ import java.util.Date;
 import javax.crypto.SecretKey;
 
 import com.clinprecision.common.dto.UserDto;
-import com.clinprecision.common.dto.UserTypeDto;
 import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

@@ -20,7 +20,11 @@ import feign.Logger;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableFeignClients
-@ComponentScan(basePackages = {"com.clinprecision.userservice", "com.clinprecision.common"})
+@ComponentScan(basePackages = {
+        "com.clinprecision.userservice",
+        "com.clinprecision.common.mapper",
+        "com.clinprecision.common.util"
+})
 @EntityScan(basePackageClasses = {
     com.clinprecision.common.entity.UserEntity.class,
     com.clinprecision.common.entity.UserSessionEntity.class,

@@ -1,4 +1,4 @@
-package com.clinprecision.adminservice.ui.model;
+package com.clinprecision.userservice.ui.model;
 
 import lombok.Getter;
 import lombok.Setter;

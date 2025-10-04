@@ -1,6 +1,5 @@
 package com.clinprecision.adminservice.repository;
 
-
 import com.clinprecision.common.entity.RoleEntity;
 import org.springframework.data.repository.CrudRepository;
 

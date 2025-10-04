@@ -1,11 +1,13 @@
-package com.clinprecision.adminservice.service.impl;
+package com.clinprecision.userservice.service.impl;
 
 
-import com.clinprecision.adminservice.repository.UsersRepository;
-import com.clinprecision.adminservice.repository.UserTypeRepository;
-import com.clinprecision.adminservice.service.UserAssignmentService;
+
+
 import com.clinprecision.common.entity.UserEntity;
 import com.clinprecision.common.entity.UserTypeEntity;
+import com.clinprecision.userservice.repository.UserTypeRepository;
+import com.clinprecision.userservice.repository.UsersRepository;
+import com.clinprecision.userservice.service.UserAssignmentService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

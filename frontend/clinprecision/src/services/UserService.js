@@ -8,7 +8,7 @@ export const UserService = {
    */
   getAllUsers: async () => {
     try {
-      const response = await ApiService.get('/admin-ws/users');
+      const response = await ApiService.get('/users-ws/users');
       return response.data;
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -23,7 +23,7 @@ export const UserService = {
    */
   getUserById: async (id) => {
     try {
-      const response = await ApiService.get(`/admin-ws/users/${id}`);
+      const response = await ApiService.get(`/users-ws/users/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching user ${id}:`, error);
@@ -38,7 +38,7 @@ export const UserService = {
    */
   createUser: async (userData) => {
     try {
-      const response = await ApiService.post('/admin-ws/users', userData);
+      const response = await ApiService.post('/users-ws/users', userData);
       return response.data;
     } catch (error) {
       console.error("Error creating user:", error);
@@ -54,7 +54,7 @@ export const UserService = {
    */
   updateUser: async (id, userData) => {
     try {
-      const response = await ApiService.put(`/admin-ws/users/${id}`, userData);
+      const response = await ApiService.put(`/users-ws/users/${id}`, userData);
       return response.data;
     } catch (error) {
       console.error(`Error updating user ${id}:`, error);
@@ -69,7 +69,7 @@ export const UserService = {
    */
   deleteUser: async (id) => {
     try {
-      const response = await ApiService.delete(`/admin-ws/users/${id}`);
+      const response = await ApiService.delete(`/users-ws/users/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting user ${id}:`, error);
@@ -85,7 +85,7 @@ export const UserService = {
    */
   assignUserType: async (userId, userTypeId) => {
     try {
-      const response = await ApiService.post(`/admin-ws/users/${userId}/types/${userTypeId}`);
+      const response = await ApiService.post(`/users-ws/users/${userId}/types/${userTypeId}`);
       return response.data;
     } catch (error) {
       console.error(`Error assigning user type to user:`, error);
@@ -101,7 +101,7 @@ export const UserService = {
    */
   removeUserType: async (userId, userTypeId) => {
     try {
-      const response = await ApiService.delete(`/admin-ws/users/${userId}/types/${userTypeId}`);
+      const response = await ApiService.delete(`/users-ws/users/${userId}/types/${userTypeId}`);
       return response.data;
     } catch (error) {
       console.error(`Error removing user type from user:`, error);
@@ -116,7 +116,7 @@ export const UserService = {
    */
   getUserTypes: async (userId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/users/${userId}/types`);
+      const response = await ApiService.get(`/users-ws/users/${userId}/types`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching user types for user ${userId}:`, error);

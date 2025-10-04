@@ -1,16 +1,17 @@
-package com.clinprecision.adminservice.service.impl;
+package com.clinprecision.userservice.service.impl;
 
-import com.clinprecision.adminservice.repository.RoleRepository;
-import com.clinprecision.adminservice.repository.UsersRepository;
-import com.clinprecision.adminservice.repository.UserStudyRoleRepository;
-import com.clinprecision.adminservice.service.StudyServiceClient;
-import com.clinprecision.adminservice.service.UserStudyRoleService;
+
 import com.clinprecision.common.dto.UserStudyRoleDto;
 import com.clinprecision.common.dto.studydesign.StudyResponseDto;
 import com.clinprecision.common.entity.RoleEntity;
 import com.clinprecision.common.entity.UserEntity;
 import com.clinprecision.common.entity.UserStudyRoleEntity;
 import com.clinprecision.common.mapper.UserStudyRoleMapper;
+import com.clinprecision.userservice.repository.RoleRepository;
+import com.clinprecision.userservice.repository.UserStudyRoleRepository;
+import com.clinprecision.userservice.repository.UsersRepository;
+import com.clinprecision.userservice.service.StudyServiceClient;
+import com.clinprecision.userservice.service.UserStudyRoleService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

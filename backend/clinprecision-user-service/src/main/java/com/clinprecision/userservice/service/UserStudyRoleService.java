@@ -1,4 +1,4 @@
-package com.clinprecision.adminservice.service;
+package com.clinprecision.userservice.service;
 
 import com.clinprecision.common.dto.UserStudyRoleDto;
 import com.clinprecision.common.entity.UserStudyRoleEntity;
