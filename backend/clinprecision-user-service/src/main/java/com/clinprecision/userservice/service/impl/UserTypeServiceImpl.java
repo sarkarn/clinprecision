@@ -1,10 +1,11 @@
-package com.clinprecision.adminservice.service.impl;
+package com.clinprecision.userservice.service.impl;
 
-import com.clinprecision.adminservice.repository.UserTypeRepository;
-import com.clinprecision.adminservice.service.UserTypeService;
 
-import com.clinprecision.common.entity.UserTypeEntity;
 import com.clinprecision.common.dto.UserTypeDto;
+import com.clinprecision.common.entity.UserTypeEntity;
+import com.clinprecision.userservice.repository.UserTypeRepository;
+import com.clinprecision.userservice.service.UserTypeService;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,8 +13,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class UserTypeServiceImpl implements UserTypeService {

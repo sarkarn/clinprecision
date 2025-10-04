@@ -8,7 +8,7 @@ export const UserStudyRoleService = {
    */
   getAllUserStudyRoles: async () => {
     try {
-      const response = await ApiService.get('/admin-ws/api/user-study-roles');
+      const response = await ApiService.get('/users-ws/api/user-study-roles');
       return response.data;
     } catch (error) {
       console.error("Error fetching all user study roles:", error);
@@ -23,7 +23,7 @@ export const UserStudyRoleService = {
    */
   createUserStudyRole: async (userStudyRoleData) => {
     try {
-      const response = await ApiService.post('/admin-ws/api/user-study-roles', userStudyRoleData);
+      const response = await ApiService.post('/users-ws/api/user-study-roles', userStudyRoleData);
       return response.data;
     } catch (error) {
       console.error("Error creating user study role:", error);
@@ -39,7 +39,7 @@ export const UserStudyRoleService = {
    */
   updateUserStudyRole: async (id, userStudyRoleData) => {
     try {
-      const response = await ApiService.put(`/admin-ws/api/user-study-roles/${id}`, userStudyRoleData);
+      const response = await ApiService.put(`/users-ws/api/user-study-roles/${id}`, userStudyRoleData);
       return response.data;
     } catch (error) {
       console.error(`Error updating user study role ${id}:`, error);
@@ -54,7 +54,7 @@ export const UserStudyRoleService = {
    */
   deleteUserStudyRole: async (id) => {
     try {
-      const response = await ApiService.delete(`/admin-ws/api/user-study-roles/${id}`);
+      const response = await ApiService.delete(`/users-ws/api/user-study-roles/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting user study role ${id}:`, error);
@@ -69,7 +69,7 @@ export const UserStudyRoleService = {
    */
   getUserStudyRoleById: async (id) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/user-study-roles/${id}`);
+      const response = await ApiService.get(`/users-ws/api/user-study-roles/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching user study role ${id}:`, error);
@@ -84,7 +84,7 @@ export const UserStudyRoleService = {
    */
   getUserRoleAssignments: async (userId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/user-study-roles/users/${userId}`);
+      const response = await ApiService.get(`/users-ws/api/user-study-roles/users/${userId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching role assignments for user ${userId}:`, error);
@@ -99,7 +99,7 @@ export const UserStudyRoleService = {
    */
   getStudyRoleAssignments: async (studyId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/user-study-roles/studies/${studyId}`);
+      const response = await ApiService.get(`/users-ws/api/user-study-roles/studies/${studyId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching role assignments for study ${studyId}:`, error);
@@ -114,7 +114,7 @@ export const UserStudyRoleService = {
    */
   getActiveStudyRoleAssignments: async (studyId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/user-study-roles/studies/${studyId}/active`);
+      const response = await ApiService.get(`/users-ws/api/user-study-roles/studies/${studyId}/active`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching active role assignments for study ${studyId}:`, error);
@@ -130,7 +130,7 @@ export const UserStudyRoleService = {
    */
   getUserStudyRoleAssignments: async (userId, studyId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/user-study-roles/users/${userId}/studies/${studyId}`);
+      const response = await ApiService.get(`/users-ws/api/user-study-roles/users/${userId}/studies/${studyId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching role assignments for user ${userId} in study ${studyId}:`, error);
@@ -145,7 +145,7 @@ export const UserStudyRoleService = {
    */
   getUserActiveRoles: async (userId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/user-study-roles/users/${userId}/active`);
+      const response = await ApiService.get(`/users-ws/api/user-study-roles/users/${userId}/active`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching active roles for user ${userId}:`, error);
@@ -160,7 +160,7 @@ export const UserStudyRoleService = {
    */
   getStudyTeamMembers: async (studyId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/user-study-roles/studies/${studyId}/team`);
+      const response = await ApiService.get(`/users-ws/api/user-study-roles/studies/${studyId}/team`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching team members for study ${studyId}:`, error);
@@ -175,7 +175,7 @@ export const UserStudyRoleService = {
    */
   getHighestPriorityRole: async (userId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/user-study-roles/users/${userId}/highest-priority`);
+      const response = await ApiService.get(`/users-ws/api/user-study-roles/users/${userId}/highest-priority`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching highest priority role for user ${userId}:`, error);
@@ -190,7 +190,7 @@ export const UserStudyRoleService = {
    */
   createMultipleUserStudyRoles: async (userStudyRoles) => {
     try {
-      const response = await ApiService.post('/admin-ws/api/user-study-roles/bulk', userStudyRoles);
+      const response = await ApiService.post('/users-ws/api/user-study-roles/bulk', userStudyRoles);
       return response.data;
     } catch (error) {
       console.error("Error creating multiple user study roles:", error);
@@ -206,7 +206,7 @@ export const UserStudyRoleService = {
    */
   deactivateUserStudyRoles: async (ids, endDate) => {
     try {
-      const response = await ApiService.put('/admin-ws/api/user-study-roles/bulk/deactivate', {
+      const response = await ApiService.put('/users-ws/api/user-study-roles/bulk/deactivate', {
         ids,
         endDate
       });
@@ -225,7 +225,7 @@ export const UserStudyRoleService = {
    */
   hasActiveRoleInStudy: async (userId, studyId) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/user-study-roles/users/${userId}/studies/${studyId}/has-active-role`);
+      const response = await ApiService.get(`/users-ws/api/user-study-roles/users/${userId}/studies/${studyId}/has-active-role`);
       return response.data;
     } catch (error) {
       console.error(`Error checking active role for user ${userId} in study ${studyId}:`, error);
@@ -242,7 +242,7 @@ export const UserStudyRoleService = {
    */
   hasRoleInStudy: async (userId, studyId, roleName) => {
     try {
-      const response = await ApiService.get(`/admin-ws/api/user-study-roles/users/${userId}/studies/${studyId}/roles/${roleName}/has-role`);
+      const response = await ApiService.get(`/users-ws/api/user-study-roles/users/${userId}/studies/${studyId}/roles/${roleName}/has-role`);
       return response.data;
     } catch (error) {
       console.error(`Error checking role ${roleName} for user ${userId} in study ${studyId}:`, error);

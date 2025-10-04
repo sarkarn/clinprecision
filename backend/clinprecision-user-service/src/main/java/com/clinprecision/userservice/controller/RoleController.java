@@ -1,8 +1,8 @@
-package com.clinprecision.adminservice.ui.controller;
+package com.clinprecision.userservice.controller;
 
 
-import com.clinprecision.adminservice.service.RoleService;
 import com.clinprecision.common.dto.RoleDto;
+import com.clinprecision.userservice.service.RoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;

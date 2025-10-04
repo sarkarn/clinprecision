@@ -8,7 +8,7 @@ export const UserTypeService = {
    */
   getAllUserTypes: async () => {
     try {
-      const response = await ApiService.get('/admin-ws/usertypes');
+      const response = await ApiService.get('/users-ws/usertypes');
       return response.data;
     } catch (error) {
       console.error("Error fetching user types:", error);
@@ -23,7 +23,7 @@ export const UserTypeService = {
    */
   getUserTypeById: async (id) => {
     try {
-      const response = await ApiService.get(`/admin-ws/usertypes/${id}`);
+      const response = await ApiService.get(`/users-ws/usertypes/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching user type ${id}:`, error);
@@ -38,7 +38,7 @@ export const UserTypeService = {
    */
   createUserType: async (userTypeData) => {
     try {
-      const response = await ApiService.post('/admin-ws/usertypes', userTypeData);
+      const response = await ApiService.post('/users-ws/usertypes', userTypeData);
       return response.data;
     } catch (error) {
       console.error("Error creating user type:", error);
@@ -54,7 +54,7 @@ export const UserTypeService = {
    */
   updateUserType: async (id, userTypeData) => {
     try {
-      const response = await ApiService.put(`/admin-ws/usertypes/${id}`, userTypeData);
+      const response = await ApiService.put(`/users-ws/usertypes/${id}`, userTypeData);
       return response.data;
     } catch (error) {
       console.error(`Error updating user type ${id}:`, error);
@@ -69,7 +69,7 @@ export const UserTypeService = {
    */
   deleteUserType: async (id) => {
     try {
-      const response = await ApiService.delete(`/admin-ws/usertypes/${id}`);
+      const response = await ApiService.delete(`/users-ws/usertypes/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting user type ${id}:`, error);

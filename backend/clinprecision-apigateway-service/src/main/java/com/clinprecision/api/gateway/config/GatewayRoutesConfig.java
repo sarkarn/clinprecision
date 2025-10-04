@@ -58,20 +58,35 @@ public class GatewayRoutesConfig {
                         )
                         .uri("lb://admin-ws")
                 )
-                // users-ws-get-update-delete
-                .route("admin-ws-get-update-delete", r -> r
-                        .path("/admin-ws/users/**")
+                // Users Service - API routes for roles, user-study-roles, and user types (with /api/ prefix)
+                .route("users-ws-api", r -> r
+                        .path("/users-ws/api/**")
                         .and()
-                        .method("GET", "PUT", "DELETE", "OPTIONS")
+                        .method("GET", "POST", "PUT", "DELETE", "PATCH")
                         .and()
                         .header("Authorization", "Bearer (.*)")
                         .filters(f -> f
                                 .removeRequestHeader("Cookie")
-                                .rewritePath("/admin-ws/(?<segment>.*)", "/${segment}")
-                                // Expose headers but don't set CORS headers
+                                .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
                                 .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
                                 .filter(authFilter)
-                        ).uri("lb://admin-ws")
+                        )
+                        .uri("lb://users-ws")
+                )
+                // Users Service - Direct routes for users, roles, and usertypes (no /api/ prefix)
+                .route("users-ws-direct", r -> r
+                        .path("/users-ws/users/**", "/users-ws/roles/**", "/users-ws/usertypes/**")
+                        .and()
+                        .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                        .and()
+                        .header("Authorization", "Bearer (.*)")
+                        .filters(f -> f
+                                .removeRequestHeader("Cookie")
+                                .rewritePath("/users-ws/(?<segment>.*)", "/${segment}")
+                                .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
+                                .filter(authFilter)
+                        )
+                        .uri("lb://users-ws")
                 )
                 .route("users-ws-h2-console", r -> r
                         .path("/users-ws/h2-console")

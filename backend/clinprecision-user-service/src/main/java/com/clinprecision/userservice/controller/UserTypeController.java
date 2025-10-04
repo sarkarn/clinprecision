@@ -1,12 +1,12 @@
-package com.clinprecision.adminservice.ui.controller;
+package com.clinprecision.userservice.controller;
 
 
-import com.clinprecision.adminservice.service.UserTypeService;
-import com.clinprecision.adminservice.ui.model.UserTypeRequestModel;
-import com.clinprecision.adminservice.ui.model.UserTypeResponseModel;
 
 import com.clinprecision.common.dto.UserTypeDto;
 import com.clinprecision.common.entity.UserTypeEntity;
+import com.clinprecision.userservice.service.UserTypeService;
+import com.clinprecision.userservice.ui.model.UserTypeRequestModel;
+import com.clinprecision.userservice.ui.model.UserTypeResponseModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

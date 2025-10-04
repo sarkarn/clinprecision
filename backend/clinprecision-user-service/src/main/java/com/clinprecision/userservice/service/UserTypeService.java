@@ -1,8 +1,8 @@
-package com.clinprecision.adminservice.service;
+package com.clinprecision.userservice.service;
 
 
-import com.clinprecision.common.entity.UserTypeEntity;
 import com.clinprecision.common.dto.UserTypeDto;
+import com.clinprecision.common.entity.UserTypeEntity;
 
 import java.util.List;
 

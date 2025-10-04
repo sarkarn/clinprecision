@@ -1,27 +1,19 @@
-package com.clinprecision.adminservice.ui.controller;
+package com.clinprecision.userservice.controller;
 
- import com.clinprecision.adminservice.service.UsersService;
- import com.clinprecision.common.dto.AuthUserDto;
- import com.clinprecision.common.dto.UserDto;
- import com.clinprecision.common.dto.UserTypeDto;
- import org.springframework.beans.factory.annotation.Autowired;
 
+import com.clinprecision.common.dto.AuthUserDto;
+import com.clinprecision.common.dto.UserDto;
+import com.clinprecision.common.dto.UserTypeDto;
+import com.clinprecision.userservice.service.UsersService;
+import com.clinprecision.userservice.ui.model.CreateUserRequestModel;
+import com.clinprecision.userservice.ui.model.CreateUserResponseModel;
+import com.clinprecision.userservice.ui.model.UserResponseModel;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
- import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.clinprecision.adminservice.ui.model.CreateUserRequestModel;
-import com.clinprecision.adminservice.ui.model.CreateUserResponseModel;
- import com.clinprecision.adminservice.ui.model.UserResponseModel;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,8 +62,8 @@ public class UsersController {
 	
     @GetMapping(value="/{userId}", produces = { MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })
     //@PreAuthorize("hasRole('ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('DB_ADMIN') or principal == #userId")
-    public ResponseEntity<UserResponseModel> getUser(@PathVariable("userId") String userId, 
-    		@RequestHeader("Authorization") String authorization) {
+    public ResponseEntity<UserResponseModel> getUser(@PathVariable("userId") String userId,
+                                                     @RequestHeader("Authorization") String authorization) {
        
         UserDto userDto = usersService.getUserByUserId(userId, authorization); 
         
@@ -219,7 +211,7 @@ public class UsersController {
         authUserDto.setCredentialsNonExpired(userDetails.isCredentialsNonExpired());
         
         // Convert authorities to List<String>
-        java.util.List<String> authorities = userDetails.getAuthorities().stream()
+        List<String> authorities = userDetails.getAuthorities().stream()
             .map(authority -> authority.getAuthority())
             .collect(java.util.stream.Collectors.toList());
         authUserDto.setAuthorities(authorities);

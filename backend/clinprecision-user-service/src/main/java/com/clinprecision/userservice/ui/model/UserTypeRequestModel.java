@@ -1,25 +1,16 @@
-package com.clinprecision.adminservice.ui.model;
+package com.clinprecision.userservice.ui.model;
 
 
 import com.clinprecision.common.entity.UserTypeEntity;
 
 /**
- * Response model for user type data
+ * Request model for creating or updating a user type
  */
-public class UserTypeResponseModel {
-    private Long id;
+public class UserTypeRequestModel {
     private String name;
     private String description;
     private String code;
     private UserTypeEntity.UserCategory category;
-    
-    public Long getId() {
-        return id;
-    }
-    
-    public void setId(Long id) {
-        this.id = id;
-    }
     
     public String getName() {
         return name;

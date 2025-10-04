@@ -1,9 +1,10 @@
-package com.clinprecision.adminservice.service;
+package com.clinprecision.userservice.service.impl;
 
 
-import com.clinprecision.adminservice.repository.RoleRepository;
 import com.clinprecision.common.dto.RoleDto;
 import com.clinprecision.common.entity.RoleEntity;
+import com.clinprecision.userservice.repository.RoleRepository;
+import com.clinprecision.userservice.service.RoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,11 +12,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class RoleService {
+public class RoleServiceImpl implements RoleService {
     private final RoleRepository roleRepository;
 
     @Autowired
-    public RoleService(RoleRepository roleRepository) {
+    public RoleServiceImpl(RoleRepository roleRepository) {
         this.roleRepository = roleRepository;
     }
 

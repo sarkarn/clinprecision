@@ -1,26 +1,21 @@
 package com.clinprecision.adminservice.site.projection;
 
+import com.clinprecision.adminservice.repository.*;
+import com.clinprecision.common.entity.RoleEntity;
+import com.clinprecision.common.entity.UserEntity;
+import com.clinprecision.common.entity.UserSiteAssignmentEntity;
 import org.axonframework.eventhandling.EventHandler;
 import org.axonframework.config.ProcessingGroup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.clinprecision.adminservice.repository.SiteRepository;
-import com.clinprecision.adminservice.repository.UserSiteAssignmentRepository;
-import com.clinprecision.adminservice.repository.UsersRepository;
-import com.clinprecision.adminservice.repository.RoleRepository;
-import com.clinprecision.adminservice.repository.OrganizationRepository;
 import com.clinprecision.adminservice.site.event.SiteActivatedEvent;
 import com.clinprecision.adminservice.site.event.SiteCreatedEvent;
 import com.clinprecision.adminservice.site.event.SiteUpdatedEvent;
 import com.clinprecision.adminservice.site.event.UserAssignedToSiteEvent;
 import com.clinprecision.common.entity.SiteEntity;
 import com.clinprecision.common.entity.SiteEntity.SiteStatus;
-import com.clinprecision.common.entity.UserEntity;
-import com.clinprecision.common.entity.RoleEntity;
-import com.clinprecision.common.entity.UserSiteAssignmentEntity;
-import com.clinprecision.common.entity.UserSiteAssignmentEntity.AssignmentStatus;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -279,7 +274,7 @@ public class SiteProjectionHandler {
         assignment.setSite(site);
         assignment.setRoleCode(role.getName()); // Using name as code since there's no separate code field
         assignment.setRoleName(role.getName());
-        assignment.setStatus(AssignmentStatus.ACTIVE);
+        assignment.setStatus(UserSiteAssignmentEntity.AssignmentStatus.ACTIVE);
         
         userSiteAssignmentRepository.save(assignment);
     }

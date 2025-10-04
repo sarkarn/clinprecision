@@ -1,4 +1,4 @@
-package com.clinprecision.adminservice.ui.model;
+package com.clinprecision.userservice.ui.model;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;

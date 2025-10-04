@@ -1,4 +1,4 @@
-package com.clinprecision.adminservice.service;
+package com.clinprecision.userservice.service;
 
 import java.util.List;
 

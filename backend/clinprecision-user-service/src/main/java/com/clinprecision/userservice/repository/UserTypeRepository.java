@@ -1,4 +1,4 @@
-package com.clinprecision.adminservice.repository;
+package com.clinprecision.userservice.repository;
 
 
 import com.clinprecision.common.entity.UserTypeEntity;

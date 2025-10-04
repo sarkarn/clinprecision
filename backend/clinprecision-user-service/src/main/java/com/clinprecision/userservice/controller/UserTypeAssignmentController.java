@@ -1,6 +1,7 @@
-package com.clinprecision.adminservice.ui.controller;
+package com.clinprecision.userservice.controller;
 
-import com.clinprecision.adminservice.service.UserAssignmentService;
+
+import com.clinprecision.userservice.service.UserAssignmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

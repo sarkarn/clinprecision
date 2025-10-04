@@ -1,9 +1,10 @@
-package com.clinprecision.adminservice.ui.controller;
+package com.clinprecision.userservice.controller;
 
-import com.clinprecision.adminservice.service.UserStudyRoleService;
+
 import com.clinprecision.common.dto.UserStudyRoleDto;
 import com.clinprecision.common.entity.UserStudyRoleEntity;
 import com.clinprecision.common.mapper.UserStudyRoleMapper;
+import com.clinprecision.userservice.service.UserStudyRoleService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
