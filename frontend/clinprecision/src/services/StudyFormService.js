@@ -1,7 +1,7 @@
 import ApiService from './ApiService';
 
 const FORM_DEFINITIONS_PATH = '/study-design-ws/api/form-definitions';
-const FORM_TEMPLATES_PATH = '/admin-ws/api/form-templates'; // Updated to admin-ws since templates moved to Administration module
+const FORM_TEMPLATES_PATH = '/site-ws/api/form-templates'; // Updated to site-ws since templates moved to Site Management module
 
 /**
  * Service for handling Study-specific Form operations

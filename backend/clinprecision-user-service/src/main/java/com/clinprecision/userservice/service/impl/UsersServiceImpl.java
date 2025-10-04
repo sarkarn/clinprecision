@@ -6,7 +6,7 @@ import com.clinprecision.common.dto.UserTypeDto;
 import com.clinprecision.common.entity.RoleEntity;
 import com.clinprecision.common.entity.UserEntity;
 import com.clinprecision.common.entity.UserTypeEntity;
-import com.clinprecision.userservice.repository.OrganizationRepository;
+import com.clinprecision.userservice.feign.OrganizationServiceClient;
 import com.clinprecision.userservice.repository.RoleRepository;
 import com.clinprecision.userservice.repository.UserTypeRepository;
 import com.clinprecision.userservice.repository.UsersRepository;
@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import com.clinprecision.userservice.service.UsersService;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -37,7 +38,7 @@ public class UsersServiceImpl implements UsersService {
     UserTypeRepository userTypeRepository;
     RoleRepository roleRepository;
     UserStudyRoleService userStudyRoleService;
-    OrganizationRepository organizationRepository;
+    OrganizationServiceClient organizationServiceClient;
 	
 	Logger logger = LoggerFactory.getLogger(this.getClass());
 	
@@ -47,14 +48,14 @@ public class UsersServiceImpl implements UsersService {
             Environment environment,
             UserTypeRepository userTypeRepository,
             RoleRepository roleRepository,
-                            OrganizationRepository organizationRepository,
+                            OrganizationServiceClient organizationServiceClient,
             UserStudyRoleService userStudyRoleService) {
         this.usersRepository = usersRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.environment = environment;
         this.userTypeRepository = userTypeRepository;
         this.roleRepository = roleRepository;
-        this.organizationRepository = organizationRepository;
+        this.organizationServiceClient = organizationServiceClient;
         this.userStudyRoleService = userStudyRoleService;
     }
  
@@ -73,7 +74,19 @@ public class UsersServiceImpl implements UsersService {
 		
         // Set organization if provided
         if (userDetails.getOrganizationId() != null) {
-            organizationRepository.findById(userDetails.getOrganizationId()).ifPresent(userEntity::setOrganization);
+            // Verify organization exists via Feign client
+            try {
+                com.clinprecision.common.dto.OrganizationDto orgDto = organizationServiceClient.getOrganizationById(userDetails.getOrganizationId());
+                if (orgDto != null) {
+                    // Create a proxy OrganizationEntity with just the ID for JPA relationship
+                    com.clinprecision.common.entity.OrganizationEntity orgEntity = new com.clinprecision.common.entity.OrganizationEntity();
+                    orgEntity.setId(userDetails.getOrganizationId());
+                    userEntity.setOrganization(orgEntity);
+                }
+            } catch (Exception e) {
+                logger.warn("Organization with ID {} not found or service unavailable", userDetails.getOrganizationId());
+                throw new RuntimeException("Invalid organization ID: " + userDetails.getOrganizationId());
+            }
         }
 
         // Set roles if provided
@@ -283,6 +296,19 @@ public class UsersServiceImpl implements UsersService {
 		userDto.setCreatedAt(userEntity.getCreatedAt());
 		userDto.setUpdatedAt(userEntity.getUpdatedAt());
 		userDto.setEncryptedPassword(userEntity.getEncryptedPassword());
+		
+		// Map organization ID if present
+		if (userEntity.getOrganization() != null) {
+			userDto.setOrganizationId(userEntity.getOrganization().getId());
+		}
+		
+		// Map role IDs if present
+		if (userEntity.getRoles() != null && !userEntity.getRoles().isEmpty()) {
+			Set<Long> roleIds = userEntity.getRoles().stream()
+				.map(role -> role.getId())
+				.collect(Collectors.toSet());
+			userDto.setRoleIds(roleIds);
+		}
 		
 		// Don't try to map userTypes collection - leave it as an empty set
        
