@@ -1,8 +1,13 @@
 package com.clinprecision.clinopsservice.study.service;
 
+import com.clinprecision.clinopsservice.entity.StudyEntity;
 import com.clinprecision.clinopsservice.study.command.*;
 import com.clinprecision.clinopsservice.study.dto.request.*;
 import com.clinprecision.clinopsservice.study.mapper.StudyCommandMapper;
+import java.time.Duration;
+import java.util.Objects;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -32,6 +37,8 @@ public class StudyCommandService {
     
     private final CommandGateway commandGateway;
     private final StudyCommandMapper commandMapper;
+    private final StudyValidationService validationService;
+    private final StudyQueryService studyQueryService;
     // TODO: Inject SecurityService to get current user context
     // private final SecurityService securityService;
     
@@ -73,10 +80,14 @@ public class StudyCommandService {
      * @param request Study update request DTO (partial update)
      * @throws org.axonframework.commandhandling.CommandExecutionException if command fails
      * @throws IllegalStateException if study status doesn't allow modifications
+     * @throws StudyStatusTransitionException if modification not allowed in current status
      */
     @Transactional
     public void updateStudy(UUID studyUuid, StudyUpdateRequestDto request) {
         log.info("Updating study: {}", studyUuid);
+        
+        // Validate modification allowed in current status
+        validationService.validateStudyModification(studyUuid);
         
         // TODO: Get current user from security context
         UUID userId = UUID.randomUUID(); // Temporary
@@ -89,7 +100,9 @@ public class StudyCommandService {
         // Send command and wait for completion
         commandGateway.sendAndWait(command);
         
-        log.info("Study updated successfully: {}", studyUuid);
+    log.info("Study updated successfully: {}", studyUuid);
+
+    scheduleProjectionAwait(studyUuid, request, Duration.ofSeconds(5));
     }
     
     /**
@@ -100,10 +113,14 @@ public class StudyCommandService {
      * @param request Suspension request with reason
      * @throws org.axonframework.commandhandling.CommandExecutionException if command fails
      * @throws IllegalStateException if study is not in ACTIVE status
+     * @throws StudyStatusTransitionException if cross-entity validation fails
      */
     @Transactional
     public void suspendStudy(UUID studyUuid, SuspendStudyRequestDto request) {
         log.info("Suspending study: {} with reason: {}", studyUuid, request.getReason());
+        
+        // Validate cross-entity dependencies BEFORE sending command
+        validationService.validateStatusTransition(studyUuid, "SUSPENDED");
         
         // TODO: Get current user from security context
         UUID userId = UUID.randomUUID(); // Temporary
@@ -125,10 +142,14 @@ public class StudyCommandService {
      * @param studyUuid UUID of study aggregate to terminate
      * @param request Termination request with reason
      * @throws org.axonframework.commandhandling.CommandExecutionException if command fails
+     * @throws StudyStatusTransitionException if cross-entity validation fails
      */
     @Transactional
     public void terminateStudy(UUID studyUuid, TerminateStudyRequestDto request) {
         log.info("Terminating study: {} with reason: {}", studyUuid, request.getReason());
+        
+        // Validate cross-entity dependencies BEFORE sending command
+        validationService.validateStatusTransition(studyUuid, "TERMINATED");
         
         // TODO: Get current user from security context
         UUID userId = UUID.randomUUID(); // Temporary
@@ -150,10 +171,14 @@ public class StudyCommandService {
      * @param studyUuid UUID of study aggregate to withdraw
      * @param request Withdrawal request with reason
      * @throws org.axonframework.commandhandling.CommandExecutionException if command fails
+     * @throws StudyStatusTransitionException if cross-entity validation fails
      */
     @Transactional
     public void withdrawStudy(UUID studyUuid, WithdrawStudyRequestDto request) {
         log.info("Withdrawing study: {} with reason: {}", studyUuid, request.getReason());
+        
+        // Validate cross-entity dependencies BEFORE sending command
+        validationService.validateStatusTransition(studyUuid, "WITHDRAWN");
         
         // TODO: Get current user from security context
         UUID userId = UUID.randomUUID(); // Temporary
@@ -174,10 +199,14 @@ public class StudyCommandService {
      * 
      * @param studyUuid UUID of study aggregate to complete
      * @throws org.axonframework.commandhandling.CommandExecutionException if command fails
+     * @throws StudyStatusTransitionException if cross-entity validation fails
      */
     @Transactional
     public void completeStudy(UUID studyUuid) {
         log.info("Completing study: {}", studyUuid);
+        
+        // Validate cross-entity dependencies BEFORE sending command
+        validationService.validateStatusTransition(studyUuid, "COMPLETED");
         
         // TODO: Get current user from security context
         UUID userId = UUID.randomUUID(); // Temporary
@@ -190,6 +219,86 @@ public class StudyCommandService {
         commandGateway.sendAndWait(command);
         
         log.info("Study completed successfully: {}", studyUuid);
+    }
+
+    private void scheduleProjectionAwait(UUID studyUuid, StudyUpdateRequestDto request, Duration timeout) {
+        if (request == null) {
+            return;
+        }
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    awaitProjectionUpdate(studyUuid, request, timeout);
+                }
+            });
+        } else {
+            awaitProjectionUpdate(studyUuid, request, timeout);
+        }
+    }
+
+    private void awaitProjectionUpdate(UUID studyUuid, StudyUpdateRequestDto request, Duration timeout) {
+        if (request == null) {
+            return;
+        }
+
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (System.nanoTime() < deadline) {
+            try {
+                StudyEntity entity = studyQueryService.getStudyEntityByUuid(studyUuid);
+                if (projectionMatchesRequest(entity, request)) {
+                    return;
+                }
+            } catch (RuntimeException ex) {
+                log.debug("Projection not ready for study {}: {}", studyUuid, ex.getMessage());
+            }
+
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+
+        log.warn("Timed out waiting for projection update for study {}", studyUuid);
+    }
+
+    private boolean projectionMatchesRequest(StudyEntity entity, StudyUpdateRequestDto request) {
+        if (entity == null) {
+            return false;
+        }
+
+        if (request.getDescription() != null && !Objects.equals(request.getDescription(), entity.getDescription())) {
+            return false;
+        }
+        if (request.getName() != null && !Objects.equals(request.getName(), entity.getName())) {
+            return false;
+        }
+        if (request.getSponsor() != null && !Objects.equals(request.getSponsor(), entity.getSponsor())) {
+            return false;
+        }
+        if (request.getProtocolNumber() != null && !Objects.equals(request.getProtocolNumber(), entity.getProtocolNumber())) {
+            return false;
+        }
+        if (request.getIndication() != null && !Objects.equals(request.getIndication(), entity.getIndication())) {
+            return false;
+        }
+        if (request.getStudyType() != null && !Objects.equals(request.getStudyType(), entity.getStudyType())) {
+            return false;
+        }
+        if (request.getPrincipalInvestigator() != null && !Objects.equals(request.getPrincipalInvestigator(), entity.getPrincipalInvestigator())) {
+            return false;
+        }
+        if (request.getTherapeuticArea() != null && !Objects.equals(request.getTherapeuticArea(), entity.getTherapeuticArea())) {
+            return false;
+        }
+        if (request.getTargetEnrollment() != null && !Objects.equals(request.getTargetEnrollment(), entity.getTargetEnrollment())) {
+            return false;
+        }
+
+        return true;
     }
 }
 

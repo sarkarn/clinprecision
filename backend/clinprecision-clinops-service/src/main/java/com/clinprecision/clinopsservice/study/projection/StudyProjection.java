@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 /**
  * Study Projection - Event Listener
@@ -396,10 +397,16 @@ public class StudyProjection {
         logger.info("Projecting StudyWithdrawnEvent for aggregate: {}", event.getStudyAggregateUuid());
         
         try {
-            StudyEntity entity = studyRepository.findByAggregateUuid(event.getStudyAggregateUuid())
-                .orElseThrow(() -> new IllegalStateException(
-                    "Study not found for UUID: " + event.getStudyAggregateUuid()));
-            
+            Optional<StudyEntity> entityOpt = studyRepository.findByAggregateUuid(event.getStudyAggregateUuid());
+
+            if (entityOpt.isEmpty()) {
+                logger.warn("Projection not found for withdrawn study {} (eventual consistency); skipping update",
+                    event.getStudyAggregateUuid());
+                return;
+            }
+
+            StudyEntity entity = entityOpt.get();
+
             studyStatusRepository.findByCode("WITHDRAWN")
                 .ifPresent(entity::setStudyStatus);
             

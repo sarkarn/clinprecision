@@ -1,10 +1,12 @@
 package com.clinprecision.clinopsservice.study.service;
 
+import com.clinprecision.clinopsservice.entity.StudyEntity;
+import com.clinprecision.clinopsservice.repository.StudyRepository;
 import com.clinprecision.clinopsservice.study.dto.response.StudyListResponseDto;
 import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
 import com.clinprecision.clinopsservice.study.mapper.StudyResponseMapper;
-import com.clinprecision.clinopsservice.repository.StudyRepository;
-import com.clinprecision.clinopsservice.entity.StudyEntity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,33 @@ public class StudyQueryService {
     
     private final StudyRepository studyRepository;
     private final StudyResponseMapper responseMapper;
+    @PersistenceContext
+    private EntityManager entityManager;
+    
+    /**
+     * Get study entity by aggregate UUID (for internal service use)
+     * Used by validation services to access read model
+     * 
+     * @param studyUuid Aggregate UUID of the study
+     * @return StudyEntity from read model
+     * @throws StudyNotFoundException if study not found
+     */
+    public StudyEntity getStudyEntityByUuid(UUID studyUuid) {
+        log.debug("Querying study entity by UUID: {}", studyUuid);
+
+        if (entityManager != null) {
+            entityManager.clear();
+        }
+        
+        StudyEntity entity = studyRepository.findByAggregateUuid(studyUuid)
+                .orElseThrow(() -> {
+                    log.error("Study not found with UUID: {}", studyUuid);
+                    return new StudyNotFoundException("Study not found with UUID: " + studyUuid);
+                });
+        
+        log.debug("Found study entity: {} (ID: {})", entity.getName(), entity.getId());
+        return entity;
+    }
     
     /**
      * Get study by aggregate UUID (DDD identifier)
@@ -47,13 +76,9 @@ public class StudyQueryService {
     public StudyResponseDto getStudyByUuid(UUID studyUuid) {
         log.debug("Querying study by UUID: {}", studyUuid);
         
-        StudyEntity entity = studyRepository.findByAggregateUuid(studyUuid)
-                .orElseThrow(() -> {
-                    log.error("Study not found with UUID: {}", studyUuid);
-                    return new StudyNotFoundException("Study not found with UUID: " + studyUuid);
-                });
+        StudyEntity entity = getStudyEntityByUuid(studyUuid);
         
-        log.debug("Found study: {} (ID: {})", entity.getName(), entity.getId());
+        log.debug("Mapping study to DTO: {} (ID: {})", entity.getName(), entity.getId());
         return responseMapper.toResponseDto(entity);
     }
     

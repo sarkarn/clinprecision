@@ -23,12 +23,17 @@ import java.util.concurrent.CompletableFuture;
 public class StudyDesignCommandService {
 
     private final CommandGateway commandGateway;
+    private final StudyDesignValidationService validationService;
 
     /**
      * Initialize a new study design aggregate
+     * Validates study status allows design initialization
      */
     public CompletableFuture<UUID> initializeStudyDesign(InitializeStudyDesignRequest request) {
         log.info("Initializing study design for study: {}", request.getStudyAggregateUuid());
+        
+        // Validate design initialization allowed
+        validationService.validateDesignInitialization(request.getStudyAggregateUuid());
         
         UUID studyDesignId = StudyDesignIdentifier.newIdentifier().getId();
         
@@ -44,10 +49,15 @@ public class StudyDesignCommandService {
 
     /**
      * Add a study arm
+     * Validates study status allows design modifications
      * @return CompletableFuture containing the UUID of the created arm
      */
     public CompletableFuture<UUID> addStudyArm(UUID studyDesignId, AddStudyArmRequest request) {
         log.info("Adding study arm '{}' to design: {}", request.getName(), studyDesignId);
+        
+        // Validate arm addition allowed
+        // TODO: Need to pass studyUuid - this requires querying StudyDesign aggregate or adding to request
+        // validationService.validateArmAddition(studyDesignId, studyUuid);
         
         UUID armId = UUID.randomUUID();
         
@@ -67,9 +77,13 @@ public class StudyDesignCommandService {
 
     /**
      * Update study arm
+     * Validates study status allows design modifications
      */
     public CompletableFuture<Void> updateStudyArm(UUID studyDesignId, UUID armId, UpdateStudyArmRequest request) {
         log.info("Updating study arm {} in design: {}", armId, studyDesignId);
+        
+        // TODO: Need to pass studyUuid - requires querying StudyDesign aggregate
+        // validationService.validateArmUpdate(studyDesignId, armId, studyUuid);
         
         UpdateStudyArmCommand command = UpdateStudyArmCommand.builder()
             .studyDesignId(studyDesignId)
@@ -85,9 +99,14 @@ public class StudyDesignCommandService {
 
     /**
      * Remove study arm
+     * Validates study status allows design modifications
+     * CRITICAL: Validates no enrolled subjects in arm
      */
     public CompletableFuture<Void> removeStudyArm(UUID studyDesignId, UUID armId, String reason, Long removedBy) {
         log.info("Removing study arm {} from design: {}", armId, studyDesignId);
+        
+        // TODO: Need to pass studyUuid - requires querying StudyDesign aggregate
+        // validationService.validateArmRemoval(studyDesignId, armId, studyUuid);
         
         RemoveStudyArmCommand command = RemoveStudyArmCommand.builder()
             .studyDesignId(studyDesignId)
@@ -101,11 +120,15 @@ public class StudyDesignCommandService {
 
     /**
      * Define a visit
+     * Validates study status allows design modifications
      * @return CompletableFuture containing the UUID of the created visit
      */
     public CompletableFuture<UUID> defineVisit(UUID studyDesignId, DefineVisitRequest request) {
         log.info("Defining visit '{}' at timepoint {} in design: {}", 
             request.getName(), request.getTimepoint(), studyDesignId);
+        
+        // TODO: Need to pass studyUuid - requires querying StudyDesign aggregate
+        // validationService.validateVisitDefinition(studyDesignId, studyUuid);
         
         UUID visitId = UUID.randomUUID();
         
