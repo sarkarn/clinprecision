@@ -68,3 +68,6 @@ public class StudyCreateRequestDto {
     private String notes;
     private String riskLevel;
 }
+
+
+

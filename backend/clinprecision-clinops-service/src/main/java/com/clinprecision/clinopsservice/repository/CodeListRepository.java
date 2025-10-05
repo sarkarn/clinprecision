@@ -1,6 +1,6 @@
 package com.clinprecision.clinopsservice.repository;
 
-import com.clinprecision.common.entity.CodeListEntity;
+import com.clinprecision.clinopsservice.entity.CodeListEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -129,3 +129,6 @@ public interface CodeListRepository extends JpaRepository<CodeListEntity, Long> 
            "ORDER BY cl.updatedAt DESC")
     List<CodeListEntity> findRecentlyModified(@Param("since") LocalDate since);
 }
+
+
+

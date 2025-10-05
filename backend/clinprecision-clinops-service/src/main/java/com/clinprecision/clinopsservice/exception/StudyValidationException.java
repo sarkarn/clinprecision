@@ -13,3 +13,6 @@ public class StudyValidationException extends RuntimeException {
         super(message, cause);
     }
 }
+
+
+

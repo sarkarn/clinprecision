@@ -3,7 +3,7 @@ package com.clinprecision.clinopsservice.service;
 
 
 import com.clinprecision.clinopsservice.repository.StudyRepository;
-import com.clinprecision.common.dto.clinops.StudyDashboardMetricsDto;
+import com.clinprecision.clinopsservice.dto.StudyDashboardMetricsDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -159,3 +159,6 @@ public class StudyDashboardService {
         }
     }
 }
+
+
+

@@ -243,3 +243,6 @@ public class StudyDatabaseBuildEntity {
         return java.time.Duration.between(buildStartTime, buildEndTime).getSeconds();
     }
 }
+
+
+

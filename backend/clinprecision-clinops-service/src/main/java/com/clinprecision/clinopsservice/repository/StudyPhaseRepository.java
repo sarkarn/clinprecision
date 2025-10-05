@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.StudyPhaseEntity;
+import com.clinprecision.clinopsservice.entity.StudyPhaseEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -86,3 +86,6 @@ public interface StudyPhaseRepository extends JpaRepository<StudyPhaseEntity, Lo
     @Query("SELECT sp FROM StudyPhaseEntity sp WHERE sp.isActive = true AND sp.phaseCategory = 'REGISTRATION' ORDER BY sp.displayOrder")
     List<StudyPhaseEntity> findRegistrationPhases();
 }
+
+
+

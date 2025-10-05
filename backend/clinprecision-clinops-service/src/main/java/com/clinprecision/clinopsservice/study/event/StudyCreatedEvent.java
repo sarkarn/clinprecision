@@ -58,3 +58,6 @@ public class StudyCreatedEvent {
     String userName;
     Instant timestamp;
 }
+
+
+

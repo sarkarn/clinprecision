@@ -4,7 +4,7 @@ import com.clinprecision.clinopsservice.study.dto.response.StudyListResponseDto;
 import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
 import com.clinprecision.clinopsservice.study.mapper.StudyResponseMapper;
 import com.clinprecision.clinopsservice.repository.StudyRepository;
-import com.clinprecision.common.entity.clinops.StudyEntity;
+import com.clinprecision.clinopsservice.entity.StudyEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -164,3 +164,6 @@ class StudyNotFoundException extends RuntimeException {
         super(message);
     }
 }
+
+
+

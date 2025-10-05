@@ -1,8 +1,8 @@
 package com.clinprecision.clinopsservice.repository;
 
 
-import com.clinprecision.common.entity.clinops.OrganizationRole;
-import com.clinprecision.common.entity.clinops.OrganizationStudyEntity;
+import com.clinprecision.clinopsservice.entity.OrganizationRole;
+import com.clinprecision.clinopsservice.entity.OrganizationStudyEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -66,3 +66,6 @@ public interface OrganizationStudyRepository extends JpaRepository<OrganizationS
         @Param("organizationId") Long organizationId, 
         @Param("role") OrganizationRole role);
 }
+
+
+

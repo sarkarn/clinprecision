@@ -21,3 +21,6 @@ public class SuspendStudyRequestDto {
     @NotBlank(message = "Reason is required for suspending a study")
     private String reason;
 }
+
+
+

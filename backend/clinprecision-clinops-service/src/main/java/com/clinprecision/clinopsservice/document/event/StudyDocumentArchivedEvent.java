@@ -24,3 +24,6 @@ public class StudyDocumentArchivedEvent {
     String ipAddress;
     String userAgent;
 }
+
+
+

@@ -2,8 +2,8 @@ package com.clinprecision.clinopsservice.controller;
 import com.clinprecision.clinopsservice.service.FormTemplateService;
 
 
-import com.clinprecision.common.dto.clinops.FormTemplateCreateRequestDto;
-import com.clinprecision.common.dto.clinops.FormTemplateDto;
+import com.clinprecision.clinopsservice.dto.FormTemplateCreateRequestDto;
+import com.clinprecision.clinopsservice.dto.FormTemplateDto;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -168,3 +168,6 @@ public class FormTemplateController {
         return ResponseEntity.ok(count);
     }
 }
+
+
+

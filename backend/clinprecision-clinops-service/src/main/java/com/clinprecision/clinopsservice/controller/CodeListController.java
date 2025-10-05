@@ -1,9 +1,9 @@
 package com.clinprecision.clinopsservice.controller;
 
 import com.clinprecision.clinopsservice.service.CodeListService;
-import com.clinprecision.common.dto.CodeListDto;
-import com.clinprecision.common.dto.clinops.CreateCodeListRequest;
-import com.clinprecision.common.dto.clinops.UpdateCodeListRequest;
+import com.clinprecision.clinopsservice.dto.CodeListDto;
+import com.clinprecision.clinopsservice.dto.CreateCodeListRequest;
+import com.clinprecision.clinopsservice.dto.UpdateCodeListRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
@@ -314,3 +314,6 @@ public class CodeListController {
         }
     }
 }
+
+
+

@@ -100,3 +100,6 @@ public class PatientEntity {
                (email != null && !email.trim().isEmpty());
     }
 }
+
+
+

@@ -25,3 +25,6 @@ public class ChangeStudyStatusCommand {
     UUID userId;
     String userName;
 }
+
+
+

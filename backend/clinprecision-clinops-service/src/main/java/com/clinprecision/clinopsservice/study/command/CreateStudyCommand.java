@@ -51,3 +51,6 @@ public class CreateStudyCommand {
     UUID userId; // User creating the study
     String userName; // Username for audit trail
 }
+
+
+

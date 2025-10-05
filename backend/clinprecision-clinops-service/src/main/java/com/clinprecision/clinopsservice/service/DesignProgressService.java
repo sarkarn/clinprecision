@@ -4,10 +4,10 @@ package com.clinprecision.clinopsservice.service;
 
 import com.clinprecision.clinopsservice.repository.DesignProgressRepository;
 import com.clinprecision.clinopsservice.repository.StudyRepository;
-import com.clinprecision.common.dto.clinops.DesignProgressDto;
-import com.clinprecision.common.dto.clinops.DesignProgressResponseDto;
-import com.clinprecision.common.dto.clinops.DesignProgressUpdateRequestDto;
-import com.clinprecision.common.entity.clinops.DesignProgressEntity;
+import com.clinprecision.clinopsservice.dto.DesignProgressDto;
+import com.clinprecision.clinopsservice.dto.DesignProgressResponseDto;
+import com.clinprecision.clinopsservice.dto.DesignProgressUpdateRequestDto;
+import com.clinprecision.clinopsservice.entity.DesignProgressEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -289,3 +289,6 @@ public class DesignProgressService {
         return statistics;
     }
 }
+
+
+

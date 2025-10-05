@@ -2,8 +2,8 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.StudyAmendmentEntity;
-import com.clinprecision.common.entity.clinops.StudyVersionEntity;
+import com.clinprecision.clinopsservice.entity.StudyAmendmentEntity;
+import com.clinprecision.clinopsservice.entity.StudyVersionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -105,3 +105,6 @@ public interface StudyAmendmentRepository extends JpaRepository<StudyAmendmentEn
     @Query("SELECT sa FROM StudyAmendmentEntity sa WHERE sa.status IN ('SUBMITTED', 'UNDER_REVIEW') ORDER BY sa.submittedDate ASC")
     List<StudyAmendmentEntity> findAmendmentsPendingReview();
 }
+
+
+

@@ -4,9 +4,9 @@ package com.clinprecision.clinopsservice.service;
 
 import com.clinprecision.clinopsservice.exception.StudyValidationException;
 import com.clinprecision.clinopsservice.repository.StudyRepository;
-import com.clinprecision.common.dto.clinops.StudyCreateRequestDto;
-import com.clinprecision.common.dto.clinops.StudyUpdateRequestDto;
-import com.clinprecision.common.entity.clinops.StudyEntity;
+import com.clinprecision.clinopsservice.study.dto.request.StudyCreateRequestDto;
+import com.clinprecision.clinopsservice.study.dto.request.StudyUpdateRequestDto;
+import com.clinprecision.clinopsservice.entity.StudyEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -44,13 +44,9 @@ public class StudyValidationService {
         // 2. Validate date ranges
         validateDateRange(request.getStartDate(), request.getEndDate());
         
-        // 3. Validate organization assignments
-        if (request.getOrganizations() != null && !request.getOrganizations().isEmpty()) {
-            validateOrganizationAssignments(request);
-        }
-        
-        // 4. Validate metadata JSON if provided
-        validateMetadata(request.getMetadata());
+        // Note: Organization assignments and metadata are handled separately in DDD architecture
+        // - Organization assignments are managed through OrganizationStudy aggregate
+        // - Metadata is not part of the core Study aggregate in DDD model
     }
     
     /**
@@ -83,15 +79,9 @@ public class StudyValidationService {
         LocalDate endDate = request.getEndDate() != null ? request.getEndDate() : existingStudy.getEndDate();
         validateDateRange(startDate, endDate);
         
-        // 4. Validate metadata JSON if provided
-        if (request.getMetadata() != null) {
-            validateMetadata(request.getMetadata());
-        }
-        
-        // 5. Validate organization assignments if provided
-        if (request.getOrganizations() != null && !request.getOrganizations().isEmpty()) {
-            validateOrganizationAssignments(request);
-        }
+        // Note: Organization assignments and metadata are handled separately in DDD architecture
+        // - Organization assignments are managed through OrganizationStudy aggregate
+        // - Metadata is not part of the core Study aggregate in DDD model
     }
     
     /**
@@ -117,86 +107,36 @@ public class StudyValidationService {
         }
     }
     
-    /**
-     * Validate organization assignments
+    /*
+     * NOTE: The following validation methods are commented out because they were designed
+     * for the legacy DTO structure. In the DDD/CQRS architecture:
+     * - Organization assignments are managed through the OrganizationStudy aggregate
+     * - Metadata is not part of the core Study aggregate
+     * 
+     * These validations may be re-implemented in their respective bounded contexts if needed.
      */
-    private void validateOrganizationAssignments(StudyCreateRequestDto request) {
-        // Check for duplicate organization-role combinations
-        boolean hasDuplicates = request.getOrganizations().stream()
-            .map(org -> org.getOrganizationId() + "-" + org.getRole())
-            .distinct()
-            .count() != request.getOrganizations().size();
-            
-        if (hasDuplicates) {
-            throw new StudyValidationException("Duplicate organization-role combinations are not allowed");
-        }
-        
-        // Validate that each organization has a valid role
-        for (var org : request.getOrganizations()) {
-            if (org.getOrganizationId() == null || org.getOrganizationId() <= 0) {
-                throw new StudyValidationException("Invalid organization ID: " + org.getOrganizationId());
-            }
-            
-            if (org.getRole() == null || org.getRole().trim().isEmpty()) {
-                throw new StudyValidationException("Organization role cannot be empty");
-            }
-            
-            // Validate date range for organization assignment
-            if (org.getStartDate() != null && org.getEndDate() != null) {
-                if (org.getEndDate().isBefore(org.getStartDate())) {
-                    throw new StudyValidationException("Organization assignment end date cannot be before start date");
-                }
-            }
-        }
-    }
     
-    /**
-     * Validate organization assignments (update version)
-     */
-    private void validateOrganizationAssignments(StudyUpdateRequestDto request) {
-        // Check for duplicate organization-role combinations
-        boolean hasDuplicates = request.getOrganizations().stream()
-            .map(org -> org.getOrganizationId() + "-" + org.getRole())
-            .distinct()
-            .count() != request.getOrganizations().size();
-            
-        if (hasDuplicates) {
-            throw new StudyValidationException("Duplicate organization-role combinations are not allowed");
-        }
-        
-        // Validate that each organization has a valid role
-        for (var org : request.getOrganizations()) {
-            if (org.getOrganizationId() == null || org.getOrganizationId() <= 0) {
-                throw new StudyValidationException("Invalid organization ID: " + org.getOrganizationId());
-            }
-            
-            if (org.getRole() == null || org.getRole().trim().isEmpty()) {
-                throw new StudyValidationException("Organization role cannot be empty");
-            }
-            
-            // Validate date range for organization assignment
-            if (org.getStartDate() != null && org.getEndDate() != null) {
-                if (org.getEndDate().isBefore(org.getStartDate())) {
-                    throw new StudyValidationException("Organization assignment end date cannot be before start date");
-                }
-            }
-        }
-    }
-    
-    /**
-     * Validate metadata JSON structure
-     */
-    private void validateMetadata(String metadata) {
-        if (metadata == null || metadata.trim().isEmpty()) {
-            return; // Metadata is optional
-        }
-        
-        try {
-            // Basic JSON structure validation
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            mapper.readTree(metadata);
-        } catch (Exception e) {
-            throw new StudyValidationException("Invalid JSON format in metadata: " + e.getMessage());
-        }
-    }
+    // /**
+    //  * Validate organization assignments
+    //  */
+    // private void validateOrganizationAssignments(StudyCreateRequestDto request) {
+    //     // Legacy validation - not used in DDD architecture
+    // }
+    // 
+    // /**
+    //  * Validate organization assignments (update version)
+    //  */
+    // private void validateOrganizationAssignments(StudyUpdateRequestDto request) {
+    //     // Legacy validation - not used in DDD architecture
+    // }
+    // 
+    // /**
+    //  * Validate metadata JSON structure
+    //  */
+    // private void validateMetadata(String metadata) {
+    //     // Legacy validation - not used in DDD architecture
+    // }
 }
+
+
+

@@ -1,8 +1,8 @@
 package com.clinprecision.clinopsservice.studydatabase.service;
 
 
-import com.clinprecision.common.entity.clinops.StudyArmEntity;
-import com.clinprecision.common.entity.clinops.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.entity.StudyArmEntity;
+import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
 import com.clinprecision.clinopsservice.studydatabase.domain.commands.*;
 import com.clinprecision.clinopsservice.studydatabase.dto.*;
 import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
@@ -519,3 +519,6 @@ public class StudyDatabaseBuildCommandService {
                 .build();
     }
 }
+
+
+

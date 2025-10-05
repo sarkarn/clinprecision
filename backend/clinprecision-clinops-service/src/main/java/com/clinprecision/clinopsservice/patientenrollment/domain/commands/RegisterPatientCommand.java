@@ -92,3 +92,6 @@ public class RegisterPatientCommand extends BaseCommand {
                (email != null && !email.trim().isEmpty());
     }
 }
+
+
+

@@ -1,7 +1,7 @@
 package com.clinprecision.clinopsservice.repository;
 
 
-import com.clinprecision.common.entity.clinops.FormTemplateEntity;
+import com.clinprecision.clinopsservice.entity.FormTemplateEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -76,3 +76,6 @@ public interface FormTemplateRepository extends JpaRepository<FormTemplateEntity
      */
     long countByStatus(FormTemplateEntity.TemplateStatus status);
 }
+
+
+

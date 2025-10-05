@@ -1,8 +1,8 @@
 package com.clinprecision.clinopsservice.service;
 
 
-import com.clinprecision.common.dto.CodeListDto;
-import com.clinprecision.common.dto.clinops.FormTemplateDto;
+import com.clinprecision.clinopsservice.dto.CodeListDto;
+import com.clinprecision.clinopsservice.dto.FormTemplateDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
@@ -72,7 +72,7 @@ public class AdminServiceProxy {
         logger.debug("Fetching all regulatory statuses from local service");
         
         try {
-            List<com.clinprecision.common.dto.CodeListDto> statuses = 
+            List<CodeListDto> statuses = 
                 codeListService.getSimpleCodeListsByCategory("REGULATORY_STATUS");
             logger.debug("Retrieved {} regulatory statuses", statuses.size());
             return statuses.stream().map(this::toMap).collect(Collectors.toList());
@@ -95,7 +95,7 @@ public class AdminServiceProxy {
         logger.debug("Fetching all study phases from local service");
         
         try {
-            List<com.clinprecision.common.dto.CodeListDto> phases = 
+            List<CodeListDto> phases = 
                 codeListService.getSimpleCodeListsByCategory("STUDY_PHASE");
             logger.debug("Retrieved {} study phases", phases.size());
             return phases.stream().map(this::toMap).collect(Collectors.toList());
@@ -118,7 +118,7 @@ public class AdminServiceProxy {
         logger.debug("Fetching all study statuses from local service");
         
         try {
-            List<com.clinprecision.common.dto.CodeListDto> statuses = 
+            List<CodeListDto> statuses = 
                 codeListService.getSimpleCodeListsByCategory("STUDY_STATUS");
             logger.debug("Retrieved {} study statuses", statuses.size());
             return statuses.stream().map(this::toMap).collect(Collectors.toList());
@@ -140,7 +140,7 @@ public class AdminServiceProxy {
         logger.debug("Fetching all amendment types from local service");
         
         try {
-            List<com.clinprecision.common.dto.CodeListDto> types = 
+            List<CodeListDto> types = 
                 codeListService.getSimpleCodeListsByCategory("AMENDMENT_TYPE");
             logger.debug("Retrieved {} amendment types", types.size());
             return types.stream().map(this::toMap).collect(Collectors.toList());
@@ -162,7 +162,7 @@ public class AdminServiceProxy {
         logger.debug("Fetching all visit types from local service");
         
         try {
-            List<com.clinprecision.common.dto.CodeListDto> types = 
+            List<CodeListDto> types = 
                 codeListService.getSimpleCodeListsByCategory("VISIT_TYPE");
             logger.debug("Retrieved {} visit types", types.size());
             return types.stream().map(this::toMap).collect(Collectors.toList());
@@ -185,7 +185,7 @@ public class AdminServiceProxy {
         logger.debug("Fetching {} with code: {}", category, code);
         
         try {
-            List<com.clinprecision.common.dto.CodeListDto> items = 
+            List<CodeListDto> items = 
                 codeListService.getSimpleCodeListsByCategory(category);
             return items.stream()
                 .filter(item -> code.equals(item.getCode()))
@@ -207,7 +207,7 @@ public class AdminServiceProxy {
         logger.debug("Fetching regulatory statuses allowing enrollment");
         
         try {
-            List<com.clinprecision.common.dto.CodeListDto> allStatuses = 
+            List<CodeListDto> allStatuses = 
                 codeListService.getSimpleCodeListsByCategory("REGULATORY_STATUS");
             return allStatuses.stream()
                 .filter(item -> {
@@ -235,7 +235,7 @@ public class AdminServiceProxy {
         logger.debug("Fetching study phases requiring IND");
         
         try {
-            List<com.clinprecision.common.dto.CodeListDto> allPhases = 
+            List<CodeListDto> allPhases = 
                 codeListService.getSimpleCodeListsByCategory("STUDY_PHASE");
             return allPhases.stream()
                 .filter(item -> {
@@ -330,7 +330,7 @@ public class AdminServiceProxy {
      */
     public Map<String, Object> getCacheStats() {
         Map<String, Object> stats = Map.of(
-            "service", "CodeListClientService",
+            "service", "AdminServiceProxy",
             "cacheNames", List.of("codelists"),
             "lastWarmup", "Not implemented - requires cache manager integration",
             "cacheHits", "Not implemented - requires cache manager integration",
@@ -370,3 +370,6 @@ public class AdminServiceProxy {
         }
     }
 }
+
+
+

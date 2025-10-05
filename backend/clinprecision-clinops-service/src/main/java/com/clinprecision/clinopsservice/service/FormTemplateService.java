@@ -2,12 +2,12 @@ package com.clinprecision.clinopsservice.service;
 
 import com.clinprecision.clinopsservice.repository.FormTemplateRepository;
 
-import com.clinprecision.common.dto.clinops.FormTemplateCreateRequestDto;
-import com.clinprecision.common.dto.clinops.FormTemplateDto;
-import com.clinprecision.common.entity.clinops.FormTemplateEntity;
+import com.clinprecision.clinopsservice.dto.FormTemplateCreateRequestDto;
+import com.clinprecision.clinopsservice.dto.FormTemplateDto;
+import com.clinprecision.clinopsservice.entity.FormTemplateEntity;
 import com.clinprecision.common.exception.EntityNotFoundException;
 import com.clinprecision.common.exception.DuplicateEntityException;
-import com.clinprecision.common.mapper.FormTemplateMapper;
+import com.clinprecision.clinopsservice.mapper.FormTemplateMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -202,3 +202,6 @@ public class FormTemplateService {
         return formTemplateRepository.countByStatus(FormTemplateEntity.TemplateStatus.PUBLISHED);
     }
 }
+
+
+

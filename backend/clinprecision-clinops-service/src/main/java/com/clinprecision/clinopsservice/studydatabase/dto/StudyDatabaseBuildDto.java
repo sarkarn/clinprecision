@@ -85,3 +85,6 @@ public class StudyDatabaseBuildDto {
     private Boolean failed;
     private Boolean cancelled;
 }
+
+
+

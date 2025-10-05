@@ -39,3 +39,6 @@ public class StudyDatabaseValidationCompletedEvent {
         private final Integer performanceScore;
     }
 }
+
+
+

@@ -10,3 +10,6 @@ import java.util.Optional;
 public interface SiteStudyRepository extends JpaRepository<SiteStudyEntity, Long> {
     Optional<SiteStudyEntity> findByIdAndStudyId(Long id, Long studyId);
 }
+
+
+

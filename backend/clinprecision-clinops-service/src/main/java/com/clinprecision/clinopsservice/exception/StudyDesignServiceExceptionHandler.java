@@ -29,3 +29,6 @@ public class StudyDesignServiceExceptionHandler {
         return new ErrorResponse(HttpStatus.NOT_FOUND.value(), ex.getMessage());
     }
 }
+
+
+

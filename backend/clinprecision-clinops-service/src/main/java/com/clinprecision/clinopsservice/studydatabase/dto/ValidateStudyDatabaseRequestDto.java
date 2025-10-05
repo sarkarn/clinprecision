@@ -37,3 +37,6 @@ public class ValidateStudyDatabaseRequestDto {
     @Builder.Default
     private Boolean performanceCheck = false;
 }
+
+
+

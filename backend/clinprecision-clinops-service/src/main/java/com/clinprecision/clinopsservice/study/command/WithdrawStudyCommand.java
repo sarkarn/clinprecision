@@ -24,3 +24,6 @@ public class WithdrawStudyCommand {
     UUID userId;
     String userName;
 }
+
+
+

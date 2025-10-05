@@ -139,3 +139,6 @@ public interface StudyDatabaseBuildRepository extends JpaRepository<StudyDatabas
      */
     List<StudyDatabaseBuildEntity> findByCancelledByIsNotNullOrderByCancelledAtDesc();
 }
+
+
+

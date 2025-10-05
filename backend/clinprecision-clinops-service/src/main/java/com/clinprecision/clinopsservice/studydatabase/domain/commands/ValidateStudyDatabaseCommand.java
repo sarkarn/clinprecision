@@ -72,3 +72,6 @@ public class ValidateStudyDatabaseCommand extends BaseCommand {
         return strictValidation || complianceCheck || performanceCheck;
     }
 }
+
+
+

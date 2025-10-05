@@ -53,3 +53,6 @@ public class EnrollPatientCommand extends BaseCommand {
                screeningNumber != null && !screeningNumber.trim().isEmpty();
     }
 }
+
+
+

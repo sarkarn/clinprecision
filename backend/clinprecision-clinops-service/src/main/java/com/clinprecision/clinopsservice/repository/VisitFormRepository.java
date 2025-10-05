@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.VisitFormEntity;
+import com.clinprecision.clinopsservice.entity.VisitFormEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -143,3 +143,6 @@ public interface VisitFormRepository extends JpaRepository<VisitFormEntity, Long
      */
     List<VisitFormEntity> findByAggregateUuidOrderByDisplayOrderAsc(UUID aggregateUuid);
 }
+
+
+

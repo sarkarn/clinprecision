@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.RegulatoryStatusEntity;
+import com.clinprecision.clinopsservice.entity.RegulatoryStatusEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -71,3 +71,6 @@ public interface RegulatoryStatusRepository extends JpaRepository<RegulatoryStat
     @Query("SELECT rs FROM RegulatoryStatusEntity rs WHERE rs.isActive = true AND rs.regulatoryCategory = 'APPROVED' ORDER BY rs.displayOrder")
     List<RegulatoryStatusEntity> findApprovedStatuses();
 }
+
+
+

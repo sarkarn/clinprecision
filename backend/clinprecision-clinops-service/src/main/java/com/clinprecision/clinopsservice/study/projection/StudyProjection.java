@@ -1,8 +1,8 @@
 package com.clinprecision.clinopsservice.study.projection;
 
 import com.clinprecision.clinopsservice.study.event.*;
-import com.clinprecision.common.entity.clinops.StudyEntity;
-import com.clinprecision.common.entity.clinops.StudyStatusEntity;
+import com.clinprecision.clinopsservice.entity.StudyEntity;
+import com.clinprecision.clinopsservice.entity.StudyStatusEntity;
 import com.clinprecision.clinopsservice.repository.StudyRepository;
 import com.clinprecision.clinopsservice.repository.StudyStatusRepository;
 import com.clinprecision.clinopsservice.repository.RegulatoryStatusRepository;
@@ -417,3 +417,6 @@ public class StudyProjection {
         }
     }
 }
+
+
+

@@ -48,3 +48,6 @@ public class PatientRegisteredEvent {
                (email != null && !email.trim().isEmpty());
     }
 }
+
+
+

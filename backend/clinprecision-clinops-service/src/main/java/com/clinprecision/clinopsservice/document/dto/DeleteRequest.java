@@ -24,3 +24,6 @@ public class DeleteRequest {
     private String ipAddress;
     private String userAgent;
 }
+
+
+

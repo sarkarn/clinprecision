@@ -5,7 +5,7 @@ package com.clinprecision.clinopsservice.service;
 import com.clinprecision.clinopsservice.protocolversion.entity.ProtocolVersionEntity;
 import com.clinprecision.clinopsservice.protocolversion.repository.ProtocolVersionReadRepository;
 import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.VersionStatus;
-import com.clinprecision.common.entity.clinops.StudyEntity;
+import com.clinprecision.clinopsservice.entity.StudyEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -392,3 +392,6 @@ public class StudyStatusComputationService {
         public String getDescription() { return description; }
     }
 }
+
+
+

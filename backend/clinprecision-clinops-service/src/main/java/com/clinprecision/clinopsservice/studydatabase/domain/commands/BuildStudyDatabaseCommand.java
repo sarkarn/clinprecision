@@ -155,3 +155,6 @@ public class BuildStudyDatabaseCommand extends BaseCommand {
         return complianceSettings != null && !complianceSettings.isEmpty();
     }
 }
+
+
+

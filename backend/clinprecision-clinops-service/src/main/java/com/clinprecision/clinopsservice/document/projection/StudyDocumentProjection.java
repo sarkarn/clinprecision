@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.document.projection;
 
 import com.clinprecision.clinopsservice.document.event.*;
 import com.clinprecision.clinopsservice.repository.StudyDocumentRepository;
-import com.clinprecision.common.entity.clinops.StudyDocumentEntity;
+import com.clinprecision.clinopsservice.entity.StudyDocumentEntity;
 import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
 import org.slf4j.Logger;
@@ -254,3 +254,6 @@ public class StudyDocumentProjection {
                         "Study document entity not found for aggregate UUID: " + aggregateUuid));
     }
 }
+
+
+

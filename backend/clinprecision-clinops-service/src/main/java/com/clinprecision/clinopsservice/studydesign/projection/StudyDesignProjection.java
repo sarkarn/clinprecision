@@ -1,9 +1,9 @@
 package com.clinprecision.clinopsservice.studydesign.projection;
 
 import com.clinprecision.clinopsservice.studydesign.domain.events.*;
-import com.clinprecision.common.entity.clinops.StudyArmEntity;
-import com.clinprecision.common.entity.clinops.VisitDefinitionEntity;
-import com.clinprecision.common.entity.clinops.VisitFormEntity;
+import com.clinprecision.clinopsservice.entity.StudyArmEntity;
+import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.entity.VisitFormEntity;
 import com.clinprecision.clinopsservice.studydesign.repository.StudyArmReadRepository;
 import com.clinprecision.clinopsservice.studydesign.repository.VisitDefinitionReadRepository;
 import com.clinprecision.clinopsservice.studydesign.repository.VisitFormReadRepository;
@@ -38,7 +38,7 @@ public class StudyDesignProjection {
         entity.setArmUuid(event.getArmId());
         entity.setName(event.getName());
         entity.setDescription(event.getDescription());
-        entity.setType(com.clinprecision.common.entity.clinops.StudyArmType.valueOf(event.getType().name()));
+        entity.setType(com.clinprecision.clinopsservice.entity.StudyArmType.valueOf(event.getType().name()));
         entity.setSequence(event.getSequenceNumber());
         entity.setPlannedSubjects(event.getPlannedSubjects());
         entity.setCreatedAt(event.getOccurredAt());

@@ -29,3 +29,6 @@ public class StudyDatabaseBuildFailedEvent {
     private final String buildPhase; // Which phase failed (e.g., "VALIDATION", "FORM_SETUP", "PERFORMANCE_OPTIMIZATION")
     private final String exceptionType; // Type of exception that caused failure
 }
+
+
+

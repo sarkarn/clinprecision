@@ -114,3 +114,6 @@ public class Phase2IntegrationDemo implements CommandLineRunner {
  * ✅ Fallback data if Admin Service unavailable
  * ✅ Health status indicating integration state
  */
+
+
+

@@ -24,3 +24,6 @@ public class TerminateStudyCommand {
     UUID userId;
     String userName;
 }
+
+
+

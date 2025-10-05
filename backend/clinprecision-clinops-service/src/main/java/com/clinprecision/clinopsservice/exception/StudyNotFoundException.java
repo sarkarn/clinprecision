@@ -17,3 +17,6 @@ public class StudyNotFoundException extends RuntimeException {
         super("Study not found with ID: " + studyId);
     }
 }
+
+
+

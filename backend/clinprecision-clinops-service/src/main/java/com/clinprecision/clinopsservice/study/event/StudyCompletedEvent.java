@@ -24,3 +24,6 @@ public class StudyCompletedEvent {
     String userName;
     Instant timestamp;
 }
+
+
+

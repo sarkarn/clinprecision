@@ -22,3 +22,6 @@ public class StudySuspendedEvent {
     String userName;
     Instant timestamp;
 }
+
+
+

@@ -18,3 +18,6 @@ public class AxonEventProcessingConfig {
         configurer.registerTrackingEventProcessor("studydatabase-projection");
     }
 }
+
+
+

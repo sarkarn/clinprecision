@@ -3,9 +3,9 @@ package com.clinprecision.clinopsservice.document.service;
 import com.clinprecision.clinopsservice.document.dto.AuditRecordDTO;
 import com.clinprecision.clinopsservice.document.dto.DocumentDTO;
 import com.clinprecision.clinopsservice.document.dto.DocumentStatisticsDTO;
-import com.clinprecision.common.entity.clinops.StudyDocumentAuditEntity;
-import com.clinprecision.common.entity.clinops.StudyDocumentEntity;
-import com.clinprecision.common.entity.clinops.StudyDocumentEntity.DocumentStatus;
+import com.clinprecision.clinopsservice.entity.StudyDocumentAuditEntity;
+import com.clinprecision.clinopsservice.entity.StudyDocumentEntity;
+import com.clinprecision.clinopsservice.entity.StudyDocumentEntity.DocumentStatus;
 import com.clinprecision.clinopsservice.repository.StudyDocumentAuditRepository;
 import com.clinprecision.clinopsservice.repository.StudyDocumentRepository;
 import lombok.RequiredArgsConstructor;
@@ -268,3 +268,6 @@ public class StudyDocumentQueryService {
         return String.format("%.2f %s", size, units[unitIndex]);
     }
 }
+
+
+

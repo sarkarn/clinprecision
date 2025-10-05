@@ -1,7 +1,7 @@
 package com.clinprecision.clinopsservice.repository;
 
 
-import com.clinprecision.common.entity.clinops.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -123,3 +123,6 @@ public interface VisitDefinitionRepository extends JpaRepository<VisitDefinition
      */
     List<VisitDefinitionEntity> findByAggregateUuidOrderBySequenceNumberAsc(UUID aggregateUuid);
 }
+
+
+

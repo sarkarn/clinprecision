@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.StudyInterventionEntity;
+import com.clinprecision.clinopsservice.entity.StudyInterventionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -50,3 +50,6 @@ public interface StudyInterventionRepository extends JpaRepository<StudyInterven
      */
     boolean existsByStudyArmId(Long studyArmId);
 }
+
+
+

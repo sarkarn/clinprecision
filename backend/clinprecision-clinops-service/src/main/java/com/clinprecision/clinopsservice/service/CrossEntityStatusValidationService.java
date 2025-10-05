@@ -4,9 +4,9 @@ package com.clinprecision.clinopsservice.service;
 
 import com.clinprecision.clinopsservice.repository.StudyVersionRepository;
 import com.clinprecision.clinopsservice.repository.StudyAmendmentRepository;
-import com.clinprecision.common.entity.clinops.StudyAmendmentEntity;
-import com.clinprecision.common.entity.clinops.StudyEntity;
-import com.clinprecision.common.entity.clinops.StudyVersionEntity;
+import com.clinprecision.clinopsservice.entity.StudyAmendmentEntity;
+import com.clinprecision.clinopsservice.entity.StudyEntity;
+import com.clinprecision.clinopsservice.entity.StudyVersionEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -497,3 +497,6 @@ public class CrossEntityStatusValidationService {
         public int getWarningCount() { return warnings.size(); }
     }
 }
+
+
+

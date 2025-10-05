@@ -11,3 +11,6 @@ public enum PatientStatus {
     INELIGIBLE,    // Patient has been confirmed ineligible
     WITHDRAWN      // Patient has withdrawn from participation
 }
+
+
+

@@ -2,9 +2,9 @@ package com.clinprecision.clinopsservice.service;
 
 
 
-import com.clinprecision.common.dto.clinops.StudyDocumentDto;
-import com.clinprecision.common.entity.clinops.StudyDocumentEntity;
-import com.clinprecision.common.mapper.clinops.StudyDocumentMapper;
+import com.clinprecision.clinopsservice.dto.StudyDocumentDto;
+import com.clinprecision.clinopsservice.entity.StudyDocumentEntity;
+import com.clinprecision.clinopsservice.mapper.StudyDocumentMapper;
 import com.clinprecision.clinopsservice.repository.StudyDocumentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -407,3 +407,6 @@ public class StudyDocumentService {
         }
     }
 }
+
+
+

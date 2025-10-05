@@ -120,3 +120,6 @@ public interface ProtocolVersionReadRepository extends JpaRepository<ProtocolVer
     @Deprecated
     List<ProtocolVersionEntity> findByStudyIdAndStatus(Long studyId, VersionStatus status);
 }
+
+
+

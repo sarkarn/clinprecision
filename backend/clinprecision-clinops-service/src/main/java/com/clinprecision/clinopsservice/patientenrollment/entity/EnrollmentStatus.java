@@ -12,3 +12,6 @@ public enum EnrollmentStatus {
     WITHDRAWN,     // Patient has withdrawn from the study
     COMPLETED      // Patient has completed the study
 }
+
+
+

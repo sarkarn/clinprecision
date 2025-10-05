@@ -28,3 +28,6 @@ public class StudyStatusChangedEvent {
     String userName;
     Instant timestamp;
 }
+
+
+

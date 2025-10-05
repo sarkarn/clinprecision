@@ -21,3 +21,6 @@ public class ConfirmEligibilityDto {
     
     private String ineligibilityReason;
 }
+
+
+

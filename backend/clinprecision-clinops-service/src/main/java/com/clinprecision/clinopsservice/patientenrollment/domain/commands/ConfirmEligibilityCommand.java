@@ -50,3 +50,6 @@ public class ConfirmEligibilityCommand extends BaseCommand {
         return ineligibilityReason != null && !ineligibilityReason.trim().isEmpty();
     }
 }
+
+
+

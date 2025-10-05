@@ -3,9 +3,9 @@ package com.clinprecision.clinopsservice.controller;
 
 
 import com.clinprecision.clinopsservice.service.FormDefinitionService;
-import com.clinprecision.common.dto.clinops.FormDefinitionCreateRequestDto;
-import com.clinprecision.common.dto.clinops.FormDefinitionDto;
-import com.clinprecision.common.entity.clinops.FormDefinitionEntity;
+import com.clinprecision.clinopsservice.dto.FormDefinitionCreateRequestDto;
+import com.clinprecision.clinopsservice.dto.FormDefinitionDto;
+import com.clinprecision.clinopsservice.entity.FormDefinitionEntity;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -249,3 +249,6 @@ public class FormDefinitionController {
         return ResponseEntity.ok(count);
     }
 }
+
+
+

@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.StudyEntity;
+import com.clinprecision.clinopsservice.entity.StudyEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -216,3 +216,6 @@ public interface StudyRepository extends JpaRepository<StudyEntity, Long> {
     @Query("SELECT sp.name, COUNT(s) FROM StudyEntity s JOIN s.studyPhase sp GROUP BY sp.name ORDER BY sp.displayOrder")
     List<Object[]> countStudiesByPhaseName();
 }
+
+
+

@@ -61,3 +61,6 @@ public class StudyUpdateRequestDto {
     private String notes;
     private String riskLevel;
 }
+
+
+

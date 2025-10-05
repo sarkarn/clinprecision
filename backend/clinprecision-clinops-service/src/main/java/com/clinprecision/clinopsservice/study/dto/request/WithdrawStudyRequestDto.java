@@ -22,3 +22,6 @@ public class WithdrawStudyRequestDto {
     @NotBlank(message = "Reason is required for withdrawing a study")
     private String reason;
 }
+
+
+

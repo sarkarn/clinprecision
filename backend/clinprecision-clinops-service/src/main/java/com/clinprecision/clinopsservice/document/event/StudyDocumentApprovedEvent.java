@@ -25,3 +25,6 @@ public class StudyDocumentApprovedEvent {
     String ipAddress;
     String userAgent;
 }
+
+
+

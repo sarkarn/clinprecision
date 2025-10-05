@@ -1,6 +1,6 @@
 package com.clinprecision.clinopsservice.repository;
 
-import com.clinprecision.common.entity.clinops.StudyDocumentAuditEntity;
+import com.clinprecision.clinopsservice.entity.StudyDocumentAuditEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -66,3 +66,6 @@ public interface StudyDocumentAuditRepository extends JpaRepository<StudyDocumen
      */
     void deleteByDocumentId(Long documentId);
 }
+
+
+

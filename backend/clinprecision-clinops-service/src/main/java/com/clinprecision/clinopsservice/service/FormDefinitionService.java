@@ -1,13 +1,13 @@
 package com.clinprecision.clinopsservice.service;
 
 
-import com.clinprecision.common.dto.clinops.FormDefinitionCreateRequestDto;
-import com.clinprecision.common.dto.clinops.FormDefinitionDto;
-import com.clinprecision.common.entity.clinops.FormDefinitionEntity;
+import com.clinprecision.clinopsservice.dto.FormDefinitionCreateRequestDto;
+import com.clinprecision.clinopsservice.dto.FormDefinitionDto;
+import com.clinprecision.clinopsservice.entity.FormDefinitionEntity;
 import com.clinprecision.common.exception.DuplicateEntityException;
 import com.clinprecision.common.exception.EntityLockedException;
 import com.clinprecision.common.exception.EntityNotFoundException;
-import com.clinprecision.common.mapper.clinops.FormDefinitionMapper;
+import com.clinprecision.clinopsservice.mapper.FormDefinitionMapper;
 import com.clinprecision.clinopsservice.repository.FormDefinitionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -346,3 +346,6 @@ public class FormDefinitionService {
         return formDefinitionRepository.countByTemplateId(templateId);
     }
 }
+
+
+

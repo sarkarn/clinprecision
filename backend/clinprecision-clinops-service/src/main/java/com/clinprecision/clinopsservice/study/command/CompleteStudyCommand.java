@@ -25,3 +25,6 @@ public class CompleteStudyCommand {
     UUID userId;
     String userName;
 }
+
+
+

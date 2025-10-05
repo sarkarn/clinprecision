@@ -50,3 +50,6 @@ public class StudyUpdatedEvent {
     String userName;
     Instant timestamp;
 }
+
+
+

@@ -7,3 +7,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PatientEnrollmentAuditRepository extends JpaRepository<PatientEnrollmentAuditEntity, Long> {
 }
+
+
+

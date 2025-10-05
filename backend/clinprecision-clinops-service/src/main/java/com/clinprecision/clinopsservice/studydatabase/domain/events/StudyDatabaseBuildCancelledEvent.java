@@ -26,3 +26,6 @@ public class StudyDatabaseBuildCancelledEvent {
     private final LocalDateTime cancelledAt;
     private final String cancellationReason;
 }
+
+
+

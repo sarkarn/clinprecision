@@ -1,12 +1,12 @@
 package com.clinprecision.clinopsservice.service;
 
 import com.clinprecision.clinopsservice.repository.CodeListRepository;
-import com.clinprecision.common.dto.CodeListDto;
-import com.clinprecision.common.dto.clinops.CreateCodeListRequest;
-import com.clinprecision.common.dto.clinops.UpdateCodeListRequest;
-import com.clinprecision.common.entity.CodeListEntity;
+import com.clinprecision.clinopsservice.dto.CodeListDto;
+import com.clinprecision.clinopsservice.dto.CreateCodeListRequest;
+import com.clinprecision.clinopsservice.dto.UpdateCodeListRequest;
+import com.clinprecision.clinopsservice.entity.CodeListEntity;
 import com.clinprecision.common.exception.ResourceNotFoundException;
-import com.clinprecision.common.mapper.CodeListMapper;
+import com.clinprecision.clinopsservice.mapper.CodeListMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -282,3 +282,6 @@ public class CodeListService {
         return userId != null && userId == 1L; // Assuming user ID 1 is system user
     }
 }
+
+
+

@@ -103,3 +103,6 @@ public class PatientEnrollmentEntity {
         return ineligibilityReason != null && !ineligibilityReason.trim().isEmpty();
     }
 }
+
+
+

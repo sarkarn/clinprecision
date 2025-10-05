@@ -25,3 +25,6 @@ public class DownloadStudyDocumentCommand {
     String userAgent;
     String reason;
 }
+
+
+

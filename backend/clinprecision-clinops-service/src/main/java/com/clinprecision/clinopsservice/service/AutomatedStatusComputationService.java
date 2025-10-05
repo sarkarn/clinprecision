@@ -3,7 +3,7 @@ package com.clinprecision.clinopsservice.service;
 
 
 import com.clinprecision.clinopsservice.repository.StudyRepository;
-import com.clinprecision.common.entity.clinops.StudyEntity;
+import com.clinprecision.clinopsservice.entity.StudyEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -510,3 +510,6 @@ public class AutomatedStatusComputationService {
         public String getErrorMessage() { return errorMessage; }
     }
 }
+
+
+

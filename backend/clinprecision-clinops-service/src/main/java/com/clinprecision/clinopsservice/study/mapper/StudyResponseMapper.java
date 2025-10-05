@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.study.mapper;
 
 import com.clinprecision.clinopsservice.study.dto.response.StudyListResponseDto;
 import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
-import com.clinprecision.common.entity.clinops.StudyEntity;
+import com.clinprecision.clinopsservice.entity.StudyEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -98,3 +98,6 @@ public class StudyResponseMapper {
                 .build();
     }
 }
+
+
+

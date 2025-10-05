@@ -5,7 +5,7 @@ import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.Protocol
 import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.StudyPhase;
 import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.StudyStatus;
 import com.clinprecision.clinopsservice.studydesign.dto.*;
-import com.clinprecision.clinopsservice.studydesign.service.StudyCommandService;
+import com.clinprecision.clinopsservice.study.service.StudyCommandService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

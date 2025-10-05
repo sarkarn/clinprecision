@@ -23,3 +23,6 @@ public class StudyDocumentDownloadedEvent {
     String userAgent;
     String reason;
 }
+
+
+

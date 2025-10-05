@@ -22,3 +22,6 @@ public class TerminateStudyRequestDto {
     @NotBlank(message = "Reason is required for terminating a study")
     private String reason;
 }
+
+
+

@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.StudyDocumentEntity;
+import com.clinprecision.clinopsservice.entity.StudyDocumentEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -180,3 +180,6 @@ public interface StudyDocumentRepository extends JpaRepository<StudyDocumentEnti
            "FROM StudyDocumentEntity d WHERE d.studyId = :studyId")
     Object[] getDocumentStatistics(@Param("studyId") Long studyId);
 }
+
+
+

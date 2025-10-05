@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.FormDefinitionEntity;
+import com.clinprecision.clinopsservice.entity.FormDefinitionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -113,3 +113,6 @@ public interface FormDefinitionRepository extends JpaRepository<FormDefinitionEn
            "WHERE f.templateVersion != t.version AND t.isLatestVersion = true")
     List<FormDefinitionEntity> findFormDefinitionsWithOutdatedTemplates();
 }
+
+
+

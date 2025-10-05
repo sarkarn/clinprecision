@@ -23,3 +23,6 @@ public class StudyWithdrawnEvent {
     String userName;
     Instant timestamp;
 }
+
+
+

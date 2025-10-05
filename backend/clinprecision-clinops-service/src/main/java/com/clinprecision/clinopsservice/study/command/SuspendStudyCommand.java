@@ -23,3 +23,6 @@ public class SuspendStudyCommand {
     UUID userId;
     String userName;
 }
+
+
+

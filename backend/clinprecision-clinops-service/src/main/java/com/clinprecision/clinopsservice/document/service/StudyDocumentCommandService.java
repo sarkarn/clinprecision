@@ -3,7 +3,7 @@ package com.clinprecision.clinopsservice.document.service;
 import com.clinprecision.clinopsservice.document.command.*;
 import com.clinprecision.clinopsservice.document.dto.*;
 import com.clinprecision.clinopsservice.document.valueobject.DocumentType;
-import com.clinprecision.common.entity.clinops.StudyDocumentEntity;
+import com.clinprecision.clinopsservice.entity.StudyDocumentEntity;
 import com.clinprecision.clinopsservice.repository.StudyDocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -250,3 +250,6 @@ public class StudyDocumentCommandService {
         throw new RuntimeException("Document projection not found after " + MAX_WAIT_SECONDS + " seconds: " + aggregateUuid);
     }
 }
+
+
+

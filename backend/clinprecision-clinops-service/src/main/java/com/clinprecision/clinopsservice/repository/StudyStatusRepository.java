@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.StudyStatusEntity;
+import com.clinprecision.clinopsservice.entity.StudyStatusEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -59,3 +59,6 @@ public interface StudyStatusRepository extends JpaRepository<StudyStatusEntity, 
     @Query("SELECT ss FROM StudyStatusEntity ss WHERE UPPER(ss.code) = 'DRAFT' AND ss.isActive = true")
     Optional<StudyStatusEntity> findDraftStatus();
 }
+
+
+

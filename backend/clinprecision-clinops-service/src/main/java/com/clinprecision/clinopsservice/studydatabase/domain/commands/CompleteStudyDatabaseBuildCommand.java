@@ -80,3 +80,6 @@ public class CompleteStudyDatabaseBuildCommand extends BaseCommand {
         private final Integer performanceScore;
     }
 }
+
+
+

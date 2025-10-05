@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.studydesign.controller;
 
 import com.clinprecision.clinopsservice.studydesign.dto.StudyResponse;
 import com.clinprecision.clinopsservice.studydesign.entity.StudyEntity;
-import com.clinprecision.clinopsservice.studydesign.service.StudyQueryService;
+import com.clinprecision.clinopsservice.study.service.StudyQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

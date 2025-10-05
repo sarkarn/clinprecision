@@ -1,11 +1,8 @@
 package com.clinprecision.common.dto.clinops;
 
-
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * DTO for study response
@@ -63,23 +60,20 @@ public class StudyResponseDto {
     // Recent activities (JSON array as string)
     private String recentActivities;
     
-    // Lookup table references (instead of simple strings)
-    private StudyStatusDto studyStatus;
-    private RegulatoryStatusDto regulatoryStatus;
-    private StudyPhaseDto studyPhase;
+    // Simplified status fields (using strings instead of nested DTOs to avoid dependencies)
+    private String studyStatus;
+    private String regulatoryStatus;
+    private String studyPhase;
     
-    // Legacy fields for backward compatibility (can be removed after frontend migration)
-    @Deprecated
-    private String status; // Use studyStatus instead
-    @Deprecated
-    private String phase; // Use studyPhase instead
+    // Legacy fields for backward compatibility
+    private String status;
+    private String phase;
     private LocalDate startDate;
     private LocalDate endDate;
     private String metadata;
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private List<OrganizationStudyDto> organizations;
     
     // Default constructor
     public StudyResponseDto() {}
@@ -173,27 +167,27 @@ public class StudyResponseDto {
         this.phase = phase;
     }
     
-    public StudyStatusDto getStudyStatus() {
+    public String getStudyStatus() {
         return studyStatus;
     }
     
-    public void setStudyStatus(StudyStatusDto studyStatus) {
+    public void setStudyStatus(String studyStatus) {
         this.studyStatus = studyStatus;
     }
     
-    public RegulatoryStatusDto getRegulatoryStatus() {
+    public String getRegulatoryStatus() {
         return regulatoryStatus;
     }
     
-    public void setRegulatoryStatus(RegulatoryStatusDto regulatoryStatus) {
+    public void setRegulatoryStatus(String regulatoryStatus) {
         this.regulatoryStatus = regulatoryStatus;
     }
     
-    public StudyPhaseDto getStudyPhase() {
+    public String getStudyPhase() {
         return studyPhase;
     }
     
-    public void setStudyPhase(StudyPhaseDto studyPhase) {
+    public void setStudyPhase(String studyPhase) {
         this.studyPhase = studyPhase;
     }
     
@@ -333,13 +327,7 @@ public class StudyResponseDto {
         this.updatedAt = updatedAt;
     }
     
-    public List<OrganizationStudyDto> getOrganizations() {
-        return organizations;
-    }
-    
-    public void setOrganizations(List<OrganizationStudyDto> organizations) {
-        this.organizations = organizations;
-    }
+
     
     // Getters and Setters for new overview fields
     public String getTitle() {

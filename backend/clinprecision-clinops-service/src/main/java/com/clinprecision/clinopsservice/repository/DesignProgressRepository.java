@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.DesignProgressEntity;
+import com.clinprecision.clinopsservice.entity.DesignProgressEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -99,3 +99,6 @@ public interface DesignProgressRepository extends JpaRepository<DesignProgressEn
            "FROM DesignProgressEntity dp WHERE dp.studyId = :studyId ORDER BY dp.phase")
     List<Object[]> getPhaseCompletionSummary(@Param("studyId") Long studyId);
 }
+
+
+

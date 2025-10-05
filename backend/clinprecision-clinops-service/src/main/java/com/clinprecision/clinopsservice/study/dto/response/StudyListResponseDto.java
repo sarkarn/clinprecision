@@ -51,3 +51,6 @@ public class StudyListResponseDto {
     // Study Status
     private StudyStatusCode status;
 }
+
+
+

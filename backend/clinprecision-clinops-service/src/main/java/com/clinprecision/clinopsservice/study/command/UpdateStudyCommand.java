@@ -50,3 +50,6 @@ public class UpdateStudyCommand {
     UUID userId;
     String userName;
 }
+
+
+

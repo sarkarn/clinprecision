@@ -3,8 +3,8 @@ package com.clinprecision.clinopsservice.document.projection;
 import com.clinprecision.clinopsservice.document.event.*;
 import com.clinprecision.clinopsservice.repository.StudyDocumentAuditRepository;
 import com.clinprecision.clinopsservice.repository.StudyDocumentRepository;
-import com.clinprecision.common.entity.clinops.StudyDocumentAuditEntity;
-import com.clinprecision.common.entity.clinops.StudyDocumentEntity;
+import com.clinprecision.clinopsservice.entity.StudyDocumentAuditEntity;
+import com.clinprecision.clinopsservice.entity.StudyDocumentEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
@@ -371,3 +371,6 @@ public class StudyDocumentAuditProjection {
         return null;
     }
 }
+
+
+

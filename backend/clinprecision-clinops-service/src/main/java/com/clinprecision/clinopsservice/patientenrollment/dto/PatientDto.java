@@ -48,3 +48,6 @@ public class PatientDto {
     private String treatmentArm;       // Treatment arm assignment
     private String treatmentArmName;   // Treatment arm name for display
 }
+
+
+

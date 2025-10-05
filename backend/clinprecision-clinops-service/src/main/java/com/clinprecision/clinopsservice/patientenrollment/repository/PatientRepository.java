@@ -67,3 +67,6 @@ public interface PatientRepository extends JpaRepository<PatientEntity, Long> {
     List<PatientEntity> findByCreatedAtBetween(@Param("startDate") java.time.LocalDateTime startDate,
                                                @Param("endDate") java.time.LocalDateTime endDate);
 }
+
+
+

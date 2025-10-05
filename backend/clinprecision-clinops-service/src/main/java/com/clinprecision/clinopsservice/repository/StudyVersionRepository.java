@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.StudyVersionEntity;
+import com.clinprecision.clinopsservice.entity.StudyVersionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -96,3 +96,6 @@ public interface StudyVersionRepository extends JpaRepository<StudyVersionEntity
     @Query("SELECT sv FROM StudyVersionEntity sv WHERE sv.notifyStakeholders = true AND sv.status = 'APPROVED' ORDER BY sv.approvedDate DESC")
     List<StudyVersionEntity> findVersionsNeedingNotification();
 }
+
+
+

@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.repository;
 
 
 
-import com.clinprecision.common.entity.clinops.StudyArmEntity;
+import com.clinprecision.clinopsservice.entity.StudyArmEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -107,3 +107,6 @@ public interface StudyArmRepository extends JpaRepository<StudyArmEntity, Long> 
      */
     List<StudyArmEntity> findByAggregateUuidOrderBySequenceAsc(UUID aggregateUuid);
 }
+
+
+

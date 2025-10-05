@@ -192,3 +192,6 @@ public class StudyCommandService {
         log.info("Study completed successfully: {}", studyUuid);
     }
 }
+
+
+

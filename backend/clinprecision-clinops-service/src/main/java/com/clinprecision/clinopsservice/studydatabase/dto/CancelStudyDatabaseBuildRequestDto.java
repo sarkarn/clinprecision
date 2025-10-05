@@ -23,3 +23,6 @@ public class CancelStudyDatabaseBuildRequestDto {
     @NotBlank(message = "Cancellation reason is required for audit trail")
     private String cancellationReason;
 }
+
+
+

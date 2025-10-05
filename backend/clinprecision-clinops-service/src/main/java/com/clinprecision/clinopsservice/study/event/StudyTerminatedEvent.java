@@ -23,3 +23,6 @@ public class StudyTerminatedEvent {
     String userName;
     Instant timestamp;
 }
+
+
+

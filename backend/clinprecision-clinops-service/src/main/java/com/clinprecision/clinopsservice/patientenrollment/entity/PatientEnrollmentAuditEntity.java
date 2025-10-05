@@ -56,3 +56,6 @@ public class PatientEnrollmentAuditEntity {
     @Column(name = "reason")
     private String reason;
 }
+
+
+
