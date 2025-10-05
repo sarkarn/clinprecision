@@ -85,7 +85,7 @@ public class StudyProjection {
             // Set timeline
             entity.setStartDate(event.getStartDate());
             entity.setEndDate(event.getEndDate());
-            entity.setEstimatedCompletion(event.getEstimatedCompletion());
+          //  entity.setEstimatedCompletion(event.getEstimatedCompletion());
             
             // Set versioning
             entity.setVersion(event.getVersion() != null ? event.getVersion() : "1.0");
@@ -200,9 +200,9 @@ public class StudyProjection {
             if (event.getEndDate() != null) {
                 entity.setEndDate(event.getEndDate());
             }
-            if (event.getEstimatedCompletion() != null) {
-                entity.setEstimatedCompletion(event.getEstimatedCompletion());
-            }
+//            if (event.getEstimatedCompletion() != null) {
+//                entity.setEstimatedCompletion(event.getEstimatedCompletion());
+//            }
             
             // Update lookup table relationships
             if (event.getStudyPhaseId() != null) {

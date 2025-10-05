@@ -115,8 +115,9 @@ public class StudyEntity {
     @Column(name = "withdrawn_subjects")
     private Integer withdrawnSubjects = 0;
     
-    @Column(name = "estimated_completion")
-    private LocalDate estimatedCompletion;
+    // TODO: Uncomment when column added to database
+    // @Column(name = "estimated_completion")
+    // private LocalDate estimatedCompletion;
     
     @Column(name = "primary_endpoint", columnDefinition = "TEXT")
     private String primaryEndpoint;
@@ -130,7 +131,7 @@ public class StudyEntity {
     @Column(name = "exclusion_criteria", columnDefinition = "JSON")
     private String exclusionCriteria;
     
-    @Column(name = "study_timeline", columnDefinition = "JSON")
+    @Column(name = "timeline", columnDefinition = "JSON")
     private String timeline;
     
     // Study metrics
@@ -140,14 +141,15 @@ public class StudyEntity {
     @Column(name = "screening_success_rate")
     private Double screeningSuccessRate;
     
-    @Column(name = "retention_rate")
-    private Double retentionRate;
+    // TODO: Add these columns to database schema if needed
+    // @Column(name = "retention_rate")
+    // private Double retentionRate;
     
-    @Column(name = "compliance_rate")
-    private Double complianceRate;
+    // @Column(name = "compliance_rate")
+    // private Double complianceRate;
     
-    @Column(name = "query_rate")
-    private Double queryRate;
+    // @Column(name = "query_rate")
+    // private Double queryRate;
     
     // Recent activities (JSON array as string)
     @Column(name = "recent_activities", columnDefinition = "JSON")
@@ -573,13 +575,14 @@ public class StudyEntity {
         this.withdrawnSubjects = withdrawnSubjects;
     }
     
-    public LocalDate getEstimatedCompletion() {
-        return estimatedCompletion;
-    }
+    // TODO: Uncomment when column added to database
+    // public LocalDate getEstimatedCompletion() {
+    //     return estimatedCompletion;
+    // }
     
-    public void setEstimatedCompletion(LocalDate estimatedCompletion) {
-        this.estimatedCompletion = estimatedCompletion;
-    }
+    // public void setEstimatedCompletion(LocalDate estimatedCompletion) {
+    //     this.estimatedCompletion = estimatedCompletion;
+    // }
     
     public String getPrimaryEndpoint() {
         return primaryEndpoint;
@@ -637,29 +640,30 @@ public class StudyEntity {
         this.screeningSuccessRate = screeningSuccessRate;
     }
     
-    public Double getRetentionRate() {
-        return retentionRate;
-    }
+    // TODO: Uncomment when columns added to database
+    // public Double getRetentionRate() {
+    //     return retentionRate;
+    // }
     
-    public void setRetentionRate(Double retentionRate) {
-        this.retentionRate = retentionRate;
-    }
+    // public void setRetentionRate(Double retentionRate) {
+    //     this.retentionRate = retentionRate;
+    // }
     
-    public Double getComplianceRate() {
-        return complianceRate;
-    }
+    // public Double getComplianceRate() {
+    //     return complianceRate;
+    // }
     
-    public void setComplianceRate(Double complianceRate) {
-        this.complianceRate = complianceRate;
-    }
+    // public void setComplianceRate(Double complianceRate) {
+    //     this.complianceRate = complianceRate;
+    // }
     
-    public Double getQueryRate() {
-        return queryRate;
-    }
+    // public Double getQueryRate() {
+    //     return queryRate;
+    // }
     
-    public void setQueryRate(Double queryRate) {
-        this.queryRate = queryRate;
-    }
+    // public void setQueryRate(Double queryRate) {
+    //     this.queryRate = queryRate;
+    // }
     
     public String getRecentActivities() {
         return recentActivities;
