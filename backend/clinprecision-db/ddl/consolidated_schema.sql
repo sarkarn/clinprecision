@@ -1255,14 +1255,6 @@ CREATE INDEX idx_study_amendments_amendment_number ON study_amendments(amendment
 CREATE INDEX idx_study_amendments_created_date ON study_amendments(created_date);
 CREATE INDEX idx_study_amendments_type ON study_amendments(amendment_type);
 
--- Additional composite indexes for common query patterns
-CREATE INDEX idx_study_versions_study_status ON study_versions (study_id, status);
-CREATE INDEX idx_study_versions_status_type ON study_versions (status, amendment_type);
-CREATE INDEX idx_study_versions_created_by_date ON study_versions (created_by, created_date);
-CREATE INDEX idx_study_amendments_version_status ON study_amendments (study_version_id, status);
-CREATE INDEX idx_study_amendments_type_status ON study_amendments (amendment_type, status);
-CREATE INDEX idx_study_amendments_safety_status ON study_amendments (amendment_type, status, requires_regulatory_notification);
-
 
 -- Create indexes for performance
 -- Create indexes for performance
@@ -1271,12 +1263,7 @@ CREATE INDEX idx_code_lists_color ON code_lists((CAST(JSON_UNQUOTE(JSON_EXTRACT(
 CREATE INDEX idx_code_lists_valid_date ON code_lists(valid_from, valid_to);
 CREATE INDEX idx_study_versions_aggregate_uuid ON study_versions(aggregate_uuid);
 
--- Basic indexes
-CREATE INDEX idx_study_versions_study_id ON study_versions(study_id);
-CREATE INDEX idx_study_versions_status ON study_versions(status);
-CREATE INDEX idx_study_versions_version_number ON study_versions(version_number);
-CREATE INDEX idx_study_versions_created_date ON study_versions(created_date);
-CREATE INDEX idx_study_versions_effective_date ON study_versions(effective_date);
+
 
 -- Composite indexes for common query patterns
 CREATE INDEX idx_study_versions_study_status ON study_versions (study_id, status);
