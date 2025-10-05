@@ -7,9 +7,13 @@ spring:
     username: sa
     password: 
   
+  sql:
+    init:
+      mode: never  # Schema managed by Hibernate for tests
+  
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update  # Show DDL changes Hibernate would make - helps identify schema issues
     show-sql: true
     properties:
       hibernate:

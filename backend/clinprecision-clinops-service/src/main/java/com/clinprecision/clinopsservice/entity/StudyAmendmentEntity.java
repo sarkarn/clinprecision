@@ -1,5 +1,7 @@
 package com.clinprecision.clinopsservice.entity;
 
+import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.AmendmentType;
+import com.clinprecision.clinopsservice.protocolversion.entity.ProtocolVersionEntity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
@@ -31,7 +33,7 @@ public class StudyAmendmentEntity {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "amendment_type", nullable = false, length = 20)
-    private StudyVersionEntity.AmendmentType amendmentType;
+    private AmendmentType amendmentType;
     
     @Column(name = "reason", columnDefinition = "TEXT")
     private String reason;
@@ -91,11 +93,11 @@ public class StudyAmendmentEntity {
     @Column(name = "metadata", columnDefinition = "JSON")
     private String metadata;
     
-    // Reference to the parent study version
+    // Reference to the parent study version (now using DDD ProtocolVersion)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "study_version_id", insertable = false, updatable = false)
     @JsonBackReference
-    private StudyVersionEntity studyVersion;
+    private ProtocolVersionEntity studyVersion;
     
     /**
      * Enum for amendment status
@@ -149,7 +151,7 @@ public class StudyAmendmentEntity {
     public StudyAmendmentEntity() {}
     
     // Constructor with required fields
-    public StudyAmendmentEntity(Long studyVersionId, String title, StudyVersionEntity.AmendmentType amendmentType, Long createdBy) {
+    public StudyAmendmentEntity(Long studyVersionId, String title, AmendmentType amendmentType, Long createdBy) {
         this.studyVersionId = studyVersionId;
         this.title = title;
         this.amendmentType = amendmentType;
@@ -197,11 +199,11 @@ public class StudyAmendmentEntity {
         this.description = description;
     }
     
-    public StudyVersionEntity.AmendmentType getAmendmentType() {
+    public AmendmentType getAmendmentType() {
         return amendmentType;
     }
     
-    public void setAmendmentType(StudyVersionEntity.AmendmentType amendmentType) {
+    public void setAmendmentType(AmendmentType amendmentType) {
         this.amendmentType = amendmentType;
     }
     
@@ -357,11 +359,11 @@ public class StudyAmendmentEntity {
         this.metadata = metadata;
     }
     
-    public StudyVersionEntity getStudyVersion() {
+    public ProtocolVersionEntity getStudyVersion() {
         return studyVersion;
     }
     
-    public void setStudyVersion(StudyVersionEntity studyVersion) {
+    public void setStudyVersion(ProtocolVersionEntity studyVersion) {
         this.studyVersion = studyVersion;
     }
     

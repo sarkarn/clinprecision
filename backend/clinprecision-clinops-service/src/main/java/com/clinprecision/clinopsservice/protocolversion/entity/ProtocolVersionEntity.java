@@ -35,7 +35,7 @@ public class ProtocolVersionEntity {
      * CRITICAL: Link to event-sourced aggregate
      * This UUID matches the @AggregateIdentifier in ProtocolVersionAggregate
      */
-    @Column(name = "aggregate_uuid", unique = true, nullable = false)
+    @Column(name = "aggregate_uuid", unique = true, nullable = true)
     private UUID aggregateUuid;
 
     /**

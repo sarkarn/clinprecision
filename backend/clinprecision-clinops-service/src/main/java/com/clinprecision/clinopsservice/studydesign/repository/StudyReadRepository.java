@@ -32,9 +32,10 @@ public interface StudyReadRepository extends JpaRepository<StudyEntity, Long> {
     Optional<StudyEntity> findByProtocolNumber(String protocolNumber);
 
     /**
-     * Find studies by status
+     * Find studies by status code
      */
-    List<StudyEntity> findByStatus(String status);
+    @Query("SELECT s FROM StudyEntity s WHERE s.studyStatus.code = :statusCode")
+    List<StudyEntity> findByStatus(@Param("statusCode") String statusCode);
 
     /**
      * Find studies by sponsor
@@ -42,24 +43,30 @@ public interface StudyReadRepository extends JpaRepository<StudyEntity, Long> {
     List<StudyEntity> findBySponsor(String sponsor);
 
     /**
-     * Find studies by phase
+     * Find studies by phase code
      */
-    List<StudyEntity> findByPhase(String phase);
+    @Query("SELECT s FROM StudyEntity s WHERE s.studyPhase.code = :phaseCode")
+    List<StudyEntity> findByPhase(@Param("phaseCode") String phaseCode);
 
     /**
      * Find active (non-closed) studies
+     * Assumes status codes: COMPLETED, TERMINATED, WITHDRAWN indicate closed studies
      */
-    List<StudyEntity> findByClosedFalse();
+    @Query("SELECT s FROM StudyEntity s WHERE s.studyStatus.code NOT IN ('COMPLETED', 'TERMINATED', 'WITHDRAWN')")
+    List<StudyEntity> findActiveStudies();
 
     /**
      * Find closed studies
+     * Assumes status codes: COMPLETED, TERMINATED, WITHDRAWN indicate closed studies
      */
-    List<StudyEntity> findByClosedTrue();
+    @Query("SELECT s FROM StudyEntity s WHERE s.studyStatus.code IN ('COMPLETED', 'TERMINATED', 'WITHDRAWN')")
+    List<StudyEntity> findClosedStudies();
 
     /**
-     * Find studies by sponsor and status
+     * Find studies by sponsor and status code
      */
-    List<StudyEntity> findBySponsorAndStatus(String sponsor, String status);
+    @Query("SELECT s FROM StudyEntity s WHERE s.sponsor = :sponsor AND s.studyStatus.code = :statusCode")
+    List<StudyEntity> findBySponsorAndStatus(@Param("sponsor") String sponsor, @Param("statusCode") String statusCode);
 
     /**
      * Check if protocol number exists
@@ -79,7 +86,7 @@ public interface StudyReadRepository extends JpaRepository<StudyEntity, Long> {
     /**
      * Custom query: Find studies by status IDs
      */
-    @Query("SELECT s FROM StudyEntity s WHERE s.statusId IN :statusIds ORDER BY s.createdAt DESC")
+    @Query("SELECT s FROM StudyEntity s WHERE s.studyStatus.id IN :statusIds ORDER BY s.createdAt DESC")
     List<StudyEntity> findByStatusIds(@Param("statusIds") List<Integer> statusIds);
 
     /**
@@ -93,18 +100,18 @@ public interface StudyReadRepository extends JpaRepository<StudyEntity, Long> {
     /**
      * Custom query: Count studies by status
      */
-    @Query("SELECT s.status, COUNT(s) FROM StudyEntity s GROUP BY s.status")
+    @Query("SELECT s.studyStatus.code, COUNT(s) FROM StudyEntity s GROUP BY s.studyStatus.code")
     List<Object[]> countByStatus();
 
     /**
      * Custom query: Find studies requiring action (in review statuses)
      */
-    @Query("SELECT s FROM StudyEntity s WHERE s.statusId IN (2, 3) ORDER BY s.createdAt ASC")
+    @Query("SELECT s FROM StudyEntity s WHERE s.studyStatus.id IN (2, 3) ORDER BY s.createdAt ASC")
     List<StudyEntity> findStudiesRequiringReview();
 
     /**
      * Custom query: Find operational studies (active or suspended)
      */
-    @Query("SELECT s FROM StudyEntity s WHERE s.statusId IN (5, 6) ORDER BY s.name")
+    @Query("SELECT s FROM StudyEntity s WHERE s.studyStatus.id IN (5, 6) ORDER BY s.name")
     List<StudyEntity> findOperationalStudies();
 }

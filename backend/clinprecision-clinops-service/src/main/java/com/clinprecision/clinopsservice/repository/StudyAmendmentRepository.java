@@ -3,7 +3,8 @@ package com.clinprecision.clinopsservice.repository;
 
 
 import com.clinprecision.clinopsservice.entity.StudyAmendmentEntity;
-import com.clinprecision.clinopsservice.entity.StudyVersionEntity;
+import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.AmendmentType;
+import com.clinprecision.clinopsservice.protocolversion.entity.ProtocolVersionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,7 +28,7 @@ public interface StudyAmendmentRepository extends JpaRepository<StudyAmendmentEn
      * Find all amendments for a specific study (across all versions)
      */
     @Query("SELECT sa FROM StudyAmendmentEntity sa " +
-           "JOIN StudyVersionEntity sv ON sa.studyVersionId = sv.id " +
+           "JOIN ProtocolVersionEntity sv ON sa.studyVersionId = sv.id " +
            "WHERE sv.studyId = :studyId " +
            "ORDER BY sv.versionNumber DESC, sa.amendmentNumber ASC")
     List<StudyAmendmentEntity> findByStudyIdOrderByVersionAndAmendmentNumber(@Param("studyId") Long studyId);
@@ -47,7 +48,7 @@ public interface StudyAmendmentRepository extends JpaRepository<StudyAmendmentEn
     /**
      * Find amendments by amendment type
      */
-    List<StudyAmendmentEntity> findByAmendmentTypeOrderByCreatedDateDesc(StudyVersionEntity.AmendmentType amendmentType);
+    List<StudyAmendmentEntity> findByAmendmentTypeOrderByCreatedDateDesc(AmendmentType amendmentType);
     
     /**
      * Find the next amendment number for a version

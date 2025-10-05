@@ -48,10 +48,10 @@ public interface StudyDocumentAuditRepository extends JpaRepository<StudyDocumen
 
     /**
      * Find audit records by user
-     * @param performedBy The user who performed the action
+     * @param performedBy The user ID who performed the action
      * @return List of audit records for the user
      */
-    List<StudyDocumentAuditEntity> findByPerformedByOrderByPerformedAtDesc(String performedBy);
+    List<StudyDocumentAuditEntity> findByPerformedByOrderByPerformedAtDesc(Long performedBy);
 
     /**
      * Count audit records for a document

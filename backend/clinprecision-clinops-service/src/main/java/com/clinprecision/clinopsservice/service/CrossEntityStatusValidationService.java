@@ -2,11 +2,14 @@ package com.clinprecision.clinopsservice.service;
 
 
 
-import com.clinprecision.clinopsservice.repository.StudyVersionRepository;
-import com.clinprecision.clinopsservice.repository.StudyAmendmentRepository;
+
 import com.clinprecision.clinopsservice.entity.StudyAmendmentEntity;
 import com.clinprecision.clinopsservice.entity.StudyEntity;
-import com.clinprecision.clinopsservice.entity.StudyVersionEntity;
+import com.clinprecision.clinopsservice.protocolversion.entity.ProtocolVersionEntity;
+import com.clinprecision.clinopsservice.protocolversion.repository.ProtocolVersionReadRepository;
+import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.AmendmentType;
+import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.VersionStatus;
+import com.clinprecision.clinopsservice.repository.StudyAmendmentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -26,10 +29,10 @@ public class CrossEntityStatusValidationService {
 
     private static final Logger logger = LoggerFactory.getLogger(CrossEntityStatusValidationService.class);
 
-    private final StudyVersionRepository studyVersionRepository;
+    private final ProtocolVersionReadRepository studyVersionRepository;
     private final StudyAmendmentRepository studyAmendmentRepository;
 
-    public CrossEntityStatusValidationService(StudyVersionRepository studyVersionRepository,
+    public CrossEntityStatusValidationService(ProtocolVersionReadRepository studyVersionRepository,
                                             StudyAmendmentRepository studyAmendmentRepository) {
         this.studyVersionRepository = studyVersionRepository;
         this.studyAmendmentRepository = studyAmendmentRepository;
@@ -47,7 +50,7 @@ public class CrossEntityStatusValidationService {
         Map<String, Object> validationDetails = new HashMap<>();
 
         // Get related entities
-        List<StudyVersionEntity> versions = studyVersionRepository.findByStudyIdOrderByVersionNumberDesc(study.getId());
+        List<ProtocolVersionEntity> versions = studyVersionRepository.findByStudyIdOrderByVersionNumberDesc(study.getId());
         List<StudyAmendmentEntity> amendments = studyAmendmentRepository.findByStudyIdOrderByVersionAndAmendmentNumber(study.getId());
 
         validationDetails.put("protocolVersionCount", versions.size());
@@ -97,7 +100,7 @@ public class CrossEntityStatusValidationService {
     /**
      * Validate dependencies for PROTOCOL_REVIEW status
      */
-    private void validateProtocolReviewDependencies(StudyEntity study, List<StudyVersionEntity> versions, 
+    private void validateProtocolReviewDependencies(StudyEntity study, List<ProtocolVersionEntity> versions,
                                                List<StudyAmendmentEntity> amendments, List<String> errors, 
                                                List<String> warnings, Map<String, Object> details) {
         
@@ -109,8 +112,8 @@ public class CrossEntityStatusValidationService {
         } else {
             // Check if there's a version ready for review
             boolean hasReviewableVersion = versions.stream()
-                .anyMatch(v -> v.getStatus() == StudyVersionEntity.VersionStatus.DRAFT ||
-                              v.getStatus() == StudyVersionEntity.VersionStatus.UNDER_REVIEW);
+                .anyMatch(v -> v.getStatus() == VersionStatus.DRAFT ||
+                              v.getStatus() == VersionStatus.UNDER_REVIEW);
             
             if (!hasReviewableVersion) {
                 warnings.add("No protocol versions are in reviewable status (DRAFT or UNDER_REVIEW)");
@@ -132,7 +135,7 @@ public class CrossEntityStatusValidationService {
     /**
      * Validate dependencies for APPROVED status
      */
-    private void validateApprovedDependencies(StudyEntity study, List<StudyVersionEntity> versions, 
+    private void validateApprovedDependencies(StudyEntity study, List<ProtocolVersionEntity> versions,
                                             List<StudyAmendmentEntity> amendments, List<String> errors, 
                                             List<String> warnings, Map<String, Object> details) {
         
@@ -140,18 +143,18 @@ public class CrossEntityStatusValidationService {
 
         // Must have at least one approved protocol version
         boolean hasApprovedVersion = versions.stream()
-            .anyMatch(v -> v.getStatus() == StudyVersionEntity.VersionStatus.APPROVED);
+            .anyMatch(v -> v.getStatus() == VersionStatus.APPROVED);
         
         if (!hasApprovedVersion) {
             errors.add("Study must have at least one approved protocol version");
         }
 
         // Check for unapproved amendments in approved versions
-        List<StudyVersionEntity> approvedVersions = versions.stream()
-            .filter(v -> v.getStatus() == StudyVersionEntity.VersionStatus.APPROVED)
+        List<ProtocolVersionEntity> approvedVersions = versions.stream()
+            .filter(v -> v.getStatus() == VersionStatus.APPROVED)
             .collect(Collectors.toList());
 
-        for (StudyVersionEntity version : approvedVersions) {
+        for (ProtocolVersionEntity version : approvedVersions) {
             List<StudyAmendmentEntity> versionAmendments = amendments.stream()
                 .filter(a -> a.getStudyVersionId().equals(version.getId()))
                 .collect(Collectors.toList());
@@ -173,15 +176,15 @@ public class CrossEntityStatusValidationService {
     /**
      * Validate dependencies for ACTIVE status
      */
-    private void validateActiveDependencies(StudyEntity study, List<StudyVersionEntity> versions, 
+    private void validateActiveDependencies(StudyEntity study, List<ProtocolVersionEntity> versions,
                                           List<StudyAmendmentEntity> amendments, List<String> errors, 
                                           List<String> warnings, Map<String, Object> details) {
         
         logger.debug("Validating ACTIVE dependencies for study {}", study.getId());
 
         // Must have exactly one active protocol version
-        List<StudyVersionEntity> activeVersions = versions.stream()
-            .filter(v -> v.getStatus() == StudyVersionEntity.VersionStatus.ACTIVE)
+        List<ProtocolVersionEntity> activeVersions = versions.stream()
+            .filter(v -> v.getStatus() == VersionStatus.ACTIVE)
             .collect(Collectors.toList());
 
         if (activeVersions.isEmpty()) {
@@ -194,10 +197,10 @@ public class CrossEntityStatusValidationService {
 
         // Check for pending safety amendments in active version
         if (!activeVersions.isEmpty()) {
-            StudyVersionEntity activeVersion = activeVersions.get(0);
+            ProtocolVersionEntity activeVersion = activeVersions.get(0);
             List<StudyAmendmentEntity> safetyAmendments = amendments.stream()
                 .filter(a -> a.getStudyVersionId().equals(activeVersion.getId()))
-                .filter(a -> a.getAmendmentType() == StudyVersionEntity.AmendmentType.SAFETY)
+                .filter(a -> a.getAmendmentType() == AmendmentType.SAFETY)
                 .filter(a -> a.getStatus() == StudyAmendmentEntity.AmendmentStatus.SUBMITTED ||
                             a.getStatus() == StudyAmendmentEntity.AmendmentStatus.UNDER_REVIEW)
                 .collect(Collectors.toList());
@@ -212,10 +215,10 @@ public class CrossEntityStatusValidationService {
 
         // Validate no superseded versions are marked as active
         long supersededActiveVersions = versions.stream()
-            .filter(v -> v.getStatus() == StudyVersionEntity.VersionStatus.ACTIVE)
+            .filter(v -> v.getStatus() == VersionStatus.ACTIVE)
             .filter(v -> versions.stream()
                 .anyMatch(newer -> newer.getVersionNumber().compareTo(v.getVersionNumber()) > 0 &&
-                                  newer.getStatus() == StudyVersionEntity.VersionStatus.ACTIVE))
+                                  newer.getStatus() == VersionStatus.ACTIVE))
             .count();
 
         if (supersededActiveVersions > 0) {
@@ -226,15 +229,15 @@ public class CrossEntityStatusValidationService {
     /**
      * Validate dependencies for SUSPENDED status
      */
-    private void validateSuspendedDependencies(StudyEntity study, List<StudyVersionEntity> versions, 
+    private void validateSuspendedDependencies(StudyEntity study, List<ProtocolVersionEntity> versions,
                                              List<StudyAmendmentEntity> amendments, List<String> errors, 
                                              List<String> warnings, Map<String, Object> details) {
         
         logger.debug("Validating SUSPENDED dependencies for study {}", study.getId());
 
         // Active protocol versions should remain active during suspension
-        List<StudyVersionEntity> activeVersions = versions.stream()
-            .filter(v -> v.getStatus() == StudyVersionEntity.VersionStatus.ACTIVE)
+        List<ProtocolVersionEntity> activeVersions = versions.stream()
+            .filter(v -> v.getStatus() == VersionStatus.ACTIVE)
             .collect(Collectors.toList());
 
         if (activeVersions.isEmpty()) {
@@ -243,7 +246,7 @@ public class CrossEntityStatusValidationService {
 
         // Check for pending safety amendments that might require immediate attention
         long criticalAmendments = amendments.stream()
-            .filter(a -> a.getAmendmentType() == StudyVersionEntity.AmendmentType.SAFETY)
+            .filter(a -> a.getAmendmentType() == AmendmentType.SAFETY)
             .filter(a -> a.getStatus() == StudyAmendmentEntity.AmendmentStatus.UNDER_REVIEW ||
                         a.getStatus() == StudyAmendmentEntity.AmendmentStatus.SUBMITTED)
             .count();
@@ -258,7 +261,7 @@ public class CrossEntityStatusValidationService {
     /**
      * Validate dependencies for COMPLETED status
      */
-    private void validateCompletedDependencies(StudyEntity study, List<StudyVersionEntity> versions, 
+    private void validateCompletedDependencies(StudyEntity study, List<ProtocolVersionEntity> versions,
                                              List<StudyAmendmentEntity> amendments, List<String> errors, 
                                              List<String> warnings, Map<String, Object> details) {
         
@@ -277,7 +280,7 @@ public class CrossEntityStatusValidationService {
 
         // Check for required completion documentation
         boolean hasCompletionDocumentation = amendments.stream()
-            .anyMatch(a -> a.getAmendmentType() == StudyVersionEntity.AmendmentType.ADMINISTRATIVE &&
+            .anyMatch(a -> a.getAmendmentType() == AmendmentType.ADMINISTRATIVE &&
                           a.getDescription() != null && 
                           a.getDescription().toLowerCase().contains("completion"));
 
@@ -292,7 +295,7 @@ public class CrossEntityStatusValidationService {
     /**
      * Validate dependencies for TERMINATED status
      */
-    private void validateTerminatedDependencies(StudyEntity study, List<StudyVersionEntity> versions, 
+    private void validateTerminatedDependencies(StudyEntity study, List<ProtocolVersionEntity> versions,
                                               List<StudyAmendmentEntity> amendments, List<String> errors, 
                                               List<String> warnings, Map<String, Object> details) {
         
@@ -300,7 +303,7 @@ public class CrossEntityStatusValidationService {
 
         // Should have termination documentation
         boolean hasTerminationAmendment = amendments.stream()
-            .anyMatch(a -> a.getAmendmentType() == StudyVersionEntity.AmendmentType.ADMINISTRATIVE &&
+            .anyMatch(a -> a.getAmendmentType() == AmendmentType.ADMINISTRATIVE &&
                           a.getDescription() != null && 
                           (a.getDescription().toLowerCase().contains("termination") ||
                            a.getDescription().toLowerCase().contains("early closure")));
@@ -326,7 +329,7 @@ public class CrossEntityStatusValidationService {
     /**
      * Validate dependencies for WITHDRAWN status
      */
-    private void validateWithdrawnDependencies(StudyEntity study, List<StudyVersionEntity> versions, 
+    private void validateWithdrawnDependencies(StudyEntity study, List<ProtocolVersionEntity> versions,
                                              List<StudyAmendmentEntity> amendments, List<String> errors, 
                                              List<String> warnings, Map<String, Object> details) {
         
@@ -334,7 +337,7 @@ public class CrossEntityStatusValidationService {
 
         // All protocol versions should be withdrawn or superseded
         long activeVersions = versions.stream()
-            .filter(v -> v.getStatus() == StudyVersionEntity.VersionStatus.ACTIVE)
+            .filter(v -> v.getStatus() == VersionStatus.ACTIVE)
             .count();
 
         if (activeVersions > 0) {
@@ -343,7 +346,7 @@ public class CrossEntityStatusValidationService {
 
         // Check for withdrawal documentation
         boolean hasWithdrawalAmendment = amendments.stream()
-            .anyMatch(a -> a.getAmendmentType() == StudyVersionEntity.AmendmentType.ADMINISTRATIVE &&
+            .anyMatch(a -> a.getAmendmentType() == AmendmentType.ADMINISTRATIVE &&
                           a.getDescription() != null && 
                           a.getDescription().toLowerCase().contains("withdrawal"));
 
@@ -358,7 +361,7 @@ public class CrossEntityStatusValidationService {
     /**
      * Validate current status consistency
      */
-    private void validateCurrentStatusConsistency(StudyEntity study, List<StudyVersionEntity> versions, 
+    private void validateCurrentStatusConsistency(StudyEntity study, List<ProtocolVersionEntity> versions,
                                                 List<StudyAmendmentEntity> amendments, List<String> errors, 
                                                 List<String> warnings, Map<String, Object> details) {
         
@@ -368,7 +371,7 @@ public class CrossEntityStatusValidationService {
         // Check study-version status alignment
         if ("ACTIVE".equalsIgnoreCase(currentStatus)) {
             long activeVersions = versions.stream()
-                .filter(v -> v.getStatus() == StudyVersionEntity.VersionStatus.ACTIVE)
+                .filter(v -> v.getStatus() == VersionStatus.ACTIVE)
                 .count();
             
             if (activeVersions == 0) {
@@ -381,7 +384,7 @@ public class CrossEntityStatusValidationService {
         // Check for orphaned active versions
         if (!"ACTIVE".equalsIgnoreCase(currentStatus)) {
             long activeVersions = versions.stream()
-                .filter(v -> v.getStatus() == StudyVersionEntity.VersionStatus.ACTIVE)
+                .filter(v -> v.getStatus() == VersionStatus.ACTIVE)
                 .count();
             
             if (activeVersions > 0) {
@@ -394,14 +397,14 @@ public class CrossEntityStatusValidationService {
     /**
      * Validate amendment consistency across versions
      */
-    private void validateAmendmentConsistency(StudyEntity study, List<StudyVersionEntity> versions, 
+    private void validateAmendmentConsistency(StudyEntity study, List<ProtocolVersionEntity> versions,
                                             List<StudyAmendmentEntity> amendments, List<String> errors, 
                                             List<String> warnings, Map<String, Object> details) {
         
         logger.debug("Validating amendment consistency for study {}", study.getId());
 
         // Check for amendments with invalid version references
-        List<Long> versionIds = versions.stream().map(StudyVersionEntity::getId).collect(Collectors.toList());
+        List<Long> versionIds = versions.stream().map(ProtocolVersionEntity::getId).collect(Collectors.toList());
         List<StudyAmendmentEntity> orphanedAmendments = amendments.stream()
             .filter(a -> !versionIds.contains(a.getStudyVersionId()))
             .collect(Collectors.toList());
@@ -432,7 +435,7 @@ public class CrossEntityStatusValidationService {
     /**
      * Validate protocol version sequencing
      */
-    private void validateVersionSequencing(StudyEntity study, List<StudyVersionEntity> versions, 
+    private void validateVersionSequencing(StudyEntity study, List<ProtocolVersionEntity> versions,
                                          List<String> errors, List<String> warnings, Map<String, Object> details) {
         
         logger.debug("Validating version sequencing for study {}", study.getId());
@@ -443,7 +446,7 @@ public class CrossEntityStatusValidationService {
 
         // Check for gaps in version numbering
         List<String> versionNumbers = versions.stream()
-            .map(StudyVersionEntity::getVersionNumber)
+            .map(ProtocolVersionEntity::getVersionNumber)
             .sorted()
             .collect(Collectors.toList());
 
@@ -453,11 +456,11 @@ public class CrossEntityStatusValidationService {
         }
 
         // Check for multiple versions with the same effective date
-        Map<LocalDate, List<StudyVersionEntity>> versionsByDate = versions.stream()
+        Map<LocalDate, List<ProtocolVersionEntity>> versionsByDate = versions.stream()
             .filter(v -> v.getEffectiveDate() != null)
-            .collect(Collectors.groupingBy(StudyVersionEntity::getEffectiveDate));
+            .collect(Collectors.groupingBy(ProtocolVersionEntity::getEffectiveDate));
 
-        for (Map.Entry<LocalDate, List<StudyVersionEntity>> entry : versionsByDate.entrySet()) {
+        for (Map.Entry<LocalDate, List<ProtocolVersionEntity>> entry : versionsByDate.entrySet()) {
             if (entry.getValue().size() > 1) {
                 warnings.add(String.format("Multiple protocol versions have the same effective date: %s", 
                            entry.getKey()));

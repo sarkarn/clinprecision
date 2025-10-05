@@ -2,7 +2,7 @@ package com.clinprecision.clinopsservice.dto;
 
 
 import com.clinprecision.clinopsservice.entity.StudyAmendmentEntity;
-import com.clinprecision.clinopsservice.entity.StudyVersionEntity;
+import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.AmendmentType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -26,7 +26,7 @@ public class StudyAmendmentDto {
     private String description;
     
     @JsonProperty("amendmentType")
-    private StudyVersionEntity.AmendmentType amendmentType;
+    private AmendmentType amendmentType;
     
     private String reason;
     
@@ -161,11 +161,11 @@ public class StudyAmendmentDto {
         this.description = description;
     }
     
-    public StudyVersionEntity.AmendmentType getAmendmentType() {
+    public AmendmentType getAmendmentType() {
         return amendmentType;
     }
     
-    public void setAmendmentType(StudyVersionEntity.AmendmentType amendmentType) {
+    public void setAmendmentType(AmendmentType amendmentType) {
         this.amendmentType = amendmentType;
     }
     

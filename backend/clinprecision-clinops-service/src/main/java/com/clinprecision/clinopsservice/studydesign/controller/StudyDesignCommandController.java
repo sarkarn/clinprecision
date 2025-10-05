@@ -220,4 +220,60 @@ public class StudyDesignCommandController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             });
     }
+
+    // ===================== DESIGN PROGRESS COMMANDS =====================
+
+    /**
+     * Initialize design progress for a study
+     * 
+     * Command: InitializeDesignProgressCommand
+     * Event: DesignProgressInitializedEvent
+     * 
+     * @param studyDesignId Study design aggregate UUID
+     * @return 201 Created
+     */
+    @PostMapping("/{studyDesignId}/design-progress/initialize")
+    public CompletableFuture<ResponseEntity<Void>> initializeDesignProgress(@PathVariable UUID studyDesignId) {
+        log.info("REST: Initializing design progress for study design: {}", studyDesignId);
+        
+        // TODO: Implement design progress initialization command
+        // return commandService.initializeDesignProgress(studyDesignId)
+        //     .thenApply(result -> ResponseEntity.status(HttpStatus.CREATED).<Void>build())
+        //     .exceptionally(ex -> {
+        //         log.error("Failed to initialize design progress", ex);
+        //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        //     });
+        
+        log.warn("Design progress initialization not yet implemented");
+        return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build());
+    }
+
+    /**
+     * Update design progress for a study
+     * 
+     * Command: UpdateDesignProgressCommand
+     * Event: DesignProgressUpdatedEvent
+     * 
+     * @param studyDesignId Study design aggregate UUID
+     * @param request Design progress update request
+     * @return 200 OK
+     */
+    @PutMapping("/{studyDesignId}/design-progress")
+    public CompletableFuture<ResponseEntity<Void>> updateDesignProgress(
+            @PathVariable UUID studyDesignId,
+            @RequestBody Map<String, Object> request) {
+        
+        log.info("REST: Updating design progress for study design: {}", studyDesignId);
+        
+        // TODO: Implement design progress update command
+        // return commandService.updateDesignProgress(studyDesignId, request)
+        //     .thenApply(result -> ResponseEntity.ok().<Void>build())
+        //     .exceptionally(ex -> {
+        //         log.error("Failed to update design progress", ex);
+        //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        //     });
+        
+        log.warn("Design progress update not yet implemented");
+        return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build());
+    }
 }
