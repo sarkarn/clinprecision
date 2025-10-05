@@ -42,8 +42,8 @@ public class UploadDocumentRequest {
     private String version;
     private String description;
     
-    @NotBlank(message = "Uploaded by username is required")
-    private String uploadedBy;
+    @NotBlank(message = "Uploaded by user ID is required")
+    private Long uploadedBy;
     
     private String ipAddress;
     private String userAgent;

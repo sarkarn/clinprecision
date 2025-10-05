@@ -33,10 +33,10 @@ public class DocumentDTO {
     private Long uploadedBy;
     private String uploadedByUsername;
     private LocalDateTime uploadedAt;
-    private String approvedBy;
+    private Long approvedBy;
     private LocalDateTime approvedAt;
     private String supersededByDocumentId;
-    private String archivedBy;
+    private Long archivedBy;
     private LocalDateTime archivedAt;
     private boolean isDeleted;
     private LocalDateTime createdAt;

@@ -18,7 +18,7 @@ public class StudyDocumentSupersededEvent {
     
     UUID documentId;           // Document being superseded
     UUID newDocumentId;        // New version
-    String supersededBy;
+    Long supersededBy;
     Instant supersededAt;
     String supersessionReason;
     String ipAddress;

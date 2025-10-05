@@ -20,12 +20,18 @@ import com.clinprecision.axon.config.AxonConfig;
 @Import(AxonConfig.class)
 @EnableJpaRepositories(basePackages = {
         "com.clinprecision.clinopsservice.repository",
+        "com.clinprecision.clinopsservice.study.repository",
+        "com.clinprecision.clinopsservice.studydesign.repository",
+        "com.clinprecision.clinopsservice.protocolversion.repository",
         "com.clinprecision.clinopsservice.studydatabase.repository",
         "com.clinprecision.clinopsservice.patientenrollment.repository",
         "com.clinprecision.common.repository"
 })
 @EntityScan(basePackages = {
         "com.clinprecision.clinopsservice.entity",
+        "com.clinprecision.clinopsservice.study.entity",
+        "com.clinprecision.clinopsservice.studydesign.entity",
+        "com.clinprecision.clinopsservice.protocolversion.entity",
         "com.clinprecision.clinopsservice.studydatabase.entity",
         "com.clinprecision.clinopsservice.patientenrollment.entity",
         "com.clinprecision.common.entity",

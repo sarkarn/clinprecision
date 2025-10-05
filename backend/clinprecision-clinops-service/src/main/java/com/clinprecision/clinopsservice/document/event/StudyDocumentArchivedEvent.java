@@ -17,7 +17,7 @@ import java.util.UUID;
 public class StudyDocumentArchivedEvent {
     
     UUID documentId;
-    String archivedBy;
+    Long archivedBy;
     Instant archivedAt;
     String archivalReason;
     String retentionPolicy;

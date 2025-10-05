@@ -17,7 +17,7 @@ import java.util.UUID;
 public class StudyDocumentDownloadedEvent {
     
     UUID documentId;
-    String downloadedBy;
+    Long downloadedBy;
     Instant downloadedAt;
     String ipAddress;
     String userAgent;

@@ -17,7 +17,7 @@ import java.util.UUID;
 public class StudyDocumentDeletedEvent {
     
     UUID documentId;
-    String deletedBy;
+    Long deletedBy;
     Instant deletedAt;
     String deletionReason;
     String ipAddress;

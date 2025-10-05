@@ -17,7 +17,7 @@ import java.util.UUID;
 public class StudyDocumentApprovedEvent {
     
     UUID documentId;
-    String approvedBy;
+    Long approvedBy;
     Instant approvedAt;
     String approvalComments;
     String electronicSignature;

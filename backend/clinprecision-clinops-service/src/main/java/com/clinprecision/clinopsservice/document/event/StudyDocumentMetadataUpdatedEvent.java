@@ -20,7 +20,7 @@ public class StudyDocumentMetadataUpdatedEvent {
     String newDocumentName;
     String newDescription;
     String newVersion;
-    String updatedBy;
+    Long updatedBy;
     Instant updatedAt;
     String updateReason;
     String ipAddress;

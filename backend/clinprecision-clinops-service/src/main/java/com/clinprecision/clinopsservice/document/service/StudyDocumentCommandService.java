@@ -70,7 +70,7 @@ public class StudyDocumentCommandService {
     /**
      * Download a document (tracked for audit)
      */
-    public void downloadDocument(UUID documentId, String downloadedBy, String ipAddress, String userAgent) {
+    public void downloadDocument(UUID documentId, Long downloadedBy, String ipAddress, String userAgent) {
         log.info("Downloading document: {}", documentId);
         
         StudyDocumentEntity entity = documentRepository.findByAggregateUuid(documentId.toString())

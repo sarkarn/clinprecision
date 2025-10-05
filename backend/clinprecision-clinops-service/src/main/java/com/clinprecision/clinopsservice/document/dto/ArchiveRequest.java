@@ -16,8 +16,8 @@ import jakarta.validation.constraints.NotBlank;
 @AllArgsConstructor
 public class ArchiveRequest {
     
-    @NotBlank(message = "Archived by username is required")
-    private String archivedBy;
+    @NotBlank(message = "Archived by user ID is required")
+    private Long archivedBy;
     
     private String archivalReason;
     

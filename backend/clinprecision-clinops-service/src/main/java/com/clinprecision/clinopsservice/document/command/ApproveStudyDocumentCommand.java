@@ -22,7 +22,7 @@ public class ApproveStudyDocumentCommand {
     @TargetAggregateIdentifier
     UUID documentId;
     
-    String approvedBy;
+    Long approvedBy;
     String approvalComments;
     String electronicSignature;  // For 21 CFR Part 11 compliance
     String approvalRole;         // Role of approver (e.g., "PI", "IRB_CHAIR")

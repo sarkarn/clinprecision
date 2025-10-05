@@ -21,7 +21,7 @@ public class AuditRecordDTO {
     private String actionType;
     private String oldValues;
     private String newValues;
-    private String performedBy;
+    private Long performedBy;
     private LocalDateTime performedAt;
     private String ipAddress;
     private String userAgent;

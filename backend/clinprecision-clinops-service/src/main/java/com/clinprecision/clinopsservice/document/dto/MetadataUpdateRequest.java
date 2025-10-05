@@ -20,8 +20,8 @@ public class MetadataUpdateRequest {
     private String newDescription;
     private String newVersion;
     
-    @NotBlank(message = "Updated by username is required")
-    private String updatedBy;
+    @NotBlank(message = "Updated by user ID is required")
+    private Long updatedBy;
     
     private String updateReason;
     

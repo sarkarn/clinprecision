@@ -27,7 +27,7 @@ public class StudyDocumentUploadedEvent {
     String mimeType;
     String version;
     String description;
-    String uploadedBy;
+    Long uploadedBy;
     Instant uploadedAt;
     String ipAddress;
     String userAgent;

@@ -22,7 +22,7 @@ public class DeleteStudyDocumentCommand {
     @TargetAggregateIdentifier
     UUID documentId;
     
-    String deletedBy;
+    Long deletedBy;
     String deletionReason;
     String ipAddress;
     String userAgent;

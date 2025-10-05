@@ -32,7 +32,7 @@ public class StudyDocumentAuditEntity {
     private String newValues;
 
     @Column(name = "performed_by", nullable = false)
-    private String performedBy;
+    private Long performedBy;
 
     @Column(name = "performed_at", nullable = false)
     private LocalDateTime performedAt;
@@ -49,7 +49,7 @@ public class StudyDocumentAuditEntity {
     // Constructors
     public StudyDocumentAuditEntity() {}
 
-    public StudyDocumentAuditEntity(Long documentId, ActionType actionType, String performedBy, 
+    public StudyDocumentAuditEntity(Long documentId, ActionType actionType, Long performedBy, 
                                    LocalDateTime performedAt, String ipAddress, String userAgent) {
         this.documentId = documentId;
         this.actionType = actionType;
@@ -100,11 +100,11 @@ public class StudyDocumentAuditEntity {
         this.newValues = newValues;
     }
 
-    public String getPerformedBy() {
+    public Long getPerformedBy() {
         return performedBy;
     }
 
-    public void setPerformedBy(String performedBy) {
+    public void setPerformedBy(Long performedBy) {
         this.performedBy = performedBy;
     }
 

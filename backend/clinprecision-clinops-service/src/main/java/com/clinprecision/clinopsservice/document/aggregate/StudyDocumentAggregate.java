@@ -62,11 +62,11 @@ public class StudyDocumentAggregate {
     private boolean isDeleted;
     
     // Audit fields
-    private String uploadedBy;
+    private Long uploadedBy;
     private Instant uploadedAt;
-    private String approvedBy;
+    private Long approvedBy;
     private Instant approvedAt;
-    private String archivedBy;
+    private Long archivedBy;
     private Instant archivedAt;
     private UUID supersededByDocumentId;
 
@@ -351,8 +351,8 @@ public class StudyDocumentAggregate {
         if (command.getFileSize() == null || command.getFileSize() <= 0) {
             throw new IllegalArgumentException("File size must be greater than 0");
         }
-        if (command.getUploadedBy() == null || command.getUploadedBy().trim().isEmpty()) {
-            throw new IllegalArgumentException("Uploaded by user cannot be empty");
+        if (command.getUploadedBy() == null) {
+            throw new IllegalArgumentException("Uploaded by user ID cannot be null");
         }
     }
 

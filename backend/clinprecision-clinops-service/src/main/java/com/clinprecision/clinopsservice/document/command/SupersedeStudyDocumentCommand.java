@@ -23,7 +23,7 @@ public class SupersedeStudyDocumentCommand {
     UUID documentId;  // Document being superseded
     
     UUID newDocumentId;  // New version replacing this one
-    String supersededBy;
+    Long supersededBy;
     String supersessionReason;
     String ipAddress;
     String userAgent;

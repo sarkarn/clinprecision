@@ -16,8 +16,8 @@ import jakarta.validation.constraints.NotBlank;
 @AllArgsConstructor
 public class ApprovalRequest {
     
-    @NotBlank(message = "Approved by username is required")
-    private String approvedBy;
+    @NotBlank(message = "Approved by user ID is required")
+    private Long approvedBy;
     
     private String approvalComments;
     

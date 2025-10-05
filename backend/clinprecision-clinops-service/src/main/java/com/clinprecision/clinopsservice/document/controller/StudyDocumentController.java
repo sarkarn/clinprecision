@@ -87,7 +87,7 @@ public class StudyDocumentController {
     @PostMapping("/{uuid}/download")
     public ResponseEntity<Map<String, String>> downloadDocument(
             @PathVariable UUID uuid,
-            @RequestParam String downloadedBy,
+            @RequestParam Long downloadedBy,
             @RequestParam(required = false) String ipAddress,
             @RequestParam(required = false) String userAgent) {
         

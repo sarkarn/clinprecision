@@ -22,7 +22,7 @@ public class ArchiveStudyDocumentCommand {
     @TargetAggregateIdentifier
     UUID documentId;
     
-    String archivedBy;
+    Long archivedBy;
     String archivalReason;
     String retentionPolicy;  // e.g., "7 years post-study completion"
     String ipAddress;

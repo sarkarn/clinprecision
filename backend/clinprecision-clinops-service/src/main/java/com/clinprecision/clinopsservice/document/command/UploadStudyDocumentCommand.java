@@ -33,7 +33,7 @@ public class UploadStudyDocumentCommand {
     String mimeType;
     String version;
     String description;
-    String uploadedBy;
+    Long uploadedBy;
     String ipAddress;
     String userAgent;
 }

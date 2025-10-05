@@ -57,7 +57,7 @@ public class StudyDocumentEntity {
     private LocalDateTime uploadedAt;
 
     @Column(name = "approved_by")
-    private String approvedBy;
+    private Long approvedBy;
 
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
@@ -66,7 +66,7 @@ public class StudyDocumentEntity {
     private String supersededByDocumentId;
 
     @Column(name = "archived_by")
-    private String archivedBy;
+    private Long archivedBy;
 
     @Column(name = "archived_at")
     private LocalDateTime archivedAt;
@@ -255,11 +255,11 @@ public class StudyDocumentEntity {
         this.study = study;
     }
 
-    public String getApprovedBy() {
+    public Long getApprovedBy() {
         return approvedBy;
     }
 
-    public void setApprovedBy(String approvedBy) {
+    public void setApprovedBy(Long approvedBy) {
         this.approvedBy = approvedBy;
     }
 
@@ -279,11 +279,11 @@ public class StudyDocumentEntity {
         this.supersededByDocumentId = supersededByDocumentId;
     }
 
-    public String getArchivedBy() {
+    public Long getArchivedBy() {
         return archivedBy;
     }
 
-    public void setArchivedBy(String archivedBy) {
+    public void setArchivedBy(Long archivedBy) {
         this.archivedBy = archivedBy;
     }
 

@@ -24,7 +24,7 @@ public class UpdateStudyDocumentMetadataCommand {
     String newDocumentName;
     String newDescription;
     String newVersion;
-    String updatedBy;
+    Long updatedBy;
     String updateReason;
     String ipAddress;
     String userAgent;

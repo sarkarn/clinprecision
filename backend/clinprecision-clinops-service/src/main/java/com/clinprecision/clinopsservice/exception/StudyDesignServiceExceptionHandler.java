@@ -1,32 +1,31 @@
 package com.clinprecision.clinopsservice.exception;
 
 
-import com.clinprecision.common.exception.ErrorResponse;
+import com.clinprecision.clinopsservice.exception.StudyControllerExceptionHandler.ErrorResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ControllerAdvice
 public class StudyDesignServiceExceptionHandler {
 
     @ExceptionHandler(value = StudyValidationException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public @ResponseBody ErrorResponse handleException(StudyValidationException ex) {
-        return new ErrorResponse(HttpStatus.NOT_FOUND.value(), ex.getMessage());
+    public ResponseEntity<ErrorResponse> handleException(StudyValidationException ex) {
+        ErrorResponse error = new ErrorResponse("STUDY_VALIDATION_ERROR", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(value = StudyNotFoundException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public @ResponseBody ErrorResponse handleException(StudyNotFoundException ex) {
-        return new ErrorResponse(HttpStatus.NOT_FOUND.value(), ex.getMessage());
+    public ResponseEntity<ErrorResponse> handleException(StudyNotFoundException ex) {
+        ErrorResponse error = new ErrorResponse("STUDY_NOT_FOUND", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
     @ExceptionHandler(value = Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public @ResponseBody ErrorResponse handleException(Exception ex) {
-        return new ErrorResponse(HttpStatus.NOT_FOUND.value(), ex.getMessage());
+    public ResponseEntity<ErrorResponse> handleException(Exception ex) {
+        ErrorResponse error = new ErrorResponse("INTERNAL_SERVER_ERROR", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }
 

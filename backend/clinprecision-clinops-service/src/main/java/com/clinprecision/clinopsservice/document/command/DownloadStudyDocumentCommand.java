@@ -20,7 +20,7 @@ public class DownloadStudyDocumentCommand {
     @TargetAggregateIdentifier
     UUID documentId;
     
-    String downloadedBy;
+    Long downloadedBy;
     String ipAddress;
     String userAgent;
     String reason;

@@ -21,8 +21,8 @@ public class SupersedeRequest {
     @NotNull(message = "New document ID is required")
     private UUID newDocumentId;  // The document that replaces the current one
     
-    @NotBlank(message = "Superseded by username is required")
-    private String supersededBy;
+    @NotBlank(message = "Superseded by user ID is required")
+    private Long supersededBy;
     
     private String supersessionReason;
     

@@ -16,8 +16,8 @@ import jakarta.validation.constraints.NotBlank;
 @AllArgsConstructor
 public class DeleteRequest {
     
-    @NotBlank(message = "Deleted by username is required")
-    private String deletedBy;
+    @NotBlank(message = "Deleted by user ID is required")
+    private Long deletedBy;
     
     private String deletionReason;
     
