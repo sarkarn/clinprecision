@@ -25,6 +25,18 @@ public class VisitFormEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    
+    @Column(name = "aggregate_uuid", nullable = true, columnDefinition = "BINARY(16)")
+    private java.util.UUID aggregateUuid; // Links to StudyDesignAggregate
+    
+    @Column(name = "assignment_uuid", nullable = true, unique = true, columnDefinition = "BINARY(16)")
+    private java.util.UUID assignmentUuid; // UUID from event sourcing
+    
+    @Column(name = "visit_uuid", nullable = true, columnDefinition = "BINARY(16)")
+    private java.util.UUID visitUuid; // Visit UUID reference
+    
+    @Column(name = "form_uuid", nullable = true, columnDefinition = "BINARY(16)")
+    private java.util.UUID formUuid; // Form UUID reference
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "visit_definition_id", nullable = false)
@@ -51,9 +63,26 @@ public class VisitFormEntity {
 
     @Column(name = "instructions", columnDefinition = "TEXT")
     private String instructions; // Specific instructions for this form in this visit
+    
+    // Soft delete fields
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Builder.Default
+    private Boolean isDeleted = false;
+    
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+    
+    @Column(name = "deleted_by", length = 100)
+    private String deletedBy;
+    
+    @Column(name = "deletion_reason", columnDefinition = "TEXT")
+    private String deletionReason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+    
+    @Column(name = "created_by")
+    private Long createdBy;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

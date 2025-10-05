@@ -7,11 +7,11 @@ package com.clinprecision.clinopsservice.controller;
 
 
 import com.clinprecision.clinopsservice.service.StudyService;
-import com.clinprecision.clinopsservice.service.StudyStatusService;
-import com.clinprecision.clinopsservice.service.RegulatoryStatusService;
-import com.clinprecision.clinopsservice.service.StudyPhaseService;
+import com.clinprecision.clinopsservice.service.AdminServiceProxy;
 import com.clinprecision.clinopsservice.service.StudyDashboardService;
 import com.clinprecision.clinopsservice.service.DesignProgressService;
+import com.clinprecision.clinopsservice.study.service.StudyCommandService;
+import com.clinprecision.clinopsservice.study.service.StudyQueryService;
 import com.clinprecision.common.dto.clinops.*;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -23,10 +23,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * REST Controller for study operations
  * Handles HTTP requests for study management
+ * 
+ * DDD Migration Phase 2:
+ * - Added DDD/CQRS endpoints using StudyCommandService and StudyQueryService
+ * - Legacy endpoints maintained for backward compatibility
+ * - New endpoints use UUID-based routing
  */
 @RestController
 @RequestMapping("/api/studies")
@@ -36,24 +42,26 @@ public class StudyController {
     private static final Logger logger = LoggerFactory.getLogger(StudyController.class);
     
     private final StudyService studyService;
-    private final StudyStatusService studyStatusService;
-    private final RegulatoryStatusService regulatoryStatusService;
-    private final StudyPhaseService studyPhaseService;
+    private final AdminServiceProxy adminServiceProxy;
     private final StudyDashboardService studyDashboardService;
     private final DesignProgressService designProgressService;
     
+    // DDD Services (Phase 2)
+    private final StudyCommandService studyCommandService;
+    private final StudyQueryService studyQueryService;
+    
     public StudyController(StudyService studyService, 
-                          StudyStatusService studyStatusService,
-                          RegulatoryStatusService regulatoryStatusService,
-                          StudyPhaseService studyPhaseService,
+                          AdminServiceProxy adminServiceProxy,
                           StudyDashboardService studyDashboardService,
-                          DesignProgressService designProgressService) {
+                          DesignProgressService designProgressService,
+                          StudyCommandService studyCommandService,
+                          StudyQueryService studyQueryService) {
         this.studyService = studyService;
-        this.studyStatusService = studyStatusService;
-        this.regulatoryStatusService = regulatoryStatusService;
-        this.studyPhaseService = studyPhaseService;
+        this.adminServiceProxy = adminServiceProxy;
         this.studyDashboardService = studyDashboardService;
         this.designProgressService = designProgressService;
+        this.studyCommandService = studyCommandService;
+        this.studyQueryService = studyQueryService;
     }
     
     /**
@@ -156,12 +164,13 @@ public class StudyController {
     /**
      * Get all study statuses
      * GET /api/studies/lookup/statuses
+     * Phase 4 Migration: Now uses AdminServiceProxy instead of legacy StudyStatusService
      */
     @GetMapping("/lookup/statuses")
-    public ResponseEntity<List<StudyStatusDto>> getStudyStatuses() {
+    public ResponseEntity<List<Map<String, Object>>> getStudyStatuses() {
         logger.info("GET /api/studies/lookup/statuses - Fetching study statuses");
         
-        List<StudyStatusDto> response = studyStatusService.getAllActiveStatuses();
+        List<Map<String, Object>> response = adminServiceProxy.getAllStudyStatuses();
         
         logger.info("Fetched {} study statuses", response.size());
         return ResponseEntity.ok(response);
@@ -170,12 +179,13 @@ public class StudyController {
     /**
      * Get all regulatory statuses
      * GET /api/studies/lookup/regulatory-statuses
+     * Phase 4 Migration: Now uses AdminServiceProxy instead of legacy RegulatoryStatusService
      */
     @GetMapping("/lookup/regulatory-statuses")
-    public ResponseEntity<List<RegulatoryStatusDto>> getRegulatoryStatuses() {
+    public ResponseEntity<List<Map<String, Object>>> getRegulatoryStatuses() {
         logger.info("GET /api/studies/lookup/regulatory-statuses - Fetching regulatory statuses");
         
-        List<RegulatoryStatusDto> response = regulatoryStatusService.getAllActiveStatuses();
+        List<Map<String, Object>> response = adminServiceProxy.getAllRegulatoryStatuses();
         
         logger.info("Fetched {} regulatory statuses", response.size());
         return ResponseEntity.ok(response);
@@ -184,12 +194,13 @@ public class StudyController {
     /**
      * Get all study phases
      * GET /api/studies/lookup/phases
+     * Phase 4 Migration: Now uses AdminServiceProxy instead of legacy StudyPhaseService
      */
     @GetMapping("/lookup/phases")
-    public ResponseEntity<List<StudyPhaseDto>> getStudyPhases() {
+    public ResponseEntity<List<Map<String, Object>>> getStudyPhases() {
         logger.info("GET /api/studies/lookup/phases - Fetching study phases");
         
-        List<StudyPhaseDto> response = studyPhaseService.getAllActivePhases();
+        List<Map<String, Object>> response = adminServiceProxy.getAllStudyPhases();
         
         logger.info("Fetched {} study phases", response.size());
         return ResponseEntity.ok(response);
@@ -327,5 +338,158 @@ public class StudyController {
         StudyResponseDto response = studyService.changeStudyStatus(id, newStatus);
         logger.info("Study {} status changed to {} successfully", id, newStatus);
         return ResponseEntity.ok(response);
+    }
+    
+    // ==================== DDD/CQRS ENDPOINTS (Phase 2) ====================
+    
+    /**
+     * Create a new study using DDD/CQRS pattern
+     * POST /api/studies/ddd
+     * 
+     * @param request Study creation request
+     * @return Created study with UUID
+     */
+    @PostMapping("/ddd")
+    public ResponseEntity<com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto> createStudyDDD(
+            @Valid @RequestBody com.clinprecision.clinopsservice.study.dto.request.StudyCreateRequestDto request) {
+        logger.info("POST /api/studies/ddd - Creating new study via DDD: {}", request.getName());
+        
+        UUID studyUuid = studyCommandService.createStudy(request);
+        com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto response = studyQueryService.getStudyByUuid(studyUuid);
+        
+        logger.info("Study created successfully with UUID: {}", studyUuid);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+    
+    /**
+     * Get study by UUID (DDD identifier)
+     * GET /api/studies/uuid/{uuid}
+     * 
+     * @param uuid Study aggregate UUID
+     * @return Study details
+     */
+    @GetMapping("/uuid/{uuid}")
+    public ResponseEntity<com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto> getStudyByUuid(
+            @PathVariable UUID uuid) {
+        logger.info("GET /api/studies/uuid/{} - Fetching study by UUID", uuid);
+        
+        com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto response = studyQueryService.getStudyByUuid(uuid);
+        
+        logger.info("Study fetched successfully: {}", response.getName());
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Get all studies using DDD read model
+     * GET /api/studies/ddd
+     * 
+     * @return List of studies
+     */
+    @GetMapping("/ddd")
+    public ResponseEntity<List<com.clinprecision.clinopsservice.study.dto.response.StudyListResponseDto>> getAllStudiesDDD() {
+        logger.info("GET /api/studies/ddd - Fetching all studies via DDD");
+        
+        List<com.clinprecision.clinopsservice.study.dto.response.StudyListResponseDto> response = studyQueryService.getAllStudies();
+        
+        logger.info("Fetched {} studies via DDD", response.size());
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Update study using DDD/CQRS pattern
+     * PUT /api/studies/uuid/{uuid}
+     * 
+     * @param uuid Study aggregate UUID
+     * @param request Update request (partial update)
+     * @return Updated study
+     */
+    @PutMapping("/uuid/{uuid}")
+    public ResponseEntity<com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto> updateStudyDDD(
+            @PathVariable UUID uuid,
+            @Valid @RequestBody com.clinprecision.clinopsservice.study.dto.request.StudyUpdateRequestDto request) {
+        logger.info("PUT /api/studies/uuid/{} - Updating study via DDD", uuid);
+        
+        studyCommandService.updateStudy(uuid, request);
+        com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto response = studyQueryService.getStudyByUuid(uuid);
+        
+        logger.info("Study updated successfully: {}", response.getName());
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Suspend study
+     * POST /api/studies/uuid/{uuid}/suspend
+     * 
+     * @param uuid Study aggregate UUID
+     * @param request Suspension request with reason
+     * @return Void
+     */
+    @PostMapping("/uuid/{uuid}/suspend")
+    public ResponseEntity<Void> suspendStudy(
+            @PathVariable UUID uuid,
+            @Valid @RequestBody com.clinprecision.clinopsservice.study.dto.request.SuspendStudyRequestDto request) {
+        logger.info("POST /api/studies/uuid/{}/suspend - Suspending study", uuid);
+        
+        studyCommandService.suspendStudy(uuid, request);
+        
+        logger.info("Study suspended successfully: {}", uuid);
+        return ResponseEntity.noContent().build();
+    }
+    
+    /**
+     * Terminate study
+     * POST /api/studies/uuid/{uuid}/terminate
+     * 
+     * @param uuid Study aggregate UUID
+     * @param request Termination request with reason
+     * @return Void
+     */
+    @PostMapping("/uuid/{uuid}/terminate")
+    public ResponseEntity<Void> terminateStudy(
+            @PathVariable UUID uuid,
+            @Valid @RequestBody com.clinprecision.clinopsservice.study.dto.request.TerminateStudyRequestDto request) {
+        logger.info("POST /api/studies/uuid/{}/terminate - Terminating study", uuid);
+        
+        studyCommandService.terminateStudy(uuid, request);
+        
+        logger.warn("Study terminated (terminal state): {}", uuid);
+        return ResponseEntity.noContent().build();
+    }
+    
+    /**
+     * Withdraw study
+     * POST /api/studies/uuid/{uuid}/withdraw
+     * 
+     * @param uuid Study aggregate UUID
+     * @param request Withdrawal request with reason
+     * @return Void
+     */
+    @PostMapping("/uuid/{uuid}/withdraw")
+    public ResponseEntity<Void> withdrawStudy(
+            @PathVariable UUID uuid,
+            @Valid @RequestBody com.clinprecision.clinopsservice.study.dto.request.WithdrawStudyRequestDto request) {
+        logger.info("POST /api/studies/uuid/{}/withdraw - Withdrawing study", uuid);
+        
+        studyCommandService.withdrawStudy(uuid, request);
+        
+        logger.warn("Study withdrawn (terminal state): {}", uuid);
+        return ResponseEntity.noContent().build();
+    }
+    
+    /**
+     * Complete study
+     * POST /api/studies/uuid/{uuid}/complete
+     * 
+     * @param uuid Study aggregate UUID
+     * @return Void
+     */
+    @PostMapping("/uuid/{uuid}/complete")
+    public ResponseEntity<Void> completeStudy(@PathVariable UUID uuid) {
+        logger.info("POST /api/studies/uuid/{}/complete - Completing study", uuid);
+        
+        studyCommandService.completeStudy(uuid);
+        
+        logger.info("Study completed successfully: {}", uuid);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Repository for VisitDefinition entity operations
@@ -99,4 +100,26 @@ public interface VisitDefinitionRepository extends JpaRepository<VisitDefinition
            "AND NOT EXISTS (SELECT 1 FROM VisitFormEntity vf WHERE vf.visitDefinition = v) " +
            "ORDER BY v.sequenceNumber ASC")
     List<VisitDefinitionEntity> findVisitsWithoutFormsByStudyId(@Param("studyId") Long studyId);
+    
+    // ========== UUID-based queries for Phase 4 migration ==========
+    
+    /**
+     * Find visit definition by UUID (for event-sourced model)
+     */
+    Optional<VisitDefinitionEntity> findByVisitUuid(UUID visitUuid);
+    
+    /**
+     * Find all visits with visitUuid populated (migrated records)
+     */
+    List<VisitDefinitionEntity> findByStudyIdAndVisitUuidIsNotNull(Long studyId);
+    
+    /**
+     * Check if any visits for a study have been migrated (have visitUuid)
+     */
+    boolean existsByStudyIdAndVisitUuidIsNotNull(Long studyId);
+    
+    /**
+     * Find by aggregate UUID (for querying all visits in event-sourced aggregate)
+     */
+    List<VisitDefinitionEntity> findByAggregateUuidOrderBySequenceNumberAsc(UUID aggregateUuid);
 }

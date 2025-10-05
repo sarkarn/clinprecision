@@ -19,6 +19,12 @@ public class StudyArmEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    @Column(name = "aggregate_uuid", nullable = true, columnDefinition = "BINARY(16)")
+    private java.util.UUID aggregateUuid; // Links to StudyDesignAggregate
+    
+    @Column(name = "arm_uuid", nullable = true, unique = true, columnDefinition = "BINARY(16)")
+    private java.util.UUID armUuid; // UUID from event sourcing
+    
     @Column(name = "name", nullable = false, length = 255)
     private String name;
     
@@ -45,6 +51,19 @@ public class StudyArmEntity {
     
     @OneToMany(mappedBy = "studyArm", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<StudyInterventionEntity> interventions = new ArrayList<>();
+    
+    // Soft delete fields
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isDeleted = false;
+    
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+    
+    @Column(name = "deleted_by", length = 100)
+    private String deletedBy;
+    
+    @Column(name = "deletion_reason", columnDefinition = "TEXT")
+    private String deletionReason;
     
     // Audit fields
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -122,6 +141,24 @@ public class StudyArmEntity {
     
     public String getUpdatedBy() { return updatedBy; }
     public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
+    
+    public java.util.UUID getAggregateUuid() { return aggregateUuid; }
+    public void setAggregateUuid(java.util.UUID aggregateUuid) { this.aggregateUuid = aggregateUuid; }
+    
+    public java.util.UUID getArmUuid() { return armUuid; }
+    public void setArmUuid(java.util.UUID armUuid) { this.armUuid = armUuid; }
+    
+    public Boolean getIsDeleted() { return isDeleted; }
+    public void setIsDeleted(Boolean isDeleted) { this.isDeleted = isDeleted; }
+    
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+    
+    public String getDeletedBy() { return deletedBy; }
+    public void setDeletedBy(String deletedBy) { this.deletedBy = deletedBy; }
+    
+    public String getDeletionReason() { return deletionReason; }
+    public void setDeletionReason(String deletionReason) { this.deletionReason = deletionReason; }
     
     // Helper methods
     public void addIntervention(StudyInterventionEntity intervention) {

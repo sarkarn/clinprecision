@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Repository interface for StudyArmEntity
@@ -83,4 +84,26 @@ public interface StudyArmRepository extends JpaRepository<StudyArmEntity, Long> 
      */
     @Query("SELECT sa FROM StudyArmEntity sa WHERE sa.studyId = :studyId ORDER BY sa.sequence")
     List<StudyArmEntity> findByStudyIdForSequenceReordering(@Param("studyId") Long studyId);
+    
+    // ========== UUID-based queries for Phase 4 migration ==========
+    
+    /**
+     * Find study arm by UUID (for event-sourced model)
+     */
+    Optional<StudyArmEntity> findByArmUuid(UUID armUuid);
+    
+    /**
+     * Find all study arms with armUuid populated (migrated records)
+     */
+    List<StudyArmEntity> findByStudyIdAndArmUuidIsNotNull(Long studyId);
+    
+    /**
+     * Check if any arms for a study have been migrated (have armUuid)
+     */
+    boolean existsByStudyIdAndArmUuidIsNotNull(Long studyId);
+    
+    /**
+     * Find by aggregate UUID (for querying all arms in event-sourced aggregate)
+     */
+    List<StudyArmEntity> findByAggregateUuidOrderBySequenceAsc(UUID aggregateUuid);
 }

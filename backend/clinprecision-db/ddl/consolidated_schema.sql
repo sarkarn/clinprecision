@@ -159,6 +159,7 @@ CREATE TABLE organization_roles (
 
 CREATE TABLE organizations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(36) NOT NULL UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier for OrganizationAggregate',
     name VARCHAR(255) NOT NULL COMMENT 'Organization name',
     external_id VARCHAR(100) COMMENT 'External identifier for the organization',
     address_line1 VARCHAR(255) COMMENT 'Address line 1',
@@ -195,7 +196,7 @@ CREATE TABLE organization_contacts (
 
 CREATE TABLE sites (
 	  id bigint NOT NULL AUTO_INCREMENT,
-	  aggregate_uuid VARCHAR(255)  COMMENT 'UUID used by Axon Framework as aggregate identifier for CQRS/Event Sourcing',
+	  aggregate_uuid VARCHAR(36) NOT NULL COMMENT 'UUID used by Axon Framework as aggregate identifier for CQRS/Event Sourcing',
 	  organization_id bigint NOT NULL COMMENT 'Reference to the parent organization',
 	  site_number varchar(255) DEFAULT NULL,
 	  principal_investigator_id bigint DEFAULT NULL COMMENT 'Reference to the principal investigator user',
@@ -382,6 +383,7 @@ CREATE TABLE study_lookup_audit (
 -- Study related tables
 CREATE TABLE studies (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(36) NOT NULL UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier for StudyAggregate',
     name VARCHAR(255) NOT NULL,
     description TEXT,
     sponsor VARCHAR(255),
@@ -557,9 +559,10 @@ CREATE TABLE organization_studies (
     UNIQUE KEY (organization_id, study_id, role)
 );
 
--- Study Documents Table (MVP Version)
+-- Study Documents Table (DDD-Enhanced with Aggregate UUID)
 CREATE TABLE study_documents (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(36) NOT NULL UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier for StudyDocumentAggregate',
     study_id BIGINT NOT NULL COMMENT 'Reference to studies table',
     name VARCHAR(255) NOT NULL COMMENT 'Display name of the document',
     document_type VARCHAR(50) NOT NULL COMMENT 'Type of document (Protocol, ICF, IB, CRF, etc.)',
@@ -580,11 +583,12 @@ CREATE TABLE study_documents (
     FOREIGN KEY (uploaded_by) REFERENCES users(id),
     
     -- Indexes for performance
+    INDEX idx_study_documents_aggregate_uuid (aggregate_uuid),
     INDEX idx_study_documents_study_id (study_id),
     INDEX idx_study_documents_type (document_type),
     INDEX idx_study_documents_status (status),
     INDEX idx_study_documents_uploaded_at (uploaded_at)
-) COMMENT 'Store study documents and their metadata';
+) COMMENT 'Store study documents and their metadata - DDD aggregate for regulatory compliance and audit trail';
 
 
 
@@ -614,11 +618,14 @@ CREATE TABLE study_document_audit (
 -- Study arms
 CREATE TABLE study_arms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID linking to StudyDesignAggregate in event store',
+    arm_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this arm entity from StudyArmAddedEvent',
     name VARCHAR(255) NOT NULL,
     description TEXT,
     type VARCHAR(50) NOT NULL DEFAULT 'TREATMENT',
     sequence_number INTEGER NOT NULL,
     planned_subjects INTEGER DEFAULT 0,
+    is_deleted BOOLEAN DEFAULT FALSE COMMENT 'Soft delete flag - set by RemoveStudyArmEvent',
     study_id BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -637,12 +644,16 @@ CREATE TABLE study_arms (
 
 CREATE TABLE study_interventions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID linking to StudyDesignAggregate in event store',
+    intervention_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this intervention entity',
+    arm_uuid VARCHAR(255) NULL COMMENT 'UUID reference to StudyArm',
     name VARCHAR(255) NOT NULL,
     description TEXT,
     type VARCHAR(50) NOT NULL DEFAULT 'DRUG',
     dosage VARCHAR(255),
     frequency VARCHAR(255),
     route VARCHAR(255),
+    is_deleted BOOLEAN DEFAULT FALSE COMMENT 'Soft delete flag for soft deletes',
     study_arm_id BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -660,8 +671,11 @@ CREATE TABLE study_interventions (
 
 CREATE TABLE visit_definitions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID linking to StudyDesignAggregate in event store',
+    visit_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this visit entity from VisitDefinedEvent',
     study_id BIGINT NOT NULL,
     arm_id BIGINT,
+    arm_uuid VARCHAR(255) NULL COMMENT 'UUID reference to StudyArm for arm-specific visits',
     name VARCHAR(255) NOT NULL,
     description TEXT,
     timepoint INT NOT NULL,  -- Days from baseline (can be negative for screening)
@@ -669,6 +683,7 @@ CREATE TABLE visit_definitions (
     window_after INT DEFAULT 0,
     visit_type ENUM('SCREENING', 'BASELINE', 'TREATMENT', 'FOLLOW_UP', 'UNSCHEDULED', 'END_OF_STUDY') DEFAULT 'TREATMENT',
     is_required BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE COMMENT 'Soft delete flag - set by RemoveVisitEvent',
     sequence_number INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -679,6 +694,8 @@ CREATE TABLE visit_definitions (
 -- Form definitions
 CREATE TABLE form_definitions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID used by Axon Framework for FormAggregate (future)',
+    form_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this form entity',
     study_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -717,12 +734,17 @@ CREATE TABLE form_versions (
 
 CREATE TABLE visit_forms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID linking to StudyDesignAggregate in event store',
+    assignment_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this form assignment from FormAssignedToVisitEvent',
+    visit_uuid VARCHAR(255) NULL COMMENT 'UUID reference to VisitDefinition',
+    form_uuid VARCHAR(255) NULL COMMENT 'UUID reference to FormDefinition',
     visit_definition_id BIGINT NOT NULL,
     form_definition_id BIGINT NOT NULL,
     is_required BOOLEAN DEFAULT TRUE,
     is_conditional BOOLEAN DEFAULT FALSE,
     conditional_logic TEXT COMMENT 'JSON or expression for conditional forms',
     display_order INT DEFAULT 1 COMMENT 'Order for display in UI',
+    is_deleted BOOLEAN DEFAULT FALSE COMMENT 'Soft delete flag - set by RemoveFormAssignmentEvent',
     instructions TEXT COMMENT 'Specific instructions for this form in this visit',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1041,6 +1063,29 @@ CREATE TABLE user_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS study_status_computation_log (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    trigger_source VARCHAR(50) NOT NULL COMMENT 'Source of the trigger (version_change, amendment_change, etc.)',
+    old_status_code VARCHAR(100) COMMENT 'Previous status code',
+    new_status_code VARCHAR(100) COMMENT 'New computed status code',
+    computation_result ENUM('SUCCESS', 'NO_CHANGE', 'ERROR') NOT NULL,
+    trigger_details TEXT COMMENT 'Additional details about what triggered the computation',
+    error_message TEXT COMMENT 'Error message if computation failed',
+    computation_time_ms INT COMMENT 'Time taken for computation in milliseconds',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Indexes for performance
+    INDEX idx_study_status_log_study_id (study_id),
+    INDEX idx_study_status_log_source (trigger_source),
+    INDEX idx_study_status_log_result (computation_result),
+    INDEX idx_study_status_log_created (created_at),
+    
+    -- Foreign key constraint
+    CONSTRAINT fk_status_log_study_id FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE
+);
+
+
 
 ALTER TABLE study_status COMMENT = 'Lookup table for study lifecycle status values';
 ALTER TABLE regulatory_status COMMENT = 'Lookup table for regulatory approval status values';
@@ -1070,12 +1115,27 @@ CREATE INDEX idx_studies_study_phase_id ON studies(study_phase_id);
 -- Add template_id column to form_definitions table to link study forms to templates
 CREATE INDEX idx_form_template ON form_definitions(template_id);
 CREATE INDEX idx_form_status ON form_definitions(status);
+CREATE INDEX idx_form_definitions_aggregate_uuid ON form_definitions(aggregate_uuid);
+CREATE UNIQUE INDEX idx_form_definitions_form_uuid ON form_definitions(form_uuid);
+CREATE INDEX idx_visit_definitions_aggregate_uuid ON visit_definitions(aggregate_uuid);
+CREATE UNIQUE INDEX idx_visit_definitions_visit_uuid ON visit_definitions(visit_uuid);
+CREATE INDEX idx_visit_definitions_arm_uuid ON visit_definitions(arm_uuid);
+CREATE INDEX idx_visit_forms_aggregate_uuid ON visit_forms(aggregate_uuid);
+CREATE UNIQUE INDEX idx_visit_forms_assignment_uuid ON visit_forms(assignment_uuid);
+CREATE INDEX idx_visit_forms_visit_uuid ON visit_forms(visit_uuid);
+CREATE INDEX idx_visit_forms_form_uuid ON visit_forms(form_uuid);
 -- Create indexes for performance optimization
+CREATE UNIQUE INDEX idx_studies_aggregate_uuid ON studies(aggregate_uuid);
 CREATE INDEX idx_study_arms_study_id ON study_arms(study_id);
 CREATE INDEX idx_study_arms_sequence ON study_arms(study_id, sequence_number);
 CREATE INDEX idx_study_arms_type ON study_arms(type);
+CREATE INDEX idx_study_arms_aggregate_uuid ON study_arms(aggregate_uuid);
+CREATE UNIQUE INDEX idx_study_arms_arm_uuid ON study_arms(arm_uuid);
 CREATE INDEX idx_study_interventions_study_arm_id ON study_interventions(study_arm_id);
 CREATE INDEX idx_study_interventions_type ON study_interventions(type);
+CREATE INDEX idx_study_interventions_aggregate_uuid ON study_interventions(aggregate_uuid);
+CREATE UNIQUE INDEX idx_study_interventions_intervention_uuid ON study_interventions(intervention_uuid);
+CREATE INDEX idx_study_interventions_arm_uuid ON study_interventions(arm_uuid);
  -- Indexes for performance
 CREATE INDEX idx_design_progress_study_id ON study_design_progress (study_id);
 CREATE INDEX idx_design_progress_phase ON study_design_progress (phase);
@@ -1116,5 +1176,7 @@ CREATE INDEX idx_study_amendments_safety_status ON study_amendments (amendment_t
 -- Note: Using CAST to convert JSON extracted value to VARCHAR for indexing
 CREATE INDEX idx_code_lists_color ON code_lists((CAST(JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.color')) AS CHAR(100))));
 CREATE INDEX idx_code_lists_valid_date ON code_lists(valid_from, valid_to);
+
+
 
 

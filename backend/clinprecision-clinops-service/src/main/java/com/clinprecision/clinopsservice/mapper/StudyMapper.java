@@ -4,9 +4,9 @@ package com.clinprecision.clinopsservice.mapper;
 
 import com.clinprecision.common.dto.clinops.*;
 import com.clinprecision.common.entity.clinops.*;
-import com.clinprecision.clinopsservice.service.RegulatoryStatusService;
-import com.clinprecision.clinopsservice.service.StudyPhaseService;
-import com.clinprecision.clinopsservice.service.StudyStatusService;
+import com.clinprecision.clinopsservice.repository.RegulatoryStatusRepository;
+import com.clinprecision.clinopsservice.repository.StudyPhaseRepository;
+import com.clinprecision.clinopsservice.repository.StudyStatusRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -23,16 +23,20 @@ public class StudyMapper {
     
     private static final Logger logger = LoggerFactory.getLogger(StudyMapper.class);
     
-    private final StudyStatusService studyStatusService;
-    private final RegulatoryStatusService regulatoryStatusService;
-    private final StudyPhaseService studyPhaseService;
+    private final StudyStatusRepository studyStatusRepository;
+    private final RegulatoryStatusRepository regulatoryStatusRepository;
+    private final StudyPhaseRepository studyPhaseRepository;
     
-    public StudyMapper(StudyStatusService studyStatusService,
-                      RegulatoryStatusService regulatoryStatusService,
-                      StudyPhaseService studyPhaseService) {
-        this.studyStatusService = studyStatusService;
-        this.regulatoryStatusService = regulatoryStatusService;
-        this.studyPhaseService = studyPhaseService;
+    /**
+     * Constructor with repository dependencies
+     * Phase 4 Migration: Uses repositories directly instead of legacy service layer
+     */
+    public StudyMapper(StudyStatusRepository studyStatusRepository,
+                      RegulatoryStatusRepository regulatoryStatusRepository,
+                      StudyPhaseRepository studyPhaseRepository) {
+        this.studyStatusRepository = studyStatusRepository;
+        this.regulatoryStatusRepository = regulatoryStatusRepository;
+        this.studyPhaseRepository = studyPhaseRepository;
     }
     
     /**
@@ -63,21 +67,21 @@ public class StudyMapper {
         
         // Handle lookup table relationships
         if (dto.getStudyStatusId() != null) {
-            studyStatusService.findEntityById(dto.getStudyStatusId())
+            studyStatusRepository.findById(dto.getStudyStatusId())
                 .ifPresent(entity::setStudyStatus);
         } else {
             // Set default draft status if no status provided
-            studyStatusService.getDefaultDraftStatus()
+            studyStatusRepository.findDraftStatus()
                 .ifPresent(entity::setStudyStatus);
         }
         
         if (dto.getStudyPhaseId() != null) {
-            studyPhaseService.findEntityById(dto.getStudyPhaseId())
+            studyPhaseRepository.findById(dto.getStudyPhaseId())
                 .ifPresent(entity::setStudyPhase);
         }
         
         if (dto.getRegulatoryStatusId() != null) {
-            regulatoryStatusService.findEntityById(dto.getRegulatoryStatusId())
+            regulatoryStatusRepository.findById(dto.getRegulatoryStatusId())
                 .ifPresent(entity::setRegulatoryStatus);
         }
         
@@ -283,7 +287,7 @@ public class StudyMapper {
         
         // Update lookup table relationships
         if (dto.getStudyStatusId() != null) {
-            StudyStatusEntity studyStatus = studyStatusService.findEntityById(dto.getStudyStatusId()).orElse(null);
+            StudyStatusEntity studyStatus = studyStatusRepository.findById(dto.getStudyStatusId()).orElse(null);
             if (studyStatus != null) {
                 entity.setStudyStatus(studyStatus);
             } else {
@@ -297,14 +301,14 @@ public class StudyMapper {
         }
         
         if (dto.getStudyPhaseId() != null) {
-            StudyPhaseEntity studyPhase = studyPhaseService.findEntityById(dto.getStudyPhaseId()).orElse(null);
+            StudyPhaseEntity studyPhase = studyPhaseRepository.findById(dto.getStudyPhaseId()).orElse(null);
             if (studyPhase != null) {
                 entity.setStudyPhase(studyPhase);
             }
         }
         
         if (dto.getRegulatoryStatusId() != null) {
-            RegulatoryStatusEntity regulatoryStatus = regulatoryStatusService.findEntityById(dto.getRegulatoryStatusId()).orElse(null);
+            RegulatoryStatusEntity regulatoryStatus = regulatoryStatusRepository.findById(dto.getRegulatoryStatusId()).orElse(null);
             if (regulatoryStatus != null) {
                 entity.setRegulatoryStatus(regulatoryStatus);
             }

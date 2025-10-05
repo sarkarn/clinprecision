@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Repository for VisitForm association entity operations
@@ -119,4 +120,26 @@ public interface VisitFormRepository extends JpaRepository<VisitFormEntity, Long
     @Query("UPDATE VisitFormEntity vf SET vf.displayOrder = :newOrder " +
            "WHERE vf.id = :visitFormId")
     void updateDisplayOrder(@Param("visitFormId") Long visitFormId, @Param("newOrder") Integer newOrder);
+    
+    // ========== UUID-based queries for Phase 4 migration ==========
+    
+    /**
+     * Find visit-form assignment by UUID (for event-sourced model)
+     */
+    Optional<VisitFormEntity> findByAssignmentUuid(UUID assignmentUuid);
+    
+    /**
+     * Find all form assignments with assignmentUuid populated (migrated records)
+     */
+    List<VisitFormEntity> findByVisitDefinition_StudyIdAndAssignmentUuidIsNotNull(Long studyId);
+    
+    /**
+     * Check if any form assignments for a visit have been migrated (have assignmentUuid)
+     */
+    boolean existsByVisitDefinitionIdAndAssignmentUuidIsNotNull(Long visitDefinitionId);
+    
+    /**
+     * Find by aggregate UUID (for querying all assignments in event-sourced aggregate)
+     */
+    List<VisitFormEntity> findByAggregateUuidOrderByDisplayOrderAsc(UUID aggregateUuid);
 }

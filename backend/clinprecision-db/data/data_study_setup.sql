@@ -1,6 +1,6 @@
 
 INSERT INTO studies (
-    id, name, description, sponsor, protocol_number, version, is_latest_version,
+    id, aggregate_uuid, name, description, sponsor, protocol_number, version, is_latest_version,
     indication, study_type, principal_investigator, sites, planned_subjects, enrolled_subjects, target_enrollment,
     primary_objective, amendments, study_status_id, regulatory_status_id, study_phase_id,
     therapeutic_area, study_coordinator, active_sites, total_sites, screened_subjects, randomized_subjects,
@@ -12,7 +12,7 @@ INSERT INTO studies (
     queries_open, queries_resolved, sdv_percentage, recruitment_status,
     start_date, end_date, created_by, created_at, updated_at
 ) VALUES (
-    1, 'COVID-19 Vaccine Trial', 'A randomized, double-blind, placebo-controlled trial to evaluate the efficacy and safety of a novel mRNA COVID-19 vaccine in healthy adults.',
+    1, '550e8400-e29b-41d4-a716-446655440001', 'COVID-19 Vaccine Trial', 'A randomized, double-blind, placebo-controlled trial to evaluate the efficacy and safety of a novel mRNA COVID-19 vaccine in healthy adults.',
     (SELECT name FROM organizations WHERE external_id = 'PG12345'), 'BPI-COVID-001', '2.1', TRUE,
     'COVID-19 Prevention', 'INTERVENTIONAL', 'Dr. Sarah Johnson', 25, 2000, 1547, 2000,
     'To evaluate the efficacy of the vaccine in preventing COVID-19 infection', 2, 2, 3, 3,
@@ -30,7 +30,7 @@ INSERT INTO studies (
 
 -- Study 2: Diabetes Management Study (Phase II, Completed Enrollment)
 INSERT INTO studies (
-    id, name, description, sponsor, protocol_number, version, is_latest_version,
+    id, aggregate_uuid, name, description, sponsor, protocol_number, version, is_latest_version,
     indication, study_type, principal_investigator, sites, planned_subjects, enrolled_subjects, target_enrollment,
     primary_objective, amendments, study_status_id, regulatory_status_id, study_phase_id,
     therapeutic_area, study_coordinator, active_sites, total_sites, screened_subjects, randomized_subjects,
@@ -42,7 +42,7 @@ INSERT INTO studies (
     queries_open, queries_resolved, sdv_percentage, recruitment_status,
     start_date, end_date, created_by, created_at, updated_at
 ) VALUES (
-    2, 'Diabetes Management Study', 'A randomized controlled trial evaluating a novel continuous glucose monitoring system with AI-driven insulin dosing recommendations.',
+    2, '550e8400-e29b-41d4-a716-446655440002', 'Diabetes Management Study', 'A randomized controlled trial evaluating a novel continuous glucose monitoring system with AI-driven insulin dosing recommendations.',
     (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'MRG-DM-101', '1.5', TRUE,
     'Type 2 Diabetes Mellitus', 'INTERVENTIONAL', 'Dr. Michael Chen', 15, 300, 300, 300,
     'To evaluate the efficacy of AI-driven insulin dosing in improving glycemic control', 1, 2, 2, 2,
@@ -60,7 +60,7 @@ INSERT INTO studies (
 
 -- Study 3: Alzheimer's Disease Intervention Study (Phase II, Active)
 INSERT INTO studies (
-    id, name, description, sponsor, protocol_number, version, is_latest_version,
+    id, aggregate_uuid, name, description, sponsor, protocol_number, version, is_latest_version,
     indication, study_type, principal_investigator, sites, planned_subjects, enrolled_subjects, target_enrollment,
     primary_objective, amendments, study_status_id, regulatory_status_id, study_phase_id,
     therapeutic_area, study_coordinator, active_sites, total_sites, screened_subjects, randomized_subjects,
@@ -72,7 +72,7 @@ INSERT INTO studies (
     queries_open, queries_resolved, sdv_percentage, recruitment_status,
     start_date, end_date, created_by, created_at, updated_at
 ) VALUES (
-    3, 'Alzheimer''s Disease Intervention Study', 'A double-blind, placebo-controlled study evaluating a novel amyloid-targeting therapeutic in early-stage Alzheimer''s disease.',
+    3, '550e8400-e29b-41d4-a716-446655440003', 'Alzheimer''s Disease Intervention Study', 'A double-blind, placebo-controlled study evaluating a novel amyloid-targeting therapeutic in early-stage Alzheimer''s disease.',
     (SELECT name FROM organizations WHERE external_id = 'PG12345'), 'NCF-ALZ-202', '1.0', TRUE,
     'Early-stage Alzheimer''s Disease', 'INTERVENTIONAL', 'Dr. Patricia Williams', 35, 480, 412, 480,
     'To evaluate the efficacy in slowing cognitive decline in early Alzheimer''s disease', 0, 2, 2, 2,
@@ -90,7 +90,7 @@ INSERT INTO studies (
 
 -- Study 4: Rheumatoid Arthritis Comparative Therapy Trial (Phase III, Active)
 INSERT INTO studies (
-    id, name, description, sponsor, protocol_number, version, is_latest_version,
+    id, aggregate_uuid, name, description, sponsor, protocol_number, version, is_latest_version,
     indication, study_type, principal_investigator, sites, planned_subjects, enrolled_subjects, target_enrollment,
     primary_objective, amendments, study_status_id, regulatory_status_id, study_phase_id,
     therapeutic_area, study_coordinator, active_sites, total_sites, screened_subjects, randomized_subjects,
@@ -102,7 +102,7 @@ INSERT INTO studies (
     queries_open, queries_resolved, sdv_percentage, recruitment_status,
     start_date, end_date, created_by, created_at, updated_at
 ) VALUES (
-    4, 'Rheumatoid Arthritis Comparative Therapy Trial', 'A three-arm randomized study comparing the efficacy and safety of three different biological therapies for moderate to severe rheumatoid arthritis.',
+    4, '550e8400-e29b-41d4-a716-446655440004', 'Rheumatoid Arthritis Comparative Therapy Trial', 'A three-arm randomized study comparing the efficacy and safety of three different biological therapies for moderate to severe rheumatoid arthritis.',
     (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'ACP-RA-301', '2.0', TRUE,
     'Rheumatoid Arthritis', 'INTERVENTIONAL', 'Dr. Amanda Davis', 28, 750, 623, 750,
     'To compare the efficacy of three biological therapies in achieving ACR20 response', 3, 2, 2, 3,
@@ -120,7 +120,7 @@ INSERT INTO studies (
 
 -- Study 5: Hypertension Management in Elderly Patients (Phase IV, Completed)
 INSERT INTO studies (
-    id, name, description, sponsor, protocol_number, version, is_latest_version,
+    id, aggregate_uuid, name, description, sponsor, protocol_number, version, is_latest_version,
     indication, study_type, principal_investigator, sites, planned_subjects, enrolled_subjects, target_enrollment,
     primary_objective, amendments, study_status_id, regulatory_status_id, study_phase_id,
     therapeutic_area, study_coordinator, active_sites, total_sites, screened_subjects, randomized_subjects,
@@ -132,7 +132,7 @@ INSERT INTO studies (
     queries_open, queries_resolved, sdv_percentage, recruitment_status,
     start_date, end_date, created_by, created_at, updated_at
 ) VALUES (
-    5, 'Hypertension Management in Elderly Patients', 'A post-marketing surveillance study examining optimal blood pressure targets and treatment strategies in patients over 65 years of age.',
+    5, '550e8400-e29b-41d4-a716-446655440005', 'Hypertension Management in Elderly Patients', 'A post-marketing surveillance study examining optimal blood pressure targets and treatment strategies in patients over 65 years of age.',
     (SELECT name FROM organizations WHERE external_id = 'PG12345'), 'CHI-HTN-401', '1.3', TRUE,
     'Hypertension in Elderly', 'OBSERVATIONAL', 'Dr. James Martinez', 45, 1200, 1200, 1200,
     'To evaluate optimal BP targets for reducing cardiovascular events in elderly patients', 2, 4, 1, 4,
@@ -150,7 +150,7 @@ INSERT INTO studies (
 
 -- Study 6: Pediatric Asthma Treatment Optimization (Phase II, Completed)
 INSERT INTO studies (
-    id, name, description, sponsor, protocol_number, version, is_latest_version,
+    id, aggregate_uuid, name, description, sponsor, protocol_number, version, is_latest_version,
     indication, study_type, principal_investigator, sites, planned_subjects, enrolled_subjects, target_enrollment,
     primary_objective, amendments, study_status_id, regulatory_status_id, study_phase_id,
     therapeutic_area, study_coordinator, active_sites, total_sites, screened_subjects, randomized_subjects,
@@ -162,7 +162,7 @@ INSERT INTO studies (
     queries_open, queries_resolved, sdv_percentage, recruitment_status,
     start_date, end_date, created_by, created_at, updated_at
 ) VALUES (
-    6, 'Pediatric Asthma Treatment Optimization', 'A randomized controlled trial evaluating the efficacy of a step-down therapeutic approach in well-controlled pediatric asthma patients aged 5-12 years.',
+    6, '550e8400-e29b-41d4-a716-446655440006', 'Pediatric Asthma Treatment Optimization', 'A randomized controlled trial evaluating the efficacy of a step-down therapeutic approach in well-controlled pediatric asthma patients aged 5-12 years.',
     (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'RCF-AST-201', '1.1', TRUE,
     'Pediatric Asthma', 'INTERVENTIONAL', 'Dr. Emily Roberts', 20, 180, 180, 180,
     'To evaluate the safety and efficacy of step-down therapy in well-controlled pediatric asthma', 1, 4, 1, 2,
@@ -180,7 +180,7 @@ INSERT INTO studies (
 
 -- Study 7: Oncology Immunotherapy Combination Study (Phase I/II, Active)
 INSERT INTO studies (
-    id, name, description, sponsor, protocol_number, version, is_latest_version,
+    id, aggregate_uuid, name, description, sponsor, protocol_number, version, is_latest_version,
     indication, study_type, principal_investigator, sites, planned_subjects, enrolled_subjects, target_enrollment,
     primary_objective, amendments, study_status_id, regulatory_status_id, study_phase_id,
     therapeutic_area, study_coordinator, active_sites, total_sites, screened_subjects, randomized_subjects,
@@ -192,7 +192,7 @@ INSERT INTO studies (
     queries_open, queries_resolved, sdv_percentage, recruitment_status,
     start_date, end_date, created_by, created_at, updated_at
 ) VALUES (
-    7, 'Oncology Immunotherapy Combination Study', 'A dose-escalation study evaluating the safety and preliminary efficacy of a novel PD-1 inhibitor in combination with standard chemotherapy for advanced solid tumors.',
+    7, '550e8400-e29b-41d4-a716-446655440007', 'Oncology Immunotherapy Combination Study', 'A dose-escalation study evaluating the safety and preliminary efficacy of a novel PD-1 inhibitor in combination with standard chemotherapy for advanced solid tumors.',
     (SELECT name FROM organizations WHERE external_id = 'PG12345'), 'ONC-IMM-101', '1.0', TRUE,
     'Advanced Solid Tumors', 'INTERVENTIONAL', 'Dr. Catherine Brown', 12, 72, 45, 72,
     'To determine the maximum tolerated dose and dose-limiting toxicities', 0, 2, 2, 1,
@@ -210,7 +210,7 @@ INSERT INTO studies (
 
 -- Study 8: Cardiovascular Prevention Study (Phase III, Recruiting)
 INSERT INTO studies (
-    id, name, description, sponsor, protocol_number, version, is_latest_version,
+    id, aggregate_uuid, name, description, sponsor, protocol_number, version, is_latest_version,
     indication, study_type, principal_investigator, sites, planned_subjects, enrolled_subjects, target_enrollment,
     primary_objective, amendments, study_status_id, regulatory_status_id, study_phase_id,
     therapeutic_area, study_coordinator, active_sites, total_sites, screened_subjects, randomized_subjects,
@@ -222,7 +222,7 @@ INSERT INTO studies (
     queries_open, queries_resolved, sdv_percentage, recruitment_status,
     start_date, end_date, created_by, created_at, updated_at
 ) VALUES (
-    8, 'Cardiovascular Prevention Study', 'A large-scale randomized controlled trial evaluating the cardiovascular benefits of a novel PCSK9 inhibitor in high-risk patients.',
+    8, '550e8400-e29b-41d4-a716-446655440008', 'Cardiovascular Prevention Study', 'A large-scale randomized controlled trial evaluating the cardiovascular benefits of a novel PCSK9 inhibitor in high-risk patients.',
     (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'CVD-PREV-301', '1.2', TRUE,
     'Cardiovascular Disease Prevention', 'INTERVENTIONAL', 'Dr. Robert Anderson', 85, 5000, 3245, 5000,
     'To evaluate the reduction in major adverse cardiovascular events', 1, 2, 2, 3,
@@ -240,7 +240,7 @@ INSERT INTO studies (
 
 -- Study 9: Mental Health Digital Intervention Study (Phase II, Active)
 INSERT INTO studies (
-    id, name, description, sponsor, protocol_number, version, is_latest_version,
+    id, aggregate_uuid, name, description, sponsor, protocol_number, version, is_latest_version,
     indication, study_type, principal_investigator, sites, planned_subjects, enrolled_subjects, target_enrollment,
     primary_objective, amendments, study_status_id, regulatory_status_id, study_phase_id,
     therapeutic_area, study_coordinator, active_sites, total_sites, screened_subjects, randomized_subjects,
@@ -252,7 +252,7 @@ INSERT INTO studies (
     queries_open, queries_resolved, sdv_percentage, recruitment_status,
     start_date, end_date, created_by, created_at, updated_at
 ) VALUES (
-    9, 'Mental Health Digital Intervention Study', 'A randomized controlled trial evaluating the efficacy of a digital cognitive behavioral therapy platform for moderate depression.',
+    9, '550e8400-e29b-41d4-a716-446655440009', 'Mental Health Digital Intervention Study', 'A randomized controlled trial evaluating the efficacy of a digital cognitive behavioral therapy platform for moderate depression.',
     (SELECT name FROM organizations WHERE external_id = 'PG12345'), 'MH-DCBT-201', '1.0', TRUE,
     'Major Depressive Disorder', 'INTERVENTIONAL', 'Dr. Lisa Thompson', 8, 240, 187, 240,
     'To evaluate the efficacy of digital CBT in reducing depression symptoms', 0, 2, 2, 2,
@@ -270,7 +270,7 @@ INSERT INTO studies (
 
 -- Study 10: Rare Disease Gene Therapy Study (Phase I, Early Stage)
 INSERT INTO studies (
-    id, name, description, sponsor, protocol_number, version, is_latest_version,
+    id, aggregate_uuid, name, description, sponsor, protocol_number, version, is_latest_version,
     indication, study_type, principal_investigator, sites, planned_subjects, enrolled_subjects, target_enrollment,
     primary_objective, amendments, study_status_id, regulatory_status_id, study_phase_id,
     therapeutic_area, study_coordinator, active_sites, total_sites, screened_subjects, randomized_subjects,
@@ -282,7 +282,7 @@ INSERT INTO studies (
     queries_open, queries_resolved, sdv_percentage, recruitment_status,
     start_date, end_date, created_by, created_at, updated_at
 ) VALUES (
-    10, 'Rare Disease Gene Therapy Study', 'A first-in-human dose-escalation study of AAV-mediated gene therapy for patients with X-linked myotubular myopathy.',
+    10, '550e8400-e29b-41d4-a716-446655440010', 'Rare Disease Gene Therapy Study', 'A first-in-human dose-escalation study of AAV-mediated gene therapy for patients with X-linked myotubular myopathy.',
     (SELECT name FROM organizations WHERE external_id = 'BAC7890'), 'GT-XLMTM-101', '1.0', TRUE,
     'X-linked Myotubular Myopathy', 'INTERVENTIONAL', 'Dr. Mark Wilson', 5, 24, 8, 24,
     'To evaluate the safety and tolerability of gene therapy', 0, 2, 4, 1,

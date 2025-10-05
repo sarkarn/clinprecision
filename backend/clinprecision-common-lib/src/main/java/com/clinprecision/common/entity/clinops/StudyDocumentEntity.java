@@ -16,6 +16,9 @@ public class StudyDocumentEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "aggregate_uuid", unique = true, nullable = false, length = 36)
+    private String aggregateUuid;
+
     @Column(name = "study_id", nullable = false)
     private Long studyId;
 
@@ -52,6 +55,24 @@ public class StudyDocumentEntity {
 
     @Column(name = "uploaded_at", nullable = false)
     private LocalDateTime uploadedAt;
+
+    @Column(name = "approved_by")
+    private String approvedBy;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "superseded_by_document_id")
+    private String supersededByDocumentId;
+
+    @Column(name = "archived_by")
+    private String archivedBy;
+
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -112,6 +133,14 @@ public class StudyDocumentEntity {
 
     public void setStudyId(Long studyId) {
         this.studyId = studyId;
+    }
+
+    public String getAggregateUuid() {
+        return aggregateUuid;
+    }
+
+    public void setAggregateUuid(String aggregateUuid) {
+        this.aggregateUuid = aggregateUuid;
     }
 
     public String getName() {
@@ -224,6 +253,54 @@ public class StudyDocumentEntity {
 
     public void setStudy(StudyEntity study) {
         this.study = study;
+    }
+
+    public String getApprovedBy() {
+        return approvedBy;
+    }
+
+    public void setApprovedBy(String approvedBy) {
+        this.approvedBy = approvedBy;
+    }
+
+    public LocalDateTime getApprovedAt() {
+        return approvedAt;
+    }
+
+    public void setApprovedAt(LocalDateTime approvedAt) {
+        this.approvedAt = approvedAt;
+    }
+
+    public String getSupersededByDocumentId() {
+        return supersededByDocumentId;
+    }
+
+    public void setSupersededByDocumentId(String supersededByDocumentId) {
+        this.supersededByDocumentId = supersededByDocumentId;
+    }
+
+    public String getArchivedBy() {
+        return archivedBy;
+    }
+
+    public void setArchivedBy(String archivedBy) {
+        this.archivedBy = archivedBy;
+    }
+
+    public LocalDateTime getArchivedAt() {
+        return archivedAt;
+    }
+
+    public void setArchivedAt(LocalDateTime archivedAt) {
+        this.archivedAt = archivedAt;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 
     // Utility methods

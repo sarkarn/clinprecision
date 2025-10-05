@@ -10,10 +10,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Study Entity - Maps to studies table
  * Represents a clinical research study
+ * 
+ * DDD Enhancement: Added aggregateUuid field for event sourcing integration
  */
 @Entity
 @Table(name = "studies")
@@ -24,6 +27,14 @@ public class StudyEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    
+    /**
+     * DDD Aggregate UUID - Links to event-sourced StudyAggregate
+     * This is the true identifier in DDD architecture
+     * Legacy 'id' field maintained for backward compatibility
+     */
+    @Column(name = "aggregate_uuid", unique = true, nullable = true)
+    private UUID aggregateUuid;
     
     @Column(name = "name", nullable = false, length = 255)
     private String name;
@@ -656,5 +667,21 @@ public class StudyEntity {
     
     public void setRecentActivities(String recentActivities) {
         this.recentActivities = recentActivities;
+    }
+    
+    /**
+     * Get aggregate UUID (DDD identifier)
+     * @return UUID linking to event-sourced aggregate
+     */
+    public UUID getAggregateUuid() {
+        return aggregateUuid;
+    }
+    
+    /**
+     * Set aggregate UUID (DDD identifier)
+     * @param aggregateUuid UUID from event-sourced aggregate
+     */
+    public void setAggregateUuid(UUID aggregateUuid) {
+        this.aggregateUuid = aggregateUuid;
     }
 }

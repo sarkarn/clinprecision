@@ -10,13 +10,51 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Repository interface for StudyEntity
  * Provides database access methods for study operations
+ * 
+ * DDD Enhancement: Added UUID-based query methods for event sourcing integration
  */
 @Repository
 public interface StudyRepository extends JpaRepository<StudyEntity, Long> {
+    
+    // ==================== DDD UUID-BASED METHODS (Preferred) ====================
+    
+    /**
+     * Find study by aggregate UUID (DDD identifier)
+     * This is the preferred method for DDD architecture
+     * 
+     * @param aggregateUuid UUID from event-sourced aggregate
+     * @return Optional containing StudyEntity if found
+     */
+    Optional<StudyEntity> findByAggregateUuid(UUID aggregateUuid);
+    
+    /**
+     * Find study by aggregate UUID with all relationships eagerly loaded
+     * 
+     * @param aggregateUuid UUID from event-sourced aggregate
+     * @return Optional containing StudyEntity with loaded relationships
+     */
+    @Query("SELECT s FROM StudyEntity s " +
+           "LEFT JOIN FETCH s.organizationStudies os " +
+           "LEFT JOIN FETCH s.studyStatus ss " +
+           "LEFT JOIN FETCH s.regulatoryStatus rs " +
+           "LEFT JOIN FETCH s.studyPhase sp " +
+           "WHERE s.aggregateUuid = :aggregateUuid")
+    Optional<StudyEntity> findByAggregateUuidWithAllRelationships(@Param("aggregateUuid") UUID aggregateUuid);
+    
+    /**
+     * Check if study exists by aggregate UUID
+     * 
+     * @param aggregateUuid UUID to check
+     * @return true if exists, false otherwise
+     */
+    boolean existsByAggregateUuid(UUID aggregateUuid);
+    
+    // ==================== LEGACY LONG ID METHODS ====================
     
     /**
      * Find studies by status IDs

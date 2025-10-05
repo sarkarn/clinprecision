@@ -28,12 +28,21 @@ public class VisitDefinitionEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    
+    @Column(name = "aggregate_uuid", nullable = true, columnDefinition = "BINARY(16)")
+    private java.util.UUID aggregateUuid; // Links to StudyDesignAggregate
+    
+    @Column(name = "visit_uuid", nullable = true, unique = true, columnDefinition = "BINARY(16)")
+    private java.util.UUID visitUuid; // UUID from event sourcing
+    
+    @Column(name = "arm_uuid", nullable = true, columnDefinition = "BINARY(16)")
+    private java.util.UUID armUuid; // Optional arm-specific visits (UUID)
 
     @Column(name = "study_id", nullable = false)
     private Long studyId;
 
     @Column(name = "arm_id")
-    private Long armId; // Optional arm-specific visits
+    private Long armId; // Optional arm-specific visits (legacy Long)
 
     @Column(name = "name", nullable = false, length = 255)
     private String name;
@@ -63,12 +72,32 @@ public class VisitDefinitionEntity {
 
     @Column(name = "sequence_number")
     private Integer sequenceNumber;
+    
+    // Soft delete fields
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Builder.Default
+    private Boolean isDeleted = false;
+    
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+    
+    @Column(name = "deleted_by", length = 100)
+    private String deletedBy;
+    
+    @Column(name = "deletion_reason", columnDefinition = "TEXT")
+    private String deletionReason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+    
+    @Column(name = "created_by", length = 100)
+    private String createdBy;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    
+    @Column(name = "updated_by", length = 100)
+    private String updatedBy;
 
     // Relationship with visit forms
     @OneToMany(mappedBy = "visitDefinition", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

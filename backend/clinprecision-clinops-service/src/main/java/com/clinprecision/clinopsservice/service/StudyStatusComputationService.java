@@ -2,9 +2,10 @@ package com.clinprecision.clinopsservice.service;
 
 
 
-import com.clinprecision.clinopsservice.repository.StudyVersionRepository;
+import com.clinprecision.clinopsservice.protocolversion.entity.ProtocolVersionEntity;
+import com.clinprecision.clinopsservice.protocolversion.repository.ProtocolVersionReadRepository;
+import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.VersionStatus;
 import com.clinprecision.common.entity.clinops.StudyEntity;
-import com.clinprecision.common.entity.clinops.StudyVersionEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,10 +24,10 @@ public class StudyStatusComputationService {
 
     private static final Logger logger = LoggerFactory.getLogger(StudyStatusComputationService.class);
 
-    private final StudyVersionRepository studyVersionRepository;
+    private final ProtocolVersionReadRepository protocolVersionRepository;
 
-    public StudyStatusComputationService(StudyVersionRepository studyVersionRepository) {
-        this.studyVersionRepository = studyVersionRepository;
+    public StudyStatusComputationService(ProtocolVersionReadRepository protocolVersionRepository) {
+        this.protocolVersionRepository = protocolVersionRepository;
     }
 
     /**
@@ -142,9 +143,9 @@ public class StudyStatusComputationService {
         }
 
         // Check if study has at least one approved protocol version
-        List<StudyVersionEntity> versions = studyVersionRepository.findByStudyIdOrderByVersionNumberDesc(study.getId());
+        List<ProtocolVersionEntity> versions = protocolVersionRepository.findByStudyIdOrderByVersionNumberDesc(study.getId());
         boolean hasApprovedVersion = versions.stream()
-                .anyMatch(v -> v.getStatus() == StudyVersionEntity.VersionStatus.APPROVED);
+                .anyMatch(v -> v.getStatus() == VersionStatus.APPROVED);
         
         if (!hasApprovedVersion) {
             errors.add("Study must have at least one approved protocol version");
@@ -165,9 +166,9 @@ public class StudyStatusComputationService {
         }
 
         // Check if study has an active protocol version
-        List<StudyVersionEntity> versions = studyVersionRepository.findByStudyIdOrderByVersionNumberDesc(study.getId());
+        List<ProtocolVersionEntity> versions = protocolVersionRepository.findByStudyIdOrderByVersionNumberDesc(study.getId());
         boolean hasActiveVersion = versions.stream()
-                .anyMatch(v -> v.getStatus() == StudyVersionEntity.VersionStatus.ACTIVE);
+                .anyMatch(v -> v.getStatus() == VersionStatus.ACTIVE);
         
         if (!hasActiveVersion) {
             errors.add("Study must have an active protocol version");
@@ -231,7 +232,7 @@ public class StudyStatusComputationService {
         String currentStatus = study.getStudyStatus() != null ? study.getStudyStatus().getCode() : "DRAFT";
         
         // Get all protocol versions for this study
-        List<StudyVersionEntity> versions = studyVersionRepository.findByStudyIdOrderByVersionNumberDesc(study.getId());
+        List<ProtocolVersionEntity> versions = protocolVersionRepository.findByStudyIdOrderByVersionNumberDesc(study.getId());
 
         if (versions.isEmpty()) {
             return "DRAFT"; // No versions = draft study
@@ -239,11 +240,11 @@ public class StudyStatusComputationService {
 
         // Check for active versions
         boolean hasActiveVersion = versions.stream()
-                .anyMatch(v -> v.getStatus() == StudyVersionEntity.VersionStatus.ACTIVE);
+                .anyMatch(v -> v.getStatus() == VersionStatus.ACTIVE);
 
         // Check for approved versions
         boolean hasApprovedVersion = versions.stream()
-                .anyMatch(v -> v.getStatus() == StudyVersionEntity.VersionStatus.APPROVED);
+                .anyMatch(v -> v.getStatus() == VersionStatus.APPROVED);
 
         // Apply business logic for status computation
         if ("ACTIVE".equalsIgnoreCase(currentStatus) && !hasActiveVersion) {

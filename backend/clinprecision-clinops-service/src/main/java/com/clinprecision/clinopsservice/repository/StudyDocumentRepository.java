@@ -19,11 +19,43 @@ import java.util.Optional;
 public interface StudyDocumentRepository extends JpaRepository<StudyDocumentEntity, Long> {
 
     /**
+     * Find document by aggregate UUID
+     * @param aggregateUuid The aggregate UUID
+     * @return Optional document entity
+     */
+    Optional<StudyDocumentEntity> findByAggregateUuid(String aggregateUuid);
+
+    /**
      * Find all documents for a specific study
      * @param studyId The study ID
      * @return List of documents for the study
      */
     List<StudyDocumentEntity> findByStudyIdOrderByUploadedAtDesc(Long studyId);
+
+    /**
+     * Find all non-deleted documents for a specific study
+     * @param studyId The study ID
+     * @return List of non-deleted documents for the study
+     */
+    List<StudyDocumentEntity> findByStudyIdAndIsDeletedFalse(Long studyId);
+
+    /**
+     * Find non-deleted documents by study ID and status
+     * @param studyId The study ID
+     * @param status The document status
+     * @return List of documents matching criteria
+     */
+    List<StudyDocumentEntity> findByStudyIdAndStatusAndIsDeletedFalse(
+        Long studyId, StudyDocumentEntity.DocumentStatus status);
+
+    /**
+     * Find non-deleted documents by study ID and document type
+     * @param studyId The study ID
+     * @param documentType The document type
+     * @return List of documents matching criteria
+     */
+    List<StudyDocumentEntity> findByStudyIdAndDocumentTypeAndIsDeletedFalse(
+        Long studyId, String documentType);
 
     /**
      * Find documents by study ID and status

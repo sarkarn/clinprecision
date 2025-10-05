@@ -1,22 +1,25 @@
 
 -- Insert sample data for testing (optional - remove in production)
 -- Study arms for study ID 3 (matching the frontend call)
-INSERT INTO study_arms (name, description, type, sequence_number, planned_subjects, study_id, created_by, updated_by)
+INSERT INTO study_arms (aggregate_uuid, arm_uuid, name, description, type, sequence_number, planned_subjects, study_id, created_by, updated_by)
 VALUES 
-    ('Treatment Arm A', 'Primary treatment group receiving experimental drug', 'TREATMENT', 1, 150, 3, 'system', 'system'),
-    ('Control Arm', 'Control group receiving standard care', 'CONTROL', 2, 75, 3, 'system', 'system'),
-    ('Placebo Arm', 'Placebo group for comparison', 'PLACEBO', 3, 75, 3, 'system', 'system'),
-	('Treatment Arm A', 'Primary treatment group receiving experimental drug', 'TREATMENT', 1, 150, 1, 'system', 'system'),
-    ('Control Arm', 'Control group receiving standard care', 'CONTROL', 2, 75, 1, 'system', 'system'),
-    ('Placebo Arm', 'Placebo group for comparison', 'PLACEBO', 3, 75, 1, 'system', 'system'),
-	('Treatment Arm A', 'Primary treatment group receiving experimental drug', 'TREATMENT', 1, 150, 2, 'system', 'system'),
-    ('Control Arm', 'Control group receiving standard care', 'CONTROL', 2, 75, 2, 'system', 'system'),
-    ('Placebo Arm', 'Placebo group for comparison', 'PLACEBO', 3, 75, 2, 'system', 'system');
+    ('550e8400-e29b-41d4-a716-446655440003', '650e8400-e29b-41d4-a716-446655440031','Treatment Arm A', 'Primary treatment group receiving experimental drug', 'TREATMENT', 1, 150, 3, 'system', 'system'),
+    ('550e8400-e29b-41d4-a716-446655440003', '650e8400-e29b-41d4-a716-446655440032','Control Arm', 'Control group receiving standard care', 'CONTROL', 2, 75, 3, 'system', 'system'),
+    ('550e8400-e29b-41d4-a716-446655440003', '650e8400-e29b-41d4-a716-446655440033','Placebo Arm', 'Placebo group for comparison', 'PLACEBO', 3, 75, 3, 'system', 'system'),
+	('550e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440011','Treatment Arm A', 'Primary treatment group receiving experimental drug', 'TREATMENT', 1, 150, 1, 'system', 'system'),
+    ('550e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440012','Control Arm', 'Control group receiving standard care', 'CONTROL', 2, 75, 1, 'system', 'system'),
+    ('550e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440013','Placebo Arm', 'Placebo group for comparison', 'PLACEBO', 3, 75, 1, 'system', 'system'),
+	('550e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440021','Treatment Arm A', 'Primary treatment group receiving experimental drug', 'TREATMENT', 1, 150, 2, 'system', 'system'),
+    ('550e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440022','Control Arm', 'Control group receiving standard care', 'CONTROL', 2, 75, 2, 'system', 'system'),
+    ('550e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440023','Placebo Arm', 'Placebo group for comparison', 'PLACEBO', 3, 75, 2, 'system', 'system');
 
 
 -- Insert sample interventions
-INSERT INTO study_interventions (name, description, type, dosage, frequency, route, study_arm_id, created_by, updated_by)
+INSERT INTO study_interventions (aggregate_uuid, intervention_uuid, arm_uuid, name, description, type, dosage, frequency, route, study_arm_id, created_by, updated_by)
 SELECT 
+	sa.aggregate_uuid,
+    '950e8400-e29b-41d4-a716-446655440031',  -- Unique intervention_uuid
+    sa.arm_uuid,
     'Experimental Drug XYZ', 
     'Novel compound targeting specific pathway',
     'DRUG',
@@ -29,8 +32,11 @@ SELECT
 FROM study_arms sa 
 WHERE sa.study_id = 3 AND sa.sequence_number = 1;
 
-INSERT INTO study_interventions (name, description, type, dosage, frequency, route, study_arm_id, created_by, updated_by)
+INSERT INTO study_interventions (aggregate_uuid, intervention_uuid, arm_uuid, name, description, type, dosage, frequency, route, study_arm_id, created_by, updated_by)
 SELECT 
+ sa.aggregate_uuid,
+    '950e8400-e29b-41d4-a716-446655440021',  -- Unique intervention_uuid
+    sa.arm_uuid,
     'Standard Care Protocol', 
     'Current standard of care treatment',
     'PROCEDURE',
@@ -43,8 +49,11 @@ SELECT
 FROM study_arms sa 
 WHERE sa.study_id = 3 AND sa.sequence_number = 2;
 
-INSERT INTO study_interventions (name, description, type, dosage, frequency, route, study_arm_id, created_by, updated_by)
+INSERT INTO study_interventions (aggregate_uuid, intervention_uuid, arm_uuid, name, description, type, dosage, frequency, route, study_arm_id, created_by, updated_by)
 SELECT 
+    sa.aggregate_uuid,
+    '950e8400-e29b-41d4-a716-446655440011',  -- Unique intervention_uuid
+    sa.arm_uuid,
     'Placebo Capsule', 
     'Inactive placebo matching active treatment',
     'DRUG',
@@ -102,55 +111,55 @@ WHERE NOT EXISTS (
 
 -- Create visit definitions
 -- Study 1 visits
-INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
+INSERT INTO visit_definitions (id, aggregate_uuid, visit_uuid, arm_uuid,study_id, arm_id, name, description, timepoint, visit_type)
 VALUES (1, 1, 1, 'Screening Visit', 'Initial screening', 0, 'SCREENING');
 
 -- Study 3 visits - High Dose Arm
-INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
+INSERT INTO visit_definitions (id, aggregate_uuid, visit_uuid, arm_uuid,study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
 (2, 3, 2, 'Screening', 'Initial patient assessment and eligibility screening', -14, 'SCREENING'),
 (3, 3, 2, 'Baseline Visit', 'First treatment administration and baseline assessments', 0, 'BASELINE'),
 (4, 3, 2, 'Follow-up Visit 1', '30-day follow-up assessment', 30, 'FOLLOW_UP');
 
 -- Study 3 visits - Low Dose Arm
-INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
+INSERT INTO visit_definitions (id,aggregate_uuid, visit_uuid, arm_uuid, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
 (5, 3, 3, 'Screening', 'Initial patient assessment and eligibility screening', -14, 'SCREENING'),
 (6, 3, 3, 'Baseline Visit', 'First treatment administration and baseline assessments', 0, 'BASELINE'),
 (7, 3, 3, 'Follow-up Visit 1', '30-day follow-up assessment', 30, 'FOLLOW_UP');
 
 -- Study 4 visits - Standard of Care
-INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
+INSERT INTO visit_definitions (id,aggregate_uuid, visit_uuid, arm_uuid, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
 (8, 4, 4, 'Enrollment', 'Patient enrollment and initial assessment', -7, 'SCREENING'),
 (9, 4, 4, 'Baseline', 'Baseline assessments before treatment starts', 0, 'BASELINE');
 
 -- Study 4 visits - Experimental Therapy A
-INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
+INSERT INTO visit_definitions (id, aggregate_uuid, visit_uuid, arm_uuid,study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
 (10, 4, 5, 'Enrollment', 'Patient enrollment and initial assessment', -7, 'SCREENING'),
 (11, 4, 5, 'Baseline', 'Baseline assessments before treatment starts', 0, 'BASELINE');
 
 -- Study 4 visits - Experimental Therapy B
-INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
+INSERT INTO visit_definitions (id,aggregate_uuid, visit_uuid, arm_uuid, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
 (12, 4, 6, 'Enrollment', 'Patient enrollment and initial assessment', -7, 'SCREENING'),
 (13, 4, 6, 'Baseline', 'Baseline assessments before treatment starts', 0, 'BASELINE');
 
 -- Study 5 visits
-INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
+INSERT INTO visit_definitions (id, aggregate_uuid, visit_uuid, arm_uuid, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
 (14, 5, 7, 'Initial Assessment', 'Baseline evaluation', 0, 'BASELINE');
 
 -- Study 6 visits - Standard Protocol
-INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
+INSERT INTO visit_definitions (id, aggregate_uuid, visit_uuid, arm_uuid,study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
 (15, 6, 8, 'Screening', 'Initial eligibility assessment', -14, 'SCREENING'),
 (16, 6, 8, 'Month 1 Follow-up', 'First follow-up visit', 30, 'FOLLOW_UP'),
 (17, 6, 8, 'Final Visit', 'End of study assessment', 90, 'FOLLOW_UP');
 
 -- Study 6 visits - Modified Protocol
-INSERT INTO visit_definitions (id, study_id, arm_id, name, description, timepoint, visit_type)
+INSERT INTO visit_definitions (id,aggregate_uuid, visit_uuid, arm_uuid, study_id, arm_id, name, description, timepoint, visit_type)
 VALUES 
 (18, 6, 9, 'Screening', 'Initial eligibility assessment', -14, 'SCREENING'),
 (19, 6, 9, 'Month 1 Follow-up', 'First follow-up visit', 30, 'FOLLOW_UP'),

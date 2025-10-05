@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * DTO for StudyArm response
@@ -14,6 +15,7 @@ import java.util.List;
 public class StudyArmResponseDto {
     
     private Long id;
+    private UUID armUuid; // Phase 4: Event-sourced UUID (optional for backward compatibility)
     private String name;
     private String description;
     private String type; // TREATMENT, PLACEBO, CONTROL, ACTIVE_COMPARATOR
@@ -50,6 +52,9 @@ public class StudyArmResponseDto {
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    
+    public UUID getArmUuid() { return armUuid; }
+    public void setArmUuid(UUID armUuid) { this.armUuid = armUuid; }
     
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -90,6 +95,11 @@ public class StudyArmResponseDto {
         
         public Builder id(Long id) {
             dto.id = id;
+            return this;
+        }
+        
+        public Builder armUuid(UUID armUuid) {
+            dto.armUuid = armUuid;
             return this;
         }
         
