@@ -129,8 +129,8 @@ export default function SubjectManagementDashboard() {
                                     key={actionIndex}
                                     onClick={action.action}
                                     className={`flex-1 px-6 py-3 rounded-md text-sm font-medium transition-colors duration-200 ${action.variant === 'primary'
-                                            ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                            : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
                                         }`}
                                 >
                                     {action.label}

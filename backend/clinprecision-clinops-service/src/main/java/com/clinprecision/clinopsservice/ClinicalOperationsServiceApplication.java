@@ -42,7 +42,6 @@ import com.clinprecision.axon.config.AxonConfig;
 })
 @ComponentScan(basePackages = {
         "com.clinprecision.clinopsservice",
-        "com.clinprecision.common.dto",
         "com.clinprecision.common.mapper",
         "com.clinprecision.common.mapper.clinops",
         "com.clinprecision.axon"

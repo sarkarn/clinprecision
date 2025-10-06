@@ -2,6 +2,7 @@ package com.clinprecision.clinopsservice.study.mapper;
 
 import com.clinprecision.clinopsservice.study.dto.response.StudyListResponseDto;
 import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
+import com.clinprecision.clinopsservice.study.domain.valueobjects.StudyStatusCode;
 import com.clinprecision.clinopsservice.entity.StudyEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -54,7 +55,8 @@ public class StudyResponseMapper {
                 .principalInvestigator(entity.getPrincipalInvestigator())
                 .medicalMonitor(null) // TODO: Add to entity if needed
                 .contactEmail(null) // TODO: Add to entity if needed
-                .status(null) // TODO: Map from studyStatus.getCode() to StudyStatusCode enum
+                .status(entity.getStudyStatus() != null ? 
+                    StudyStatusCode.fromString(entity.getStudyStatus().getCode()) : null)
                 .statusReason(null) // TODO: Add to entity if needed
                 .statusChangedAt(null) // TODO: Add to entity if needed
                 .statusChangedBy(null) // TODO: Add to entity if needed
@@ -94,7 +96,8 @@ public class StudyResponseMapper {
                 .currentEnrollment(entity.getEnrolledSubjects())
                 .phase(entity.getStudyPhase() != null ? entity.getStudyPhase().getName() : null)
                 .studyType(entity.getStudyType())
-                .status(null) // TODO: Map from studyStatus.getCode() to StudyStatusCode enum
+                .status(entity.getStudyStatus() != null ? 
+                    StudyStatusCode.fromString(entity.getStudyStatus().getCode()) : null)
                 .build();
     }
 }
