@@ -90,6 +90,8 @@ ENV/
 /build/
 /bin/
 /target/
+**/target/
+backend/clinprecision-organization-service/target/
 
 # .NET
 bin/

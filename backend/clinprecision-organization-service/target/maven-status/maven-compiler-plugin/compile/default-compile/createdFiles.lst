@@ -1,7 +1,0 @@
-com\clinprecision\organizationservice\repository\OrganizationRepository.class
-com\clinprecision\organizationservice\security\WebSecurity.class
-com\clinprecision\organizationservice\service\OrganizationService.class
-com\clinprecision\organizationservice\OrganizationApplication.class
-com\clinprecision\organizationservice\ui\controller\OrganizationController.class
-com\clinprecision\organizationservice\repository\OrganizationContactRepository.class
-com\clinprecision\organizationservice\service\impl\OrganizationServiceImpl.class
