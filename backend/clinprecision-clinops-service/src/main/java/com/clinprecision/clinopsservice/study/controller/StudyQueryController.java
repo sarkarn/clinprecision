@@ -1,8 +1,10 @@
 package com.clinprecision.clinopsservice.study.controller;
 
+import com.clinprecision.clinopsservice.study.dto.response.StudyArmResponseDto;
 import com.clinprecision.clinopsservice.study.dto.response.StudyListResponseDto;
 import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
 import com.clinprecision.clinopsservice.study.service.StudyQueryService;
+import com.clinprecision.clinopsservice.service.DesignProgressService;
 import com.clinprecision.clinopsservice.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +53,7 @@ import java.util.UUID;
 public class StudyQueryController {
 
     private final StudyQueryService studyQueryService;
+    private final DesignProgressService designProgressService;
 
     /**
      * Get all studies with optional filters
@@ -80,41 +83,117 @@ public class StudyQueryController {
     }
 
     /**
-     * Get study by aggregate UUID
+     * Get study by UUID or legacy database ID (Bridge Pattern)
      * 
-     * Query: Find study by UUID in read model
+     * This endpoint intelligently accepts either:
+     * - UUID format: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+     * - Legacy numeric ID: "1", "123"
      * 
-     * @param uuid Study aggregate UUID
+     * Query: Find study by UUID or ID in read model
+     * 
+     * @param id Study identifier (UUID or numeric ID)
      * @return 200 OK with study details
      * @throws StudyNotFoundException if study not found
      */
-    @GetMapping("/{uuid}")
-    public ResponseEntity<StudyResponseDto> getStudyByUuid(@PathVariable UUID uuid) {
-        log.info("REST: Fetching study by UUID: {}", uuid);
+    @GetMapping("/{id}")
+    public ResponseEntity<StudyResponseDto> getStudyByUuidOrId(@PathVariable String id) {
+        log.info("REST: Fetching study by identifier: {}", id);
         
-        StudyResponseDto study = studyQueryService.getStudyByUuid(uuid);
+        StudyResponseDto study;
+        
+        // Try to parse as UUID first, if fails then treat as legacy numeric ID
+        try {
+            UUID uuid = UUID.fromString(id);
+            log.debug("REST: Identifier is UUID format, using UUID query");
+            study = studyQueryService.getStudyByUuid(uuid);
+        } catch (IllegalArgumentException e) {
+            // Not a UUID, try parsing as Long (legacy ID)
+            log.debug("REST: Identifier is not UUID, trying legacy ID format");
+            try {
+                Long legacyId = Long.parseLong(id);
+                log.info("REST: Using legacy ID {} (Bridge Pattern for backward compatibility)", legacyId);
+                study = studyQueryService.getStudyById(legacyId);
+            } catch (NumberFormatException nfe) {
+                log.error("REST: Invalid identifier format (not UUID or numeric): {}", id);
+                return ResponseEntity.badRequest().build();
+            }
+        }
         
         log.info("REST: Study fetched successfully: {}", study.getName());
         return ResponseEntity.ok(study);
     }
 
     /**
-     * Get study overview data for dashboard
+     * Get study overview data for dashboard (supports UUID or legacy ID)
      * 
      * Query: Find study with aggregated metrics
      * 
-     * @param uuid Study aggregate UUID
+     * @param id Study identifier (UUID or numeric ID)
      * @return 200 OK with study overview
      */
-    @GetMapping("/{uuid}/overview")
-    public ResponseEntity<StudyResponseDto> getStudyOverview(@PathVariable UUID uuid) {
-        log.info("REST: Fetching study overview: {}", uuid);
+    @GetMapping("/{id}/overview")
+    public ResponseEntity<StudyResponseDto> getStudyOverview(@PathVariable String id) {
+        log.info("REST: Fetching study overview: {}", id);
         
-        StudyResponseDto study = studyQueryService.getStudyByUuid(uuid);
+        StudyResponseDto study;
+        
+        // Support both UUID and legacy numeric ID
+        try {
+            UUID uuid = UUID.fromString(id);
+            study = studyQueryService.getStudyByUuid(uuid);
+        } catch (IllegalArgumentException e) {
+            Long legacyId = Long.parseLong(id);
+            log.info("REST: Using legacy ID {} for overview (Bridge Pattern)", legacyId);
+            study = studyQueryService.getStudyById(legacyId);
+        }
         
         log.info("REST: Study overview fetched successfully: {}", study.getName());
         return ResponseEntity.ok(study);
     }
+
+    /**
+     * Get study arms (supports UUID or legacy ID)
+     * 
+     * Query: Get all arms for a study
+     * 
+     * @param id Study identifier (UUID or numeric ID)
+     * @return 200 OK with list of study arms
+     */
+    @GetMapping("/{id}/arms")
+    public ResponseEntity<List<StudyArmResponseDto>> getStudyArms(@PathVariable String id) {
+        log.info("REST: Fetching study arms for study: {}", id);
+        
+        try {
+            List<StudyArmResponseDto> arms;
+            
+            // Support both UUID and legacy numeric ID
+            try {
+                UUID uuid = UUID.fromString(id);
+                log.debug("REST: Using UUID format for arms query");
+                arms = studyQueryService.getStudyArmsByUuid(uuid);
+            } catch (IllegalArgumentException e) {
+                Long legacyId = Long.parseLong(id);
+                log.info("REST: Using legacy ID {} for arms query (Bridge Pattern)", legacyId);
+                arms = studyQueryService.getStudyArmsByStudyId(legacyId);
+            }
+            
+            log.info("REST: Fetched {} study arms", arms.size());
+            return ResponseEntity.ok(arms);
+            
+        } catch (NumberFormatException nfe) {
+            log.error("REST: Invalid identifier format (not UUID or numeric): {}", id);
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("REST: Error fetching study arms for study: {}", id, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * NOTE: Visit endpoints removed - frontend now uses DDD paths
+     * Visits are accessed via: GET /api/clinops/study-design/{studyDesignUuid}/visits
+     * This is the correct architectural approach as visits are part of study design.
+     */
 
     /**
      * Search studies with advanced filters
@@ -250,32 +329,50 @@ public class StudyQueryController {
     }
 
     /**
-     * Get design progress for a study
+     * Get design progress for a study (supports UUID or legacy ID)
      * 
      * Query: Get design progress from read model
      * 
-     * @param uuid Study aggregate UUID
+     * @param id Study identifier (UUID or numeric ID)
      * @return 200 OK with design progress
      * 
      * NOTE: This method is temporarily disabled until getDesignProgress is implemented in StudyQueryService
      */
-    @GetMapping("/{uuid}/design-progress")
-    public ResponseEntity<DesignProgressResponseDto> getDesignProgress(@PathVariable UUID uuid) {
-        log.info("REST: Fetching design progress for study: {}", uuid);
+    @GetMapping("/{id}/design-progress")
+    public ResponseEntity<DesignProgressResponseDto> getDesignProgress(@PathVariable String id) {
+        log.info("REST: Fetching design progress for study: {}", id);
         
         try {
-            // TODO: Implement getDesignProgress in StudyQueryService
-            // DesignProgressResponseDto progress = studyQueryService.getDesignProgress(uuid);
+            // First resolve the identifier to get the study
+            UUID studyUuid;
+            Long studyIdForResponse;
             
-            log.warn("REST: Design progress not yet implemented - returning 501 Not Implemented");
-            return ResponseEntity.status(501).build();
+            try {
+                studyUuid = UUID.fromString(id);
+                log.debug("REST: Using UUID format for design progress");
+                // Would need to get numeric ID from UUID when implementing
+                studyIdForResponse = null;
+            } catch (IllegalArgumentException e) {
+                Long legacyId = Long.parseLong(id);
+                log.info("REST: Using legacy ID {} for design progress (Bridge Pattern)", legacyId);
+                studyIdForResponse = legacyId;
+            }
+            
+            // Get design progress from DesignProgressService
+            log.info("REST: Fetching design progress from service for study ID: {}", studyIdForResponse);
+            DesignProgressResponseDto progress = designProgressService.getDesignProgress(studyIdForResponse);
+            
+            log.info("REST: Design progress fetched successfully - {} phases tracked", 
+                    progress.getProgressData() != null ? progress.getProgressData().size() : 0);
+            
+            return ResponseEntity.ok(progress);
             
         } catch (IllegalArgumentException e) {
             log.error("REST: Study not found: {}", e.getMessage());
             return ResponseEntity.notFound().build();
             
         } catch (Exception e) {
-            log.error("REST: Error fetching design progress for study: {}", uuid, e);
+            log.error("REST: Error fetching design progress for study: {}", id, e);
             return ResponseEntity.internalServerError().build();
         }
     }

@@ -56,14 +56,15 @@ public class StudyArmEntity {
     @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isDeleted = false;
     
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
+    // TODO: Add these columns to database schema when implementing full soft delete
+    // @Column(name = "deleted_at")
+    // private LocalDateTime deletedAt;
     
-    @Column(name = "deleted_by", length = 100)
-    private String deletedBy;
+    // @Column(name = "deleted_by", length = 100)
+    // private String deletedBy;
     
-    @Column(name = "deletion_reason", columnDefinition = "TEXT")
-    private String deletionReason;
+    // @Column(name = "deletion_reason", columnDefinition = "TEXT")
+    // private String deletionReason;
     
     // Audit fields
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -151,14 +152,15 @@ public class StudyArmEntity {
     public Boolean getIsDeleted() { return isDeleted; }
     public void setIsDeleted(Boolean isDeleted) { this.isDeleted = isDeleted; }
     
-    public LocalDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+    // TODO: Uncomment when database columns are added
+    // public LocalDateTime getDeletedAt() { return deletedAt; }
+    // public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
     
-    public String getDeletedBy() { return deletedBy; }
-    public void setDeletedBy(String deletedBy) { this.deletedBy = deletedBy; }
+    // public String getDeletedBy() { return deletedBy; }
+    // public void setDeletedBy(String deletedBy) { this.deletedBy = deletedBy; }
     
-    public String getDeletionReason() { return deletionReason; }
-    public void setDeletionReason(String deletionReason) { this.deletionReason = deletionReason; }
+    // public String getDeletionReason() { return deletionReason; }
+    // public void setDeletionReason(String deletionReason) { this.deletionReason = deletionReason; }
     
     // Helper methods
     public void addIntervention(StudyInterventionEntity intervention) {

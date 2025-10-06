@@ -73,9 +73,9 @@ public class StudyDesignProjection {
         armRepository.findByAggregateUuidAndArmUuid(event.getStudyDesignId(), event.getArmId())
             .ifPresent(entity -> {
                 entity.setIsDeleted(true);
-                entity.setDeletedAt(event.getOccurredAt());
-                entity.setDeletedBy(event.getRemovedBy().toString());
-                entity.setDeletionReason(event.getReason());
+//                entity.setDeletedAt(event.getOccurredAt());
+//                entity.setDeletedBy(event.getRemovedBy().toString());
+//                entity.setDeletionReason(event.getReason());
                 armRepository.save(entity);
                 log.debug("Study arm entity marked deleted: {}", event.getArmId());
             });

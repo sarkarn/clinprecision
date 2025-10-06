@@ -1,9 +1,15 @@
 package com.clinprecision.clinopsservice.study.service;
 
+import com.clinprecision.clinopsservice.entity.StudyArmEntity;
 import com.clinprecision.clinopsservice.entity.StudyEntity;
+import com.clinprecision.clinopsservice.entity.StudyInterventionEntity;
+import com.clinprecision.clinopsservice.repository.StudyArmRepository;
 import com.clinprecision.clinopsservice.repository.StudyRepository;
+import com.clinprecision.clinopsservice.repository.StudyInterventionRepository;
+import com.clinprecision.clinopsservice.study.dto.response.StudyArmResponseDto;
 import com.clinprecision.clinopsservice.study.dto.response.StudyListResponseDto;
 import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
+import com.clinprecision.clinopsservice.study.dto.InterventionDto;
 import com.clinprecision.clinopsservice.study.mapper.StudyResponseMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -36,6 +42,8 @@ import java.util.stream.Collectors;
 public class StudyQueryService {
     
     private final StudyRepository studyRepository;
+    private final StudyArmRepository studyArmRepository;
+    private final StudyInterventionRepository interventionRepository;
     private final StudyResponseMapper responseMapper;
     @PersistenceContext
     private EntityManager entityManager;
@@ -178,6 +186,94 @@ public class StudyQueryService {
         long count = studyRepository.count();
         log.debug("Total study count: {}", count);
         return count;
+    }
+    
+    /**
+     * Get study arms by study UUID
+     * 
+     * @param studyUuid Aggregate UUID of the study
+     * @return List of StudyArmResponseDto
+     */
+    public List<StudyArmResponseDto> getStudyArmsByUuid(UUID studyUuid) {
+        log.debug("Querying study arms by study UUID: {}", studyUuid);
+        
+        // First get the study to get its numeric ID
+        StudyEntity study = getStudyEntityByUuid(studyUuid);
+        
+        // Then query arms by numeric ID
+        return getStudyArmsByStudyId(study.getId());
+    }
+    
+    /**
+     * Get study arms by legacy study ID
+     * 
+     * @param studyId Legacy study ID
+     * @return List of StudyArmResponseDto
+     */
+    public List<StudyArmResponseDto> getStudyArmsByStudyId(Long studyId) {
+        log.debug("Querying study arms by study ID: {}", studyId);
+        
+        List<StudyArmEntity> armEntities = studyArmRepository.findByStudyIdOrderBySequenceAsc(studyId);
+        
+        log.debug("Found {} study arms for study ID {}", armEntities.size(), studyId);
+        
+        return armEntities.stream()
+                .map(this::toArmResponseDto)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Map StudyArmEntity to StudyArmResponseDto
+     * Simple mapping function (can be moved to mapper class later)
+     */
+    public StudyArmResponseDto toArmResponseDto(StudyArmEntity entity) {
+        // Get interventions for this arm
+        List<StudyInterventionEntity> interventionEntities = interventionRepository.findByStudyArmId(entity.getId());
+        List<InterventionDto> interventions = interventionEntities.stream()
+            .map(this::toInterventionDto)
+            .collect(Collectors.toList());
+            
+        return StudyArmResponseDto.builder()
+                .id(entity.getId())
+                .armUuid(entity.getArmUuid())
+                .aggregateUuid(entity.getAggregateUuid())
+                .name(entity.getName())
+                .description(entity.getDescription())
+                .type(entity.getType() != null ? entity.getType().name() : null)
+                .sequence(entity.getSequence())
+                .plannedSubjects(entity.getPlannedSubjects())
+                .studyId(entity.getStudyId())
+                .interventions(interventions)
+                .isDeleted(entity.getIsDeleted())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .createdBy(entity.getCreatedBy())
+                .updatedBy(entity.getUpdatedBy())
+                .build();
+    }
+    
+    /**
+     * Map StudyInterventionEntity to InterventionDto
+     */
+    private InterventionDto toInterventionDto(StudyInterventionEntity entity) {
+        return InterventionDto.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .description(entity.getDescription())
+                .type(entity.getType())
+                .dosage(entity.getDosage())
+                .frequency(entity.getFrequency())
+                .route(entity.getRoute())
+                .build();
+    }
+    
+    /**
+     * Get StudyArmRepository (for internal service use)
+     * Exposed for StudyCommandService to perform CRUD operations
+     * TODO: Remove when DDD command handling is implemented
+     */
+    public StudyArmRepository getStudyArmRepository() {
+        return studyArmRepository;
     }
 }
 

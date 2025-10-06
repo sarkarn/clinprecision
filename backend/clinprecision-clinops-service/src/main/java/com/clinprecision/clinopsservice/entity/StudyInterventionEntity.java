@@ -6,11 +6,11 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * Intervention Entity - Maps to interventions table
+ * Intervention Entity - Maps to study_interventions table
  * Represents a treatment intervention within a study arm
  */
 @Entity
-@Table(name = "interventions")
+@Table(name = "study_interventions")
 public class StudyInterventionEntity {
     
     @Id

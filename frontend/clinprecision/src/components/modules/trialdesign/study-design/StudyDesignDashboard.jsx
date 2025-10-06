@@ -213,13 +213,19 @@ const StudyDesignDashboard = () => {
             const progressData = designProgressResponse.progressData || designProgressResponse;
             setDesignProgress(progressData);
 
-            // Update completed phases
+            // Update completed phases with explicit boolean check
             const completed = Object.entries(progressData).filter(
-                ([_, progress]) => progress && progress.completed
+                ([phaseId, progress]) => {
+                    // Debug log to see what we're getting
+                    console.log(`Phase ${phaseId} progress:`, progress, 'completed:', progress?.completed);
+                    return progress && progress.completed === true;
+                }
             ).map(([phaseId, _]) => phaseId);
             setCompletedPhases(completed);
 
-            console.info('Design progress refreshed for study', studyId, '- Completed phases:', completed);
+            console.info('Design progress refreshed for study', studyId);
+            console.info('Progress data:', progressData);
+            console.info('Completed phases:', completed);
         } catch (error) {
             console.warn('Failed to refresh design progress:', error);
         }
