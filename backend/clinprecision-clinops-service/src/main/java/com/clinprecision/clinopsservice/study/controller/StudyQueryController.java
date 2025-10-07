@@ -13,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -121,6 +122,31 @@ public class StudyQueryController {
         
         log.info("REST: Study fetched successfully: {}", study.getName());
         return ResponseEntity.ok(study);
+    }
+
+    /**
+     * Get study UUID by legacy ID
+     * Helper endpoint for DDD migration and debugging
+     * 
+     * @param legacyId Legacy database ID
+     * @return 200 OK with study UUID
+     */
+    @GetMapping("/{legacyId}/uuid")
+    public ResponseEntity<Map<String, Object>> getStudyUuid(@PathVariable Long legacyId) {
+        log.info("REST: Getting UUID for legacy study ID: {}", legacyId);
+        
+        try {
+            StudyResponseDto study = studyQueryService.getStudyById(legacyId);
+            Map<String, Object> response = new java.util.HashMap<>();
+            response.put("legacyId", legacyId);
+            response.put("aggregateUuid", study.getStudyAggregateUuid());
+            response.put("name", study.getName());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("REST: Failed to get UUID for study ID: {}", legacyId, e);
+            return ResponseEntity.notFound().build();
+        }
     }
 
     /**

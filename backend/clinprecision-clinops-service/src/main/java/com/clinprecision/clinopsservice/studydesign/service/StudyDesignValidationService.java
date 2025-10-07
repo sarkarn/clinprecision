@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -40,26 +41,51 @@ public class StudyDesignValidationService {
      * @param studyUuid Study aggregate UUID
      * @throws StudyStatusTransitionException if validation fails
      */
-    public void validateDesignInitialization(UUID studyUuid) {
-        log.debug("Validating study design initialization for study: {}", studyUuid);
-        
-        // Get associated study
-        StudyEntity study = studyQueryService.getStudyEntityByUuid(studyUuid);
-        
-        // Study must exist and be in valid status
+    public void validateDesignInitialization(UUID studyUuid, Long legacyStudyId) {
+        log.debug("Validating study design initialization for study UUID: {} (legacyId: {})", studyUuid, legacyStudyId);
+
+        StudyEntity study = resolveStudyForValidation(studyUuid, legacyStudyId);
+
         String studyStatus = study.getStudyStatus() != null ? study.getStudyStatus().getCode() : null;
-        
-        // Cannot initialize design for terminal status studies
-        if ("COMPLETED".equals(studyStatus) || 
-            "TERMINATED".equals(studyStatus) || 
+
+        if ("COMPLETED".equals(studyStatus) ||
+            "TERMINATED".equals(studyStatus) ||
             "WITHDRAWN".equals(studyStatus)) {
             throw new StudyStatusTransitionException(
                 String.format("Cannot initialize design for study %s: Study is in terminal status %s",
                     study.getName(), studyStatus)
             );
         }
-        
+
         log.debug("Study design initialization validation passed for study: {}", study.getName());
+    }
+
+    private StudyEntity resolveStudyForValidation(UUID studyUuid, Long legacyStudyId) {
+        if (studyUuid != null) {
+            Optional<StudyEntity> byUuid = studyQueryService.findStudyEntityByUuid(studyUuid);
+            if (byUuid.isPresent()) {
+                return byUuid.get();
+            }
+            log.warn("Study not found by UUID {} during design initialization validation", studyUuid);
+        }
+
+        if (legacyStudyId != null) {
+            Optional<StudyEntity> byId = studyQueryService.findStudyEntityById(legacyStudyId);
+            if (byId.isPresent()) {
+                return byId.get();
+            }
+            throw new StudyStatusTransitionException(
+                String.format("Cannot initialize design: Study not found for legacy ID %s", legacyStudyId)
+            );
+        }
+
+        if (studyUuid == null) {
+            throw new StudyStatusTransitionException("Cannot initialize design: Study identifier is missing");
+        }
+
+        throw new StudyStatusTransitionException(
+            String.format("Cannot initialize design: Study not found for UUID %s", studyUuid)
+        );
     }
     
     /**

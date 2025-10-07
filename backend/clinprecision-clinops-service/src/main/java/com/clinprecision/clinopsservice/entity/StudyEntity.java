@@ -3,6 +3,8 @@ package com.clinprecision.clinopsservice.entity;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +35,8 @@ public class StudyEntity {
      * This is the true identifier in DDD architecture
      * Legacy 'id' field maintained for backward compatibility
      */
-    @Column(name = "aggregate_uuid", unique = true, nullable = true)
+    @Column(name = "aggregate_uuid", unique = true, nullable = true, length = 36)
+    @JdbcTypeCode(SqlTypes.CHAR)
     private UUID aggregateUuid;
     
     @Column(name = "name", nullable = false, length = 255)

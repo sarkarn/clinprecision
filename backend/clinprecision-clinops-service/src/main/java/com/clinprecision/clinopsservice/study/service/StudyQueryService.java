@@ -3,13 +3,16 @@ package com.clinprecision.clinopsservice.study.service;
 import com.clinprecision.clinopsservice.entity.StudyArmEntity;
 import com.clinprecision.clinopsservice.entity.StudyEntity;
 import com.clinprecision.clinopsservice.entity.StudyInterventionEntity;
+import com.clinprecision.clinopsservice.entity.StudyRandomizationStrategyEntity;
 import com.clinprecision.clinopsservice.repository.StudyArmRepository;
 import com.clinprecision.clinopsservice.repository.StudyRepository;
 import com.clinprecision.clinopsservice.repository.StudyInterventionRepository;
+import com.clinprecision.clinopsservice.repository.StudyRandomizationStrategyRepository;
 import com.clinprecision.clinopsservice.study.dto.response.StudyArmResponseDto;
 import com.clinprecision.clinopsservice.study.dto.response.StudyListResponseDto;
 import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
 import com.clinprecision.clinopsservice.study.dto.InterventionDto;
+import com.clinprecision.clinopsservice.study.dto.RandomizationStrategyDto;
 import com.clinprecision.clinopsservice.study.mapper.StudyResponseMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -44,6 +48,7 @@ public class StudyQueryService {
     private final StudyRepository studyRepository;
     private final StudyArmRepository studyArmRepository;
     private final StudyInterventionRepository interventionRepository;
+    private final StudyRandomizationStrategyRepository randomizationStrategyRepository;
     private final StudyResponseMapper responseMapper;
     @PersistenceContext
     private EntityManager entityManager;
@@ -71,6 +76,30 @@ public class StudyQueryService {
         
         log.debug("Found study entity: {} (ID: {})", entity.getName(), entity.getId());
         return entity;
+    }
+
+    /**
+     * Attempt to find a study entity by aggregate UUID without throwing
+     *
+     * @param studyUuid Aggregate UUID
+     * @return Optional StudyEntity
+     */
+    public Optional<StudyEntity> findStudyEntityByUuid(UUID studyUuid) {
+        if (studyUuid == null) {
+            return Optional.empty();
+        }
+
+        log.debug("Attempting to find study entity by UUID: {}", studyUuid);
+
+        if (entityManager != null) {
+            entityManager.clear();
+        }
+
+        return studyRepository.findByAggregateUuid(studyUuid)
+                .map(entity -> {
+                    log.debug("Found study entity by UUID {} (ID: {})", studyUuid, entity.getId());
+                    return entity;
+                });
     }
     
     /**
@@ -109,6 +138,26 @@ public class StudyQueryService {
         
         log.debug("Found study: {} (UUID: {})", entity.getName(), entity.getAggregateUuid());
         return responseMapper.toResponseDto(entity);
+    }
+
+    /**
+     * Attempt to find a study entity by legacy ID without throwing
+     *
+     * @param id Legacy numeric identifier
+     * @return Optional StudyEntity
+     */
+    public Optional<StudyEntity> findStudyEntityById(Long id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+
+        log.debug("Attempting to find study entity by legacy ID: {}", id);
+
+        return studyRepository.findById(id)
+                .map(entity -> {
+                    log.debug("Found study entity by legacy ID {} (UUID: {})", id, entity.getAggregateUuid());
+                    return entity;
+                });
     }
     
     /**
@@ -232,6 +281,12 @@ public class StudyQueryService {
         List<InterventionDto> interventions = interventionEntities.stream()
             .map(this::toInterventionDto)
             .collect(Collectors.toList());
+        
+        // Get randomization strategy for this arm
+        RandomizationStrategyDto randomizationStrategy = randomizationStrategyRepository
+            .findByStudyArmIdAndIsDeletedFalse(entity.getId())
+            .map(this::toRandomizationStrategyDto)
+            .orElse(null);
             
         return StudyArmResponseDto.builder()
                 .id(entity.getId())
@@ -244,6 +299,7 @@ public class StudyQueryService {
                 .plannedSubjects(entity.getPlannedSubjects())
                 .studyId(entity.getStudyId())
                 .interventions(interventions)
+                .randomizationStrategy(randomizationStrategy)
                 .isDeleted(entity.getIsDeleted())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
@@ -257,13 +313,26 @@ public class StudyQueryService {
      */
     private InterventionDto toInterventionDto(StudyInterventionEntity entity) {
         return InterventionDto.builder()
-                .id(entity.getId())
+                .id(entity.getId() != null ? entity.getId().toString() : null)
                 .name(entity.getName())
                 .description(entity.getDescription())
-                .type(entity.getType())
+                .type(entity.getType() != null ? entity.getType().name() : null)
                 .dosage(entity.getDosage())
                 .frequency(entity.getFrequency())
                 .route(entity.getRoute())
+                .build();
+    }
+    
+    /**
+     * Map StudyRandomizationStrategyEntity to RandomizationStrategyDto
+     */
+    private RandomizationStrategyDto toRandomizationStrategyDto(StudyRandomizationStrategyEntity entity) {
+        return RandomizationStrategyDto.builder()
+                .type(entity.getType())
+                .ratio(entity.getRatio())
+                .blockSize(entity.getBlockSize())
+                .stratificationFactors(entity.getStratificationFactors())
+                .notes(entity.getNotes())
                 .build();
     }
     

@@ -9,16 +9,16 @@ import ApiService from './ApiService';
  */
 class VisitService {
   /**
-   * Get all visits for a study design
-   * @param {string} studyDesignUuid - The UUID of the study design aggregate
+   * Get all visits for a study (auto-initializes StudyDesign if needed)
+   * @param {string} studyId - The study ID (legacy ID or UUID)
    * @returns {Promise<Array>} Promise that resolves to an array of visits
    */
-  async getVisitsByStudy(studyDesignUuid) {
+  async getVisitsByStudy(studyId) {
     try {
-      const response = await ApiService.get(`/clinops-ws/api/clinops/study-design/${studyDesignUuid}/visits`);
+      const response = await ApiService.get(`/clinops-ws/api/clinops/study-design/studies/${studyId}/visits`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching visits for study design ${studyDesignUuid}:`, error);
+      console.error(`Error fetching visits for study ${studyId}:`, error);
       throw error;
     }
   }
@@ -40,13 +40,13 @@ class VisitService {
   }
 
   /**
-   * Create a new visit for a study design
-   * @param {string} studyDesignUuid - The UUID of the study design aggregate
+   * Create a new visit for a study (auto-initializes StudyDesign if needed)
+   * @param {string} studyId - The study ID (legacy ID or UUID)
    * @param {string|null} armId - The UUID of the arm (optional, can be null)
    * @param {Object} visitData - The visit data to create
    * @returns {Promise<Object>} Promise that resolves to the created visit
    */
-  async createVisit(studyDesignUuid, armId = null, visitData = null) {
+  async createVisit(studyId, armId = null, visitData = null) {
     try {
       // Handle flexible parameter usage - if armId is an object, it means it's actually visitData
       let actualVisitData, actualArmId;
@@ -63,7 +63,7 @@ class VisitService {
         actualVisitData = { ...actualVisitData, armId: actualArmId };
       }
       
-      const response = await ApiService.post(`/clinops-ws/api/clinops/study-design/${studyDesignUuid}/visits`, actualVisitData);
+      const response = await ApiService.post(`/clinops-ws/api/clinops/study-design/studies/${studyId}/visits`, actualVisitData);
       return response.data;
     } catch (error) {
       console.error(`Error creating visit:`, error);
@@ -72,15 +72,15 @@ class VisitService {
   }
 
   /**
-   * Update an existing visit
-   * @param {string} studyDesignUuid - The UUID of the study design aggregate
+   * Update an existing visit (auto-initializes StudyDesign if needed)
+   * @param {string} studyId - The study ID (legacy ID or UUID)
    * @param {string} visitId - The UUID of the visit to update
    * @param {Object} visitData - The updated visit data
    * @returns {Promise<Object>} Promise that resolves to the updated visit
    */
-  async updateVisit(studyDesignUuid, visitId, visitData) {
+  async updateVisit(studyId, visitId, visitData) {
     try {
-      const response = await ApiService.put(`/clinops-ws/api/clinops/study-design/${studyDesignUuid}/visits/${visitId}`, visitData);
+      const response = await ApiService.put(`/clinops-ws/api/clinops/study-design/studies/${studyId}/visits/${visitId}`, visitData);
       return response.data;
     } catch (error) {
       console.error(`Error updating visit with ID ${visitId}:`, error);
@@ -89,14 +89,14 @@ class VisitService {
   }
 
   /**
-   * Delete a visit by ID
-   * @param {string} studyDesignUuid - The UUID of the study design aggregate
+   * Delete a visit by ID (auto-initializes StudyDesign if needed)
+   * @param {string} studyId - The study ID (legacy ID or UUID)
    * @param {string} visitId - The UUID of the visit to delete
    * @returns {Promise<Object>} Promise that resolves to the deletion confirmation
    */
-  async deleteVisit(studyDesignUuid, visitId) {
+  async deleteVisit(studyId, visitId) {
     try {
-      const response = await ApiService.delete(`/clinops-ws/api/clinops/study-design/${studyDesignUuid}/visits/${visitId}`);
+      const response = await ApiService.delete(`/clinops-ws/api/clinops/study-design/studies/${studyId}/visits/${visitId}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting visit with ID ${visitId}:`, error);

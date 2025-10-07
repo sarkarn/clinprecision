@@ -17,6 +17,8 @@ import java.util.UUID;
 public class InitializeStudyDesignRequest {
     
     private UUID studyAggregateUuid;
+    private UUID studyDesignId;
     private String studyName;
+    private Long legacyStudyId;
     private Long createdBy;
 }

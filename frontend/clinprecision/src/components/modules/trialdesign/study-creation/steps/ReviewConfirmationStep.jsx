@@ -65,6 +65,7 @@ const ReviewConfirmationStep = ({
         if (!formData.name) issues.push('Study name is required');
         if (!formData.protocolNumber) issues.push('Protocol number is required');
         if (!formData.studyPhaseId) issues.push('Study phase is required');
+        if (!formData.organizationId) issues.push('Owning organization is required');
         if (!formData.sponsor) issues.push('Sponsor is required');
         if (!formData.principalInvestigator) issues.push('Principal Investigator is required');
 
@@ -118,6 +119,14 @@ const ReviewConfirmationStep = ({
                     <div>
                         <span className="font-medium text-gray-700">Protocol Number:</span>
                         <p className="text-gray-900">{formData.protocolNumber || 'Not specified'}</p>
+                    </div>
+                    <div>
+                        <span className="font-medium text-gray-700">Owning Organization:</span>
+                        <p className="text-gray-900">{
+                            formData.organizationId
+                                ? getOrganizationName(Number(formData.organizationId))
+                                : 'Not specified'
+                        }</p>
                     </div>
                     <div>
                         <span className="font-medium text-gray-700">Phase:</span>

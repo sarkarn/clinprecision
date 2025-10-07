@@ -15,13 +15,19 @@ class StudyDesignService {
      * @param {string} createdBy - User who created the study
      * @returns {Promise<{studyDesignId: string}>}
      */
-    async initializeStudyDesign(studyAggregateUuid, studyName, createdBy = 'system') {
+    async initializeStudyDesign(studyAggregateUuid, studyName, createdBy = 'system', legacyStudyId = null) {
         try {
-            const response = await ApiService.post('/clinops-ws/api/clinops/study-design', {
+            const payload = {
                 studyAggregateUuid,
                 studyName,
                 createdBy
-            });
+            };
+
+            if (legacyStudyId) {
+                payload.legacyStudyId = legacyStudyId;
+            }
+
+            const response = await ApiService.post('/clinops-ws/api/clinops/study-design', payload);
             return response.data;
         } catch (error) {
             console.error('Error initializing study design:', error);

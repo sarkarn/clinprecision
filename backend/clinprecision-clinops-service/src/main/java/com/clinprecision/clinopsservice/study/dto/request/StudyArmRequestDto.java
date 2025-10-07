@@ -1,6 +1,5 @@
 package com.clinprecision.clinopsservice.study.dto.request;
 
-package com.clinprecision.clinopsservice.study.dto.request;
 
 import com.clinprecision.clinopsservice.study.dto.InterventionDto;
 import com.clinprecision.clinopsservice.study.dto.RandomizationStrategyDto;

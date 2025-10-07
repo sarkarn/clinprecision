@@ -33,9 +33,11 @@ public class StudyDesignCommandService {
         log.info("Initializing study design for study: {}", request.getStudyAggregateUuid());
         
         // Validate design initialization allowed
-        validationService.validateDesignInitialization(request.getStudyAggregateUuid());
+    validationService.validateDesignInitialization(request.getStudyAggregateUuid(), request.getLegacyStudyId());
         
-        UUID studyDesignId = StudyDesignIdentifier.newIdentifier().getId();
+        UUID studyDesignId = request.getStudyDesignId() != null
+            ? StudyDesignIdentifier.fromUuid(request.getStudyDesignId()).getId()
+            : StudyDesignIdentifier.newIdentifier().getId();
         
         InitializeStudyDesignCommand command = InitializeStudyDesignCommand.builder()
             .studyDesignId(studyDesignId)

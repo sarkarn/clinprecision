@@ -1,6 +1,5 @@
 package com.clinprecision.clinopsservice.study.dto.response;
 
-package com.clinprecision.clinopsservice.study.dto.response;
 
 import com.clinprecision.clinopsservice.study.dto.InterventionDto;
 import com.clinprecision.clinopsservice.study.dto.RandomizationStrategyDto;

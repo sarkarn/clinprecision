@@ -119,7 +119,7 @@ const StudyCreationWizard = () => {
     const validateCurrentStep = () => {
         switch (currentStep) {
             case 0: // Basic Information
-                const basicFields = ['name', 'protocolNumber', 'studyPhaseId', 'sponsor'];
+                const basicFields = ['name', 'protocolNumber', 'studyPhaseId', 'organizationId', 'sponsor'];
                 const basicErrors = basicFields.filter(field => !formData[field] || hasFieldError(field));
                 if (basicErrors.length > 0) {
                     setStepError(0, `Please complete all required fields: ${basicErrors.join(', ')}`);
@@ -187,6 +187,10 @@ const StudyCreationWizard = () => {
         try {
             // Prepare data for API
             const apiData = { ...formData };
+
+            if (typeof apiData.organizationId === 'string') {
+                apiData.organizationId = apiData.organizationId ? Number(apiData.organizationId) : null;
+            }
 
             // Handle metadata fields (only put non-database fields in metadata)
             if (apiData.studyCoordinator || apiData.medicalMonitor || apiData.secondaryObjectives ||
@@ -274,6 +278,7 @@ const StudyCreationWizard = () => {
                         getFieldError={getFieldError}
                         hasFieldError={hasFieldError}
                         lookupData={lookupData}
+                        availableOrganizations={availableOrganizations}
                     />
                 );
             case 1:

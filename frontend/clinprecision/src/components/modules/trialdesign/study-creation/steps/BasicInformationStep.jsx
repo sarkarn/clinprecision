@@ -11,12 +11,12 @@ const BasicInformationStep = ({
     onFieldChange,
     getFieldError,
     hasFieldError,
-    lookupData = { studyPhases: [], studyStatuses: [], regulatoryStatuses: [] }
+    lookupData = { studyPhases: [], studyStatuses: [], regulatoryStatuses: [] },
+    availableOrganizations: providedOrganizations = []
 }) => {
-    const [organizations, setOrganizations] = useState([]);
+    const [organizationList, setOrganizationList] = useState([]);
     const [loadingOrganizations, setLoadingOrganizations] = useState(true);
     const [organizationError, setOrganizationError] = useState(null);
-    const [showManualSponsor, setShowManualSponsor] = useState(false);
 
     // Transform lookup data to options format
     const studyPhases = (lookupData.studyPhases || []).map(phase => ({
@@ -37,51 +37,49 @@ const BasicInformationStep = ({
         description: regStatus.description || ''
     })).filter(option => option.value != null && option.label);
 
-    // Handle sponsor selection change
-    const handleSponsorChange = (fieldName, value) => {
-        if (value === '__other__') {
-            setShowManualSponsor(true);
-            onFieldChange(fieldName, ''); // Clear the field for manual entry
-        } else {
-            setShowManualSponsor(false);
-            onFieldChange(fieldName, value);
+    const organizationOptions = organizationList.map(org => ({
+        value: org.id,
+        label: `${org.name}${org.organizationType ? ` (${org.organizationType.name})` : ''}`,
+        entity: org
+    })).filter(option => option.value != null && option.label);
+
+    // Handle organization selection change
+    const handleOrganizationChange = (fieldName, value) => {
+        const numericValue = value !== '' && !Number.isNaN(Number(value)) ? Number(value) : null;
+        onFieldChange(fieldName, numericValue);
+
+        if (numericValue) {
+            const selectedOrg = organizationList.find(org => org.id === numericValue);
+            if (selectedOrg) {
+                onFieldChange('sponsor', selectedOrg.name);
+            }
         }
     };
 
     // Load organizations for sponsor dropdown
     useEffect(() => {
-        const fetchOrganizations = async () => {
+        const initialiseOrganizations = async () => {
             try {
                 setLoadingOrganizations(true);
-                const orgs = await OrganizationService.getAllOrganizations();
+                let orgs = providedOrganizations;
 
-                // Transform organizations to options format for dropdown
-                const orgOptions = Array.isArray(orgs) ? orgs.map(org => ({
-                    value: org.name, // Use name as value to match existing backend expectations
-                    label: `${org.name}${org.organizationType ? ` (${org.organizationType.name})` : ''}`,
-                    id: org.id // Keep ID for future reference
-                })) : [];
+                if (!orgs || orgs.length === 0) {
+                    orgs = await OrganizationService.getAllOrganizations();
+                }
 
-                // Add "Other" option for manual entry fallback
-                orgOptions.push({
-                    value: '__other__',
-                    label: '-- Other (Manual Entry) --'
-                });
-
-                setOrganizations(orgOptions);
+                setOrganizationList(Array.isArray(orgs) ? orgs : []);
                 setOrganizationError(null);
             } catch (err) {
                 console.error('Error fetching organizations:', err);
-                setOrganizationError('Failed to load organizations. Using manual entry mode.');
-                setShowManualSponsor(true); // Fallback to manual entry if service fails
-                setOrganizations([]);
+                setOrganizationError('Failed to load organizations. Please try again.');
+                setOrganizationList([]);
             } finally {
                 setLoadingOrganizations(false);
             }
         };
 
-        fetchOrganizations();
-    }, []);
+        initialiseOrganizations();
+    }, [providedOrganizations]);
 
     const studyTypeOptions = [
         { value: 'interventional', label: 'Interventional' },
@@ -181,45 +179,35 @@ const BasicInformationStep = ({
                     helpText="Current stage of the study lifecycle"
                 />
 
+                {/* Owning Organization */}
+                <FormField
+                    label="Owning Organization"
+                    name="organizationId"
+                    type="select"
+                    value={formData.organizationId != null ? formData.organizationId : ''}
+                    onChange={handleOrganizationChange}
+                    error={getFieldError('organizationId') || organizationError}
+                    touched={hasFieldError('organizationId')}
+                    required
+                    options={organizationOptions}
+                    placeholder={loadingOrganizations ? "Loading organizations..." : "Select primary organization"}
+                    disabled={loadingOrganizations}
+                    helpText="Select the organization responsible for this study"
+                />
+
                 {/* Primary Sponsor */}
                 <div className="md:col-span-2">
-                    {!showManualSponsor ? (
-                        <FormField
-                            label="Primary Sponsor Name"
-                            name="sponsor"
-                            type="select"
-                            value={formData.sponsor}
-                            onChange={handleSponsorChange}
-                            error={getFieldError('sponsor') || organizationError}
-                            touched={hasFieldError('sponsor')}
-                            required
-                            options={organizations}
-                            placeholder={loadingOrganizations ? "Loading organizations..." : "Select primary sponsor organization"}
-                            disabled={loadingOrganizations}
-                            helpText="Select the organization that will serve as the primary sponsor for this study"
-                        />
-                    ) : (
-                        <div>
-                            <FormField
-                                label="Primary Sponsor Name"
-                                name="sponsor"
-                                value={formData.sponsor}
-                                onChange={onFieldChange}
-                                error={getFieldError('sponsor')}
-                                touched={hasFieldError('sponsor')}
-                                required
-                                placeholder="Enter the primary sponsor organization name"
-                                helpText="Enter the name of the organization that will serve as the primary sponsor"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowManualSponsor(false)}
-                                className="mt-2 text-sm text-blue-600 hover:text-blue-800 underline"
-                            >
-                                ← Back to organization list
-                            </button>
-                        </div>
-                    )}
+                    <FormField
+                        label="Primary Sponsor Name"
+                        name="sponsor"
+                        value={formData.sponsor}
+                        onChange={onFieldChange}
+                        error={getFieldError('sponsor')}
+                        touched={hasFieldError('sponsor')}
+                        required
+                        placeholder="Enter the primary sponsor organization name"
+                        helpText="This defaults to the selected organization but can be customized"
+                    />
                     {loadingOrganizations && (
                         <div className="mt-1 flex items-center text-sm text-gray-500">
                             <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

@@ -51,6 +51,12 @@ public class StudyInterventionEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
+    @Column(name = "created_by", nullable = false)
+    private String createdBy;
+    
+    @Column(name = "updated_by", nullable = false)
+    private String updatedBy;
+    
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -109,6 +115,12 @@ public class StudyInterventionEntity {
     
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+    
+    public String getUpdatedBy() { return updatedBy; }
+    public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
     
     @Override
     public String toString() {

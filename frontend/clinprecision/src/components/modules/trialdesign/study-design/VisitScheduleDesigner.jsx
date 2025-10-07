@@ -32,18 +32,12 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
         try {
             setLoading(true);
 
-            // Load study data first to get studyAggregateUuid
+            // Load study data first 
             const studyData = await StudyService.getStudyById(studyId);
             console.log('Study data loaded:', studyData); // Debug log
 
-            // Use studyAggregateUuid for DDD operations (visits are part of study design)
-            const studyDesignUuid = studyData.studyAggregateUuid;
-            if (!studyDesignUuid) {
-                throw new Error('Study does not have a design UUID (studyAggregateUuid). Study may not be properly initialized.');
-            }
-
-            // Load visits using DDD path
-            const visitsData = await VisitDefinitionService.getVisitsByStudy(studyDesignUuid);
+            // Load visits using studyId directly (bridge endpoint auto-initializes StudyDesign)
+            const visitsData = await VisitDefinitionService.getVisitsByStudy(studyId);
             console.log('Raw visits data from backend:', visitsData); // Debug log
 
             setStudy(studyData);
@@ -89,9 +83,8 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     // Add new visit
     const handleAddVisit = async () => {
         try {
-            const studyDesignUuid = study?.studyAggregateUuid;
-            if (!studyDesignUuid) {
-                throw new Error('Study design UUID not available');
+            if (!studyId) {
+                throw new Error('Study ID not available');
             }
 
             const newVisitData = {
@@ -106,7 +99,7 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
 
             // Create visit without arm association initially
             // The user can associate it with specific arms later if needed
-            const createdVisit = await VisitDefinitionService.createVisit(studyDesignUuid, null, newVisitData);
+            const createdVisit = await VisitDefinitionService.createVisit(studyId, null, newVisitData);
 
             // Transform to frontend format
             const transformedVisit = {
@@ -145,9 +138,8 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     // Update visit
     const handleUpdateVisit = async (visitId, updates) => {
         try {
-            const studyDesignUuid = study?.studyAggregateUuid;
-            if (!studyDesignUuid) {
-                throw new Error('Study design UUID not available');
+            if (!studyId) {
+                throw new Error('Study ID not available');
             }
 
             // Find the current visit to merge with updates
@@ -197,7 +189,7 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
             console.log('Updates requested:', updates); // Debug log
             console.log('Sending backend updates:', backendUpdates); // Debug log
 
-            const updatedVisit = await VisitDefinitionService.updateVisit(studyDesignUuid, visitId, backendUpdates);
+            const updatedVisit = await VisitDefinitionService.updateVisit(studyId, visitId, backendUpdates);
 
             console.log('Backend response:', updatedVisit); // Debug log
 
@@ -243,12 +235,11 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     const handleDeleteVisit = async (visitId) => {
         if (window.confirm('Are you sure you want to delete this visit? This action cannot be undone.')) {
             try {
-                const studyDesignUuid = study?.studyAggregateUuid;
-                if (!studyDesignUuid) {
-                    throw new Error('Study design UUID not available');
+                if (!studyId) {
+                    throw new Error('Study ID not available');
                 }
 
-                await VisitDefinitionService.deleteVisit(studyDesignUuid, visitId);
+                await VisitDefinitionService.deleteVisit(studyId, visitId);
                 const updatedVisits = visits.filter(visit => visit.id !== visitId);
                 setVisits(updatedVisits);
                 if (selectedVisit && selectedVisit.id === visitId) {

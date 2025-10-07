@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getApiConfig } from '../config';
+import { CODE_LIST_ENDPOINTS } from '../services/StudyServiceModern';
 
 /**
  * Universal CodeList Hook
@@ -53,42 +53,22 @@ export const useCodeList = (category, options = {}) => {
     setError(null);
 
     try {
-      const config = getApiConfig();
-      const baseUrl = config.studyDesignServiceUrl || 'http://localhost:8082';
-      
-      let url = `${baseUrl}/api/v2/reference-data`;
-      let endpoint = '';
+      const baseEndpoint = CODE_LIST_ENDPOINTS[category];
 
-      // Map categories to specific endpoints
-      switch (category) {
-        case 'REGULATORY_STATUS':
-          endpoint = '/regulatory-statuses';
-          break;
-        case 'STUDY_PHASE':
-          endpoint = '/study-phases';
-          break;
-        case 'STUDY_STATUS':
-          endpoint = '/study-statuses';
-          break;
-        case 'AMENDMENT_TYPE':
-          endpoint = '/amendment-types';
-          break;
-        case 'VISIT_TYPE':
-          endpoint = '/visit-types';
-          break;
-        default:
-          throw new Error(`Unknown category: ${category}`);
+      if (!baseEndpoint) {
+        throw new Error(`Unknown category: ${category}`);
       }
 
       // Add filters for advanced queries
+      let requestUrl = baseEndpoint;
       if (Object.keys(filters).length > 0) {
         const queryParams = new URLSearchParams(filters);
-        endpoint += `?${queryParams}`;
+        requestUrl += `?${queryParams}`;
       }
 
-      console.log(`🔍 Fetching CodeList data: ${category} from ${url}${endpoint}`);
+      console.log(`🔍 Fetching CodeList data: ${category} from ${requestUrl}`);
 
-      const response = await fetch(`${url}${endpoint}`, {
+      const response = await fetch(requestUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

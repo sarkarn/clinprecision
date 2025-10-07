@@ -1,10 +1,9 @@
 package com.clinprecision.clinopsservice.studydesign.projection;
 
 import com.clinprecision.clinopsservice.study.event.StudyCreatedEvent;
-import com.clinprecision.clinopsservice.studydesign.domain.commands.InitializeStudyDesignCommand;
+import com.clinprecision.clinopsservice.studydesign.service.StudyDesignAutoInitializationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
 
@@ -25,7 +24,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class StudyDesignInitializationHandler {
 
-    private final CommandGateway commandGateway;
+    private final StudyDesignAutoInitializationService autoInitializationService;
 
     /**
      * Automatically initialize StudyDesignAggregate when a Study is created
@@ -40,37 +39,12 @@ public class StudyDesignInitializationHandler {
         log.info("Auto-initializing StudyDesign for study: {} (UUID: {})", 
             event.getName(), event.getStudyAggregateUuid());
         
-        try {
-            // Create command to initialize the StudyDesignAggregate
-            // Note: StudyCreatedEvent.userId is UUID, but InitializeStudyDesignCommand.createdBy expects Long
-            // For now, use a default value (1L for admin, or 0L for system)
-            // TODO: Add proper user ID mapping when user management is implemented
-            Long createdByUserId = 1L; // Default to admin user
-            
-            InitializeStudyDesignCommand command = InitializeStudyDesignCommand.builder()
-                .studyDesignId(event.getStudyAggregateUuid()) // Use same UUID as study
-                .studyAggregateUuid(event.getStudyAggregateUuid())
-                .studyName(event.getName())
-                .createdBy(createdByUserId)
-                .build();
-            
-            // Dispatch command asynchronously (fire-and-forget pattern)
-            commandGateway.send(command)
-                .exceptionally(ex -> {
-                    log.error("Failed to auto-initialize StudyDesign for study: {}", 
-                        event.getStudyAggregateUuid(), ex);
-                    // Don't re-throw - study creation should succeed even if design init fails
-                    // Admin can manually initialize later if needed
-                    return null;
-                });
-            
-            log.debug("StudyDesign initialization command sent for study: {}", 
-                event.getStudyAggregateUuid());
-            
-        } catch (Exception ex) {
-            log.error("Error dispatching StudyDesign initialization command for study: {}", 
-                event.getStudyAggregateUuid(), ex);
-            // Don't re-throw - allow study creation to complete
-        }
+        autoInitializationService.ensureStudyDesignExistsByUuid(event.getStudyAggregateUuid())
+            .thenAccept(existingId -> log.debug("StudyDesign initialization ensured for study: {} (design id: {})",
+                event.getStudyAggregateUuid(), existingId))
+            .exceptionally(ex -> {
+                log.error("Failed to auto-initialize StudyDesign for study: {}", event.getStudyAggregateUuid(), ex);
+                return null;
+            });
     }
 }

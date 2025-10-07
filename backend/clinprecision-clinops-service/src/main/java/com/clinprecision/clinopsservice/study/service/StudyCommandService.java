@@ -3,6 +3,7 @@ package com.clinprecision.clinopsservice.study.service;
 import com.clinprecision.clinopsservice.entity.StudyEntity;
 import com.clinprecision.clinopsservice.entity.StudyInterventionEntity;
 import com.clinprecision.clinopsservice.entity.StudyRandomizationStrategyEntity;
+import com.clinprecision.clinopsservice.entity.InterventionType;
 import com.clinprecision.clinopsservice.repository.StudyInterventionRepository;
 import com.clinprecision.clinopsservice.repository.StudyRandomizationStrategyRepository;
 import com.clinprecision.clinopsservice.study.command.*;
@@ -426,9 +427,11 @@ public class StudyCommandService {
             for (InterventionDto dto : interventions) {
                 StudyInterventionEntity entity = new StudyInterventionEntity();
                 entity.setStudyArmId(armId);
+                // Note: ID is ignored for new interventions - database will generate it
+                // Frontend sends temporary IDs like "INT-1759775992731" for new interventions
                 entity.setName(dto.getName());
                 entity.setDescription(dto.getDescription());
-                entity.setType(dto.getType());
+                entity.setType(dto.getType() != null ? InterventionType.valueOf(dto.getType()) : null);
                 entity.setDosage(dto.getDosage());
                 entity.setFrequency(dto.getFrequency());
                 entity.setRoute(dto.getRoute());
@@ -437,6 +440,35 @@ public class StudyCommandService {
                 
                 interventionRepository.save(entity);
             }
+        }
+    }
+    
+    /**
+     * Update randomization strategy for a study arm
+     * Deletes existing strategy and creates new one
+     * 
+     * @param armId Study arm ID
+     * @param strategyDto Randomization strategy DTO
+     */
+    private void updateArmRandomizationStrategy(Long armId, RandomizationStrategyDto strategyDto) {
+        // Delete existing randomization strategy
+        randomizationStrategyRepository.deleteByStudyArmId(armId);
+        
+        // Create new randomization strategy if provided
+        if (strategyDto != null) {
+            log.info("Creating randomization strategy for study arm ID: {}", armId);
+            
+            StudyRandomizationStrategyEntity entity = new StudyRandomizationStrategyEntity();
+            entity.setStudyArmId(armId);
+            entity.setType(strategyDto.getType());
+            entity.setRatio(strategyDto.getRatio());
+            entity.setBlockSize(strategyDto.getBlockSize());
+            entity.setStratificationFactors(strategyDto.getStratificationFactors());
+            entity.setNotes(strategyDto.getNotes());
+            entity.setCreatedBy("system"); // TODO: Get from security context
+            entity.setUpdatedBy("system");
+            
+            randomizationStrategyRepository.save(entity);
         }
     }
     

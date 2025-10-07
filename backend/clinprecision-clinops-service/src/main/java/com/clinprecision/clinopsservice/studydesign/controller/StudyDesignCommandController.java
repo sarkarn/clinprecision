@@ -2,12 +2,15 @@ package com.clinprecision.clinopsservice.studydesign.controller;
 
 import com.clinprecision.clinopsservice.studydesign.dto.*;
 import com.clinprecision.clinopsservice.studydesign.service.StudyDesignCommandService;
+import com.clinprecision.clinopsservice.studydesign.service.StudyDesignQueryService;
+import com.clinprecision.clinopsservice.studydesign.service.StudyDesignAutoInitializationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -23,6 +26,8 @@ import java.util.concurrent.CompletableFuture;
 public class StudyDesignCommandController {
 
     private final StudyDesignCommandService commandService;
+    private final StudyDesignQueryService queryService;
+    private final StudyDesignAutoInitializationService autoInitService;
 
     /**
      * Initialize a new study design
@@ -118,6 +123,131 @@ public class StudyDesignCommandController {
             .thenApply(result -> ResponseEntity.status(HttpStatus.CREATED).<Void>build())
             .exceptionally(ex -> {
                 log.error("Failed to define visit", ex);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            });
+    }
+
+    /**
+     * Auto-initialize and define visit (Bridge Pattern)
+     * Accepts study ID (legacy or UUID) and automatically ensures StudyDesignAggregate exists
+     * 
+     * @param studyId Study identifier (legacy ID or UUID)
+     * @param request Visit definition request
+     * @return 201 Created with visit UUID
+     */
+    @PostMapping("/studies/{studyId}/visits")
+    public CompletableFuture<ResponseEntity<Map<String, UUID>>> defineVisitForStudy(
+            @PathVariable String studyId,
+            @RequestBody DefineVisitRequest request) {
+        log.info("REST: Auto-define visit '{}' for study: {}", request.getName(), studyId);
+        
+        return autoInitService.ensureStudyDesignExists(studyId)
+            .thenCompose(studyDesignId -> {
+                log.debug("Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
+                return commandService.defineVisit(studyDesignId, request);
+            })
+            .thenApply(visitId -> {
+                Map<String, UUID> response = Map.of("visitId", visitId);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            })
+            .exceptionally(ex -> {
+                log.error("Failed to auto-define visit for study: {}", studyId, ex);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            });
+    }
+
+    /**
+     * Get all visits for a study with auto-initialization (Bridge endpoint)
+     * GET /api/clinops/study-design/studies/{studyId}/visits
+     */
+    @GetMapping("/studies/{studyId}/visits")
+    public CompletableFuture<ResponseEntity<List<VisitDefinitionResponse>>> getVisitsForStudy(
+            @PathVariable String studyId) {
+        log.info("REST: Auto-get visits for study: {}", studyId);
+        
+        return autoInitService.ensureStudyDesignExists(studyId)
+            .thenCompose(studyDesignId -> {
+                log.debug("Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
+                List<VisitDefinitionResponse> visits = queryService.getVisits(studyDesignId);
+                return CompletableFuture.completedFuture(visits);
+            })
+            .thenApply(visits -> ResponseEntity.ok(visits))
+            .exceptionally(ex -> {
+                log.error("Failed to auto-get visits for study: {}", studyId, ex);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            });
+    }
+
+    /**
+     * Auto-initialize and add study arm (Bridge Pattern)
+     * Accepts study ID (legacy or UUID) and automatically ensures StudyDesignAggregate exists
+     * 
+     * @param studyId Study identifier (legacy ID or UUID)
+     * @param request Arm definition request
+     * @return 201 Created with arm UUID
+     */
+    @PostMapping("/studies/{studyId}/arms")
+    public CompletableFuture<ResponseEntity<Map<String, UUID>>> addArmForStudy(
+            @PathVariable String studyId,
+            @RequestBody AddStudyArmRequest request) {
+        log.info("REST: Auto-add arm '{}' for study: {}", request.getName(), studyId);
+        
+        return autoInitService.ensureStudyDesignExists(studyId)
+            .thenCompose(studyDesignId -> {
+                log.debug("Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
+                return commandService.addStudyArm(studyDesignId, request);
+            })
+            .thenApply(armId -> {
+                Map<String, UUID> response = Map.of("armId", armId);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            })
+            .exceptionally(ex -> {
+                log.error("Failed to auto-add arm for study: {}", studyId, ex);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            });
+    }
+
+    /**
+     * Update a visit with auto-initialization (Bridge endpoint)
+     * PUT /api/clinops/study-design/studies/{studyId}/visits/{visitId}
+     */
+    @PutMapping("/studies/{studyId}/visits/{visitId}")
+    public CompletableFuture<ResponseEntity<Void>> updateVisitForStudy(
+            @PathVariable String studyId,
+            @PathVariable UUID visitId,
+            @RequestBody UpdateVisitRequest request) {
+        log.info("REST: Auto-update visit {} for study: {}", visitId, studyId);
+        
+        return autoInitService.ensureStudyDesignExists(studyId)
+            .thenCompose(studyDesignId -> {
+                log.debug("Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
+                return commandService.updateVisit(studyDesignId, visitId, request);
+            })
+            .thenApply(result -> ResponseEntity.ok().<Void>build())
+            .exceptionally(ex -> {
+                log.error("Failed to auto-update visit for study: {}", studyId, ex);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            });
+    }
+
+    /**
+     * Delete a visit with auto-initialization (Bridge endpoint)
+     * DELETE /api/clinops/study-design/studies/{studyId}/visits/{visitId}
+     */
+    @DeleteMapping("/studies/{studyId}/visits/{visitId}")
+    public CompletableFuture<ResponseEntity<Void>> removeVisitForStudy(
+            @PathVariable String studyId,
+            @PathVariable UUID visitId) {
+        log.info("REST: Auto-remove visit {} for study: {}", visitId, studyId);
+        
+        return autoInitService.ensureStudyDesignExists(studyId)
+            .thenCompose(studyDesignId -> {
+                log.debug("Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
+                return commandService.removeVisit(studyDesignId, visitId, "Removed via API", 1L);
+            })
+            .thenApply(result -> ResponseEntity.ok().<Void>build())
+            .exceptionally(ex -> {
+                log.error("Failed to auto-remove visit for study: {}", studyId, ex);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             });
     }

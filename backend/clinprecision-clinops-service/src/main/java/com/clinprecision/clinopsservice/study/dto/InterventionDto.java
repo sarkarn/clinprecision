@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class InterventionDto {
     
-    private Long id;
+    private String id; // Can be either database ID (Long as String) or temporary ID (e.g., "INT-1759775992731")
     private String name;
     private String description;
     private String type; // DRUG, DEVICE, PROCEDURE, BEHAVIORAL, OTHER

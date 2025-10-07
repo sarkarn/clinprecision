@@ -3,10 +3,12 @@ package com.clinprecision.clinopsservice.study.projection;
 import com.clinprecision.clinopsservice.study.event.*;
 import com.clinprecision.clinopsservice.entity.StudyEntity;
 import com.clinprecision.clinopsservice.entity.StudyStatusEntity;
+import com.clinprecision.common.entity.UserEntity;
 import com.clinprecision.clinopsservice.repository.StudyRepository;
 import com.clinprecision.clinopsservice.repository.StudyStatusRepository;
 import com.clinprecision.clinopsservice.repository.RegulatoryStatusRepository;
 import com.clinprecision.clinopsservice.repository.StudyPhaseRepository;
+import com.clinprecision.clinopsservice.repository.UserLookupRepository;
 import org.axonframework.eventhandling.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Study Projection - Event Listener
@@ -37,15 +40,18 @@ public class StudyProjection {
     private final StudyStatusRepository studyStatusRepository;
     private final RegulatoryStatusRepository regulatoryStatusRepository;
     private final StudyPhaseRepository studyPhaseRepository;
+    private final UserLookupRepository userLookupRepository;
     
     public StudyProjection(StudyRepository studyRepository,
                           StudyStatusRepository studyStatusRepository,
                           RegulatoryStatusRepository regulatoryStatusRepository,
-                          StudyPhaseRepository studyPhaseRepository) {
+                          StudyPhaseRepository studyPhaseRepository,
+                          UserLookupRepository userLookupRepository) {
         this.studyRepository = studyRepository;
         this.studyStatusRepository = studyStatusRepository;
         this.regulatoryStatusRepository = regulatoryStatusRepository;
         this.studyPhaseRepository = studyPhaseRepository;
+        this.userLookupRepository = userLookupRepository;
     }
     
     /**
@@ -58,6 +64,52 @@ public class StudyProjection {
         logger.info("Projecting StudyCreatedEvent for aggregate: {}", event.getStudyAggregateUuid());
         
         try {
+            Optional<StudyEntity> existing = studyRepository.findByAggregateUuid(event.getStudyAggregateUuid());
+
+            if (existing.isPresent()) {
+                StudyEntity existingEntity = existing.get();
+                logger.info("Study projection already exists for aggregate {} (DB ID: {}). Treating create event as idempotent replay and skipping insert.",
+                    event.getStudyAggregateUuid(), existingEntity.getId());
+
+                // Opportunistically backfill missing core fields if the original projection was partially persisted.
+                // Only fill values that are currently null to avoid overwriting data that may have been updated by later events.
+                if (existingEntity.getName() == null && event.getName() != null) {
+                    existingEntity.setName(event.getName());
+                }
+                if (existingEntity.getSponsor() == null && event.getSponsor() != null) {
+                    existingEntity.setSponsor(event.getSponsor());
+                }
+                if (existingEntity.getProtocolNumber() == null && event.getProtocolNumber() != null) {
+                    existingEntity.setProtocolNumber(event.getProtocolNumber());
+                }
+                if (existingEntity.getStudyStatus() == null) {
+                    if (event.getStudyStatusId() != null) {
+                        studyStatusRepository.findById(event.getStudyStatusId()).ifPresent(existingEntity::setStudyStatus);
+                    } else if (event.getInitialStatus() != null) {
+                        studyStatusRepository.findByCode(event.getInitialStatus().getCode()).ifPresent(existingEntity::setStudyStatus);
+                    }
+                }
+                if (existingEntity.getStudyPhase() == null && event.getStudyPhaseId() != null) {
+                    studyPhaseRepository.findById(event.getStudyPhaseId()).ifPresent(existingEntity::setStudyPhase);
+                }
+                if (existingEntity.getRegulatoryStatus() == null && event.getRegulatoryStatusId() != null) {
+                    regulatoryStatusRepository.findById(event.getRegulatoryStatusId()).ifPresent(existingEntity::setRegulatoryStatus);
+                }
+
+                if (existingEntity.getCreatedBy() == null && event.getUserId() != null) {
+                    existingEntity.setCreatedBy(resolveAuditUserId(event.getUserId()));
+                }
+                if (existingEntity.getCreatedAt() == null) {
+                    existingEntity.setCreatedAt(LocalDateTime.now());
+                }
+                if (existingEntity.getUpdatedAt() == null) {
+                    existingEntity.setUpdatedAt(LocalDateTime.now());
+                }
+
+                studyRepository.save(existingEntity);
+                return;
+            }
+
             StudyEntity entity = new StudyEntity();
             
             // Set aggregate UUID (DDD identifier)
@@ -123,7 +175,7 @@ public class StudyProjection {
             }
             
             // Set audit fields
-            entity.setCreatedBy(event.getUserId() != null ? event.getUserId().getMostSignificantBits() : 1L);
+            entity.setCreatedBy(resolveAuditUserId(event.getUserId()));
             entity.setCreatedAt(LocalDateTime.now());
             entity.setUpdatedAt(LocalDateTime.now());
             
@@ -215,7 +267,7 @@ public class StudyProjection {
             }
             
             // Update audit
-            entity.setModifiedBy(event.getUserId() != null ? event.getUserId().getMostSignificantBits() : 1L);
+            entity.setModifiedBy(resolveAuditUserId(event.getUserId()));
             entity.setUpdatedAt(LocalDateTime.now());
             
             studyRepository.save(entity);
@@ -422,6 +474,19 @@ public class StudyProjection {
                 event.getStudyAggregateUuid(), e);
             throw e;
         }
+    }
+
+    private Long resolveAuditUserId(UUID userUuid) {
+        if (userUuid == null) {
+            return null;
+        }
+
+        return userLookupRepository.findByUserId(userUuid.toString())
+            .map(UserEntity::getId)
+            .orElseGet(() -> {
+                logger.warn("No matching user found for aggregate UUID {}; leaving audit reference null to avoid FK violation", userUuid);
+                return null;
+            });
     }
 }
 
