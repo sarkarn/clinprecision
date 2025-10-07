@@ -46,23 +46,57 @@ public class DesignProgressService {
      * @param studyId The study ID
      * @return Design progress response DTO
      */
-    @Transactional(readOnly = true)
     public DesignProgressResponseDto getDesignProgress(Long studyId) {
         logger.info("Getting design progress for study: {}", studyId);
         
+        // First, ensure all phases exist (write operation if needed)
+        ensureAllPhasesExist(studyId);
+        
+        // Then read the data (read-only operation)
+        return getDesignProgressReadOnly(studyId);
+    }
+    
+    /**
+     * Ensure all design phases exist for a study (creates missing ones)
+     * @param studyId The study ID
+     */
+    @Transactional
+    private void ensureAllPhasesExist(Long studyId) {
         // Verify study exists
         if (!studyRepository.existsById(studyId)) {
             throw new IllegalArgumentException("Study not found with ID: " + studyId);
         }
         
-        // Get existing progress records
+        // Get existing phases
+        List<DesignProgressEntity> existingEntities = designProgressRepository.findByStudyIdOrderByPhaseAsc(studyId);
+        Set<String> existingPhases = existingEntities.stream()
+            .map(DesignProgressEntity::getPhase)
+            .collect(Collectors.toSet());
+        
+        // Create missing phases
+        for (String phase : DESIGN_PHASES) {
+            if (!existingPhases.contains(phase)) {
+                saveDefaultProgress(studyId, phase);
+                logger.debug("Created default progress for study {} phase: {}", studyId, phase);
+            }
+        }
+    }
+    
+    /**
+     * Get design progress for a study (read-only)
+     * @param studyId The study ID
+     * @return Design progress response DTO
+     */
+    @Transactional(readOnly = true)
+    private DesignProgressResponseDto getDesignProgressReadOnly(Long studyId) {
+        // Get all progress records (should exist now)
         List<DesignProgressEntity> progressEntities = designProgressRepository.findByStudyIdOrderByPhaseAsc(studyId);
         
         // Convert to map for easy lookup
         Map<String, DesignProgressEntity> existingProgress = progressEntities.stream()
             .collect(Collectors.toMap(DesignProgressEntity::getPhase, entity -> entity));
         
-        // Create progress map with all phases (initialize missing ones)
+        // Create progress map with all phases
         Map<String, DesignProgressDto> progressMap = new LinkedHashMap<>();
         
         for (String phase : DESIGN_PHASES) {
@@ -73,10 +107,9 @@ public class DesignProgressService {
                 // Convert existing entity to DTO
                 dto = convertToDto(entity);
             } else {
-                // Create default progress for missing phases
+                // Fallback: create default progress for missing phases (shouldn't happen)
                 dto = createDefaultProgress(phase);
-                // Save the default progress to database
-                saveDefaultProgress(studyId, phase);
+                logger.warn("Missing progress entity for study {} phase: {} - using default", studyId, phase);
             }
             
             progressMap.put(phase, dto);

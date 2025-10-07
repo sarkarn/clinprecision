@@ -475,4 +475,35 @@ public class StudyDesignAggregate {
         log.debug("Form assignment removed: {} from design: {}", 
             event.getAssignmentId(), studyDesignId);
     }
+
+    // ===================== STUDY-RELATED EVENT HANDLERS =====================
+    // These events should logically belong to StudyAggregate but are being routed here
+    // Adding handlers to prevent "Aggregate identifier must be non-null" errors
+
+    @EventSourcingHandler
+    public void on(StudyClosedEvent event) {
+        // This event uses studyId but should not affect StudyDesign state
+        // We add this handler to prevent Axon from failing during aggregate reconstitution
+        log.debug("StudyClosedEvent received for studyId: {} in StudyDesign aggregate: {}", 
+            event.getStudyId(), studyDesignId);
+        // No state changes needed since this is a Study-level event, not StudyDesign-level
+    }
+
+    @EventSourcingHandler
+    public void on(StudyDetailsUpdatedEvent event) {
+        // This event uses studyId but should not affect StudyDesign state
+        // We add this handler to prevent Axon from failing during aggregate reconstitution
+        log.debug("StudyDetailsUpdatedEvent received for studyId: {} in StudyDesign aggregate: {}", 
+            event.getStudyId(), studyDesignId);
+        // No state changes needed since this is a Study-level event, not StudyDesign-level
+    }
+
+    @EventSourcingHandler
+    public void on(StudyStatusChangedEvent event) {
+        // This event uses studyId but should not affect StudyDesign state  
+        // We add this handler to prevent Axon from failing during aggregate reconstitution
+        log.debug("StudyStatusChangedEvent received for studyId: {} ({} -> {}) in StudyDesign aggregate: {}", 
+            event.getStudyId(), event.getOldStatus(), event.getNewStatus(), studyDesignId);
+        // No state changes needed since this is a Study-level event, not StudyDesign-level
+    }
 }
