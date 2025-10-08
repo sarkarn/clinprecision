@@ -191,7 +191,12 @@ class StudyDesignService {
             // Extract meaningful error message from backend response
             let errorMessage = `Failed to change study status to ${newStatus}`;
             
-            if (error.response?.data?.message) {
+            // Priority 1: Check for user-friendly error in custom header
+            if (error.response?.headers?.['x-error-message']) {
+                errorMessage = error.response.headers['x-error-message'];
+            }
+            // Priority 2: Check response body
+            else if (error.response?.data?.message) {
                 errorMessage = error.response.data.message;
             } else if (error.response?.data?.error) {
                 errorMessage = error.response.data.error;

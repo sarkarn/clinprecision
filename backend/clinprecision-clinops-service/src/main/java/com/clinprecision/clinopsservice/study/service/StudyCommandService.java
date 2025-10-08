@@ -230,6 +230,53 @@ public class StudyCommandService {
         log.info("Study completed successfully: {}", studyUuid);
     }
 
+    /**
+     * Change study status (generic status transition handler)
+     * Supports all valid status transitions defined in StudyStatusCode
+     * 
+     * @param studyUuid UUID of study aggregate
+     * @param newStatusString Target status as string (e.g., "PROTOCOL_REVIEW", "ACTIVE")
+     * @param reason Optional reason for status change
+     * @throws org.axonframework.commandhandling.CommandExecutionException if command fails
+     * @throws IllegalArgumentException if status string is invalid
+     * @throws StudyStatusTransitionException if transition is not allowed
+     */
+    @Transactional
+    public void changeStudyStatus(UUID studyUuid, String newStatusString, String reason) {
+        log.info("Changing study status: {} -> {}", studyUuid, newStatusString);
+        
+        // Convert string to StudyStatusCode enum
+        com.clinprecision.clinopsservice.study.domain.valueobjects.StudyStatusCode newStatus;
+        try {
+            newStatus = com.clinprecision.clinopsservice.study.domain.valueobjects.StudyStatusCode.fromString(newStatusString);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid status code: {}", newStatusString);
+            throw new IllegalArgumentException("Invalid status: " + newStatusString + ". Valid statuses are: " + 
+                java.util.Arrays.toString(com.clinprecision.clinopsservice.study.domain.valueobjects.StudyStatusCode.values()));
+        }
+        
+        // Validate cross-entity dependencies BEFORE sending command
+        validationService.validateStatusTransition(studyUuid, newStatusString);
+        
+        // TODO: Get current user from security context
+        UUID userId = UUID.randomUUID(); // Temporary
+        String userName = "system"; // Temporary
+        
+        ChangeStudyStatusCommand command = ChangeStudyStatusCommand.builder()
+            .studyAggregateUuid(studyUuid)
+            .newStatus(newStatus)
+            .reason(reason)
+            .userId(userId)
+            .userName(userName)
+            .build();
+        
+        log.debug("Dispatching ChangeStudyStatusCommand for study: {} to status: {}", studyUuid, newStatus);
+        
+        commandGateway.sendAndWait(command);
+        
+        log.info("Study status changed successfully: {} -> {}", studyUuid, newStatus);
+    }
+
     private void scheduleProjectionAwait(UUID studyUuid, StudyUpdateRequestDto request, Duration timeout) {
         if (request == null) {
             return;

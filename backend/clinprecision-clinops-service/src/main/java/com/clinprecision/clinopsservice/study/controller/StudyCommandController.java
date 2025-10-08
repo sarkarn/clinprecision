@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -58,6 +59,8 @@ public class StudyCommandController {
     private final DesignProgressService designProgressService;
     private final com.clinprecision.clinopsservice.studydesign.service.StudyDesignCommandService studyDesignCommandService;
     private final com.clinprecision.clinopsservice.studydesign.service.StudyDesignAutoInitializationService studyDesignAutoInitService;
+    private final com.clinprecision.clinopsservice.repository.VisitFormRepository visitFormRepository;
+    private final com.clinprecision.clinopsservice.study.service.StudyQueryService studyQueryService;
 
     /**
      * Create a new study
@@ -127,17 +130,21 @@ public class StudyCommandController {
     }
 
     /**
-     * Publish a study (set status to ACTIVE)
+     * Publish a study (set status to ACTIVE).
+     * Supports both Long ID and UUID for gradual migration.
      * 
      * Command: ActivateStudyCommand
      * Event: StudyActivatedEvent
      * 
-     * @param uuid Study aggregate UUID
+     * @param studyId Study ID (Long or UUID string)
      * @return 200 OK
      */
-    @PatchMapping("/{uuid}/publish")
-    public ResponseEntity<Void> publishStudy(@PathVariable UUID uuid) {
-        log.info("REST: Publishing study: {}", uuid);
+    @PatchMapping("/{studyId}/publish")
+    public ResponseEntity<Void> publishStudy(@PathVariable String studyId) {
+        // Bridge pattern: Convert Long ID to UUID using auto-initialization
+        UUID uuid = studyDesignAutoInitService.ensureStudyDesignExists(studyId).join();
+        
+        log.info("REST: Publishing study: {} (UUID: {})", studyId, uuid);
         
         // TODO: Implement activateStudy method in StudyCommandService
         // studyCommandService.activateStudy(uuid);
@@ -155,9 +162,9 @@ public class StudyCommandController {
      * @param request Map containing "newStatus" field
      * @return 200 OK
      */
-    @PatchMapping("/{uuid}/status")
+    @PatchMapping("/{studyId}/status")
     public ResponseEntity<Void> changeStudyStatus(
-            @PathVariable UUID uuid,
+            @PathVariable String studyId,
             @RequestBody Map<String, String> request) {
         
         String newStatus = request.get("newStatus");
@@ -165,35 +172,91 @@ public class StudyCommandController {
             throw new IllegalArgumentException("newStatus is required");
         }
         
-        log.info("REST: Changing study status: {} to {}", uuid, newStatus);
-        
-        // Delegate to appropriate command based on status
-        switch (newStatus.toUpperCase()) {
-            case "ACTIVE":
-                // TODO: Implement activateStudy method in StudyCommandService
-                log.warn("Study activation not yet implemented: {}", uuid);
-                throw new UnsupportedOperationException("Study activation not yet implemented");
-            case "SUSPENDED":
-                studyCommandService.suspendStudy(uuid, 
-                    SuspendStudyRequestDto.builder()
-                        .reason(request.get("reason"))
-                        .build());
-                break;
-            case "COMPLETED":
-                studyCommandService.completeStudy(uuid);
-                break;
-            case "TERMINATED":
-                studyCommandService.terminateStudy(uuid, 
-                    TerminateStudyRequestDto.builder()
-                        .reason(request.get("reason"))
-                        .build());
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported status transition: " + newStatus);
+        // Bridge pattern: Resolve Study aggregate UUID (not StudyDesign UUID!)
+        UUID studyAggregateUuid;
+        try {
+            // Try as UUID first
+            studyAggregateUuid = UUID.fromString(studyId);
+            log.debug("REST: Using UUID format for status change");
+        } catch (IllegalArgumentException e) {
+            // Not a UUID, try as legacy ID
+            try {
+                Long legacyId = Long.parseLong(studyId);
+                log.info("REST: Using legacy ID {} for status change (Bridge Pattern)", legacyId);
+                
+                // Get Study entity to retrieve its aggregate UUID
+                com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto study = 
+                    studyQueryService.getStudyById(legacyId);
+                studyAggregateUuid = study.getStudyAggregateUuid();
+                
+                if (studyAggregateUuid == null) {
+                    log.error("REST: Study {} has no aggregate UUID - cannot change status", legacyId);
+                    throw new IllegalStateException("Study " + legacyId + " has not been migrated to DDD yet");
+                }
+            } catch (NumberFormatException nfe) {
+                log.error("REST: Invalid identifier format (not UUID or numeric): {}", studyId);
+                throw new IllegalArgumentException("Invalid study ID format: " + studyId);
+            }
         }
         
-        log.info("REST: Study status changed successfully: {} to {}", uuid, newStatus);
-        return ResponseEntity.ok().build();
+        log.info("REST: Changing study status: {} (Study Aggregate UUID: {}) to {}", 
+                 studyId, studyAggregateUuid, newStatus);
+        
+        try {
+            // Use generic status change method - supports all valid status transitions
+            // Including: PROTOCOL_REVIEW, PLANNING, REGULATORY_SUBMISSION, APPROVED, ACTIVE, etc.
+            String reason = request.get("reason"); // Optional reason for status change
+            studyCommandService.changeStudyStatus(studyAggregateUuid, newStatus, reason);
+            
+            log.info("REST: Study status changed successfully: {} to {}", studyAggregateUuid, newStatus);
+            return ResponseEntity.ok().build();
+            
+        } catch (com.clinprecision.clinopsservice.study.exception.StudyStatusTransitionException ex) {
+            // Transform technical error into user-friendly message
+            String userFriendlyMessage = makeUserFriendly(ex.getMessage(), newStatus);
+            log.warn("REST: Status transition validation failed: {}", userFriendlyMessage);
+            
+            // Return 400 Bad Request with user-friendly message
+            return ResponseEntity
+                .badRequest()
+                .header("X-Error-Message", userFriendlyMessage)
+                .build();
+        }
+    }
+    
+    /**
+     * Transform technical exception messages into user-friendly messages
+     * Removes UUIDs and technical jargon, provides actionable guidance
+     */
+    private String makeUserFriendly(String technicalMessage, String targetStatus) {
+        if (technicalMessage == null) {
+            return "Unable to change study status. Please contact support.";
+        }
+        
+        // Remove UUID from message
+        String message = technicalMessage.replaceAll("\\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\b", "study");
+        message = message.replace("Cannot transition study to status " + targetStatus + ": ", "");
+        message = message.replace("Cannot transition study to status PROTOCOL_REVIEW: ", "");
+        
+        // Transform specific messages
+        if (message.contains("protocol version before review")) {
+            return "Please create a protocol version before submitting the study for review.";
+        }
+        
+        if (message.contains("approved protocol version")) {
+            return "At least one protocol version must be approved before proceeding.";
+        }
+        
+        if (message.contains("invalid status transition") || message.contains("not allowed")) {
+            return "This status change is not allowed from the current study status.";
+        }
+        
+        if (message.contains("amendments")) {
+            return "Please resolve pending amendments before changing study status.";
+        }
+        
+        // Return cleaned message if no specific transformation matched
+        return message.replace("study study", "the study");
     }
 
     /**
@@ -484,10 +547,27 @@ public class StudyCommandController {
             UUID studyDesignId = studyDesignAutoInitService.ensureStudyDesignExists(studyId).join();
             log.info("REST: Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
             
-            // Get display order if not provided
-            Integer displayOrder = bindingData.containsKey("displayOrder") 
-                ? ((Number) bindingData.get("displayOrder")).intValue() 
-                : 1;
+            // Auto-calculate next available display order by checking existing assignments for this visit
+            Integer displayOrder;
+            if (bindingData.containsKey("displayOrder")) {
+                displayOrder = ((Number) bindingData.get("displayOrder")).intValue();
+            } else {
+                // Query existing assignments for this visit and get max display order
+                List<com.clinprecision.clinopsservice.entity.VisitFormEntity> existingAssignments = 
+                    visitFormRepository.findByAggregateUuidOrderByDisplayOrderAsc(studyDesignId);
+                
+                // Filter for this specific visit UUID
+                UUID visitUuid = UUID.fromString(visitId);
+                int maxOrder = existingAssignments.stream()
+                    .filter(vf -> vf.getVisitUuid() != null && vf.getVisitUuid().equals(visitUuid))
+                    .filter(vf -> vf.getIsDeleted() == null || !vf.getIsDeleted())
+                    .mapToInt(vf -> vf.getDisplayOrder() != null ? vf.getDisplayOrder() : 0)
+                    .max()
+                    .orElse(0);
+                
+                displayOrder = maxOrder + 1;
+                log.info("REST: Auto-calculated display order: {} for visit: {}", displayOrder, visitId);
+            }
             
             // Create UUID for formId using deterministic UUID generation (bridge pattern)
             // Format: 00000000-0000-0000-0000-{formId padded to 12 digits}
@@ -529,10 +609,34 @@ public class StudyCommandController {
             
         } catch (IllegalStateException e) {
             log.error("REST: Business rule violation: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest()
+                .body(Map.of(
+                    "error", "BUSINESS_RULE_VIOLATION",
+                    "message", e.getMessage()
+                ));
+        } catch (java.util.concurrent.CompletionException e) {
+            // Unwrap CompletionException from async command
+            if (e.getCause() instanceof IllegalStateException) {
+                log.error("REST: Business rule violation: {}", e.getCause().getMessage());
+                return ResponseEntity.badRequest()
+                    .body(Map.of(
+                        "error", "BUSINESS_RULE_VIOLATION",
+                        "message", e.getCause().getMessage()
+                    ));
+            }
+            log.error("REST: Error assigning form {} to visit {} for study: {}", formId, visitId, studyId, e);
+            return ResponseEntity.internalServerError()
+                .body(Map.of(
+                    "error", "INTERNAL_ERROR",
+                    "message", "An error occurred while assigning the form"
+                ));
         } catch (Exception e) {
             log.error("REST: Error assigning form {} to visit {} for study: {}", formId, visitId, studyId, e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError()
+                .body(Map.of(
+                    "error", "INTERNAL_ERROR",
+                    "message", "An error occurred while assigning the form"
+                ));
         }
     }
     

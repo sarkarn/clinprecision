@@ -214,10 +214,26 @@ public class StudyDesignQueryService {
     }
 
     private FormAssignmentResponse toFormAssignmentResponse(VisitFormEntity entity) {
+        // Extract legacy form ID from deterministic UUID pattern: 00000000-0000-0000-0000-{formId}
+        Long formDefinitionId = extractFormIdFromUUID(entity.getFormUuid());
+        
+        // Get visit definition ID from FK (populated by projection)
+        Long visitDefinitionId = entity.getVisitDefinition() != null 
+            ? entity.getVisitDefinition().getId() 
+            : null;
+        
         return FormAssignmentResponse.builder()
+            // UUID fields (for event sourcing)
             .assignmentId(entity.getAssignmentUuid())
             .visitId(entity.getVisitUuid())
             .formId(entity.getFormUuid())
+            
+            // Legacy ID fields (for frontend compatibility)
+            .id(entity.getId())                     // Legacy PK from database
+            .visitDefinitionId(visitDefinitionId)   // For matching visit.id
+            .formDefinitionId(formDefinitionId)     // For matching form.id
+            
+            // Binding properties
             .isRequired(entity.getIsRequired())
             .isConditional(entity.getIsConditional())
             .conditionalLogic(entity.getConditionalLogic())
@@ -227,5 +243,33 @@ public class StudyDesignQueryService {
             .createdAt(entity.getCreatedAt())
             .updatedAt(entity.getUpdatedAt())
             .build();
+    }
+    
+    /**
+     * Extract legacy form ID (Long) from deterministic UUID
+     * Format: 00000000-0000-0000-0000-{formId padded to 12 digits}
+     * Example: 00000000-0000-0000-0000-000000000004 → 4
+     */
+    private Long extractFormIdFromUUID(UUID formUuid) {
+        if (formUuid == null) {
+            return null;
+        }
+        
+        String uuidStr = formUuid.toString();
+        // Check if it's a deterministic UUID (bridge pattern)
+        if (uuidStr.startsWith("00000000-0000-0000-0000-")) {
+            try {
+                // Extract last 12 characters and parse as Long
+                String formIdStr = uuidStr.substring(24);
+                return Long.parseLong(formIdStr);
+            } catch (NumberFormatException e) {
+                log.warn("Could not extract formId from deterministic UUID: {}", uuidStr);
+                return null;
+            }
+        }
+        
+        // If it's a real UUID (not deterministic), we can't extract a Long ID
+        // This would happen after full Form migration to event sourcing
+        return null;
     }
 }

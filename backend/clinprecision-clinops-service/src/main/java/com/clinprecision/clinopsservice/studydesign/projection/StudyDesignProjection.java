@@ -32,6 +32,7 @@ public class StudyDesignProjection {
     private final VisitDefinitionReadRepository visitRepository;
     private final VisitFormReadRepository visitFormRepository;
     private final StudyReadRepository studyRepository;
+    private final com.clinprecision.clinopsservice.repository.FormDefinitionRepository formDefinitionRepository;
 
     // ===================== STUDY ARM PROJECTIONS =====================
 
@@ -39,6 +40,17 @@ public class StudyDesignProjection {
     @Transactional
     public void on(StudyArmAddedEvent event) {
         log.info("Projecting StudyArmAddedEvent for arm: {}", event.getArmId());
+        
+        // IDEMPOTENCY: Check if this arm already exists (for event replay)
+        Optional<StudyArmEntity> existingArm = armRepository.findByAggregateUuidAndArmUuid(
+            event.getStudyDesignId(),
+            event.getArmId()
+        );
+        
+        if (existingArm.isPresent()) {
+            log.debug("Study arm already exists (idempotent replay): {}", event.getArmId());
+            return; // Skip if already projected
+        }
         
         StudyArmEntity entity = new StudyArmEntity();
         entity.setAggregateUuid(event.getStudyDesignId());
@@ -202,6 +214,17 @@ public class StudyDesignProjection {
     public void on(FormAssignedToVisitEvent event) {
         log.info("Projecting FormAssignedToVisitEvent - Assignment: {}", event.getAssignmentId());
         
+        // IDEMPOTENCY: Check if this assignment already exists (for event replay)
+        Optional<VisitFormEntity> existingEntity = visitFormRepository.findByAggregateUuidAndAssignmentUuid(
+            event.getStudyDesignId(), 
+            event.getAssignmentId()
+        );
+        
+        if (existingEntity.isPresent()) {
+            log.debug("Form assignment already exists (idempotent replay): {}", event.getAssignmentId());
+            return; // Skip if already projected
+        }
+        
         VisitFormEntity entity = new VisitFormEntity();
         entity.setAggregateUuid(event.getStudyDesignId());
         entity.setAssignmentUuid(event.getAssignmentId());
@@ -214,6 +237,29 @@ public class StudyDesignProjection {
         entity.setInstructions(event.getInstructions());
         entity.setCreatedAt(event.getOccurredAt());
         entity.setCreatedBy(event.getAssignedBy());
+        
+        // Set FK fields by looking up legacy IDs
+        // 1. Lookup visit definition by UUID
+        visitRepository.findByAggregateUuidAndVisitUuid(event.getStudyDesignId(), event.getVisitId())
+            .ifPresent(visit -> {
+                entity.setVisitDefinition(visit);
+                log.debug("Set visit FK: {} for assignment: {}", visit.getId(), event.getAssignmentId());
+            });
+        
+        // 2. Extract formId from deterministic UUID and lookup form definition
+        // Format: 00000000-0000-0000-0000-{formId padded to 12 digits}
+        String formUuidStr = event.getFormId().toString();
+        if (formUuidStr.startsWith("00000000-0000-0000-0000-")) {
+            try {
+                Long formId = Long.parseLong(formUuidStr.substring(24)); // Extract last 12 chars as Long
+                formDefinitionRepository.findById(formId).ifPresent(form -> {
+                    entity.setFormDefinition(form);
+                    log.debug("Set form FK: {} for assignment: {}", formId, event.getAssignmentId());
+                });
+            } catch (NumberFormatException e) {
+                log.warn("Could not parse formId from UUID: {} for assignment: {}", formUuidStr, event.getAssignmentId());
+            }
+        }
         
         visitFormRepository.save(entity);
         log.debug("Form assignment entity saved: {}", event.getAssignmentId());
