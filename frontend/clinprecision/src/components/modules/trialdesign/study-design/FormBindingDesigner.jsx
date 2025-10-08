@@ -23,6 +23,25 @@ const getFieldCount = (form) => {
     return 0;
 };
 
+// Helper function to transform visit response to ensure visitId is present
+const transformVisitResponse = (visit) => {
+    if (!visit) {
+        return null;
+    }
+
+    const visitId = visit.visitId || visit.id || visit.aggregateUuid || null;
+
+    return {
+        ...visit,
+        id: visitId ? String(visitId) : null,
+        name: visit.name || `Visit ${visit.sequenceNumber || ''}`,
+        type: (visit.visitType || 'REGULAR').toUpperCase()
+    };
+};
+
+const transformVisitCollection = (visits = []) =>
+    visits.map(transformVisitResponse).filter(Boolean);
+
 /**
  * Form Binding Designer Component
  * Manages binding of forms to visits and configures form rules
@@ -62,8 +81,12 @@ const FormBindingDesigner = () => {
                 StudyFormService.getFormsByStudy(studyId) // Load study-specific forms
             ]);
 
+            console.log('Raw visits data:', visitsData);
+            const transformedVisits = transformVisitCollection(visitsData);
+            console.log('Transformed visits:', transformedVisits);
+
             setStudy(studyData);
-            setVisits(visitsData || []);
+            setVisits(transformedVisits);
             setBindings(bindingsData || []);
             setForms(formsData || []);
 
@@ -405,7 +428,7 @@ const FormVisitMatrix = ({
                                 Forms
                             </th>
                             {visits.map(visit => (
-                                <th key={visit.id} className="px-3 py-3 text-center text-sm font-medium text-gray-900 min-w-32">
+                                <th key={visit.id || `visit-${visit.sequenceNumber}`} className="px-3 py-3 text-center text-sm font-medium text-gray-900 min-w-32">
                                     <div className="transform -rotate-45 origin-center whitespace-nowrap">
                                         {visit.name}
                                     </div>
@@ -427,8 +450,9 @@ const FormVisitMatrix = ({
                                 </td>
                                 {visits.map(visit => {
                                     const binding = getBinding(visit.id, form.id);
+                                    const cellKey = `${visit.id || `v-${visit.sequenceNumber}`}-${form.id}`;
                                     return (
-                                        <td key={`${visit.id}-${form.id}`} className="px-3 py-3 text-center">
+                                        <td key={cellKey} className="px-3 py-3 text-center">
                                             <MatrixCell
                                                 visit={visit}
                                                 form={form}

@@ -142,6 +142,17 @@ public interface VisitFormRepository extends JpaRepository<VisitFormEntity, Long
      * Find by aggregate UUID (for querying all assignments in event-sourced aggregate)
      */
     List<VisitFormEntity> findByAggregateUuidOrderByDisplayOrderAsc(UUID aggregateUuid);
+    
+    /**
+     * Find by aggregate UUID and assignment UUID (for projection updates)
+     */
+    Optional<VisitFormEntity> findByAggregateUuidAndAssignmentUuid(UUID aggregateUuid, UUID assignmentUuid);
+    
+    /**
+     * Find all non-deleted form assignments by aggregate UUID
+     */
+    @Query("SELECT vf FROM VisitFormEntity vf WHERE vf.aggregateUuid = :aggregateUuid AND (vf.isDeleted = false OR vf.isDeleted IS NULL) ORDER BY vf.displayOrder")
+    List<VisitFormEntity> findAllByAggregateUuid(@Param("aggregateUuid") UUID aggregateUuid);
 }
 
 

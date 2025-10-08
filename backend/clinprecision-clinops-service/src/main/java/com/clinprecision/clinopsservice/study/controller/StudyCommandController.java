@@ -56,6 +56,8 @@ public class StudyCommandController {
 
     private final StudyCommandService studyCommandService;
     private final DesignProgressService designProgressService;
+    private final com.clinprecision.clinopsservice.studydesign.service.StudyDesignCommandService studyDesignCommandService;
+    private final com.clinprecision.clinopsservice.studydesign.service.StudyDesignAutoInitializationService studyDesignAutoInitService;
 
     /**
      * Create a new study
@@ -449,4 +451,89 @@ public class StudyCommandController {
     
     // NOTE: PUT /api/arms/{armId} and DELETE /api/arms/{armId} have been moved to
     // StudyArmsCommandController.java to avoid path conflicts
+    
+    // ===================== FORM BINDING COMMAND ENDPOINTS (Bridge Pattern) =====================
+    
+    /**
+     * Assign a form to a visit (create form binding)
+     * 
+     * Bridge endpoint: Frontend calls POST /studies/{studyId}/visits/{visitId}/forms/{formId}
+     * Backend DDD: AssignFormToVisitCommand
+     * 
+     * Command: AssignFormToVisitCommand
+     * Event: FormAssignedToVisitEvent
+     * 
+     * @param studyId Study identifier (UUID or numeric ID)
+     * @param visitId Visit UUID
+     * @param formId Form definition ID
+     * @param bindingData Form binding configuration
+     * @return 201 Created with created binding data
+     */
+    @PostMapping("/{studyId}/visits/{visitId}/forms/{formId}")
+    public ResponseEntity<Map<String, Object>> assignFormToVisit(
+            @PathVariable String studyId,
+            @PathVariable String visitId,
+            @PathVariable Long formId,
+            @RequestBody Map<String, Object> bindingData) {
+        
+        log.info("REST: Assigning form {} to visit {} for study: {}", formId, visitId, studyId);
+        log.debug("REST: Binding data: {}", bindingData);
+        
+        try {
+            // Ensure StudyDesign aggregate exists and get its ID
+            UUID studyDesignId = studyDesignAutoInitService.ensureStudyDesignExists(studyId).join();
+            log.info("REST: Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
+            
+            // Get display order if not provided
+            Integer displayOrder = bindingData.containsKey("displayOrder") 
+                ? ((Number) bindingData.get("displayOrder")).intValue() 
+                : 1;
+            
+            // Create UUID for formId using deterministic UUID generation (bridge pattern)
+            // Format: 00000000-0000-0000-0000-{formId padded to 12 digits}
+            UUID formUuid = UUID.fromString(String.format("00000000-0000-0000-0000-%012d", formId));
+            
+            // Create request DTO
+            com.clinprecision.clinopsservice.studydesign.dto.AssignFormToVisitRequest request = 
+                com.clinprecision.clinopsservice.studydesign.dto.AssignFormToVisitRequest.builder()
+                    .visitId(UUID.fromString(visitId))
+                    .formId(formUuid)
+                    .isRequired((Boolean) bindingData.getOrDefault("isRequired", true))
+                    .isConditional((Boolean) bindingData.getOrDefault("isConditional", false))
+                    .conditionalLogic((String) bindingData.get("conditionalLogic"))
+                    .displayOrder(displayOrder)
+                    .instructions((String) bindingData.get("instructions"))
+                    .assignedBy(1L) // TODO: Get from security context
+                    .build();
+            
+            // Send command via StudyDesignCommandService
+            UUID assignmentId = studyDesignCommandService.assignFormToVisit(studyDesignId, request).join();
+            
+            log.info("REST: Form binding created with assignment ID: {}", assignmentId);
+            
+            // Return response matching frontend expectations
+            Map<String, Object> response = Map.of(
+                "id", assignmentId.toString(),
+                "studyId", studyId,
+                "visitId", visitId,
+                "visitDefinitionId", visitId,
+                "formId", formId,
+                "formDefinitionId", formId,
+                "isRequired", request.getIsRequired(),
+                "timing", bindingData.getOrDefault("timing", "ANY_TIME"),
+                "conditions", bindingData.getOrDefault("conditions", new Object[0]),
+                "reminders", bindingData.getOrDefault("reminders", Map.of("enabled", true, "days", new int[]{1}))
+            );
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            
+        } catch (IllegalStateException e) {
+            log.error("REST: Business rule violation: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("REST: Error assigning form {} to visit {} for study: {}", formId, visitId, studyId, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
 }

@@ -6,6 +6,9 @@ import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
 import com.clinprecision.clinopsservice.study.service.StudyQueryService;
 import com.clinprecision.clinopsservice.service.DesignProgressService;
 import com.clinprecision.clinopsservice.dto.*;
+import com.clinprecision.clinopsservice.studydesign.service.StudyDesignAutoInitializationService;
+import com.clinprecision.clinopsservice.studydesign.service.StudyDesignQueryService;
+import com.clinprecision.clinopsservice.studydesign.dto.FormAssignmentResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +58,8 @@ public class StudyQueryController {
 
     private final StudyQueryService studyQueryService;
     private final DesignProgressService designProgressService;
+    private final StudyDesignAutoInitializationService autoInitService;
+    private final StudyDesignQueryService studyDesignQueryService;
 
     /**
      * Get all studies with optional filters
@@ -478,5 +483,47 @@ public class StudyQueryController {
         boolean exists = studyQueryService.existsByUuid(uuid);
         
         return ResponseEntity.ok(exists);
+    }
+
+    /**
+     * Get form bindings (assignments) for a study with auto-initialization (Bridge endpoint)
+     * GET /api/studies/{studyId}/form-bindings
+     * 
+     * Bridge Pattern: Accepts study ID (legacy or UUID) and automatically ensures
+     * StudyDesignAggregate exists before fetching form assignments.
+     * 
+     * @param studyId Study identifier (legacy ID or UUID)
+     * @param visitId Optional visit filter
+     * @param requiredOnly Optional flag to return only required forms
+     * @return 200 OK with list of form assignments
+     */
+    @GetMapping("/{studyId}/form-bindings")
+    public ResponseEntity<List<FormAssignmentResponse>> getFormBindingsForStudy(
+            @PathVariable String studyId,
+            @RequestParam(required = false) UUID visitId,
+            @RequestParam(required = false) Boolean requiredOnly) {
+        log.info("REST: Auto-get form bindings for study: {} (visitId={}, requiredOnly={})", 
+            studyId, visitId, requiredOnly);
+        
+        try {
+            UUID studyDesignId = autoInitService.ensureStudyDesignExists(studyId).join();
+            log.debug("Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
+            
+            List<FormAssignmentResponse> assignments;
+            if (visitId != null && Boolean.TRUE.equals(requiredOnly)) {
+                assignments = studyDesignQueryService.getRequiredForms(studyDesignId, visitId);
+            } else if (visitId != null) {
+                assignments = studyDesignQueryService.getFormAssignmentsByVisit(studyDesignId, visitId);
+            } else {
+                assignments = studyDesignQueryService.getFormAssignments(studyDesignId);
+            }
+            
+            log.info("REST: Returning {} form bindings for study: {}", assignments.size(), studyId);
+            return ResponseEntity.ok(assignments);
+            
+        } catch (Exception e) {
+            log.error("Failed to auto-get form bindings for study: {}", studyId, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

@@ -179,40 +179,6 @@ public class StudyDesignCommandController {
     }
 
     /**
-     * Get form assignments (bindings) for a study with auto-initialization (Bridge endpoint)
-     * GET /api/clinops/study-design/studies/{studyId}/form-bindings
-     */
-    @GetMapping("/studies/{studyId}/form-bindings")
-    public CompletableFuture<ResponseEntity<List<FormAssignmentResponse>>> getFormBindingsForStudy(
-            @PathVariable String studyId,
-            @RequestParam(required = false) UUID visitId,
-            @RequestParam(required = false) Boolean requiredOnly) {
-        log.info("REST: Auto-get form bindings for study: {} (visitId={}, requiredOnly={})", 
-            studyId, visitId, requiredOnly);
-        
-        return autoInitService.ensureStudyDesignExists(studyId)
-            .thenCompose(studyDesignId -> {
-                log.debug("Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
-                
-                List<FormAssignmentResponse> assignments;
-                if (visitId != null && Boolean.TRUE.equals(requiredOnly)) {
-                    assignments = queryService.getRequiredForms(studyDesignId, visitId);
-                } else if (visitId != null) {
-                    assignments = queryService.getFormAssignmentsByVisit(studyDesignId, visitId);
-                } else {
-                    assignments = queryService.getFormAssignments(studyDesignId);
-                }
-                
-                return CompletableFuture.completedFuture(assignments);
-            })
-            .thenApply(assignments -> ResponseEntity.ok(assignments))
-            .exceptionally(ex -> {
-                log.error("Failed to auto-get form bindings for study: {}", studyId, ex);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-            });
-    }
-
-    /**
      * Auto-initialize and add study arm (Bridge Pattern)
      * Accepts study ID (legacy or UUID) and automatically ensures StudyDesignAggregate exists
      * 

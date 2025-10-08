@@ -46,11 +46,11 @@ public class VisitFormEntity {
     private UUID formUuid; // Form UUID reference
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "visit_definition_id", nullable = false)
+    @JoinColumn(name = "visit_definition_id", nullable = true)
     private VisitDefinitionEntity visitDefinition;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "form_definition_id", nullable = false)
+    @JoinColumn(name = "form_definition_id", nullable = true)
     private FormDefinitionEntity formDefinition;
 
     @Column(name = "is_required", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")

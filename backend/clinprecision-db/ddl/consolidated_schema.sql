@@ -1010,11 +1010,16 @@ CREATE TABLE visit_forms (
     is_deleted BOOLEAN DEFAULT FALSE COMMENT 'Soft delete flag - set by RemoveFormAssignmentEvent',
     instructions TEXT COMMENT 'Specific instructions for this form in this visit',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NULL COMMENT 'User ID who created this form assignment',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     updated_by BIGINT,
     update_reason VARCHAR(255),
+    deleted_at TIMESTAMP NULL COMMENT 'Timestamp when soft deleted',
+    deleted_by VARCHAR(100) NULL COMMENT 'User who deleted this form assignment',
+    deletion_reason TEXT NULL COMMENT 'Reason for deletion',
     FOREIGN KEY (visit_definition_id) REFERENCES visit_definitions(id) ON DELETE CASCADE,
     FOREIGN KEY (form_definition_id) REFERENCES form_definitions(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id),
     FOREIGN KEY (updated_by) REFERENCES users(id),
     UNIQUE KEY (visit_definition_id, form_definition_id)
 );

@@ -49,8 +49,8 @@ class StudyDesignService {
     // Study Arms Management
     async getStudyArms(studyId) {
         try {
-            // Use API Gateway prefix for Study Design service
-            const response = await ApiService.get(`/clinops-ws/api/studies/${studyId}/arms`);
+            // Use consistent bridge pattern: /api/studies/{id}/arms
+            const response = await ApiService.get(`/api/studies/${studyId}/arms`);
             return response.data;
         } catch (error) {
             console.error('Error fetching study arms:', error);
