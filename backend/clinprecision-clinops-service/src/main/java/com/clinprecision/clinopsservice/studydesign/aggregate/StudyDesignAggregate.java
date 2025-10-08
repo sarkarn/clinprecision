@@ -245,12 +245,21 @@ public class StudyDesignAggregate {
     @CommandHandler
     public void handle(RemoveVisitCommand command) {
         log.info("Removing visit: {} from study design: {}", command.getVisitId(), studyDesignId);
+        log.info("Current visits in aggregate: {} visits - IDs: {}", visits.size(), visits.keySet());
         
         // Business Rule: Visit must exist
         if (!visits.containsKey(command.getVisitId())) {
-            throw new IllegalStateException(
-                String.format("Visit with ID %s does not exist", command.getVisitId())
+            log.error("Visit {} not found in aggregate. Available {} visits: {}", 
+                command.getVisitId(), visits.size(), visits.keySet());
+            
+            // Provide helpful error message
+            String errorMsg = String.format(
+                "Visit with ID %s does not exist in this study design. " +
+                "Available visits (%d): %s. " +
+                "This may occur if you're trying to delete a visit immediately after creating it - please wait a moment and try again.",
+                command.getVisitId(), visits.size(), visits.keySet()
             );
+            throw new IllegalStateException(errorMsg);
         }
         
         // Business Rule: Cannot remove visit if it has form assignments

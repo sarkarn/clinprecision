@@ -16,6 +16,7 @@ import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -94,6 +95,17 @@ public class StudyDesignProjection {
     public void on(VisitDefinedEvent event) {
         log.info("Projecting VisitDefinedEvent for visit: {}", event.getVisitId());
         
+        // Check for existing visit to handle replays idempotently
+        Optional<VisitDefinitionEntity> existingVisit = visitRepository.findByAggregateUuidAndVisitUuid(
+            event.getStudyDesignId(),
+            event.getVisitId()
+        );
+
+        if (existingVisit.isPresent()) {
+            log.info("Visit definition already exists for visit UUID: {}. Treating VisitDefinedEvent as idempotent replay and skipping insert.", event.getVisitId());
+            return;
+        }
+
         VisitDefinitionEntity entity = new VisitDefinitionEntity();
         entity.setAggregateUuid(event.getStudyDesignId());
         entity.setVisitUuid(event.getVisitId());
@@ -159,7 +171,8 @@ public class StudyDesignProjection {
                 entity.setWindowAfter(event.getWindowAfter());
                 entity.setIsRequired(event.getIsRequired());
                 entity.setUpdatedAt(event.getOccurredAt());
-                entity.setUpdatedBy(event.getUpdatedBy().toString());
+                // Handle null updatedBy gracefully
+                entity.setUpdatedBy(event.getUpdatedBy() != null ? event.getUpdatedBy().toString() : null);
                 visitRepository.save(entity);
                 log.debug("Visit entity updated: {}", event.getVisitId());
             });
@@ -174,7 +187,8 @@ public class StudyDesignProjection {
             .ifPresent(entity -> {
                 entity.setIsDeleted(true);
                 entity.setDeletedAt(event.getOccurredAt());
-                entity.setDeletedBy(event.getRemovedBy().toString());
+                // Handle null removedBy gracefully
+                entity.setDeletedBy(event.getRemovedBy() != null ? event.getRemovedBy().toString() : null);
                 entity.setDeletionReason(event.getReason());
                 visitRepository.save(entity);
                 log.debug("Visit entity marked deleted: {}", event.getVisitId());

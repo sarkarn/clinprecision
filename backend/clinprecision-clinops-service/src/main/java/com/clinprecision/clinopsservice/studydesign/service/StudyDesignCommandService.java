@@ -159,6 +159,9 @@ public class StudyDesignCommandService {
     public CompletableFuture<Void> updateVisit(UUID studyDesignId, UUID visitId, UpdateVisitRequest request) {
         log.info("Updating visit {} in design: {}", visitId, studyDesignId);
         
+        // Provide default user ID if not specified (handles legacy API calls)
+        Long updatedBy = request.getUpdatedBy() != null ? request.getUpdatedBy() : 1L;
+        
         UpdateVisitCommand command = UpdateVisitCommand.builder()
             .studyDesignId(studyDesignId)
             .visitId(visitId)
@@ -168,7 +171,7 @@ public class StudyDesignCommandService {
             .windowBefore(request.getWindowBefore())
             .windowAfter(request.getWindowAfter())
             .isRequired(request.getIsRequired())
-            .updatedBy(request.getUpdatedBy())
+            .updatedBy(updatedBy)
             .build();
         
         return commandGateway.send(command);

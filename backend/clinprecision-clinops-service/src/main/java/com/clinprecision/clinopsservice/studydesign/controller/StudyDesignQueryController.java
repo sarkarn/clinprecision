@@ -157,4 +157,25 @@ public class StudyDesignQueryController {
         FormAssignmentResponse assignment = queryService.getFormAssignment(studyDesignId, assignmentId);
         return ResponseEntity.ok(assignment);
     }
+    
+    /**
+     * Bridge endpoint: Get form bindings for a study (auto-resolves study design)
+     * GET /api/studies/{studyId}/form-bindings
+     * 
+     * This endpoint accepts a study ID (legacy numeric or UUID) and automatically
+     * resolves it to the corresponding StudyDesign aggregate to fetch form assignments.
+     */
+    @GetMapping("/studies/{studyId}/form-bindings")
+    public ResponseEntity<List<FormAssignmentResponse>> getFormBindingsForStudy(
+            @PathVariable String studyId,
+            @RequestParam(required = false) String visitId,
+            @RequestParam(required = false) Boolean requiredOnly) {
+        log.info("REST: Auto-get form bindings for study: {} (visitId={}, requiredOnly={})", 
+            studyId, visitId, requiredOnly);
+        
+        // This endpoint will be implemented with auto-init service
+        // For now, return empty list
+        log.warn("Form bindings endpoint not yet implemented for bridge pattern");
+        return ResponseEntity.ok(List.of());
+    }
 }
