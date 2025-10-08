@@ -148,6 +148,10 @@ public class StudyDesignAggregate {
         log.info("Defining visit: {} at timepoint {} in study design: {}", 
             command.getName(), command.getTimepoint(), studyDesignId);
         
+        int resolvedSequenceNumber = command.getSequenceNumber() != null
+            ? command.getSequenceNumber()
+            : determineNextVisitSequence(command.getArmId());
+
         // Business Rule: If armId is specified, arm must exist
         if (command.getArmId() != null && !arms.containsKey(command.getArmId())) {
             throw new IllegalStateException(
@@ -168,16 +172,17 @@ public class StudyDesignAggregate {
         // Business Rule: Unique sequence numbers within same scope
         boolean sequenceExists = visits.values().stream()
             .filter(v -> Objects.equals(v.getArmId(), command.getArmId()))
-            .anyMatch(v -> v.getSequenceNumber() == command.getSequenceNumber());
+            .anyMatch(v -> v.getSequenceNumber() == resolvedSequenceNumber);
         if (sequenceExists) {
             throw new IllegalStateException(
                 String.format("Visit with sequence number %d already exists in this scope", 
-                    command.getSequenceNumber())
+                    resolvedSequenceNumber)
             );
         }
         
         AggregateLifecycle.apply(VisitDefinedEvent.from(
             studyDesignId,
+            studyAggregateUuid,
             command.getVisitId(),
             command.getName(),
             command.getDescription(),
@@ -186,10 +191,18 @@ public class StudyDesignAggregate {
             command.getWindowAfter(),
             command.getVisitType(),
             command.getIsRequired(),
-            command.getSequenceNumber(),
+            resolvedSequenceNumber,
             command.getArmId(),
             command.getDefinedBy()
         ));
+    }
+
+    private int determineNextVisitSequence(UUID armId) {
+        return visits.values().stream()
+            .filter(v -> Objects.equals(v.getArmId(), armId))
+            .mapToInt(Visit::getSequenceNumber)
+            .max()
+            .orElse(0) + 1;
     }
 
     @CommandHandler

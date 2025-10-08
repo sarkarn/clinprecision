@@ -1,20 +1,26 @@
 package com.clinprecision.clinopsservice.studydesign.service;
 
-import com.clinprecision.clinopsservice.study.service.StudyQueryService;
 import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
+import com.clinprecision.clinopsservice.study.service.StudyQueryService;
 import com.clinprecision.clinopsservice.studydesign.domain.commands.InitializeStudyDesignCommand;
+import com.clinprecision.clinopsservice.studydesign.domain.events.StudyDesignInitializedEvent;
 import com.clinprecision.clinopsservice.studydesign.dto.InitializeStudyDesignRequest;
+import com.clinprecision.clinopsservice.studydesign.util.StudyDesignIdentifiers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.axonframework.eventhandling.DomainEventMessage;
 import org.axonframework.eventsourcing.eventstore.DomainEventStream;
 import org.axonframework.eventsourcing.eventstore.EventStore;
 import org.axonframework.eventsourcing.eventstore.EventStoreException;
 import org.axonframework.modelling.command.AggregateNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 /**
  * Service for auto-initializing StudyDesignAggregates
@@ -88,17 +94,37 @@ public class StudyDesignAutoInitializationService {
                 Long resolvedLegacyId = legacyId != null ? legacyId : study.getId();
 
                 if (isLegacyId && hasValidUuid) {
-                    // Study retrieved by legacy ID but has valid UUID - use the actual UUID
                     log.debug("Study {} retrieved by legacy ID but has valid UUID: {}", studyId, studyActualUuid);
-                    return new StudyInfo(studyActualUuid, studyActualUuid, study.getName(), false, resolvedLegacyId);
+                    UUID preferredDesignUuid = StudyDesignIdentifiers.deriveFromStudyUuid(studyActualUuid);
+                    return new StudyInfo(
+                        studyActualUuid,
+                        preferredDesignUuid,
+                        studyActualUuid,
+                        study.getName(),
+                        false,
+                        resolvedLegacyId
+                    );
                 } else if (isLegacyId && !hasValidUuid) {
-                    // Truly legacy study without valid UUID - generate one
-                    UUID designUuid = UUID.nameUUIDFromBytes(("study-design-" + studyId).getBytes());
-                    log.debug("Truly legacy study {} - generating UUID: {}", studyId, designUuid);
-                    return new StudyInfo(designUuid, null, study.getName(), true, resolvedLegacyId);
+                    UUID designUuid = StudyDesignIdentifiers.deriveFromLegacyId(resolvedLegacyId);
+                    log.debug("Truly legacy study {} - generating StudyDesign UUID: {}", studyId, designUuid);
+                    return new StudyInfo(
+                        null,
+                        designUuid,
+                        null,
+                        study.getName(),
+                        true,
+                        resolvedLegacyId
+                    );
                 } else {
-                    // UUID-based retrieval - use existing UUID
-                    return new StudyInfo(studyActualUuid, studyActualUuid, study.getName(), false, resolvedLegacyId);
+                    UUID preferredDesignUuid = StudyDesignIdentifiers.deriveFromStudyUuid(studyActualUuid);
+                    return new StudyInfo(
+                        studyActualUuid,
+                        preferredDesignUuid,
+                        studyActualUuid,
+                        study.getName(),
+                        false,
+                        resolvedLegacyId
+                    );
                 }
 
             } catch (Exception e) {
@@ -115,7 +141,16 @@ public class StudyDesignAutoInitializationService {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 StudyResponseDto study = studyQueryService.getStudyByUuid(studyUuid);
-                return new StudyInfo(study.getStudyAggregateUuid(), study.getStudyAggregateUuid(), study.getName(), false, study.getId());
+                UUID studyAggregateUuid = study.getStudyAggregateUuid();
+                UUID preferredDesignUuid = StudyDesignIdentifiers.deriveFromStudyUuid(studyAggregateUuid);
+                return new StudyInfo(
+                    studyAggregateUuid,
+                    preferredDesignUuid,
+                    studyAggregateUuid,
+                    study.getName(),
+                    false,
+                    study.getId()
+                );
             } catch (Exception e) {
                 log.error("Failed to get study info for UUID: {}", studyUuid, e);
                 throw new RuntimeException("Study not found: " + studyUuid, e);
@@ -127,45 +162,52 @@ public class StudyDesignAutoInitializationService {
      * Get existing StudyDesignId or create new one if needed
      */
     private CompletableFuture<UUID> getOrCreateStudyDesignId(StudyInfo studyInfo) {
-        // For now, use studyAggregateUuid as studyDesignId (1:1 mapping)
-        // This follows the pattern where StudyDesignAggregate uses same UUID as Study
-        UUID potentialStudyDesignId = studyInfo.aggregateUuid;
-        
-        return checkIfStudyDesignExists(potentialStudyDesignId)
-            .thenCompose(exists -> {
-                if (exists) {
-                    log.debug("StudyDesign already exists: {}", potentialStudyDesignId);
-                    return CompletableFuture.completedFuture(potentialStudyDesignId);
-                } else {
-                    log.info("StudyDesign not found, auto-initializing for study: {}", studyInfo.name);
-                    return initializeStudyDesign(studyInfo);
-                }
-            });
+        Optional<UUID> existing = findExistingStudyDesignId(studyInfo);
+        if (existing.isPresent()) {
+            UUID existingId = existing.get();
+            if (!existingId.equals(studyInfo.preferredDesignUuid)) {
+                log.warn("StudyDesign aggregate already exists with legacy identifier {}. Reusing legacy ID for study: {}", existingId, studyInfo.name);
+            } else {
+                log.debug("StudyDesign already exists using preferred identifier: {}", existingId);
+            }
+            return CompletableFuture.completedFuture(existingId);
+        }
+
+        log.info("StudyDesign not found, auto-initializing for study: {}", studyInfo.name);
+        return initializeStudyDesign(studyInfo);
     }
 
-    /**
-     * Check if StudyDesignAggregate exists in event store
-     */
-    private CompletableFuture<Boolean> checkIfStudyDesignExists(UUID studyDesignId) {
+    private Optional<UUID> findExistingStudyDesignId(StudyInfo studyInfo) {
+        return studyInfo.candidateDesignIds()
+            .filter(this::isValidStudyDesignStream)
+            .findFirst();
+    }
+
+    private boolean isValidStudyDesignStream(UUID studyDesignId) {
         String aggregateId = studyDesignId.toString();
         try {
             DomainEventStream stream = eventStore.readEvents(aggregateId);
-            boolean exists = stream.hasNext();
-            if (exists) {
-                log.info("StudyDesign aggregate already present in event store for UUID: {}", aggregateId);
-            } else {
-                log.info("StudyDesign aggregate stream empty for UUID: {}", aggregateId);
+            if (!stream.hasNext()) {
+                return false;
             }
-            return CompletableFuture.completedFuture(exists);
+
+            DomainEventMessage<?> firstEvent = stream.next();
+            if (StudyDesignInitializedEvent.class.equals(firstEvent.getPayloadType())) {
+                log.debug("Validated StudyDesign stream for aggregate {}", aggregateId);
+                return true;
+            }
+
+            log.warn("Aggregate {} has existing events but first event type {} is not StudyDesignInitializedEvent. Ignoring as StudyDesign stream.",
+                aggregateId, firstEvent.getPayloadType().getSimpleName());
+            return false;
         } catch (AggregateNotFoundException e) {
-            log.info("No StudyDesign aggregate found in event store for UUID: {}", aggregateId);
-            return CompletableFuture.completedFuture(false);
+            return false;
         } catch (EventStoreException e) {
             log.warn("Unable to read events for StudyDesign {}. Assuming aggregate does not yet exist.", aggregateId, e);
-            return CompletableFuture.completedFuture(false);
+            return false;
         } catch (Exception e) {
-            log.error("Unexpected error while checking event store for StudyDesign UUID: {}", aggregateId, e);
-            return CompletableFuture.failedFuture(e);
+            log.error("Unexpected error while checking StudyDesign stream for UUID: {}", aggregateId, e);
+            return false;
         }
     }
 
@@ -177,11 +219,13 @@ public class StudyDesignAutoInitializationService {
             // For truly legacy studies (no valid UUID), create StudyDesign directly without validation
             log.info("Initializing StudyDesign for truly legacy study: {}", studyInfo.name);
             
-            UUID studyDesignId = studyInfo.aggregateUuid; // Use the generated UUID
+            UUID studyDesignId = studyInfo.preferredDesignUuid;
+            UUID studyAggregateUuid = Optional.ofNullable(studyInfo.studyAggregateUuid)
+                .orElse(studyDesignId);
             
             InitializeStudyDesignCommand command = InitializeStudyDesignCommand.builder()
                 .studyDesignId(studyDesignId)
-                .studyAggregateUuid(studyDesignId) // Use same UUID for legacy compatibility
+                .studyAggregateUuid(studyAggregateUuid)
                 .studyName(studyInfo.name)
                 .createdBy(1L) // System initialization
                 .build();
@@ -202,11 +246,11 @@ public class StudyDesignAutoInitializationService {
                 });
         } else {
             // For studies with valid UUIDs (including those retrieved by legacy ID), use standard validation
-            log.info("Initializing StudyDesign for study with valid UUID: {} ({})", studyInfo.studyActualUuid, studyInfo.name);
+            log.info("Initializing StudyDesign for study with valid UUID: {} ({})", studyInfo.studyAggregateUuid, studyInfo.name);
             
             InitializeStudyDesignRequest request = InitializeStudyDesignRequest.builder()
-                .studyAggregateUuid(studyInfo.studyActualUuid)
-                .studyDesignId(studyInfo.aggregateUuid)
+                .studyAggregateUuid(studyInfo.studyAggregateUuid)
+                .studyDesignId(studyInfo.preferredDesignUuid)
                 .studyName(studyInfo.name)
                 .legacyStudyId(studyInfo.legacyStudyId)
                 .createdBy(1L) // System initialization
@@ -220,8 +264,8 @@ public class StudyDesignAutoInitializationService {
                 })
                 .exceptionally(ex -> {
                     if (isDuplicateAggregateError(ex)) {
-                        log.info("StudyDesign already exists (duplicate detected), using: {}", studyInfo.aggregateUuid);
-                        return studyInfo.aggregateUuid;
+                        log.info("StudyDesign already exists (duplicate detected), using: {}", studyInfo.preferredDesignUuid);
+                        return studyInfo.preferredDesignUuid;
                     }
                     log.error("Failed to auto-initialize StudyDesign for study: {}", studyInfo.name, ex);
                     throw new RuntimeException("Failed to initialize StudyDesign", ex);
@@ -250,18 +294,27 @@ public class StudyDesignAutoInitializationService {
      * Helper class to hold study information
      */
     private static class StudyInfo {
-        final UUID aggregateUuid; // UUID for StudyDesign (may be generated)
-        final UUID studyActualUuid; // Actual study UUID (null for legacy studies)
+        final UUID studyAggregateUuid; // Actual Study aggregate UUID (null for legacy-only studies)
+        final UUID preferredDesignUuid; // Preferred StudyDesign aggregate identifier
+        final UUID legacyDesignUuid; // Historical identifier (eg, same as study UUID)
         final String name;
         final boolean isLegacy;
         final Long legacyStudyId;
-        
-        StudyInfo(UUID aggregateUuid, UUID studyActualUuid, String name, boolean isLegacy, Long legacyStudyId) {
-            this.aggregateUuid = aggregateUuid;
-            this.studyActualUuid = studyActualUuid;
+
+        StudyInfo(UUID studyAggregateUuid, UUID preferredDesignUuid, UUID legacyDesignUuid,
+                  String name, boolean isLegacy, Long legacyStudyId) {
+            this.studyAggregateUuid = studyAggregateUuid;
+            this.preferredDesignUuid = preferredDesignUuid;
+            this.legacyDesignUuid = legacyDesignUuid;
             this.name = name;
             this.isLegacy = isLegacy;
             this.legacyStudyId = legacyStudyId;
+        }
+
+        Stream<UUID> candidateDesignIds() {
+            return Stream.of(legacyDesignUuid, preferredDesignUuid)
+                .filter(Objects::nonNull)
+                .distinct();
         }
     }
 }

@@ -46,7 +46,8 @@ public class StudyDesignCommandService {
             .createdBy(request.getCreatedBy())
             .build();
         
-        return commandGateway.send(command);
+        return commandGateway.send(command)
+            .thenApply(result -> studyDesignId);
     }
 
     /**
@@ -146,7 +147,7 @@ public class StudyDesignCommandService {
             .isRequired(request.getIsRequired())
             .sequenceNumber(request.getSequenceNumber())
             .armId(request.getArmId())
-            .definedBy(request.getDefinedBy())
+            .definedBy(request.getDefinedBy() != null ? request.getDefinedBy() : 1L)
             .build();
         
         return commandGateway.send(command).thenApply(result -> visitId);

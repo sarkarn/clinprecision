@@ -2,16 +2,21 @@ package com.clinprecision.clinopsservice.studydesign.projection;
 
 import com.clinprecision.clinopsservice.studydesign.domain.events.*;
 import com.clinprecision.clinopsservice.entity.StudyArmEntity;
+import com.clinprecision.clinopsservice.entity.StudyEntity;
 import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
 import com.clinprecision.clinopsservice.entity.VisitFormEntity;
 import com.clinprecision.clinopsservice.studydesign.repository.StudyArmReadRepository;
+import com.clinprecision.clinopsservice.studydesign.repository.StudyReadRepository;
 import com.clinprecision.clinopsservice.studydesign.repository.VisitDefinitionReadRepository;
 import com.clinprecision.clinopsservice.studydesign.repository.VisitFormReadRepository;
+import com.clinprecision.clinopsservice.studydesign.util.StudyDesignIdentifiers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 /**
  * Projection handler for StudyDesign events
@@ -25,6 +30,7 @@ public class StudyDesignProjection {
     private final StudyArmReadRepository armRepository;
     private final VisitDefinitionReadRepository visitRepository;
     private final VisitFormReadRepository visitFormRepository;
+    private final StudyReadRepository studyRepository;
 
     // ===================== STUDY ARM PROJECTIONS =====================
 
@@ -100,8 +106,40 @@ public class StudyDesignProjection {
         entity.setIsRequired(event.getIsRequired());
         entity.setSequenceNumber(event.getSequenceNumber());
         entity.setArmUuid(event.getArmId());
+
+        Long studyId = null;
+        if (event.getStudyAggregateId() != null) {
+            studyId = studyRepository.findByAggregateUuid(event.getStudyAggregateId())
+                .map(StudyEntity::getId)
+                .orElse(null);
+        }
+
+        if (studyId == null) {
+            studyId = studyRepository.findByAggregateUuid(event.getStudyDesignId())
+                .map(StudyEntity::getId)
+                .orElse(null);
+        }
+
+        if (studyId == null) {
+            studyId = studyRepository.findAll().stream()
+                .filter(study -> {
+                    UUID aggregateUuid = study.getAggregateUuid();
+                    return aggregateUuid != null
+                        && StudyDesignIdentifiers.deriveFromStudyUuid(aggregateUuid)
+                            .equals(event.getStudyDesignId());
+                })
+                .map(StudyEntity::getId)
+                .findFirst()
+                .orElse(null);
+        }
+
+        if (studyId == null) {
+            log.warn("Unable to resolve study ID for aggregate {}. Skipping VisitDefinedEvent projection to avoid orphan record.", event.getStudyDesignId());
+            return;
+        }
+        entity.setStudyId(studyId);
         entity.setCreatedAt(event.getOccurredAt());
-        entity.setCreatedBy(event.getDefinedBy().toString());
+        entity.setCreatedBy(event.getDefinedBy() != null ? event.getDefinedBy().toString() : "SYSTEM");
         
         visitRepository.save(entity);
         log.debug("Visit entity saved: {}", event.getVisitId());

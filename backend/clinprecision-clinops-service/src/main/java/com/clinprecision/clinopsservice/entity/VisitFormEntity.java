@@ -6,8 +6,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * Entity for Visit-Form Associations
@@ -26,17 +29,21 @@ public class VisitFormEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "aggregate_uuid", nullable = true, columnDefinition = "BINARY(16)")
-    private java.util.UUID aggregateUuid; // Links to StudyDesignAggregate
+    @Column(name = "aggregate_uuid", nullable = true, length = 36)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID aggregateUuid; // Links to StudyDesignAggregate
     
-    @Column(name = "assignment_uuid", nullable = true, unique = true, columnDefinition = "BINARY(16)")
-    private java.util.UUID assignmentUuid; // UUID from event sourcing
+    @Column(name = "assignment_uuid", nullable = true, unique = true, length = 36)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID assignmentUuid; // UUID from event sourcing
     
-    @Column(name = "visit_uuid", nullable = true, columnDefinition = "BINARY(16)")
-    private java.util.UUID visitUuid; // Visit UUID reference
+    @Column(name = "visit_uuid", nullable = true, length = 36)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID visitUuid; // Visit UUID reference
     
-    @Column(name = "form_uuid", nullable = true, columnDefinition = "BINARY(16)")
-    private java.util.UUID formUuid; // Form UUID reference
+    @Column(name = "form_uuid", nullable = true, length = 36)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID formUuid; // Form UUID reference
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "visit_definition_id", nullable = false)

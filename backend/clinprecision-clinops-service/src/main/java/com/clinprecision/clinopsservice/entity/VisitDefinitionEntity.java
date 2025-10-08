@@ -9,9 +9,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Entity for Visit Definitions
@@ -29,14 +32,17 @@ public class VisitDefinitionEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "aggregate_uuid", nullable = true, columnDefinition = "BINARY(16)")
-    private java.util.UUID aggregateUuid; // Links to StudyDesignAggregate
+    @Column(name = "aggregate_uuid", nullable = true, length = 36)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID aggregateUuid; // Links to StudyDesignAggregate
     
-    @Column(name = "visit_uuid", nullable = true, unique = true, columnDefinition = "BINARY(16)")
-    private java.util.UUID visitUuid; // UUID from event sourcing
+    @Column(name = "visit_uuid", nullable = true, unique = true, length = 36)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID visitUuid; // UUID from event sourcing
     
-    @Column(name = "arm_uuid", nullable = true, columnDefinition = "BINARY(16)")
-    private java.util.UUID armUuid; // Optional arm-specific visits (UUID)
+    @Column(name = "arm_uuid", nullable = true, length = 36)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID armUuid; // Optional arm-specific visits (UUID)
 
     @Column(name = "study_id", nullable = false)
     private Long studyId;

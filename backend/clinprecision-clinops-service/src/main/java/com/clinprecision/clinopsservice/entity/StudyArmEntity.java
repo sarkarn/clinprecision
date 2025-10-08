@@ -2,10 +2,13 @@ package com.clinprecision.clinopsservice.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * StudyArm Entity - Maps to study_arms table
@@ -19,11 +22,13 @@ public class StudyArmEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "aggregate_uuid", nullable = true, columnDefinition = "BINARY(16)")
-    private java.util.UUID aggregateUuid; // Links to StudyDesignAggregate
+    @Column(name = "aggregate_uuid", nullable = true, length = 36)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID aggregateUuid; // Links to StudyDesignAggregate
     
-    @Column(name = "arm_uuid", nullable = true, unique = true, columnDefinition = "BINARY(16)")
-    private java.util.UUID armUuid; // UUID from event sourcing
+    @Column(name = "arm_uuid", nullable = true, unique = true, length = 36)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID armUuid; // UUID from event sourcing
     
     @Column(name = "name", nullable = false, length = 255)
     private String name;
@@ -143,11 +148,11 @@ public class StudyArmEntity {
     public String getUpdatedBy() { return updatedBy; }
     public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
     
-    public java.util.UUID getAggregateUuid() { return aggregateUuid; }
-    public void setAggregateUuid(java.util.UUID aggregateUuid) { this.aggregateUuid = aggregateUuid; }
+    public UUID getAggregateUuid() { return aggregateUuid; }
+    public void setAggregateUuid(UUID aggregateUuid) { this.aggregateUuid = aggregateUuid; }
     
-    public java.util.UUID getArmUuid() { return armUuid; }
-    public void setArmUuid(java.util.UUID armUuid) { this.armUuid = armUuid; }
+    public UUID getArmUuid() { return armUuid; }
+    public void setArmUuid(UUID armUuid) { this.armUuid = armUuid; }
     
     public Boolean getIsDeleted() { return isDeleted; }
     public void setIsDeleted(Boolean isDeleted) { this.isDeleted = isDeleted; }
