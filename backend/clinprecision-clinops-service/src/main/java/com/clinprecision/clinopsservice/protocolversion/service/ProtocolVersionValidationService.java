@@ -77,6 +77,8 @@ public class ProtocolVersionValidationService {
                 break;
             case DRAFT:
             case UNDER_REVIEW:
+            case SUBMITTED:
+            case AMENDMENT_REVIEW:
                 // These transitions generally don't require cross-entity validation
                 log.debug("Status {} generally allows transitions", targetStatus);
                 break;

@@ -60,6 +60,7 @@ public class StudyQueryController {
     private final DesignProgressService designProgressService;
     private final StudyDesignAutoInitializationService autoInitService;
     private final StudyDesignQueryService studyDesignQueryService;
+    private final com.clinprecision.clinopsservice.protocolversion.service.ProtocolVersionQueryService protocolVersionQueryService;
 
     /**
      * Get all studies with optional filters
@@ -525,5 +526,117 @@ public class StudyQueryController {
             log.error("Failed to auto-get form bindings for study: {}", studyId, e);
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    /**
+     * Bridge Endpoint: Get protocol version history for a study
+     * GET /api/studies/{studyId}/versions/history
+     * 
+     * Bridge Pattern: Accepts legacy study ID and resolves to Study UUID
+     * to fetch protocol versions from ProtocolVersionQueryController
+     * 
+     * @param studyId Study identifier (legacy ID or UUID)
+     * @return 200 OK with list of protocol versions
+     */
+    @GetMapping("/{studyId}/versions/history")
+    public ResponseEntity<?> getVersionHistory(@PathVariable String studyId) {
+        log.info("REST: Bridge endpoint - Get version history for study: {}", studyId);
+        
+        try {
+            // Resolve Study aggregate UUID
+            UUID studyAggregateUuid;
+            try {
+                // Try as UUID first
+                studyAggregateUuid = UUID.fromString(studyId);
+                log.debug("REST: Using UUID format for version history");
+            } catch (IllegalArgumentException e) {
+                // Not a UUID, try as legacy ID
+                try {
+                    Long legacyId = Long.parseLong(studyId);
+                    log.info("REST: Using legacy ID {} for version history (Bridge Pattern)", legacyId);
+                    
+                    StudyResponseDto study = studyQueryService.getStudyById(legacyId);
+                    studyAggregateUuid = study.getStudyAggregateUuid();
+                    
+                    if (studyAggregateUuid == null) {
+                        log.error("REST: Study {} has no aggregate UUID", legacyId);
+                        return ResponseEntity.badRequest()
+                            .body(Map.of("error", "Study " + legacyId + " has not been migrated to DDD yet"));
+                    }
+                } catch (NumberFormatException nfe) {
+                    log.error("REST: Invalid identifier format: {}", studyId);
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid study ID format: " + studyId));
+                }
+            }
+            
+            log.info("REST: Fetching versions for Study UUID: {}", studyAggregateUuid);
+            
+            // Delegate to ProtocolVersionQueryService
+            List<com.clinprecision.clinopsservice.protocolversion.entity.ProtocolVersionEntity> versions = 
+                protocolVersionQueryService.findByStudyUuidOrderedByDate(studyAggregateUuid);
+            
+            // Convert to response DTOs
+            List<com.clinprecision.clinopsservice.protocolversion.dto.VersionResponse> response = 
+                versions.stream()
+                    .map(this::convertToVersionResponse)
+                    .collect(java.util.stream.Collectors.toList());
+            
+            log.info("REST: Found {} protocol versions for study: {}", response.size(), studyId);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception ex) {
+            log.error("REST: Failed to fetch version history for study: {}", studyId, ex);
+            return ResponseEntity.internalServerError()
+                .body(Map.of("error", "Failed to fetch version history: " + ex.getMessage()));
+        }
+    }
+
+    /**
+     * Bridge Endpoint: Get protocol versions for a study
+     * GET /api/studies/{studyId}/versions
+     * 
+     * Same as /versions/history but with a different endpoint name for compatibility
+     * 
+     * @param studyId Study identifier (legacy ID or UUID)
+     * @return 200 OK with list of protocol versions
+     */
+    @GetMapping("/{studyId}/versions")
+    public ResponseEntity<?> getStudyVersions(@PathVariable String studyId) {
+        log.info("REST: Bridge endpoint - Get versions for study: {}", studyId);
+        // Delegate to the same implementation
+        return getVersionHistory(studyId);
+    }
+
+    /**
+     * Helper method to convert ProtocolVersionEntity to VersionResponse
+     */
+    private com.clinprecision.clinopsservice.protocolversion.dto.VersionResponse convertToVersionResponse(
+            com.clinprecision.clinopsservice.protocolversion.entity.ProtocolVersionEntity entity) {
+        return com.clinprecision.clinopsservice.protocolversion.dto.VersionResponse.builder()
+            .id(entity.getId())
+            .aggregateUuid(entity.getAggregateUuid())
+            .studyAggregateUuid(entity.getStudyAggregateUuid())
+            .versionNumber(entity.getVersionNumber())
+            .status(entity.getStatus())
+            .amendmentType(entity.getAmendmentType())
+            .description(entity.getDescription())
+            .changesSummary(entity.getChangesSummary())
+            .impactAssessment(entity.getImpactAssessment())
+            .requiresRegulatoryApproval(entity.getRequiresRegulatoryApproval())
+            .submissionDate(entity.getSubmissionDate())
+            .approvalDate(entity.getApprovalDate())
+            .effectiveDate(entity.getEffectiveDate())
+            .notes(entity.getNotes())
+            .protocolChanges(entity.getProtocolChanges())
+            .icfChanges(entity.getIcfChanges())
+            .approvedBy(entity.getApprovedBy())
+            .approvalComments(entity.getApprovalComments())
+            .previousActiveVersionUuid(entity.getPreviousActiveVersionUuid())
+            .withdrawalReason(entity.getWithdrawalReason())
+            .withdrawnBy(entity.getWithdrawnBy())
+            .createdAt(entity.getCreatedAt())
+            .updatedAt(entity.getUpdatedAt())
+            .build();
     }
 }

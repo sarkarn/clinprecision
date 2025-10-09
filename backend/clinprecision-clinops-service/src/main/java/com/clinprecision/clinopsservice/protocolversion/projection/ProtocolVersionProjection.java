@@ -34,6 +34,13 @@ public class ProtocolVersionProjection {
         log.info("Projecting ProtocolVersionCreatedEvent: {}", event.getVersionNumber());
         
         try {
+            // IDEMPOTENCY: Check if entity already exists (for event replay scenarios)
+            if (repository.findByAggregateUuid(event.getVersionId()).isPresent()) {
+                log.warn("Protocol version already exists for UUID: {}. Skipping duplicate projection.", 
+                    event.getVersionId());
+                return; // Skip if already projected
+            }
+            
             ProtocolVersionEntity entity = new ProtocolVersionEntity();
             entity.setAggregateUuid(event.getVersionId());
             entity.setStudyAggregateUuid(event.getStudyAggregateUuid());
@@ -44,6 +51,7 @@ public class ProtocolVersionProjection {
             entity.setChangesSummary(event.getChangesSummary());
             entity.setImpactAssessment(event.getImpactAssessment());
             entity.setRequiresRegulatoryApproval(event.getRequiresRegulatoryApproval());
+            entity.setCreatedBy(event.getCreatedBy());
             entity.setCreatedAt(event.getOccurredAt());
             entity.setUpdatedAt(event.getOccurredAt());
             

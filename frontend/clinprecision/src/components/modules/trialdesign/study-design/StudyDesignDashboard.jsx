@@ -153,6 +153,18 @@ const StudyDesignDashboard = () => {
 
                 // Check if response is in expected format (has progressData)
                 const progressData = designProgressResponse.progressData || designProgressResponse;
+
+                // BUGFIX: If basic-info is not in progress data or not marked as completed,
+                // mark it as completed since the study exists (study creation = basic info complete)
+                if (!progressData['basic-info'] || !progressData['basic-info'].completed) {
+                    progressData['basic-info'] = {
+                        completed: true,
+                        percentage: 100,
+                        phase: 'basic-info',
+                        lastUpdated: new Date().toISOString()
+                    };
+                }
+
                 setDesignProgress(progressData);
 
                 console.log('Initial progress data received:', progressData);
@@ -211,6 +223,18 @@ const StudyDesignDashboard = () => {
         try {
             const designProgressResponse = await StudyDesignService.getDesignProgress(studyId);
             const progressData = designProgressResponse.progressData || designProgressResponse;
+
+            // BUGFIX: If basic-info is not in progress data or not marked as completed,
+            // mark it as completed since the study exists (study creation = basic info complete)
+            if (!progressData['basic-info'] || !progressData['basic-info'].completed) {
+                progressData['basic-info'] = {
+                    completed: true,
+                    percentage: 100,
+                    phase: 'basic-info',
+                    lastUpdated: new Date().toISOString()
+                };
+            }
+
             setDesignProgress(progressData);
 
             // Update completed phases with explicit boolean check
@@ -794,7 +818,16 @@ const StudyReviewPanel = ({ study, designProgress }) => {
 
         } catch (e) {
             console.error('Error submitting study for review:', e);
-            setError(e.message || "Failed to submit study for review. Please try again.");
+            console.log('Error details:', {
+                message: e.message,
+                status: e.status,
+                originalError: e.originalError
+            });
+
+            // Display the user-friendly error message
+            const displayMessage = e.message || "Failed to submit study for review. Please try again.";
+            console.log('Displaying error to user:', displayMessage);
+            setError(displayMessage);
         } finally {
             setMarking(false);
         }

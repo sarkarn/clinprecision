@@ -61,6 +61,7 @@ public class StudyCommandController {
     private final com.clinprecision.clinopsservice.studydesign.service.StudyDesignAutoInitializationService studyDesignAutoInitService;
     private final com.clinprecision.clinopsservice.repository.VisitFormRepository visitFormRepository;
     private final com.clinprecision.clinopsservice.study.service.StudyQueryService studyQueryService;
+    private final com.clinprecision.clinopsservice.protocolversion.service.ProtocolVersionCommandService protocolVersionCommandService;
 
     /**
      * Create a new study
@@ -639,5 +640,121 @@ public class StudyCommandController {
                 ));
         }
     }
-    
+
+    /**
+     * Bridge Endpoint: Create protocol version for a study
+     * POST /api/studies/{studyId}/versions
+     * 
+     * Bridge Pattern: Accepts legacy study ID and resolves to Study UUID
+     * to create protocol version via ProtocolVersionCommandController
+     * 
+     * @param studyId Study identifier (legacy ID or UUID)
+     * @param versionData Protocol version data
+     * @return 201 CREATED with version UUID
+     */
+    @PostMapping("/{studyId}/versions")
+    public ResponseEntity<?> createProtocolVersion(
+            @PathVariable String studyId,
+            @RequestBody Map<String, Object> versionData) {
+        
+        log.info("REST: Bridge endpoint - Create protocol version for study: {}", studyId);
+        
+        try {
+            // Resolve Study aggregate UUID
+            UUID studyAggregateUuid;
+            try {
+                // Try as UUID first
+                studyAggregateUuid = UUID.fromString(studyId);
+                log.debug("REST: Using UUID format for version creation");
+            } catch (IllegalArgumentException e) {
+                // Not a UUID, try as legacy ID
+                try {
+                    Long legacyId = Long.parseLong(studyId);
+                    log.info("REST: Using legacy ID {} for version creation (Bridge Pattern)", legacyId);
+                    
+                    com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto study = 
+                        studyQueryService.getStudyById(legacyId);
+                    studyAggregateUuid = study.getStudyAggregateUuid();
+                    
+                    if (studyAggregateUuid == null) {
+                        log.error("REST: Study {} has no aggregate UUID", legacyId);
+                        return ResponseEntity.badRequest()
+                            .body(Map.of("error", "Study " + legacyId + " has not been migrated to DDD yet"));
+                    }
+                } catch (NumberFormatException nfe) {
+                    log.error("REST: Invalid identifier format: {}", studyId);
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid study ID format: " + studyId));
+                }
+            }
+            
+            log.info("REST: Creating protocol version for Study UUID: {}", studyAggregateUuid);
+            
+            // Build CreateVersionRequest
+            com.clinprecision.clinopsservice.protocolversion.dto.CreateVersionRequest request = 
+                new com.clinprecision.clinopsservice.protocolversion.dto.CreateVersionRequest();
+            request.setStudyAggregateUuid(studyAggregateUuid);
+            request.setVersionNumber((String) versionData.get("versionNumber"));
+            request.setDescription((String) versionData.get("description"));
+            // Handle amendment type - default to INITIAL for first version
+            request.setAmendmentType(versionData.containsKey("amendmentType") ? 
+                com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.AmendmentType.valueOf(
+                    (String) versionData.get("amendmentType")) : 
+                com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.AmendmentType.INITIAL);
+            request.setChangesSummary((String) versionData.get("changesSummary"));
+            request.setImpactAssessment((String) versionData.get("impactAssessment"));
+            request.setRequiresRegulatoryApproval(
+                versionData.containsKey("requiresRegulatoryApproval") ? 
+                    (Boolean) versionData.get("requiresRegulatoryApproval") : true);
+            request.setProtocolChanges((String) versionData.get("protocolChanges"));
+            request.setIcfChanges((String) versionData.get("icfChanges"));
+            
+            // Handle createdBy - can be Integer or String from frontend
+            Long createdBy = 1L; // Default value
+            Object createdByValue = versionData.get("createdBy");
+            if (createdByValue != null) {
+                if (createdByValue instanceof Integer) {
+                    createdBy = ((Integer) createdByValue).longValue();
+                } else if (createdByValue instanceof Long) {
+                    createdBy = (Long) createdByValue;
+                } else if (createdByValue instanceof String) {
+                    createdBy = Long.parseLong((String) createdByValue);
+                }
+            }
+            request.setCreatedBy(createdBy);
+            
+            // Delegate to ProtocolVersionCommandService
+            UUID versionId = com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.VersionIdentifier.newIdentifier().getValue();
+            
+            com.clinprecision.clinopsservice.protocolversion.domain.commands.CreateProtocolVersionCommand command = 
+                com.clinprecision.clinopsservice.protocolversion.domain.commands.CreateProtocolVersionCommand.builder()
+                    .versionId(versionId)
+                    .studyAggregateUuid(studyAggregateUuid)
+                    .versionNumber(com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.VersionNumber.of(request.getVersionNumber()))
+                    .description(request.getDescription())
+                    .amendmentType(request.getAmendmentType())
+                    .changesSummary(request.getChangesSummary())
+                    .impactAssessment(request.getImpactAssessment())
+                    .requiresRegulatoryApproval(request.getRequiresRegulatoryApproval())
+                    .protocolChanges(request.getProtocolChanges())
+                    .icfChanges(request.getIcfChanges())
+                    .createdBy(request.getCreatedBy())
+                    .build();
+            
+            UUID createdId = protocolVersionCommandService.createVersionSync(command);
+            
+            log.info("REST: Protocol version created with UUID: {}", createdId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", createdId.toString()));
+            
+        } catch (IllegalArgumentException e) {
+            log.error("REST: Validation error creating version for study: {}", studyId, e);
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "VALIDATION_ERROR", "message", e.getMessage()));
+        } catch (Exception ex) {
+            log.error("REST: Failed to create protocol version for study: {}", studyId, ex);
+            return ResponseEntity.internalServerError()
+                .body(Map.of("error", "INTERNAL_ERROR", "message", "Failed to create protocol version: " + ex.getMessage()));
+        }
+    }
+
 }

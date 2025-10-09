@@ -187,22 +187,30 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error changing study status:', error);
+            console.log('Response headers:', error.response?.headers);
+            console.log('Response data:', error.response?.data);
             
             // Extract meaningful error message from backend response
             let errorMessage = `Failed to change study status to ${newStatus}`;
             
             // Priority 1: Check for user-friendly error in custom header
             if (error.response?.headers?.['x-error-message']) {
+                console.log('Found user-friendly message in header:', error.response.headers['x-error-message']);
                 errorMessage = error.response.headers['x-error-message'];
             }
             // Priority 2: Check response body
             else if (error.response?.data?.message) {
+                console.log('Found message in response body:', error.response.data.message);
                 errorMessage = error.response.data.message;
             } else if (error.response?.data?.error) {
+                console.log('Found error in response body:', error.response.data.error);
                 errorMessage = error.response.data.error;
             } else if (error.message) {
+                console.log('Using generic error message:', error.message);
                 errorMessage = error.message;
             }
+            
+            console.log('Final error message:', errorMessage);
             
             // Create new error with backend message and preserve original error
             const enhancedError = new Error(errorMessage);

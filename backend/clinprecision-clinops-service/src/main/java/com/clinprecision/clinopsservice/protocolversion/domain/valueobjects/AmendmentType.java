@@ -7,6 +7,7 @@ package com.clinprecision.clinopsservice.protocolversion.domain.valueobjects;
  * Following DDD principles: Value Objects encapsulate business rules.
  */
 public enum AmendmentType {
+    INITIAL("Initial Version", "Original protocol version"),
     MAJOR("Major Amendment", "Protocol changes affecting safety/efficacy"),
     MINOR("Minor Amendment", "Administrative changes"),
     SAFETY("Safety Amendment", "Safety-related changes"),
@@ -29,14 +30,15 @@ public enum AmendmentType {
     }
 
     /**
-     * Business Rule: Major and Safety amendments require regulatory approval
+     * Business Rule: Major, Safety, and Initial versions require regulatory approval
      */
     public boolean requiresRegulatoryApproval() {
-        return this == MAJOR || this == SAFETY;
+        return this == INITIAL || this == MAJOR || this == SAFETY;
     }
 
     /**
      * Business Rule: Determine if re-consent required based on amendment type
+     * Initial version doesn't require re-consent (it's the first consent)
      */
     public boolean requiresReConsent() {
         return this == MAJOR || this == SAFETY;
@@ -48,10 +50,18 @@ public enum AmendmentType {
     public int getPriorityLevel() {
         return switch (this) {
             case SAFETY -> 1; // Highest priority
-            case MAJOR -> 2;
-            case MINOR -> 3;
-            case ADMINISTRATIVE -> 4; // Lowest priority
+            case INITIAL -> 2; // Initial version is high priority
+            case MAJOR -> 3;
+            case MINOR -> 4;
+            case ADMINISTRATIVE -> 5; // Lowest priority
         };
+    }
+    
+    /**
+     * Business Rule: Check if this is the initial version
+     */
+    public boolean isInitialVersion() {
+        return this == INITIAL;
     }
 }
 

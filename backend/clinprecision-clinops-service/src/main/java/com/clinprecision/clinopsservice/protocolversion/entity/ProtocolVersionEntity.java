@@ -115,6 +115,9 @@ public class ProtocolVersionEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "created_by", nullable = false)
+    private Long createdBy;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
