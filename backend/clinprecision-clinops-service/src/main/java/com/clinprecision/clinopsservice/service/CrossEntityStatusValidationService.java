@@ -49,12 +49,24 @@ public class CrossEntityStatusValidationService {
         List<String> warnings = new ArrayList<>();
         Map<String, Object> validationDetails = new HashMap<>();
 
-        // Get related entities
-        List<ProtocolVersionEntity> versions = studyVersionRepository.findByStudyIdOrderByVersionNumberDesc(study.getId());
+        // Get related entities - Use UUID-based queries for DDD aggregates
+        List<ProtocolVersionEntity> versions;
+        if (study.getStudyAggregateUuid() != null) {
+            // DDD approach: Use aggregate UUID
+            logger.debug("Using UUID-based query for protocol versions: {}", study.getStudyAggregateUuid());
+            versions = studyVersionRepository.findByStudyAggregateUuid(study.getStudyAggregateUuid());
+        } else {
+            // Fallback to legacy ID for non-migrated studies
+            logger.warn("Study {} has no aggregate UUID, using legacy ID query", study.getId());
+            versions = studyVersionRepository.findByStudyIdOrderByVersionNumberDesc(study.getId());
+        }
+        
         List<StudyAmendmentEntity> amendments = studyAmendmentRepository.findByStudyIdOrderByVersionAndAmendmentNumber(study.getId());
 
         validationDetails.put("protocolVersionCount", versions.size());
         validationDetails.put("amendmentCount", amendments.size());
+        
+        logger.debug("Found {} protocol versions for study {}", versions.size(), study.getId());
 
         // Perform validation based on target status
         switch (targetStatus != null ? targetStatus.toUpperCase() : "CURRENT") {

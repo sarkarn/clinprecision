@@ -153,6 +153,7 @@ const ProtocolVersionManagementModal = ({
     const handleSubmitForReview = async (versionId) => {
         try {
             await submitForReview(versionId);
+            onClose(); // Close modal after successful submission
         } catch (error) {
             console.error('Error submitting for review:', error);
         }
@@ -161,6 +162,7 @@ const ProtocolVersionManagementModal = ({
     const handleApproveVersion = async (versionId) => {
         try {
             await approveProtocolVersion(versionId);
+            onClose(); // Close modal after successful approval
         } catch (error) {
             console.error('Error approving version:', error);
         }
@@ -169,6 +171,7 @@ const ProtocolVersionManagementModal = ({
     const handleActivateVersion = async (versionId) => {
         try {
             await activateProtocolVersion(versionId);
+            onClose(); // Close modal after successful activation
         } catch (error) {
             console.error('Error activating version:', error);
         }
