@@ -1,7 +1,7 @@
 import ApiService from './ApiService';
 
-const API_PATH = '/admin-ws/api/form-templates'; // Global form library/templates (moved to Admin Service)
-const FORM_DEFINITIONS_PATH = '/study-design-ws/api/form-definitions'; // Study-specific forms
+const API_PATH = '/clinops-ws/api/form-templates'; // Global form library/templates (moved to Clinical Operations Service)
+const FORM_DEFINITIONS_PATH = '/clinops-ws/api/form-definitions'; // Study-specific forms (clinops-ws)
 
 /**
  * Service for handling Form operations
@@ -65,7 +65,7 @@ class FormService {
       
       console.log('*** API endpoint:', API_PATH);
       console.log('*** Full URL will be: API_BASE_URL + API_PATH');
-      console.log('*** Expected: http://localhost:8083/study-design-ws/api/form-templates');
+      console.log('*** Expected: http://localhost:8082/clinops-ws/api/form-templates');
       console.log('*** This should route to FormTemplateController.createFormTemplate()');
       
       try {
@@ -231,7 +231,7 @@ class FormService {
       };
       
       try {
-        const response = await ApiService.post(`/study-design-ws/api/visit-forms`, visitFormData);
+        const response = await ApiService.post(`/clinops-ws/api/visit-forms`, visitFormData);
         return response.data;
       } catch (error) {
         // If we get a server error (404/500), return a mock success
@@ -265,7 +265,7 @@ class FormService {
       
       try {
         // First, we need to get the visitFormId from the visit-forms endpoint
-        const visitFormsResponse = await ApiService.get(`/study-design-ws/api/visit-forms/visit/${visitId}`);
+        const visitFormsResponse = await ApiService.get(`/clinops-ws/api/visit-forms/visit/${visitId}`);
         const visitForms = visitFormsResponse.data;
         
         if (!Array.isArray(visitForms) || visitForms.length === 0) {
@@ -281,7 +281,7 @@ class FormService {
         }
         
         // Delete the visit-form association using its ID
-        const response = await ApiService.delete(`/study-design-ws/api/visit-forms/${visitForm.id}`);
+        const response = await ApiService.delete(`/clinops-ws/api/visit-forms/${visitForm.id}`);
         return response.data;
       } catch (error) {
         // If we get a server error (404/500), return a mock success

@@ -2,7 +2,7 @@ package com.clinprecision.userservice.service.impl;
 
 
 import com.clinprecision.common.dto.UserStudyRoleDto;
-import com.clinprecision.common.dto.studydesign.StudyResponseDto;
+import com.clinprecision.common.dto.clinops.StudyResponseDto;
 import com.clinprecision.common.entity.RoleEntity;
 import com.clinprecision.common.entity.UserEntity;
 import com.clinprecision.common.entity.UserStudyRoleEntity;

@@ -150,7 +150,7 @@ const ProtocolVersionTimeline = ({
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                     <span className="font-medium text-gray-900">
-                                        v{version.versionNumber}
+                                        {version.versionNumber}
                                     </span>
                                     <span className={`px-2 py-1 text-xs rounded-full ${statusDisplay.bgColor} ${statusDisplay.color}`}>
                                         {version.statusInfo?.label || version.status}
@@ -204,7 +204,7 @@ const ProtocolVersionTimeline = ({
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <h4 className="text-lg font-semibold text-gray-900">
-                                                Protocol Version {version.versionNumber}
+                                                Protocol {version.versionNumber}
                                             </h4>
                                             {isCurrentVersion && (
                                                 <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-full">

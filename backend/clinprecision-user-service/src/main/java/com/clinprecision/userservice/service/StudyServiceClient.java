@@ -1,7 +1,7 @@
 package com.clinprecision.userservice.service;
 
 
-import com.clinprecision.common.dto.studydesign.StudyResponseDto;
+import com.clinprecision.common.dto.clinops.StudyResponseDto;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.cloud.openfeign.FeignClient;

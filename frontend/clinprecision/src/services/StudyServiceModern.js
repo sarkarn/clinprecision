@@ -10,7 +10,15 @@
 import ApiService from './ApiService';
 import { API_BASE_URL } from '../config';
 
-const API_PATH = '/study-design-ws/api/studies';
+export const CODE_LIST_ENDPOINTS = {
+  REGULATORY_STATUS: `${API_BASE_URL}/clinops-ws/api/studies/lookup/regulatory-statuses`,
+  STUDY_PHASE: `${API_BASE_URL}/clinops-ws/api/studies/lookup/phases`,
+  STUDY_STATUS: `${API_BASE_URL}/clinops-ws/api/studies/lookup/statuses`,
+  AMENDMENT_TYPE: `${API_BASE_URL}/api/v2/reference-data/amendment-types`,
+  VISIT_TYPE: `${API_BASE_URL}/api/v2/reference-data/visit-types`
+};
+
+const API_PATH = '/clinops-ws/api/studies';
 
 /**
  * Get all studies with optional filtering
@@ -263,8 +271,12 @@ export const searchStudies = async (query, options = {}) => {
  * Modern helper to get reference data API base URL
  * Used by CodeList hooks for API calls
  */
-export const getCodeListApiUrl = () => {
-  // Use API Gateway base URL for all service calls
+export const getCodeListApiUrl = (category) => {
+  if (category && CODE_LIST_ENDPOINTS[category]) {
+    return CODE_LIST_ENDPOINTS[category];
+  }
+
+  // Fallback to legacy reference data base when specific mapping not defined
   return `${API_BASE_URL}/api/v2/reference-data`;
 };
 
@@ -309,6 +321,7 @@ export default {
   exportStudy,
   searchStudies,
   getCodeListApiUrl,
+  CODE_LIST_ENDPOINTS,
   // Legacy compatibility
   getStudyLookupData
 };

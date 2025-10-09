@@ -35,9 +35,11 @@ export const LoginService = {
       const userNumericId = loginResponse.headers.usernumericid; // Long numeric ID
       const userEmail = loginResponse.headers.useremail;
       const userRole = loginResponse.headers.userrole;
+      const userName = loginResponse.headers.username; // User's display name
 
       console.log("Response headers:", loginResponse.headers);
       console.log("User IDs - userId (string):", userId, "userNumericId (long):", userNumericId);
+      console.log("User name:", userName);
       
       if (!token || !userId || !userNumericId) {
         throw new Error("Authentication successful but token, userId, or userNumericId is missing");
@@ -49,6 +51,7 @@ export const LoginService = {
       localStorage.setItem('userNumericId', userNumericId); // Long numeric ID for API calls
       localStorage.setItem('userEmail', userEmail || email);
       localStorage.setItem('userRole', userRole || 'USER');
+      localStorage.setItem('userName', userName || email); // User's display name
       
       // Optionally, store expiration time if needed
       const expiresIn = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -63,7 +66,8 @@ export const LoginService = {
           userId, // String username
           userNumericId, // Long numeric ID
           userEmail: userEmail || email,
-          userRole: userRole || 'USER'
+          userRole: userRole || 'USER',
+          userName: userName || email // User's display name
         }
       };
     } catch (error) {
@@ -84,6 +88,7 @@ export const LoginService = {
       localStorage.removeItem('userNumericId');
       localStorage.removeItem('userEmail');
       localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
       localStorage.removeItem('tokenExpiration');
       
       // Optional: API call for server-side logout

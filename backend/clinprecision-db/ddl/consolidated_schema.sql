@@ -10,6 +10,142 @@ USE clinprecisiondb;
 
 
 -- ===================================================================
+-- Axon Framework Event Store Tables
+-- Required for CQRS/Event Sourcing with Axon Framework
+-- ===================================================================
+
+-- Domain Event Entry Table - Stores all domain events
+CREATE TABLE  domain_event_entry (
+    global_index BIGINT AUTO_INCREMENT NOT NULL,
+    event_identifier VARCHAR(255) NOT NULL UNIQUE,
+    aggregate_identifier VARCHAR(255) NOT NULL,
+    sequence_number BIGINT NOT NULL,
+    type VARCHAR(255),
+    meta_data BLOB,
+    payload BLOB NOT NULL,
+    payload_revision VARCHAR(255),
+    payload_type VARCHAR(255) NOT NULL,
+    time_stamp VARCHAR(255) NOT NULL,
+    
+    PRIMARY KEY (global_index),
+    UNIQUE KEY UK_domain_event_entry (aggregate_identifier, sequence_number),
+    KEY IDX_domain_event_entry_time_stamp (time_stamp)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Snapshot Event Entry Table
+-- Stores aggregate snapshots for performance optimization
+CREATE TABLE  snapshot_event_entry (
+    aggregate_identifier VARCHAR(255) NOT NULL,
+    sequence_number BIGINT NOT NULL,
+    type VARCHAR(255) NOT NULL,
+    event_identifier VARCHAR(255) NOT NULL UNIQUE,
+    meta_data BLOB,
+    payload BLOB NOT NULL,
+    payload_revision VARCHAR(255),
+    payload_type VARCHAR(255) NOT NULL,
+    time_stamp VARCHAR(255) NOT NULL,
+    
+    PRIMARY KEY (aggregate_identifier, sequence_number),
+    KEY IDX_snapshot_event_entry_event_identifier (event_identifier)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Association Value Entry Table
+-- Used by Sagas to associate events with saga instances
+CREATE TABLE  association_value_entry (
+    id BIGINT AUTO_INCREMENT NOT NULL,
+    association_key VARCHAR(255) NOT NULL,
+    association_value VARCHAR(255),
+    saga_id VARCHAR(255) NOT NULL,
+    saga_type VARCHAR(255),
+    
+    PRIMARY KEY (id),
+    KEY IDX_association_value_entry (saga_id, saga_type),
+    KEY IDX_association_value_entry_key_value (association_key, association_value)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Token Entry Table
+-- Tracks the progress of event processors (projections)
+CREATE TABLE  token_entry (
+    processor_name VARCHAR(255) NOT NULL,
+    segment INTEGER NOT NULL DEFAULT 0,
+    token BLOB,
+    token_type VARCHAR(255),
+    timestamp VARCHAR(255),
+    owner VARCHAR(255),
+    
+    PRIMARY KEY (processor_name, segment)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Hibernate Sequence Tables for ID Generation
+-- Required for JPA sequence ID generation used by Axon Framework
+
+-- Domain Event Entry sequence table
+CREATE TABLE domain_event_entry_seq (
+    next_val BIGINT
+) ENGINE=InnoDB;
+
+-- Association Value Entry sequence table  
+CREATE TABLE association_value_entry_seq (
+    next_val BIGINT
+) ENGINE=InnoDB;
+
+-- Token Entry sequence table (if needed)
+CREATE TABLE token_entry_seq (
+    next_val BIGINT
+) ENGINE=InnoDB;
+
+
+-- Saga Entry Table
+-- Stores saga instances and their state
+CREATE TABLE IF NOT EXISTS saga_entry (
+    saga_id VARCHAR(255) NOT NULL,
+    revision VARCHAR(255),
+    saga_type VARCHAR(255),
+    serialized_saga BLOB,
+    
+    PRIMARY KEY (saga_id),
+    KEY IDX_saga_entry_saga_type (saga_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Hibernate Sequence Table for Saga Entry (if needed)
+CREATE TABLE IF NOT EXISTS saga_entry_seq (
+    next_val BIGINT
+) ENGINE=InnoDB;
+
+
+CREATE TABLE dead_letter_entry (
+    dead_letter_id VARCHAR(255) NOT NULL,
+    cause_message VARCHAR(1024),
+    cause_type VARCHAR(255),
+    diagnostics BLOB,
+    enqueued_at TIMESTAMP NOT NULL,
+    last_touched TIMESTAMP,
+    aggregate_identifier VARCHAR(255),
+    event_identifier VARCHAR(255) NOT NULL,
+    message_type VARCHAR(255) NOT NULL,
+    meta_data BLOB,
+    payload BLOB NOT NULL,
+    payload_revision VARCHAR(255),
+    payload_type VARCHAR(255) NOT NULL,
+    sequence_number BIGINT,
+    time_stamp VARCHAR(255) NOT NULL,
+    token BLOB,
+    token_type VARCHAR(255),
+    type VARCHAR(255),
+    processing_group VARCHAR(255) NOT NULL,
+    processing_started TIMESTAMP,
+    sequence_index BIGINT NOT NULL,
+    PRIMARY KEY (dead_letter_id, processing_group)
+);
+
+-- Initialize the sequence tables
+INSERT INTO domain_event_entry_seq VALUES (1);
+INSERT INTO association_value_entry_seq VALUES (1);
+INSERT INTO token_entry_seq VALUES (1);
+INSERT IGNORE INTO saga_entry_seq VALUES (1);
+
+
+-- ===================================================================
 -- Code Lists Schema
 -- Central management of all application code list values
 -- ===================================================================
@@ -159,6 +295,7 @@ CREATE TABLE organization_roles (
 
 CREATE TABLE organizations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(36) NOT NULL UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier for OrganizationAggregate',
     name VARCHAR(255) NOT NULL COMMENT 'Organization name',
     external_id VARCHAR(100) COMMENT 'External identifier for the organization',
     address_line1 VARCHAR(255) COMMENT 'Address line 1',
@@ -195,7 +332,7 @@ CREATE TABLE organization_contacts (
 
 CREATE TABLE sites (
 	  id bigint NOT NULL AUTO_INCREMENT,
-	  aggregate_uuid VARCHAR(255)  COMMENT 'UUID used by Axon Framework as aggregate identifier for CQRS/Event Sourcing',
+	  aggregate_uuid VARCHAR(36) NOT NULL COMMENT 'UUID used by Axon Framework as aggregate identifier for CQRS/Event Sourcing',
 	  organization_id bigint NOT NULL COMMENT 'Reference to the parent organization',
 	  site_number varchar(255) DEFAULT NULL,
 	  principal_investigator_id bigint DEFAULT NULL COMMENT 'Reference to the principal investigator user',
@@ -382,6 +519,7 @@ CREATE TABLE study_lookup_audit (
 -- Study related tables
 CREATE TABLE studies (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(36) NOT NULL UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier for StudyAggregate',
     name VARCHAR(255) NOT NULL,
     description TEXT,
     sponsor VARCHAR(255),
@@ -445,41 +583,122 @@ CREATE TABLE studies (
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
+
 CREATE TABLE study_versions (
+    -- Primary Key (traditional BIGINT for JPA relationships)
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    study_id BIGINT NOT NULL,
+    
+    -- ============================================================
+    -- DDD/CQRS Event Sourcing Fields
+    -- ============================================================
+    
+    -- CRITICAL: Link to event-sourced aggregate (UUID)
+    -- This matches @AggregateIdentifier in ProtocolVersionAggregate
+    aggregate_uuid BINARY(16) NULL COMMENT 'UUID linking to event-sourced aggregate',
+    
+    -- Link to parent Study aggregate (UUID-based, DDD approach)
+    study_aggregate_uuid BINARY(16) NULL COMMENT 'UUID of parent Study aggregate',
+    
+    -- ============================================================
+    -- Legacy/Transition Fields
+    -- ============================================================
+    
+    -- LEGACY: Link to parent Study entity (Long-based ID)
+    -- TODO: Remove after Study module migrated to DDD
+    study_id BIGINT NULL COMMENT 'DEPRECATED: Legacy study reference',
+    
+    -- LEGACY: Previous version reference (Long-based ID)
+    -- TODO: Migrate to UUID-based references
+    previous_version_id BIGINT NULL COMMENT 'DEPRECATED: Legacy version reference',
+    
+    -- ============================================================
+    -- Core Protocol Version Fields
+    -- ============================================================
+    
     version_number VARCHAR(20) NOT NULL,
-    status ENUM('DRAFT', 'UNDER_REVIEW', 'SUBMITTED', 'APPROVED', 'ACTIVE', 'SUPERSEDED', 'WITHDRAWN') NOT NULL DEFAULT 'DRAFT',
+    
+    -- Status enum: DRAFT, UNDER_REVIEW, SUBMITTED, APPROVED, ACTIVE, SUPERSEDED, WITHDRAWN
+    status ENUM('DRAFT', 'UNDER_REVIEW', 'SUBMITTED', 'APPROVED', 'ACTIVE', 'SUPERSEDED', 'WITHDRAWN') 
+        NOT NULL DEFAULT 'DRAFT',
+    
+    -- Amendment type: MAJOR, MINOR, SAFETY, ADMINISTRATIVE
     amendment_type ENUM('MAJOR', 'MINOR', 'SAFETY', 'ADMINISTRATIVE') NULL,
-    amendment_reason TEXT NULL,
+    
     description TEXT NULL,
     changes_summary TEXT NULL,
     impact_assessment TEXT NULL,
-    previous_version_id BIGINT NULL,
-    created_by BIGINT NOT NULL,
-    created_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    approved_by BIGINT NULL,
-    approved_date DATETIME NULL,
-    effective_date DATE NULL,
+    
     requires_regulatory_approval BOOLEAN DEFAULT FALSE,
-    notify_stakeholders BOOLEAN DEFAULT TRUE,
-    additional_notes TEXT NULL,
-    protocol_changes JSON NULL,
-    icf_changes JSON NULL,
-    regulatory_submissions JSON NULL,
-    review_comments JSON NULL,
-    metadata JSON NULL,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- ============================================================
+    -- DDD-Specific Fields (ProtocolVersionEntity)
+    -- ============================================================
+    
+    submission_date DATE NULL COMMENT 'Date submitted for regulatory approval',
+    approval_date DATE NULL COMMENT 'Date approved by regulatory authority',
+    effective_date DATE NULL COMMENT 'Date version becomes effective',
+    
+    notes TEXT NULL COMMENT 'General notes (replaces additional_notes)',
+    
+    -- Protocol and ICF changes (TEXT instead of JSON for DDD)
+    protocol_changes TEXT NULL COMMENT 'Description of protocol changes',
+    icf_changes TEXT NULL COMMENT 'Description of informed consent changes',
+    
+    approved_by BIGINT NULL COMMENT 'User who approved this version',
+    approval_comments TEXT NULL COMMENT 'Comments from approver',
+    
+    -- Previous active version reference (UUID-based for DDD)
+    previous_active_version_uuid BINARY(16) NULL COMMENT 'UUID of previous active version',
+    
+    -- Withdrawal tracking
+    withdrawal_reason TEXT NULL COMMENT 'Reason for withdrawal if withdrawn',
+    withdrawn_by BIGINT NULL COMMENT 'User who withdrew this version',
+    
+    -- ============================================================
+    -- Legacy Fields (kept for backward compatibility during transition)
+    -- ============================================================
+    
+    amendment_reason TEXT NULL COMMENT 'LEGACY: Use description instead',
+    
+    -- ============================================================
+    -- Audit Fields
+    -- ============================================================
+    
+    created_by BIGINT NOT NULL COMMENT 'User who created this version',
+    created_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'LEGACY: Use created_at',
+    
+    -- DDD standard audit fields
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- ============================================================
+    -- Constraints
+    -- ============================================================
+    
+    -- Unique constraint on aggregate_uuid (event-sourced identifier)
+    CONSTRAINT uk_study_versions_aggregate_uuid UNIQUE (aggregate_uuid),
     
     -- Unique constraint to prevent duplicate version numbers per study
-    UNIQUE KEY uk_study_version_number (study_id, version_number),
+    CONSTRAINT uk_study_version_number UNIQUE (study_id, version_number),
     
     -- Foreign key constraints
-    CONSTRAINT fk_study_versions_study_id FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE,
-    CONSTRAINT fk_study_versions_previous_version FOREIGN KEY (previous_version_id) REFERENCES study_versions (id) ON DELETE SET NULL,
-    CONSTRAINT fk_study_versions_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT,
-    CONSTRAINT fk_study_versions_approved_by FOREIGN KEY (approved_by) REFERENCES users (id) ON DELETE SET NULL
-);
+    CONSTRAINT fk_study_versions_study_id 
+        FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE,
+    
+    CONSTRAINT fk_study_versions_previous_version 
+        FOREIGN KEY (previous_version_id) REFERENCES study_versions (id) ON DELETE SET NULL,
+    
+    CONSTRAINT fk_study_versions_created_by 
+        FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT,
+    
+    CONSTRAINT fk_study_versions_approved_by 
+        FOREIGN KEY (approved_by) REFERENCES users (id) ON DELETE SET NULL,
+    
+    CONSTRAINT fk_study_versions_withdrawn_by 
+        FOREIGN KEY (withdrawn_by) REFERENCES users (id) ON DELETE SET NULL
+        
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Protocol Versions - DDD/CQRS Read Model for event-sourced ProtocolVersionAggregate';
 
 
 CREATE TABLE study_amendments (
@@ -557,9 +776,10 @@ CREATE TABLE organization_studies (
     UNIQUE KEY (organization_id, study_id, role)
 );
 
--- Study Documents Table (MVP Version)
+-- Study Documents Table (DDD-Enhanced with Aggregate UUID)
 CREATE TABLE study_documents (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(36) NOT NULL UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier for StudyDocumentAggregate',
     study_id BIGINT NOT NULL COMMENT 'Reference to studies table',
     name VARCHAR(255) NOT NULL COMMENT 'Display name of the document',
     document_type VARCHAR(50) NOT NULL COMMENT 'Type of document (Protocol, ICF, IB, CRF, etc.)',
@@ -572,19 +792,32 @@ CREATE TABLE study_documents (
     description TEXT COMMENT 'Document description',
     uploaded_by BIGINT NOT NULL COMMENT 'User who uploaded the document',
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Upload timestamp',
+    approved_by BIGINT NULL COMMENT 'User ID who approved the document (NULL for DRAFT)',
+    approved_at TIMESTAMP NULL COMMENT 'Timestamp when document was approved',
+    superseded_by_document_id VARCHAR(36) NULL COMMENT 'UUID of document that supersedes this one',
+    archived_by BIGINT NULL COMMENT 'User ID who archived the document',
+    archived_at TIMESTAMP NULL COMMENT 'Timestamp when document was archived',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Soft delete flag (only DRAFT documents can be deleted)',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Record creation timestamp',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Record update timestamp',
     
     -- Foreign key constraints
     FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
     FOREIGN KEY (uploaded_by) REFERENCES users(id),
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (archived_by) REFERENCES users(id) ON DELETE SET NULL,
     
     -- Indexes for performance
+    INDEX idx_study_documents_aggregate_uuid (aggregate_uuid),
     INDEX idx_study_documents_study_id (study_id),
     INDEX idx_study_documents_type (document_type),
     INDEX idx_study_documents_status (status),
-    INDEX idx_study_documents_uploaded_at (uploaded_at)
-) COMMENT 'Store study documents and their metadata';
+    INDEX idx_study_documents_uploaded_at (uploaded_at),
+    INDEX idx_study_documents_approved_by (approved_by),
+    INDEX idx_study_documents_archived_by (archived_by),
+    INDEX idx_study_documents_approved_at (approved_at),
+    INDEX idx_study_documents_is_deleted (is_deleted)
+) COMMENT 'Store study documents and their metadata - DDD aggregate for regulatory compliance and audit trail';
 
 
 
@@ -614,11 +847,14 @@ CREATE TABLE study_document_audit (
 -- Study arms
 CREATE TABLE study_arms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID linking to StudyDesignAggregate in event store',
+    arm_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this arm entity from StudyArmAddedEvent',
     name VARCHAR(255) NOT NULL,
     description TEXT,
     type VARCHAR(50) NOT NULL DEFAULT 'TREATMENT',
     sequence_number INTEGER NOT NULL,
     planned_subjects INTEGER DEFAULT 0,
+    is_deleted BOOLEAN DEFAULT FALSE COMMENT 'Soft delete flag - set by RemoveStudyArmEvent',
     study_id BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -637,12 +873,16 @@ CREATE TABLE study_arms (
 
 CREATE TABLE study_interventions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID linking to StudyDesignAggregate in event store',
+    intervention_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this intervention entity',
+    arm_uuid VARCHAR(255) NULL COMMENT 'UUID reference to StudyArm',
     name VARCHAR(255) NOT NULL,
     description TEXT,
     type VARCHAR(50) NOT NULL DEFAULT 'DRUG',
     dosage VARCHAR(255),
     frequency VARCHAR(255),
     route VARCHAR(255),
+    is_deleted BOOLEAN DEFAULT FALSE COMMENT 'Soft delete flag for soft deletes',
     study_arm_id BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -656,12 +896,44 @@ CREATE TABLE study_interventions (
     CONSTRAINT chk_interventions_type CHECK (type IN ('DRUG', 'DEVICE', 'PROCEDURE', 'BEHAVIORAL', 'OTHER'))
 );
 
+CREATE TABLE IF NOT EXISTS study_randomization_strategies (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_arm_id BIGINT NOT NULL,
+    
+    -- Randomization strategy fields
+    type VARCHAR(100) NOT NULL COMMENT 'Type of randomization (SIMPLE, BLOCK, STRATIFIED, etc.)',
+    ratio VARCHAR(50) NULL COMMENT 'Randomization ratio (e.g., 1:1, 2:1:1)',
+    block_size INT NULL COMMENT 'Block size for block randomization',
+    stratification_factors TEXT NULL COMMENT 'Comma-separated stratification factors',
+    notes TEXT NULL COMMENT 'Additional notes about randomization strategy',
+    
+    -- Audit fields
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    updated_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    
+    -- Foreign key constraint
+    CONSTRAINT fk_study_randomization_strategies_study_arm_id 
+        FOREIGN KEY (study_arm_id) REFERENCES study_arms(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_study_randomization_strategies_study_arm_id (study_arm_id),
+    INDEX idx_study_randomization_strategies_type (type),
+    INDEX idx_study_randomization_strategies_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Randomization strategies for study arms - normalized approach for zero technical debt';
+
 
 
 CREATE TABLE visit_definitions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID linking to StudyDesignAggregate in event store',
+    visit_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this visit entity from VisitDefinedEvent',
     study_id BIGINT NOT NULL,
     arm_id BIGINT,
+    arm_uuid VARCHAR(255) NULL COMMENT 'UUID reference to StudyArm for arm-specific visits',
     name VARCHAR(255) NOT NULL,
     description TEXT,
     timepoint INT NOT NULL,  -- Days from baseline (can be negative for screening)
@@ -669,9 +941,15 @@ CREATE TABLE visit_definitions (
     window_after INT DEFAULT 0,
     visit_type ENUM('SCREENING', 'BASELINE', 'TREATMENT', 'FOLLOW_UP', 'UNSCHEDULED', 'END_OF_STUDY') DEFAULT 'TREATMENT',
     is_required BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE COMMENT 'Soft delete flag - set by RemoveVisitEvent',
     sequence_number INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NULL COMMENT 'User who created this visit definition',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_by VARCHAR(100) NULL COMMENT 'User who last updated this visit definition',
+    deleted_at TIMESTAMP NULL COMMENT 'When this visit was soft deleted',
+    deleted_by VARCHAR(100) NULL COMMENT 'User who deleted this visit definition',
+    deletion_reason TEXT NULL COMMENT 'Reason for deleting this visit definition',
     FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
     FOREIGN KEY (arm_id) REFERENCES study_arms(id) ON DELETE SET NULL
 );
@@ -679,6 +957,8 @@ CREATE TABLE visit_definitions (
 -- Form definitions
 CREATE TABLE form_definitions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID used by Axon Framework for FormAggregate (future)',
+    form_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this form entity',
     study_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -717,19 +997,29 @@ CREATE TABLE form_versions (
 
 CREATE TABLE visit_forms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID linking to StudyDesignAggregate in event store',
+    assignment_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this form assignment from FormAssignedToVisitEvent',
+    visit_uuid VARCHAR(255) NULL COMMENT 'UUID reference to VisitDefinition',
+    form_uuid VARCHAR(255) NULL COMMENT 'UUID reference to FormDefinition',
     visit_definition_id BIGINT NOT NULL,
     form_definition_id BIGINT NOT NULL,
     is_required BOOLEAN DEFAULT TRUE,
     is_conditional BOOLEAN DEFAULT FALSE,
     conditional_logic TEXT COMMENT 'JSON or expression for conditional forms',
     display_order INT DEFAULT 1 COMMENT 'Order for display in UI',
+    is_deleted BOOLEAN DEFAULT FALSE COMMENT 'Soft delete flag - set by RemoveFormAssignmentEvent',
     instructions TEXT COMMENT 'Specific instructions for this form in this visit',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NULL COMMENT 'User ID who created this form assignment',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     updated_by BIGINT,
     update_reason VARCHAR(255),
+    deleted_at TIMESTAMP NULL COMMENT 'Timestamp when soft deleted',
+    deleted_by VARCHAR(100) NULL COMMENT 'User who deleted this form assignment',
+    deletion_reason TEXT NULL COMMENT 'Reason for deletion',
     FOREIGN KEY (visit_definition_id) REFERENCES visit_definitions(id) ON DELETE CASCADE,
     FOREIGN KEY (form_definition_id) REFERENCES form_definitions(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id),
     FOREIGN KEY (updated_by) REFERENCES users(id),
     UNIQUE KEY (visit_definition_id, form_definition_id)
 );
@@ -974,6 +1264,141 @@ CREATE TABLE study_build_notifications (
     INDEX idx_build_notifications_sent (is_sent)
 ) COMMENT='Notifications related to database build processes';
 
+
+-- Patient Enrollment Database Schema
+-- Following established ClinPrecision patterns with aggregate_uuid columns
+
+-- Patient Registration table
+CREATE TABLE IF NOT EXISTS patients (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier',
+    patient_number VARCHAR(50) NOT NULL COMMENT 'Human-readable patient identifier',
+    first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100),
+    last_name VARCHAR(100) NOT NULL,
+    date_of_birth DATE NOT NULL,
+    gender ENUM('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY') NOT NULL,
+    phone_number VARCHAR(20),
+    email VARCHAR(255),
+    status ENUM('REGISTERED', 'SCREENED', 'ELIGIBLE', 'INELIGIBLE', 'WITHDRAWN') DEFAULT 'REGISTERED',
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_patients_aggregate_uuid (aggregate_uuid),
+    INDEX idx_patients_patient_number (patient_number),
+    INDEX idx_patients_email (email),
+    INDEX idx_patients_status (status),
+    INDEX idx_patients_created_at (created_at)
+) COMMENT 'Patient registration records for clinical trials';
+
+
+-- Patient Enrollment table (many-to-many: patients can be enrolled in multiple studies)
+CREATE TABLE IF NOT EXISTS patient_enrollments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier',
+    enrollment_number VARCHAR(50) NOT NULL COMMENT 'Human-readable enrollment identifier',
+    patient_id BIGINT NOT NULL,
+    patient_aggregate_uuid VARCHAR(255) NOT NULL COMMENT 'Reference to patient aggregate',
+    study_id BIGINT NOT NULL,
+    study_site_id BIGINT NOT NULL,
+    site_aggregate_uuid VARCHAR(255) NOT NULL COMMENT 'Reference to site aggregate',
+    screening_number VARCHAR(50) NOT NULL,
+    enrollment_date DATE NOT NULL,
+    enrollment_status ENUM('ENROLLED', 'SCREENING', 'ELIGIBLE', 'INELIGIBLE', 'WITHDRAWN', 'COMPLETED') DEFAULT 'ENROLLED',
+    eligibility_confirmed BOOLEAN DEFAULT FALSE,
+    eligibility_confirmed_by VARCHAR(255),
+    eligibility_confirmed_at TIMESTAMP NULL,
+    ineligibility_reason TEXT,
+    enrolled_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (study_id) REFERENCES studies(id),
+    FOREIGN KEY (study_site_id) REFERENCES site_studies(id),
+    
+    INDEX idx_enrollments_aggregate_uuid (aggregate_uuid),
+    INDEX idx_enrollments_patient (patient_id),
+    INDEX idx_enrollments_patient_uuid (patient_aggregate_uuid),
+    INDEX idx_enrollments_study (study_id),
+    INDEX idx_enrollments_site (study_site_id),
+    INDEX idx_enrollments_site_uuid (site_aggregate_uuid),
+    INDEX idx_enrollments_status (enrollment_status),
+    INDEX idx_enrollments_screening_number (screening_number),
+    INDEX idx_enrollments_enrollment_date (enrollment_date),
+    
+    UNIQUE KEY uk_screening_number (screening_number, study_id),
+    UNIQUE KEY uk_patient_study_enrollment (patient_id, study_id)
+) COMMENT 'Patient enrollment records linking patients to specific studies and sites';
+
+-- Patient Eligibility Assessments (detailed eligibility tracking)
+CREATE TABLE IF NOT EXISTS patient_eligibility_assessments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    enrollment_id BIGINT NOT NULL,
+    enrollment_aggregate_uuid VARCHAR(255) NOT NULL,
+    assessment_type ENUM('INCLUSION', 'EXCLUSION', 'GENERAL') NOT NULL,
+    criterion_description TEXT NOT NULL,
+    is_met BOOLEAN NOT NULL,
+    assessment_notes TEXT,
+    assessed_by VARCHAR(255) NOT NULL,
+    assessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (enrollment_id) REFERENCES patient_enrollments(id),
+    
+    INDEX idx_eligibility_enrollment (enrollment_id),
+    INDEX idx_eligibility_enrollment_uuid (enrollment_aggregate_uuid),
+    INDEX idx_eligibility_type (assessment_type),
+    INDEX idx_eligibility_assessed_at (assessed_at)
+) COMMENT 'Detailed eligibility assessments for patient enrollments';
+
+-- Patient Demographics (extended patient information)
+CREATE TABLE IF NOT EXISTS patient_demographics (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    patient_id BIGINT NOT NULL UNIQUE,
+    patient_aggregate_uuid VARCHAR(255) NOT NULL,
+    race VARCHAR(100),
+    ethnicity VARCHAR(100),
+    height_cm DECIMAL(5,2),
+    weight_kg DECIMAL(6,2),
+    bmi DECIMAL(4,1) GENERATED ALWAYS AS (weight_kg / POWER(height_cm/100, 2)) STORED,
+    blood_type VARCHAR(10),
+    medical_record_number VARCHAR(50),
+    insurance_information JSON,
+    emergency_contact JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    
+    INDEX idx_demographics_patient_uuid (patient_aggregate_uuid),
+    INDEX idx_demographics_race (race),
+    INDEX idx_demographics_ethnicity (ethnicity)
+) COMMENT 'Extended demographic information for patients';
+
+-- Audit trail for patient enrollment events (for FDA 21 CFR Part 11 compliance)
+CREATE TABLE IF NOT EXISTS patient_enrollment_audit (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id BIGINT NOT NULL,
+    entity_aggregate_uuid VARCHAR(255) NOT NULL,
+    action_type VARCHAR(50) NOT NULL,
+    old_values JSON COMMENT 'Previous values before change',
+    new_values JSON COMMENT 'New values after change',
+    performed_by VARCHAR(255) NOT NULL,
+    performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    reason TEXT,
+    
+    INDEX idx_audit_entity_type (entity_type),
+    INDEX idx_audit_entity_id (entity_id),
+    INDEX idx_audit_entity_uuid (entity_aggregate_uuid),
+    INDEX idx_audit_action (action_type),
+    INDEX idx_audit_performed_at (performed_at),
+    INDEX idx_audit_performed_by (performed_by)
+) COMMENT 'Complete audit trail for patient enrollment activities';
+
 -- Audit and logging tables
 CREATE TABLE audit_trail (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -1041,6 +1466,29 @@ CREATE TABLE user_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS study_status_computation_log (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    trigger_source VARCHAR(50) NOT NULL COMMENT 'Source of the trigger (version_change, amendment_change, etc.)',
+    old_status_code VARCHAR(100) COMMENT 'Previous status code',
+    new_status_code VARCHAR(100) COMMENT 'New computed status code',
+    computation_result ENUM('SUCCESS', 'NO_CHANGE', 'ERROR') NOT NULL,
+    trigger_details TEXT COMMENT 'Additional details about what triggered the computation',
+    error_message TEXT COMMENT 'Error message if computation failed',
+    computation_time_ms INT COMMENT 'Time taken for computation in milliseconds',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Indexes for performance
+    INDEX idx_study_status_log_study_id (study_id),
+    INDEX idx_study_status_log_source (trigger_source),
+    INDEX idx_study_status_log_result (computation_result),
+    INDEX idx_study_status_log_created (created_at),
+    
+    -- Foreign key constraint
+    CONSTRAINT fk_status_log_study_id FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE
+);
+
+
 
 ALTER TABLE study_status COMMENT = 'Lookup table for study lifecycle status values';
 ALTER TABLE regulatory_status COMMENT = 'Lookup table for regulatory approval status values';
@@ -1070,12 +1518,27 @@ CREATE INDEX idx_studies_study_phase_id ON studies(study_phase_id);
 -- Add template_id column to form_definitions table to link study forms to templates
 CREATE INDEX idx_form_template ON form_definitions(template_id);
 CREATE INDEX idx_form_status ON form_definitions(status);
+CREATE INDEX idx_form_definitions_aggregate_uuid ON form_definitions(aggregate_uuid);
+CREATE UNIQUE INDEX idx_form_definitions_form_uuid ON form_definitions(form_uuid);
+CREATE INDEX idx_visit_definitions_aggregate_uuid ON visit_definitions(aggregate_uuid);
+CREATE UNIQUE INDEX idx_visit_definitions_visit_uuid ON visit_definitions(visit_uuid);
+CREATE INDEX idx_visit_definitions_arm_uuid ON visit_definitions(arm_uuid);
+CREATE INDEX idx_visit_forms_aggregate_uuid ON visit_forms(aggregate_uuid);
+CREATE UNIQUE INDEX idx_visit_forms_assignment_uuid ON visit_forms(assignment_uuid);
+CREATE INDEX idx_visit_forms_visit_uuid ON visit_forms(visit_uuid);
+CREATE INDEX idx_visit_forms_form_uuid ON visit_forms(form_uuid);
 -- Create indexes for performance optimization
+CREATE UNIQUE INDEX idx_studies_aggregate_uuid ON studies(aggregate_uuid);
 CREATE INDEX idx_study_arms_study_id ON study_arms(study_id);
 CREATE INDEX idx_study_arms_sequence ON study_arms(study_id, sequence_number);
 CREATE INDEX idx_study_arms_type ON study_arms(type);
+CREATE INDEX idx_study_arms_aggregate_uuid ON study_arms(aggregate_uuid);
+CREATE UNIQUE INDEX idx_study_arms_arm_uuid ON study_arms(arm_uuid);
 CREATE INDEX idx_study_interventions_study_arm_id ON study_interventions(study_arm_id);
 CREATE INDEX idx_study_interventions_type ON study_interventions(type);
+CREATE INDEX idx_study_interventions_aggregate_uuid ON study_interventions(aggregate_uuid);
+CREATE UNIQUE INDEX idx_study_interventions_intervention_uuid ON study_interventions(intervention_uuid);
+CREATE INDEX idx_study_interventions_arm_uuid ON study_interventions(arm_uuid);
  -- Indexes for performance
 CREATE INDEX idx_design_progress_study_id ON study_design_progress (study_id);
 CREATE INDEX idx_design_progress_phase ON study_design_progress (phase);
@@ -1102,19 +1565,28 @@ CREATE INDEX idx_study_amendments_amendment_number ON study_amendments(amendment
 CREATE INDEX idx_study_amendments_created_date ON study_amendments(created_date);
 CREATE INDEX idx_study_amendments_type ON study_amendments(amendment_type);
 
--- Additional composite indexes for common query patterns
-CREATE INDEX idx_study_versions_study_status ON study_versions (study_id, status);
-CREATE INDEX idx_study_versions_status_type ON study_versions (status, amendment_type);
-CREATE INDEX idx_study_versions_created_by_date ON study_versions (created_by, created_date);
-CREATE INDEX idx_study_amendments_version_status ON study_amendments (study_version_id, status);
-CREATE INDEX idx_study_amendments_type_status ON study_amendments (amendment_type, status);
-CREATE INDEX idx_study_amendments_safety_status ON study_amendments (amendment_type, status, requires_regulatory_notification);
-
 
 -- Create indexes for performance
 -- Create indexes for performance
 -- Note: Using CAST to convert JSON extracted value to VARCHAR for indexing
 CREATE INDEX idx_code_lists_color ON code_lists((CAST(JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.color')) AS CHAR(100))));
 CREATE INDEX idx_code_lists_valid_date ON code_lists(valid_from, valid_to);
+CREATE INDEX idx_study_versions_aggregate_uuid ON study_versions(aggregate_uuid);
+
+
+
+-- Composite indexes for common query patterns
+CREATE INDEX idx_study_versions_study_status ON study_versions (study_id, status);
+CREATE INDEX idx_study_versions_status_type ON study_versions (status, amendment_type);
+
+-- DDD-specific indexes
+CREATE INDEX idx_study_versions_study_aggregate_uuid ON study_versions(study_aggregate_uuid);
+CREATE INDEX idx_study_versions_previous_active_version ON study_versions(previous_active_version_uuid);
+CREATE INDEX idx_study_versions_withdrawn_by ON study_versions(withdrawn_by);
+CREATE INDEX idx_study_versions_submission_date ON study_versions(submission_date);
+CREATE INDEX idx_study_versions_created_at ON study_versions(created_at);
+CREATE INDEX idx_study_versions_updated_at ON study_versions(updated_at);
+
+
 
 

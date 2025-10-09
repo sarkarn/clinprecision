@@ -53,6 +53,7 @@ export default function Login() {
             localStorage.setItem('userNumericId', authData.userNumericId);
             localStorage.setItem('userEmail', authData.userEmail);
             localStorage.setItem('userRole', authData.userRole);
+            localStorage.setItem('userName', authData.userName);
 
             // Update authentication context with user information
             auth.login(
@@ -61,7 +62,8 @@ export default function Login() {
                 {
                     userId: authData.userId,
                     userNumericId: authData.userNumericId,
-                    token: authData.token
+                    token: authData.token,
+                    name: authData.userName
                 }
             );
 

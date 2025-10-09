@@ -153,6 +153,41 @@ const StudyDesignDashboard = () => {
 
                 // Check if response is in expected format (has progressData)
                 const progressData = designProgressResponse.progressData || designProgressResponse;
+
+                // BUGFIX: If basic-info is not in progress data or not marked as completed,
+                // mark it as completed since the study exists (study creation = basic info complete)
+                if (!progressData['basic-info'] || !progressData['basic-info'].completed) {
+                    console.log('Basic-info phase not marked complete, auto-completing and saving...');
+
+                    // Format date for LocalDateTime (no timezone, no milliseconds)
+                    const now = new Date();
+                    const localDateTime = now.getFullYear() + '-' +
+                        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(now.getDate()).padStart(2, '0') + 'T' +
+                        String(now.getHours()).padStart(2, '0') + ':' +
+                        String(now.getMinutes()).padStart(2, '0') + ':' +
+                        String(now.getSeconds()).padStart(2, '0');
+
+                    progressData['basic-info'] = {
+                        completed: true,
+                        percentage: 100,
+                        phase: 'basic-info',
+                        lastUpdated: localDateTime
+                    };
+
+                    // Persist to backend
+                    try {
+                        await StudyDesignService.updateDesignProgress(studyId, {
+                            progressData: {
+                                'basic-info': progressData['basic-info']
+                            }
+                        });
+                        console.log('Basic-info phase auto-completion saved to backend');
+                    } catch (saveError) {
+                        console.error('Failed to save basic-info completion:', saveError);
+                    }
+                }
+
                 setDesignProgress(progressData);
 
                 console.log('Initial progress data received:', progressData);
@@ -211,15 +246,33 @@ const StudyDesignDashboard = () => {
         try {
             const designProgressResponse = await StudyDesignService.getDesignProgress(studyId);
             const progressData = designProgressResponse.progressData || designProgressResponse;
+
+            // BUGFIX: If basic-info is not in progress data or not marked as completed,
+            // mark it as completed since the study exists (study creation = basic info complete)
+            if (!progressData['basic-info'] || !progressData['basic-info'].completed) {
+                progressData['basic-info'] = {
+                    completed: true,
+                    percentage: 100,
+                    phase: 'basic-info',
+                    lastUpdated: new Date().toISOString()
+                };
+            }
+
             setDesignProgress(progressData);
 
-            // Update completed phases
+            // Update completed phases with explicit boolean check
             const completed = Object.entries(progressData).filter(
-                ([_, progress]) => progress && progress.completed
+                ([phaseId, progress]) => {
+                    // Debug log to see what we're getting
+                    console.log(`Phase ${phaseId} progress:`, progress, 'completed:', progress?.completed);
+                    return progress && progress.completed === true;
+                }
             ).map(([phaseId, _]) => phaseId);
             setCompletedPhases(completed);
 
-            console.info('Design progress refreshed for study', studyId, '- Completed phases:', completed);
+            console.info('Design progress refreshed for study', studyId);
+            console.info('Progress data:', progressData);
+            console.info('Completed phases:', completed);
         } catch (error) {
             console.warn('Failed to refresh design progress:', error);
         }
@@ -449,7 +502,7 @@ const StudyDesignDashboard = () => {
                                 {currentPhase === 'arms' && <StudyArmsDesigner onPhaseCompleted={loadDesignProgress} />}
                                 {currentPhase === 'visits' && <VisitScheduleDesigner onPhaseCompleted={loadDesignProgress} />}
                                 {currentPhase === 'forms' && <FormBindingDesigner />}
-                                {currentPhase === 'review' && <StudyReviewPanel study={study} designProgress={designProgress} />}
+                                {currentPhase === 'review' && <StudyReviewPanel study={study} designProgress={designProgress} onReviewSubmitted={() => { loadStudyData(); loadDesignProgress(); }} />}
                                 {currentPhase === 'publish' && <StudyPublishWorkflow />}
 
                             </div>
@@ -716,7 +769,7 @@ const BasicInfoSummary = ({ study }) => {
 
 
 // Study Review Panel Component with completion button
-const StudyReviewPanel = ({ study, designProgress }) => {
+const StudyReviewPanel = ({ study, designProgress, onReviewSubmitted }) => {
     const [marking, setMarking] = React.useState(false);
     const [error, setError] = React.useState("");
     const completedPhases = Object.entries(designProgress).filter(
@@ -732,8 +785,8 @@ const StudyReviewPanel = ({ study, designProgress }) => {
         setError("");
 
         try {
-            // Check current study status
-            const currentStatus = study?.studyStatus?.code;
+            // Check current study status - Backend returns status as flat string
+            const currentStatus = study?.status || study?.studyStatus?.code;
 
             // If already in review status, show appropriate message
             if (currentStatus === 'PROTOCOL_REVIEW') {
@@ -748,14 +801,18 @@ const StudyReviewPanel = ({ study, designProgress }) => {
             }
 
             // First change the study status to PROTOCOL_REVIEW
+            console.log('Changing study status to PROTOCOL_REVIEW for study:', studyId);
             await StudyDesignService.changeStudyStatus(studyId, 'PROTOCOL_REVIEW');
+            console.log('Study status changed successfully');
 
             // Then mark the review phase as completed in design progress
+            console.log('Updating design progress for review phase');
             await StudyDesignService.updateDesignProgress(studyId, {
                 progressData: {
                     review: { phase: "review", completed: true, percentage: 100 }
                 }
             });
+            console.log('Design progress updated successfully');
 
             // Show success message instead of reload
             // Create a success notification that will persist briefly
@@ -783,12 +840,23 @@ const StudyReviewPanel = ({ study, designProgress }) => {
 
             showSuccessMessage();
 
-            // Refresh the page to show updated status
-            window.location.reload();
+            // Reload study data to update UI
+            if (onReviewSubmitted) {
+                await onReviewSubmitted();
+            }
 
         } catch (e) {
             console.error('Error submitting study for review:', e);
-            setError(e.message || "Failed to submit study for review. Please try again.");
+            console.log('Error details:', {
+                message: e.message,
+                status: e.status,
+                originalError: e.originalError
+            });
+
+            // Display the user-friendly error message
+            const displayMessage = e.message || "Failed to submit study for review. Please try again.";
+            console.log('Displaying error to user:', displayMessage);
+            setError(displayMessage);
         } finally {
             setMarking(false);
         }
@@ -868,7 +936,9 @@ const StudyReviewPanel = ({ study, designProgress }) => {
 
                     {/* Render button based on current study status */}
                     {(() => {
-                        const currentStatus = study?.studyStatus?.code;
+                        // Backend returns status as flat string, not nested object
+                        const currentStatus = study?.status || study?.studyStatus?.code;
+                        console.log('StudyReviewPanel rendering - Current status:', currentStatus, 'Full study:', study);
 
                         if (currentStatus === 'PROTOCOL_REVIEW') {
                             return (

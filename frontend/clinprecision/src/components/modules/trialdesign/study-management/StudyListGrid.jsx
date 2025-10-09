@@ -101,14 +101,14 @@ const StudyListGrid = ({
                 const lookupData = await StudyService.getStudyLookupData();
 
                 // Transform data for filter dropdowns
-                const phaseOptions = lookupData.phases.map(phase => ({
-                    value: phase.displayName,
-                    label: phase.displayName
+                const phaseOptions = (lookupData.studyPhases || []).map(phase => ({
+                    value: phase.label || phase.displayName,
+                    label: phase.label || phase.displayName
                 }));
 
-                const statusOptions = lookupData.statuses.map(status => ({
-                    value: status.displayName,
-                    label: status.displayName
+                const statusOptions = (lookupData.studyStatuses || []).map(status => ({
+                    value: status.label || status.displayName,
+                    label: status.label || status.displayName
                 }));
 
                 setStudyPhases(phaseOptions);

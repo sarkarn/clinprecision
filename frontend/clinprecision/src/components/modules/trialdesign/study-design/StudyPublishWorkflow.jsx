@@ -170,14 +170,23 @@ const StudyPublishWorkflow = () => {
             // Load actual study data from backend
             const studyData = await StudyDesignService.getStudyById(studyId);
             console.log('Loaded study data:', studyData);
+            console.log('Study status from backend:', {
+                studyStatusObject: studyData.studyStatus,
+                studyStatusCode: studyData.studyStatus?.code,
+                studyStatus: studyData.status,
+                rawStudy: studyData
+            });
 
             setStudy(studyData);
             setValidationResults(mockData.validationResults);
             setReviewers(mockData.reviewers);
 
             // Determine publish status based on backend study status
-            const backendStatus = studyData.studyStatus?.code || 'PLANNING';
+            // Try both studyStatus.code and status fields (backend might return either)
+            const backendStatus = studyData.studyStatus?.code || studyData.status || 'PLANNING';
+            console.log('Backend status extracted:', backendStatus);
             const overallStatus = determinePublishStatusFromBackend(backendStatus, mockData.validationResults, mockData.reviewers);
+            console.log('Final publish status set to:', overallStatus);
             setPublishStatus(overallStatus);
 
             setLoading(false);

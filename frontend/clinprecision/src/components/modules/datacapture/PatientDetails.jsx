@@ -300,8 +300,8 @@ export default function PatientDetails() {
                         <dt className="text-sm font-medium text-gray-500">Contact Available</dt>
                         <dd className="mt-1">
                             <span className={`inline-flex px-2 py-1 text-xs rounded-full ${formattedPatient.hasContactInfo
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
                                 }`}>
                                 {formattedPatient.hasContactInfo ? 'Yes' : 'No'}
                             </span>

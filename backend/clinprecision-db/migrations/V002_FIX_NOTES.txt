@@ -1,0 +1,10 @@
+-- =====================================================
+-- Fix: Change aggregate_uuid column type in study_versions
+-- Issue: Column created as VARCHAR(36) but entity expects it to match UUID format
+-- Solution: For consistency with other tables, keep as VARCHAR(36) since entity doesn't define columnDefinition
+-- =====================================================
+
+-- The V002 script created VARCHAR(36) which is correct
+-- No action needed - the issue is that StudyVersionEntity doesn't have aggregate_uuid field
+
+-- This file is for reference only - the real issue is in the Java entity

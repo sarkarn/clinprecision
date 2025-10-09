@@ -6,6 +6,35 @@ import ApiService from './ApiService';
  */
 class StudyDesignService {
 
+    /**
+     * Initialize StudyDesignAggregate for a study
+     * This is required for DDD/Event Sourcing operations (arms, visits, forms)
+     * 
+     * @param {string} studyAggregateUuid - The study's aggregate UUID
+     * @param {string} studyName - The study name
+     * @param {string} createdBy - User who created the study
+     * @returns {Promise<{studyDesignId: string}>}
+     */
+    async initializeStudyDesign(studyAggregateUuid, studyName, createdBy = 'system', legacyStudyId = null) {
+        try {
+            const payload = {
+                studyAggregateUuid,
+                studyName,
+                createdBy
+            };
+
+            if (legacyStudyId) {
+                payload.legacyStudyId = legacyStudyId;
+            }
+
+            const response = await ApiService.post('/clinops-ws/api/clinops/study-design', payload);
+            return response.data;
+        } catch (error) {
+            console.error('Error initializing study design:', error);
+            throw error;
+        }
+    }
+
     // General Study Information
     async getStudyById(studyId) {
         try {
@@ -20,8 +49,8 @@ class StudyDesignService {
     // Study Arms Management
     async getStudyArms(studyId) {
         try {
-            // Use API Gateway prefix for Study Design service
-            const response = await ApiService.get(`/study-design-ws/api/studies/${studyId}/arms`);
+            // Use consistent bridge pattern: /api/studies/{id}/arms
+            const response = await ApiService.get(`/api/studies/${studyId}/arms`);
             return response.data;
         } catch (error) {
             console.error('Error fetching study arms:', error);
@@ -31,7 +60,7 @@ class StudyDesignService {
 
     async createStudyArm(studyId, armData) {
         try {
-            const response = await ApiService.post(`/studies/${studyId}/arms`, armData);
+            const response = await ApiService.post(`/api/studies/${studyId}/arms`, armData);
             return response.data;
         } catch (error) {
             console.error('Error creating study arm:', error);
@@ -41,7 +70,7 @@ class StudyDesignService {
 
     async updateStudyArm(armId, updates) {
         try {
-            const response = await ApiService.put(`/arms/${armId}`, updates);
+            const response = await ApiService.put(`/api/arms/${armId}`, updates);
             return response.data;
         } catch (error) {
             console.error('Error updating study arm:', error);
@@ -51,7 +80,7 @@ class StudyDesignService {
 
     async deleteStudyArm(armId) {
         try {
-            await ApiService.delete(`/arms/${armId}`);
+            await ApiService.delete(`/api/arms/${armId}`);
             return { success: true };
         } catch (error) {
             console.error('Error deleting study arm:', error);
@@ -61,7 +90,7 @@ class StudyDesignService {
 
     async saveStudyArms(studyId, armsData) {
         try {
-            const response = await ApiService.put(`/studies/${studyId}/arms`, armsData);
+            const response = await ApiService.put(`/api/studies/${studyId}/arms`, armsData);
             return response.data;
         } catch (error) {
             console.error('Error saving study arms:', error);
@@ -72,7 +101,7 @@ class StudyDesignService {
     // Visit Schedule Management
     async getVisitSchedule(studyId) {
         try {
-            const response = await ApiService.get(`/studies/${studyId}/visits`);
+            const response = await ApiService.get(`/api/studies/${studyId}/visits`);
             return response.data;
         } catch (error) {
             console.error('Error fetching visit schedule:', error);
@@ -82,7 +111,7 @@ class StudyDesignService {
 
     async saveVisitSchedule(studyId, visitData) {
         try {
-            const response = await ApiService.put(`/studies/${studyId}/visits`, visitData);
+            const response = await ApiService.put(`/api/studies/${studyId}/visits`, visitData);
             return response.data;
         } catch (error) {
             console.error('Error saving visit schedule:', error);
@@ -93,7 +122,7 @@ class StudyDesignService {
     // Form Binding Management
     async getFormBindings(studyId) {
         try {
-            const response = await ApiService.get(`/studies/${studyId}/form-bindings`);
+            const response = await ApiService.get(`/api/studies/${studyId}/form-bindings`);
             return response.data;
         } catch (error) {
             console.error('Error fetching form bindings:', error);
@@ -103,7 +132,7 @@ class StudyDesignService {
 
     async saveFormBindings(studyId, bindingData) {
         try {
-            const response = await ApiService.put(`/studies/${studyId}/form-bindings`, bindingData);
+            const response = await ApiService.put(`/api/studies/${studyId}/form-bindings`, bindingData);
             return response.data;
         } catch (error) {
             console.error('Error saving form bindings:', error);
@@ -114,7 +143,7 @@ class StudyDesignService {
     // Study Publishing
     async validateStudyForPublishing(studyId) {
         try {
-            const response = await ApiService.post(`/studies/${studyId}/validate`);
+            const response = await ApiService.post(`/api/studies/${studyId}/validate`);
             return response.data;
         } catch (error) {
             console.error('Error validating study:', error);
@@ -158,17 +187,30 @@ class StudyDesignService {
             return response.data;
         } catch (error) {
             console.error('Error changing study status:', error);
+            console.log('Response headers:', error.response?.headers);
+            console.log('Response data:', error.response?.data);
             
             // Extract meaningful error message from backend response
             let errorMessage = `Failed to change study status to ${newStatus}`;
             
-            if (error.response?.data?.message) {
+            // Priority 1: Check for user-friendly error in custom header
+            if (error.response?.headers?.['x-error-message']) {
+                console.log('Found user-friendly message in header:', error.response.headers['x-error-message']);
+                errorMessage = error.response.headers['x-error-message'];
+            }
+            // Priority 2: Check response body
+            else if (error.response?.data?.message) {
+                console.log('Found message in response body:', error.response.data.message);
                 errorMessage = error.response.data.message;
             } else if (error.response?.data?.error) {
+                console.log('Found error in response body:', error.response.data.error);
                 errorMessage = error.response.data.error;
             } else if (error.message) {
+                console.log('Using generic error message:', error.message);
                 errorMessage = error.message;
             }
+            
+            console.log('Final error message:', errorMessage);
             
             // Create new error with backend message and preserve original error
             const enhancedError = new Error(errorMessage);
@@ -182,7 +224,7 @@ class StudyDesignService {
     // Protocol Revisions
     async getStudyRevisions(studyId) {
         try {
-            const response = await ApiService.get(`/studies/${studyId}/revisions`);
+            const response = await ApiService.get(`/api/studies/${studyId}/revisions`);
             return response.data;
         } catch (error) {
             console.error('Error fetching revisions:', error);
@@ -192,7 +234,7 @@ class StudyDesignService {
 
     async createRevision(studyId, revisionData) {
         try {
-            const response = await ApiService.post(`/studies/${studyId}/revisions`, revisionData);
+            const response = await ApiService.post(`/api/studies/${studyId}/revisions`, revisionData);
             return response.data;
         } catch (error) {
             console.error('Error creating revision:', error);

@@ -11,6 +11,7 @@ export const useStudyForm = (initialData = {}) => {
     studyPhaseId: '', // Changed from 'phase' to match backend expectation
     sponsor: '',
     description: '',
+    organizationId: null,
     
     // Timeline Information
     studyStatusId: '', // Changed from 'status' to match backend expectation
@@ -58,6 +59,10 @@ export const useStudyForm = (initialData = {}) => {
     studyPhaseId: {
       required: true,
       message: 'Study phase is required'
+    },
+    organizationId: {
+      required: true,
+      message: 'Owning organization is required'
     },
     studyStatusId: {
       required: true,
@@ -202,6 +207,7 @@ export const useStudyForm = (initialData = {}) => {
       studyPhaseId: '',
       sponsor: '',
       description: '',
+      organizationId: null,
       studyStatusId: '',
       startDate: '',
       endDate: '',

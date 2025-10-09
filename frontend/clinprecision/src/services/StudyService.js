@@ -1,7 +1,7 @@
 import ApiService from './ApiService';
 
-const API_PATH = '/study-design-ws/api/studies';
-const LOOKUP_API_PATH = '/study-design-ws/api/studies/lookup';
+const API_PATH = '/clinops-ws/api/studies';
+const LOOKUP_API_PATH = '/clinops-ws/api/studies/lookup';
 
 // Mock data for testing when backend is not available
 const MOCK_STUDIES = [

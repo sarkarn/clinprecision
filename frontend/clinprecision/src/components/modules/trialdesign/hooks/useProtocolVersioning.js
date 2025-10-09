@@ -216,15 +216,41 @@ const useProtocolVersioning = (studyId) => {
       setLoading(true);
       clearError();
 
+      // Determine if this is the initial version
+      const isInitialVersion = protocolVersions.length === 0;
+      const amendmentType = versionData.amendmentType || (isInitialVersion ? 'INITIAL' : 'MINOR');
+      
+      // Provide default changesSummary based on amendment type
+      let changesSummary = versionData.changesSummary && versionData.changesSummary.trim() 
+        ? versionData.changesSummary.trim() 
+        : null;
+      
+      // If changesSummary is not provided, create a default based on amendment type
+      if (!changesSummary) {
+        if (isInitialVersion || amendmentType === 'INITIAL') {
+          changesSummary = 'Initial protocol version';
+        } else if (amendmentType === 'MAJOR') {
+          changesSummary = 'Major protocol amendment';
+        } else if (amendmentType === 'MINOR') {
+          changesSummary = 'Minor protocol amendment';
+        } else if (amendmentType === 'SAFETY') {
+          changesSummary = 'Safety-related protocol amendment';
+        } else if (amendmentType === 'ADMINISTRATIVE') {
+          changesSummary = 'Administrative protocol amendment';
+        } else {
+          changesSummary = 'Protocol version update';
+        }
+      }
+      
       const newVersionData = {
         studyId: studyId,
         versionNumber: versionData.versionNumber || generateNextVersionNumber(),
         description: versionData.description || '',
-        amendmentType: versionData.amendmentType || (protocolVersions.length === 0 ? 'MINOR' : 'MINOR'), // Use MINOR instead of INITIAL until backend supports it
-        amendmentReason: versionData.amendmentReason && versionData.amendmentReason.trim() ? versionData.amendmentReason.trim() : null, // Send null instead of empty string
-        changesSummary: versionData.changesSummary && versionData.changesSummary.trim() ? versionData.changesSummary.trim() : null, // Send null instead of empty string
+        amendmentType: amendmentType,
+        amendmentReason: versionData.amendmentReason && versionData.amendmentReason.trim() ? versionData.amendmentReason.trim() : null,
+        changesSummary: changesSummary, // Now always has a value when amendmentType is set
         effectiveDate: versionData.effectiveDate || null,
-        requiresRegulatoryApproval: versionData.requiresRegulatoryApproval || false,
+        requiresRegulatoryApproval: versionData.requiresRegulatoryApproval !== false, // Default to true
         notifyStakeholders: versionData.notifyStakeholders !== false, // Default true
         status: 'DRAFT',
         createdBy: 1 // TODO: Get from auth context
@@ -251,7 +277,11 @@ const useProtocolVersioning = (studyId) => {
       setLoading(true);
       clearError();
 
-      await StudyVersioningService.updateVersionStatus(versionId, 'UNDER_REVIEW');
+      await StudyVersioningService.updateVersionStatus(
+        versionId, 
+        'UNDER_REVIEW',
+        'Submitted for internal review'
+      );
       await reloadVersions();
       
     } catch (error) {
@@ -269,7 +299,11 @@ const useProtocolVersioning = (studyId) => {
       setLoading(true);
       clearError();
 
-      await StudyVersioningService.updateVersionStatus(versionId, 'APPROVED');
+      await StudyVersioningService.updateVersionStatus(
+        versionId, 
+        'APPROVED',
+        'Protocol version approved'
+      );
       await reloadVersions();
       
     } catch (error) {
@@ -287,7 +321,11 @@ const useProtocolVersioning = (studyId) => {
       setLoading(true);
       clearError();
 
-      await StudyVersioningService.updateVersionStatus(versionId, 'ACTIVE');
+      await StudyVersioningService.updateVersionStatus(
+        versionId, 
+        'ACTIVE',
+        'Protocol version activated for use in trial'
+      );
       await reloadVersions();
       
     } catch (error) {

@@ -6,6 +6,57 @@ import VisitDefinitionService from '../../../../services/VisitDefinitionService'
 import StudyService from '../../../../services/StudyService';
 import StudyDesignService from '../../../../services/StudyDesignService';
 
+const DEFAULT_VISIT_TYPE = 'TREATMENT';
+
+const toNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const transformVisitResponse = (visit) => {
+    if (!visit) {
+        return null;
+    }
+
+    const visitId = visit.visitId || visit.id || visit.aggregateUuid || null;
+    const sequenceNumber = visit.sequenceNumber ?? null;
+    const timepoint = toNumber(visit.timepoint, 0);
+    const windowBefore = toNumber(visit.windowBefore, 0);
+    const windowAfter = toNumber(visit.windowAfter, 0);
+
+    const windowStart = timepoint - windowBefore;
+    const windowEnd = timepoint + windowAfter;
+
+    const resolvedName = (visit.name && visit.name.trim().length > 0)
+        ? visit.name
+        : sequenceNumber != null
+            ? `Visit ${sequenceNumber}`
+            : 'Visit';
+
+    return {
+        id: visitId ? String(visitId) : null,
+        name: resolvedName,
+        type: (visit.visitType || DEFAULT_VISIT_TYPE).toUpperCase(),
+        window: {
+            days: [windowStart, windowEnd],
+            description: visit.description || ''
+        },
+        isRequired: visit.isRequired !== false,
+        forms: visit.visitForms || [],
+        armId: visit.armId || null,
+        studyId: visit.studyId || null,
+        sequenceNumber,
+        timepoint,
+        windowBefore,
+        windowAfter,
+        createdAt: visit.createdAt || null,
+        updatedAt: visit.updatedAt || null
+    };
+};
+
+const transformVisitCollection = (visits = []) =>
+    visits.map(transformVisitResponse).filter(Boolean);
+
 /**
  * Visit Schedule Designer Component
  * Manages study visits and timeline (procedures managed separately)
@@ -23,59 +74,58 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     const [errors, setErrors] = useState([]);
     const [isDirty, setIsDirty] = useState(false);
 
+    const refreshVisits = async ({ targetVisitId } = {}) => {
+        try {
+            const visitsData = await VisitDefinitionService.getVisitsByStudy(studyId);
+            console.log('Raw visits data from backend:', visitsData); // Debug log
+
+            const transformedVisits = transformVisitCollection(visitsData);
+            setVisits(transformedVisits);
+
+            if (!transformedVisits.length) {
+                setSelectedVisit(null);
+                return transformedVisits;
+            }
+
+            const preferredId = targetVisitId != null
+                ? String(targetVisitId)
+                : selectedVisit?.id != null
+                    ? String(selectedVisit.id)
+                    : null;
+
+            const nextSelected = preferredId
+                ? transformedVisits.find((visit) => String(visit.id) === preferredId) || transformedVisits[0]
+                : transformedVisits[0];
+
+            setSelectedVisit(nextSelected);
+            return transformedVisits;
+        } catch (error) {
+            console.error('Error refreshing visits:', error);
+            throw error;
+        }
+    };
+
     // Load study data
     useEffect(() => {
         loadStudyData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [studyId]);
 
     const loadStudyData = async () => {
         try {
             setLoading(true);
 
-            // Load actual data from backend APIs
-            const [studyData, visitsData] = await Promise.all([
-                StudyService.getStudyById(studyId),
-                VisitDefinitionService.getVisitsByStudy(studyId)
-            ]);
-
-            console.log('Raw visits data from backend:', visitsData); // Debug log
+            // Load study data first 
+            const studyData = await StudyService.getStudyById(studyId);
+            console.log('Study data loaded:', studyData); // Debug log
 
             setStudy(studyData);
-
-            // Transform backend visit data to frontend format
-            const transformedVisits = (visitsData || []).map(visit => ({
-                id: visit.id,
-                name: visit.name || `Visit ${visit.sequenceNumber || ''}`,
-                type: (visit.visitType || 'TREATMENT').toUpperCase(), // Convert to uppercase for frontend
-                window: {
-                    days: [
-                        (visit.timepoint || 0) - (visit.windowBefore || 0),
-                        (visit.timepoint || 0) + (visit.windowAfter || 0)
-                    ],
-                    description: visit.description || ''
-                },
-                isRequired: visit.isRequired !== false,
-                forms: visit.visitForms || [],
-                armId: visit.armId,
-                studyId: visit.studyId,
-                sequenceNumber: visit.sequenceNumber,
-                timepoint: visit.timepoint,
-                windowBefore: visit.windowBefore,
-                windowAfter: visit.windowAfter,
-                createdAt: visit.createdAt,
-                updatedAt: visit.updatedAt
-            }));
-
-            setVisits(transformedVisits);
-
-            if (transformedVisits && transformedVisits.length > 0) {
-                setSelectedVisit(transformedVisits[0]);
-            }
-
-            setLoading(false);
+            await refreshVisits();
+            setErrors([]);
         } catch (error) {
             console.error('Error loading visit schedule:', error);
             setErrors(['Failed to load visit schedule data']);
+        } finally {
             setLoading(false);
         }
     };
@@ -83,49 +133,38 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     // Add new visit
     const handleAddVisit = async () => {
         try {
+            if (!studyId) {
+                throw new Error('Study ID not available');
+            }
+
+            // Find the highest sequence number among existing visits to avoid name collisions
+            const maxSequence = visits.length > 0
+                ? Math.max(...visits.map(v => v.sequenceNumber || 0))
+                : 0;
+            const nextSequence = maxSequence + 1;
+
             const newVisitData = {
-                name: `Visit ${visits.length + 1}`,
+                name: `Visit ${nextSequence}`,
                 visitType: 'TREATMENT',
                 timepoint: 7 * visits.length,
                 windowBefore: 0,
                 windowAfter: 3,
                 description: '',
-                isRequired: true,
-                studyId: parseInt(studyId)
+                isRequired: true
             };
 
             // Create visit without arm association initially
             // The user can associate it with specific arms later if needed
             const createdVisit = await VisitDefinitionService.createVisit(studyId, null, newVisitData);
+            const newVisitId = createdVisit?.visitId || createdVisit?.id || null;
 
-            // Transform to frontend format
-            const transformedVisit = {
-                id: createdVisit.id,
-                name: createdVisit.name || `Visit ${createdVisit.sequenceNumber || ''}`,
-                type: (createdVisit.visitType || 'TREATMENT').toUpperCase(), // Convert to uppercase for frontend
-                window: {
-                    days: [
-                        (createdVisit.timepoint || 0) - (createdVisit.windowBefore || 0),
-                        (createdVisit.timepoint || 0) + (createdVisit.windowAfter || 0)
-                    ],
-                    description: createdVisit.description || ''
-                },
-                isRequired: createdVisit.isRequired !== false,
-                forms: [],
-                armId: createdVisit.armId,
-                studyId: createdVisit.studyId,
-                sequenceNumber: createdVisit.sequenceNumber,
-                timepoint: createdVisit.timepoint,
-                windowBefore: createdVisit.windowBefore,
-                windowAfter: createdVisit.windowAfter,
-                createdAt: createdVisit.createdAt,
-                updatedAt: createdVisit.updatedAt
-            };
+            // Small delay to allow event sourcing aggregate to process the VisitDefinedEvent
+            // This prevents race conditions when immediately trying to delete/update the visit
+            await new Promise(resolve => setTimeout(resolve, 500));
 
-            const updatedVisits = [...visits, transformedVisit];
-            setVisits(updatedVisits);
-            setSelectedVisit(transformedVisit);
+            await refreshVisits({ targetVisitId: newVisitId });
             setIsDirty(true);
+            setErrors([]);
         } catch (error) {
             console.error('Error creating visit:', error);
             setErrors(['Failed to create visit']);
@@ -135,6 +174,14 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     // Update visit
     const handleUpdateVisit = async (visitId, updates) => {
         try {
+            if (!studyId) {
+                throw new Error('Study ID not available');
+            }
+
+            if (!visitId) {
+                throw new Error('Visit ID not available');
+            }
+
             // Find the current visit to merge with updates
             const currentVisit = visits.find(v => v.id === visitId);
             if (!currentVisit) {
@@ -145,7 +192,6 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
             const backendUpdates = {
                 // Include all required fields from current visit
                 id: currentVisit.id,
-                studyId: parseInt(studyId),
                 name: updates.name !== undefined ? updates.name : currentVisit.name,
                 visitType: updates.type !== undefined ? updates.type : currentVisit.type,
                 isRequired: updates.isRequired !== undefined ? updates.isRequired : currentVisit.isRequired,
@@ -154,7 +200,9 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
                 // Default timepoint from current visit
                 timepoint: currentVisit.timepoint || 0,
                 windowBefore: currentVisit.windowBefore || 0,
-                windowAfter: currentVisit.windowAfter || 0
+                windowAfter: currentVisit.windowAfter || 0,
+                // Include updatedBy for audit trail (use user ID 1 as default for now)
+                updatedBy: 1
             };
 
             // Apply window updates if provided
@@ -183,42 +231,10 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
             console.log('Updates requested:', updates); // Debug log
             console.log('Sending backend updates:', backendUpdates); // Debug log
 
-            const updatedVisit = await VisitDefinitionService.updateVisit(studyId, visitId, backendUpdates);
-
-            console.log('Backend response:', updatedVisit); // Debug log
-
-            // Transform the response back to frontend format
-            const transformedVisit = {
-                id: updatedVisit.id,
-                name: updatedVisit.name || `Visit ${updatedVisit.sequenceNumber || ''}`,
-                type: (updatedVisit.visitType || 'TREATMENT').toUpperCase(), // Convert to uppercase for frontend
-                window: {
-                    days: [
-                        (updatedVisit.timepoint || 0) - (updatedVisit.windowBefore || 0),
-                        (updatedVisit.timepoint || 0) + (updatedVisit.windowAfter || 0)
-                    ],
-                    description: updatedVisit.description || ''
-                },
-                isRequired: updatedVisit.isRequired !== false,
-                forms: updatedVisit.visitForms || [],
-                armId: updatedVisit.armId,
-                studyId: updatedVisit.studyId,
-                sequenceNumber: updatedVisit.sequenceNumber,
-                timepoint: updatedVisit.timepoint,
-                windowBefore: updatedVisit.windowBefore,
-                windowAfter: updatedVisit.windowAfter,
-                createdAt: updatedVisit.createdAt,
-                updatedAt: updatedVisit.updatedAt
-            };
-
-            const updatedVisits = visits.map(visit =>
-                visit.id === visitId ? transformedVisit : visit
-            );
-            setVisits(updatedVisits);
-            if (selectedVisit && selectedVisit.id === visitId) {
-                setSelectedVisit(transformedVisit);
-            }
+            await VisitDefinitionService.updateVisit(studyId, visitId, backendUpdates);
+            await refreshVisits({ targetVisitId: visitId });
             setIsDirty(true);
+            setErrors([]);
         } catch (error) {
             console.error('Error updating visit:', error);
             setErrors(['Failed to update visit']);
@@ -229,16 +245,31 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     const handleDeleteVisit = async (visitId) => {
         if (window.confirm('Are you sure you want to delete this visit? This action cannot be undone.')) {
             try {
-                await VisitDefinitionService.deleteVisit(studyId, visitId);
-                const updatedVisits = visits.filter(visit => visit.id !== visitId);
-                setVisits(updatedVisits);
-                if (selectedVisit && selectedVisit.id === visitId) {
-                    setSelectedVisit(updatedVisits.length > 0 ? updatedVisits[0] : null);
+                if (!studyId) {
+                    throw new Error('Study ID not available');
                 }
+
+                if (!visitId) {
+                    throw new Error('Visit ID not available');
+                }
+
+                await VisitDefinitionService.deleteVisit(studyId, visitId);
+                await refreshVisits();
                 setIsDirty(true);
+                setErrors([]);
             } catch (error) {
                 console.error('Error deleting visit:', error);
-                setErrors(['Failed to delete visit']);
+
+                // Check if this is an "entity not found" error (race condition)
+                const errorMsg = error?.response?.data?.message || error?.message || '';
+                if (errorMsg.includes('does not exist') || errorMsg.includes('not found')) {
+                    setErrors([
+                        'The visit was just created and the system is still processing it. ' +
+                        'Please wait a moment and try again.'
+                    ]);
+                } else {
+                    setErrors(['Failed to delete visit. Please try again.']);
+                }
             }
         }
     };

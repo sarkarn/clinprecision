@@ -1,0 +1,76 @@
+package com.clinprecision.clinopsservice.dto;
+
+import com.clinprecision.clinopsservice.dto.VisitFormDto;
+import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * DTO for Visit Definition data transfer
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class VisitDefinitionDto {
+
+    private Long id;
+
+    @NotNull(message = "Study ID is required")
+    private Long studyId;
+
+    private Long armId; // Optional arm-specific visits
+
+    @NotBlank(message = "Visit name is required")
+    private String name;
+
+    private String description;
+
+    @NotNull(message = "Timepoint is required")
+    private Integer timepoint; // Days from baseline
+
+    @Min(value = 0, message = "Window before must be non-negative")
+    @Builder.Default
+    private Integer windowBefore = 0;
+
+    @Min(value = 0, message = "Window after must be non-negative")
+    @Builder.Default
+    private Integer windowAfter = 0;
+
+    @NotNull(message = "Visit type is required")
+    @Builder.Default
+    private VisitDefinitionEntity.VisitType visitType = VisitDefinitionEntity.VisitType.TREATMENT;
+
+    @Builder.Default
+    private Boolean isRequired = true;
+
+    private Integer sequenceNumber;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
+    // Associated forms (populated when needed)
+    private List<VisitFormDto> visitForms;
+
+    // Helper method to get visit window description
+    public String getWindowDescription() {
+        if (windowBefore == 0 && windowAfter == 0) {
+            return "Day " + timepoint;
+        } else if (windowBefore.equals(windowAfter)) {
+            return "Day " + timepoint + " ± " + windowBefore + " days";
+        } else {
+            return "Day " + (timepoint - windowBefore) + " to " + (timepoint + windowAfter);
+        }
+    }
+}
+
+

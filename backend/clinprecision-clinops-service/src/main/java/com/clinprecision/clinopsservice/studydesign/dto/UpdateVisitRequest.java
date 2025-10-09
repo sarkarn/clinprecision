@@ -1,0 +1,24 @@
+package com.clinprecision.clinopsservice.studydesign.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * Request DTO for updating a visit
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateVisitRequest {
+    
+    private String name;
+    private String description;
+    private Integer timepoint;
+    private Integer windowBefore;
+    private Integer windowAfter;
+    private Boolean isRequired;
+    private Long updatedBy;
+}

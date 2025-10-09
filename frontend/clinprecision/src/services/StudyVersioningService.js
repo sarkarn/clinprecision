@@ -1,4 +1,4 @@
-﻿import ApiService from './ApiService';
+import ApiService from './ApiService';
 
 /**
  * Study Versioning & Amendments Service
@@ -61,9 +61,13 @@ class StudyVersioningService {
     /**
      * Update version status
      */
-    static async updateVersionStatus(versionId, status) {
+    static async updateVersionStatus(versionId, status, reason = null) {
         try {
-            const response = await ApiService.put(`/api/study-versions/${versionId}/status`, { status });
+            const payload = { status };
+            if (reason) {
+                payload.reason = reason;
+            }
+            const response = await ApiService.put(`/api/study-versions/${versionId}/status`, payload);
             return response.data;
         } catch (error) {
             console.error('Error updating version status:', error);

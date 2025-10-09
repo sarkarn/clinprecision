@@ -31,7 +31,7 @@ export const PatientEnrollmentService = {
 
       console.log('[PATIENT_SERVICE] Registering patient:', patientData);
       
-      const response = await ApiService.post('/datacapture-ws/api/v1/patients', patientData);
+      const response = await ApiService.post('/clinops-ws/api/v1/patients', patientData);
       
       console.log('[PATIENT_SERVICE] Patient registration response:', response.data);
       return response.data;
@@ -49,7 +49,7 @@ export const PatientEnrollmentService = {
     try {
       console.log('[PATIENT_SERVICE] Fetching all patients');
       
-      const response = await ApiService.get('/datacapture-ws/api/v1/patients');
+      const response = await ApiService.get('/clinops-ws/api/v1/patients');
       
       console.log('[PATIENT_SERVICE] Found patients:', response.data.length);
       return response.data;
@@ -68,7 +68,7 @@ export const PatientEnrollmentService = {
     try {
       console.log('[PATIENT_SERVICE] Fetching patient by ID:', patientId);
       
-      const response = await ApiService.get(`/datacapture-ws/api/v1/patients/${patientId}`);
+      const response = await ApiService.get(`/clinops-ws/api/v1/patients/${patientId}`);
       
       console.log('[PATIENT_SERVICE] Found patient:', response.data.id);
       return response.data;
@@ -87,7 +87,7 @@ export const PatientEnrollmentService = {
     try {
       console.log('[PATIENT_SERVICE] Fetching patient by UUID:', aggregateUuid);
       
-      const response = await ApiService.get(`/datacapture-ws/api/v1/patients/uuid/${aggregateUuid}`);
+      const response = await ApiService.get(`/clinops-ws/api/v1/patients/uuid/${aggregateUuid}`);
       
       console.log('[PATIENT_SERVICE] Found patient by UUID:', response.data.id);
       return response.data;
@@ -110,7 +110,7 @@ export const PatientEnrollmentService = {
 
       console.log('[PATIENT_SERVICE] Searching patients by name:', searchTerm);
       
-      const response = await ApiService.get(`/datacapture-ws/api/v1/patients/search?name=${encodeURIComponent(searchTerm)}`);
+      const response = await ApiService.get(`/clinops-ws/api/v1/patients/search?name=${encodeURIComponent(searchTerm)}`);
       
       console.log('[PATIENT_SERVICE] Found matching patients:', response.data.length);
       return response.data;
@@ -128,7 +128,7 @@ export const PatientEnrollmentService = {
     try {
       console.log('[PATIENT_SERVICE] Fetching patient count');
       
-      const response = await ApiService.get('/datacapture-ws/api/v1/patients/count');
+      const response = await ApiService.get('/clinops-ws/api/v1/patients/count');
       
       console.log('[PATIENT_SERVICE] Patient count:', response.data);
       return response.data;
@@ -328,7 +328,7 @@ export const PatientEnrollmentService = {
    */
   checkHealth: async () => {
     try {
-      const response = await ApiService.get('/datacapture-ws/api/v1/patients/health');
+      const response = await ApiService.get('/clinops-ws/api/v1/patients/health');
       return response.data;
     } catch (error) {
       console.error('[PATIENT_SERVICE] Health check failed:', error);

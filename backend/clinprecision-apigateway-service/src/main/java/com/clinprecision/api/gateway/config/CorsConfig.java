@@ -28,6 +28,9 @@ public class CorsConfig {
         config.addExposedHeader("Authorization");
         config.addExposedHeader("token");
         config.addExposedHeader("userId");
+        
+        // Expose custom error message header for user-friendly error handling
+        config.addExposedHeader("X-Error-Message");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
