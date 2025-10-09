@@ -157,12 +157,35 @@ const StudyDesignDashboard = () => {
                 // BUGFIX: If basic-info is not in progress data or not marked as completed,
                 // mark it as completed since the study exists (study creation = basic info complete)
                 if (!progressData['basic-info'] || !progressData['basic-info'].completed) {
+                    console.log('Basic-info phase not marked complete, auto-completing and saving...');
+
+                    // Format date for LocalDateTime (no timezone, no milliseconds)
+                    const now = new Date();
+                    const localDateTime = now.getFullYear() + '-' +
+                        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(now.getDate()).padStart(2, '0') + 'T' +
+                        String(now.getHours()).padStart(2, '0') + ':' +
+                        String(now.getMinutes()).padStart(2, '0') + ':' +
+                        String(now.getSeconds()).padStart(2, '0');
+
                     progressData['basic-info'] = {
                         completed: true,
                         percentage: 100,
                         phase: 'basic-info',
-                        lastUpdated: new Date().toISOString()
+                        lastUpdated: localDateTime
                     };
+
+                    // Persist to backend
+                    try {
+                        await StudyDesignService.updateDesignProgress(studyId, {
+                            progressData: {
+                                'basic-info': progressData['basic-info']
+                            }
+                        });
+                        console.log('Basic-info phase auto-completion saved to backend');
+                    } catch (saveError) {
+                        console.error('Failed to save basic-info completion:', saveError);
+                    }
                 }
 
                 setDesignProgress(progressData);

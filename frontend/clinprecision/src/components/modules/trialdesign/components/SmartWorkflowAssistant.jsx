@@ -31,6 +31,15 @@ const SmartWorkflowAssistant = ({
     const [activeTab, setActiveTab] = useState('suggestions');
     const [dismissedTips, setDismissedTips] = useState(new Set());
 
+    // Force re-render when completedPhases changes
+    useEffect(() => {
+        console.log('SmartWorkflowAssistant - Props updated:', {
+            currentPhase,
+            completedPhasesLength: completedPhases?.length,
+            completedPhases
+        });
+    }, [currentPhase, completedPhases]);
+
     // Phase-specific guidance data
     const phaseGuidance = {
         'basic-info': {
@@ -217,6 +226,13 @@ const SmartWorkflowAssistant = ({
 
         // Check if current phase is completed
         const isCurrentPhaseCompleted = completedPhases.includes(currentPhase);
+
+        console.log('SmartWorkflowAssistant - getSmartSuggestions:', {
+            currentPhase,
+            completedPhases,
+            isCurrentPhaseCompleted,
+            designProgress
+        });
 
         if (!isCurrentPhaseCompleted) {
             // Current phase not completed - suggest completing it
