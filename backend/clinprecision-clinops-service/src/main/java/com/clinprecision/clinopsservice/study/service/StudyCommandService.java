@@ -48,7 +48,7 @@ public class StudyCommandService {
     private final StudyQueryService studyQueryService;
     private final StudyInterventionRepository interventionRepository;
     private final StudyRandomizationStrategyRepository randomizationStrategyRepository;
-    // TODO: Inject SecurityService to get current user context
+    private final com.clinprecision.clinopsservice.security.SecurityService securityService;
     // private final SecurityService securityService;
     
     /**
@@ -63,11 +63,10 @@ public class StudyCommandService {
     public UUID createStudy(StudyCreateRequestDto request) {
         log.info("Creating study: {}", request.getName());
         
-        // TODO: Get current user from security context
-        // UUID userId = securityService.getCurrentUserId();
-        // String userName = securityService.getCurrentUserName();
-        UUID userId = UUID.randomUUID(); // Temporary - replace with actual user
-        String userName = "system"; // Temporary - replace with actual user
+        // Get current user from security context
+        UUID userId = securityService.getCurrentUserId();
+        String userName = securityService.getCurrentUserName();
+        log.debug("Creating study as user: {} ({})", userName, userId);
         
         CreateStudyCommand command = commandMapper.toCreateCommand(request, userId, userName);
         
@@ -98,9 +97,10 @@ public class StudyCommandService {
         // Validate modification allowed in current status
         validationService.validateStudyModification(studyUuid);
         
-        // TODO: Get current user from security context
-        UUID userId = UUID.randomUUID(); // Temporary
-        String userName = "system"; // Temporary
+        // Get current user from security context
+        UUID userId = securityService.getCurrentUserId();
+        String userName = securityService.getCurrentUserName();
+        log.debug("Updating study as user: {} ({})", userName, userId);
         
         UpdateStudyCommand command = commandMapper.toUpdateCommand(studyUuid, request, userId, userName);
         
@@ -131,9 +131,9 @@ public class StudyCommandService {
         // Validate cross-entity dependencies BEFORE sending command
         validationService.validateStatusTransition(studyUuid, "SUSPENDED");
         
-        // TODO: Get current user from security context
-        UUID userId = UUID.randomUUID(); // Temporary
-        String userName = "system"; // Temporary
+        // Get current user from security context
+        UUID userId = securityService.getCurrentUserId();
+        String userName = securityService.getCurrentUserName();
         
         SuspendStudyCommand command = commandMapper.toSuspendCommand(studyUuid, request, userId, userName);
         
@@ -160,9 +160,9 @@ public class StudyCommandService {
         // Validate cross-entity dependencies BEFORE sending command
         validationService.validateStatusTransition(studyUuid, "TERMINATED");
         
-        // TODO: Get current user from security context
-        UUID userId = UUID.randomUUID(); // Temporary
-        String userName = "system"; // Temporary
+        // Get current user from security context
+        UUID userId = securityService.getCurrentUserId();
+        String userName = securityService.getCurrentUserName();
         
         TerminateStudyCommand command = commandMapper.toTerminateCommand(studyUuid, request, userId, userName);
         
@@ -189,9 +189,9 @@ public class StudyCommandService {
         // Validate cross-entity dependencies BEFORE sending command
         validationService.validateStatusTransition(studyUuid, "WITHDRAWN");
         
-        // TODO: Get current user from security context
-        UUID userId = UUID.randomUUID(); // Temporary
-        String userName = "system"; // Temporary
+        // Get current user from security context
+        UUID userId = securityService.getCurrentUserId();
+        String userName = securityService.getCurrentUserName();
         
         WithdrawStudyCommand command = commandMapper.toWithdrawCommand(studyUuid, request, userId, userName);
         
@@ -217,9 +217,9 @@ public class StudyCommandService {
         // Validate cross-entity dependencies BEFORE sending command
         validationService.validateStatusTransition(studyUuid, "COMPLETED");
         
-        // TODO: Get current user from security context
-        UUID userId = UUID.randomUUID(); // Temporary
-        String userName = "system"; // Temporary
+        // Get current user from security context
+        UUID userId = securityService.getCurrentUserId();
+        String userName = securityService.getCurrentUserName();
         
         CompleteStudyCommand command = commandMapper.toCompleteCommand(studyUuid, userId, userName);
         
@@ -258,9 +258,10 @@ public class StudyCommandService {
         // Validate cross-entity dependencies BEFORE sending command
         validationService.validateStatusTransition(studyUuid, newStatusString);
         
-        // TODO: Get current user from security context
-        UUID userId = UUID.randomUUID(); // Temporary
-        String userName = "system"; // Temporary
+        // Get current user from security context
+        UUID userId = securityService.getCurrentUserId();
+        String userName = securityService.getCurrentUserName();
+        log.debug("Changing study status as user: {} ({})", userName, userId);
         
         ChangeStudyStatusCommand command = ChangeStudyStatusCommand.builder()
             .studyAggregateUuid(studyUuid)
