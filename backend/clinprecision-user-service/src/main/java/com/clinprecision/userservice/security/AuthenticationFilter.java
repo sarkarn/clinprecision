@@ -81,6 +81,7 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 		res.addHeader("userNumericId", String.valueOf(userDetails.getId())); // Long numeric ID
 		res.addHeader("userEmail", userName);
 		res.addHeader("userRole", userRole);
+        res.addHeader("userName", userDetails.getFirstName()+" "+userDetails.getLastName());
 		
 		// Add Access-Control-Expose-Headers to make custom headers available to the client
 		res.addHeader("Access-Control-Expose-Headers", "token, userId, userNumericId, userEmail, userRole");

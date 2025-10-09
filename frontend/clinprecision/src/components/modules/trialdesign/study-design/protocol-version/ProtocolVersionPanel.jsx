@@ -330,8 +330,8 @@ const ProtocolVersionPanel = ({
                                 <ProtocolVersionQuickActions
                                     version={currentProtocolVersion}
                                     onSubmitReview={onSubmitReview}
-                                    onApproveVersion={onApproveVersion}
-                                    onActivateVersion={onActivateVersion}
+                                    onApprove={onApproveVersion}
+                                    onActivate={onActivateVersion}
                                     onCreateAmendment={onCreateVersion}
                                     onView={onManageVersions}
                                     canApprove={true}

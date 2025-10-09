@@ -24,6 +24,7 @@ const ProtocolVersionManagementModal = ({
     onClose,
     studyId,
     studyName = '',
+    studyStatus = null,
     mode = 'manage', // 'manage' | 'create' | 'edit' | 'view'
     initialVersionId = null,
     onVersionCreated,
@@ -309,6 +310,7 @@ const ProtocolVersionManagementModal = ({
 
                                                     <ProtocolVersionActions
                                                         version={selectedVersion}
+                                                        studyStatus={studyStatus}
                                                         onEdit={handleEditVersion}
                                                         onSubmitReview={handleSubmitForReview}
                                                         onApprove={handleApproveVersion}
@@ -320,6 +322,24 @@ const ProtocolVersionManagementModal = ({
                                                         canActivate={true}
                                                         loading={loading}
                                                     />
+
+                                                    {/* Workflow guidance message */}
+                                                    {selectedVersion.status === 'APPROVED' &&
+                                                        studyStatus !== 'APPROVED' &&
+                                                        studyStatus !== 'ACTIVE' && (
+                                                            <div className="mt-4 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                                                <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                                                <div>
+                                                                    <p className="text-sm font-medium text-amber-900 mb-1">
+                                                                        Study Approval Required
+                                                                    </p>
+                                                                    <p className="text-sm text-amber-700">
+                                                                        This protocol version has been approved, but the study must be approved before the protocol can be activated.
+                                                                        Navigate to the <strong>Publish Study</strong> phase and click <strong>Approve Study</strong> to proceed.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                 </div>
                                             )}
 

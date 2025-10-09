@@ -169,12 +169,25 @@ const ProtocolManagementDashboard = () => {
                 break;
 
             case 'APPROVED':
-                actions.push({
-                    label: 'Activate',
-                    icon: CheckCircle,
-                    onClick: () => handleActivateVersion(version.id),
-                    variant: 'primary'
-                });
+                // Check if study is approved or active before allowing activation
+                const studyApproved = study?.studyStatus?.code === 'APPROVED' || study?.studyStatus?.code === 'ACTIVE';
+                if (studyApproved) {
+                    actions.push({
+                        label: 'Activate',
+                        icon: CheckCircle,
+                        onClick: () => handleActivateVersion(version.id),
+                        variant: 'primary'
+                    });
+                } else {
+                    actions.push({
+                        label: 'Activate',
+                        icon: AlertTriangle,
+                        onClick: () => { },
+                        variant: 'outline',
+                        disabled: true,
+                        tooltip: 'Study must be approved before protocol version can be activated'
+                    });
+                }
                 break;
 
             case 'ACTIVE':
@@ -443,7 +456,7 @@ const ProtocolManagementDashboard = () => {
                                             <div className="flex items-center space-x-2">
                                                 {actions.map((action, index) => {
                                                     const ActionIcon = action.icon;
-                                                    const baseClasses = "inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md";
+                                                    const baseClasses = "inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed";
                                                     const variantClasses = {
                                                         primary: "text-white bg-blue-600 hover:bg-blue-700",
                                                         outline: "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50",
@@ -454,7 +467,9 @@ const ProtocolManagementDashboard = () => {
                                                         <button
                                                             key={index}
                                                             onClick={action.onClick}
+                                                            disabled={action.disabled}
                                                             className={`${baseClasses} ${variantClasses[action.variant] || variantClasses.outline}`}
+                                                            title={action.tooltip || action.label}
                                                         >
                                                             <ActionIcon className="h-4 w-4 mr-1.5" />
                                                             {action.label}
@@ -485,6 +500,7 @@ const ProtocolManagementDashboard = () => {
                 isOpen={showVersionModal}
                 studyId={studyId}
                 studyName={study?.name}
+                studyStatus={study?.studyStatus?.code}
                 initialVersionId={selectedVersionId}
                 onClose={() => {
                     setShowVersionModal(false);

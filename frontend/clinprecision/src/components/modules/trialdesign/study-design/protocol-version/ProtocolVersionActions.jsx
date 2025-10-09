@@ -18,6 +18,7 @@ import {
  */
 const ProtocolVersionActions = ({
     version,
+    studyStatus = null,
     onEdit,
     onSubmitReview,
     onApprove,
@@ -99,14 +100,30 @@ const ProtocolVersionActions = ({
 
             case 'APPROVED':
                 if (canActivate || statusInfo?.canActivate) {
-                    actions.push({
-                        key: 'activate',
-                        label: 'Activate',
-                        icon: Play,
-                        onClick: onActivate,
-                        variant: 'primary',
-                        confirmMessage: 'Are you sure you want to activate this protocol version? This will supersede the current active version.'
-                    });
+                    // Check if study is approved or active
+                    const studyApproved = studyStatus === 'APPROVED' || studyStatus === 'ACTIVE';
+
+                    if (studyApproved) {
+                        actions.push({
+                            key: 'activate',
+                            label: 'Activate',
+                            icon: Play,
+                            onClick: onActivate,
+                            variant: 'primary',
+                            confirmMessage: 'Are you sure you want to activate this protocol version? This will supersede the current active version.'
+                        });
+                    } else {
+                        // Show disabled button with tooltip
+                        actions.push({
+                            key: 'activate-disabled',
+                            label: 'Activate',
+                            icon: AlertTriangle,
+                            onClick: null,
+                            variant: 'secondary',
+                            disabled: true,
+                            tooltip: 'Study must be approved before protocol version can be activated'
+                        });
+                    }
                 }
                 break;
 
@@ -171,14 +188,15 @@ const ProtocolVersionActions = ({
             {actions.map((action) => {
                 const Icon = action.icon;
                 const isLoading = loading;
+                const isDisabled = action.disabled || isLoading;
 
                 return (
                     <button
                         key={action.key}
-                        onClick={() => handleActionClick(action)}
-                        disabled={isLoading}
+                        onClick={() => !isDisabled && handleActionClick(action)}
+                        disabled={isDisabled}
                         className={getButtonStyle(action.variant, compact)}
-                        title={action.label}
+                        title={action.tooltip || action.label}
                     >
                         <Icon className={`${compact ? 'h-3 w-3' : 'h-4 w-4'} ${compact || action.always ? '' : 'mr-2'}`} />
                         {!compact && <span>{action.label}</span>}

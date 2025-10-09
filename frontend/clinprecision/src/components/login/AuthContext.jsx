@@ -13,6 +13,7 @@ export function AuthProvider({ children }) {
     const userNumericId = localStorage.getItem('userNumericId');
     const userEmail = localStorage.getItem('userEmail');
     const userRole = localStorage.getItem('userRole');
+    const userName = localStorage.getItem('userName');
 
     // Only restore user if we have valid authentication data
     if (token && userId && userEmail && userRole) {
@@ -21,7 +22,8 @@ export function AuthProvider({ children }) {
         role: userRole,
         userId, // String username
         userNumericId, // Long numeric ID
-        token
+        token,
+        name: userName || userEmail // User's display name
       });
     } else {
       // Clear invalid/incomplete session data
@@ -30,6 +32,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('userNumericId');
       localStorage.removeItem('userEmail');
       localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
       localStorage.removeItem('tokenExpiration');
     }
 
@@ -59,6 +62,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('userNumericId');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
     localStorage.removeItem('tokenExpiration');
   };
 
