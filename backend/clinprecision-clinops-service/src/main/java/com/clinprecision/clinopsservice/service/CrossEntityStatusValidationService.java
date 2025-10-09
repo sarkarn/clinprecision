@@ -51,10 +51,10 @@ public class CrossEntityStatusValidationService {
 
         // Get related entities - Use UUID-based queries for DDD aggregates
         List<ProtocolVersionEntity> versions;
-        if (study.getStudyAggregateUuid() != null) {
+        if (study.getAggregateUuid() != null) {
             // DDD approach: Use aggregate UUID
-            logger.debug("Using UUID-based query for protocol versions: {}", study.getStudyAggregateUuid());
-            versions = studyVersionRepository.findByStudyAggregateUuid(study.getStudyAggregateUuid());
+            logger.debug("Using UUID-based query for protocol versions: {}", study.getAggregateUuid());
+            versions = studyVersionRepository.findByStudyAggregateUuid(study.getAggregateUuid());
         } else {
             // Fallback to legacy ID for non-migrated studies
             logger.warn("Study {} has no aggregate UUID, using legacy ID query", study.getId());
