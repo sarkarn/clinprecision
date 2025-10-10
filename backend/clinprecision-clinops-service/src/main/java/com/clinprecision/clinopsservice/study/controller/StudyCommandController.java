@@ -6,6 +6,8 @@ import com.clinprecision.clinopsservice.service.DesignProgressService;
 import com.clinprecision.clinopsservice.study.dto.request.*;
 import com.clinprecision.clinopsservice.study.dto.response.StudyArmResponseDto;
 import com.clinprecision.clinopsservice.study.service.StudyCommandService;
+import com.clinprecision.clinopsservice.study.service.StudyQueryService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +62,7 @@ public class StudyCommandController {
     private final com.clinprecision.clinopsservice.studydesign.service.StudyDesignCommandService studyDesignCommandService;
     private final com.clinprecision.clinopsservice.studydesign.service.StudyDesignAutoInitializationService studyDesignAutoInitService;
     private final com.clinprecision.clinopsservice.repository.VisitFormRepository visitFormRepository;
-    private final com.clinprecision.clinopsservice.study.service.StudyQueryService studyQueryService;
+    private final StudyQueryService studyQueryService;
     private final com.clinprecision.clinopsservice.protocolversion.service.ProtocolVersionCommandService protocolVersionCommandService;
 
     /**
@@ -134,23 +136,45 @@ public class StudyCommandController {
      * Publish a study (set status to ACTIVE).
      * Supports both Long ID and UUID for gradual migration.
      * 
-     * Command: ActivateStudyCommand
-     * Event: StudyActivatedEvent
+     * Publishing a study means activating it (APPROVED → ACTIVE transition).
+     * This makes the study available for data capture and participant enrollment.
+     * 
+     * Command: ChangeStudyStatusCommand
+     * Event: StudyStatusChangedEvent
      * 
      * @param studyId Study ID (Long or UUID string)
      * @return 200 OK
      */
     @PatchMapping("/{studyId}/publish")
     public ResponseEntity<Void> publishStudy(@PathVariable String studyId) {
-        // Bridge pattern: Convert Long ID to UUID using auto-initialization
-        UUID uuid = studyDesignAutoInitService.ensureStudyDesignExists(studyId).join();
+        // Bridge pattern: Resolve Study aggregate UUID (not StudyDesign UUID!)
+        UUID studyAggregateUuid;
+        try {
+            // Try as UUID first
+            studyAggregateUuid = UUID.fromString(studyId);
+        } catch (IllegalArgumentException e) {
+            // If not a UUID, treat as Long ID and look up the study
+            try {
+                Long studyLongId = Long.parseLong(studyId);
+                studyAggregateUuid = studyQueryService.findStudyEntityById(studyLongId)
+                    .map(entity -> entity.getAggregateUuid())
+                    .orElseThrow(() -> new EntityNotFoundException("Study not found with ID: " + studyId));
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Invalid study ID format: " + studyId);
+            }
+        }
         
-        log.info("REST: Publishing study: {} (UUID: {})", studyId, uuid);
+        log.info("REST: Publishing study: {} (UUID: {})", studyId, studyAggregateUuid);
         
-        // TODO: Implement activateStudy method in StudyCommandService
-        // studyCommandService.activateStudy(uuid);
-        log.warn("Study publish/activate not yet implemented: {}", uuid);
-        return ResponseEntity.status(501).build(); // Not Implemented
+        // Publishing means activating the study (APPROVED → ACTIVE)
+        try {
+            studyCommandService.changeStudyStatus(studyAggregateUuid, "ACTIVE", "Study published via UI");
+            log.info("Study published successfully: {}", studyAggregateUuid);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Error publishing study: {}", studyAggregateUuid, e);
+            throw e;
+        }
     }
 
     /**
@@ -245,7 +269,11 @@ public class StudyCommandController {
         }
         
         if (message.contains("approved protocol version")) {
-            return "At least one protocol version must be approved before proceeding.";
+            return "At least one protocol version must be activated before the study can be approved.";
+        }
+        
+        if (message.contains("active protocol version")) {
+            return "At least one protocol version must be activated before the study can be approved.";
         }
         
         if (message.contains("invalid status transition") || message.contains("not allowed")) {

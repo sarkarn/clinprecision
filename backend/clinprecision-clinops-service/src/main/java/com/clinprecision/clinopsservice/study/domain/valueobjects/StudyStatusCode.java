@@ -7,7 +7,7 @@ package com.clinprecision.clinopsservice.study.domain.valueobjects;
  * Status Transition Rules:
  * - DRAFT → PLANNING, CANCELLED
  * - PLANNING → PROTOCOL_REVIEW, CANCELLED
- * - PROTOCOL_REVIEW → REGULATORY_SUBMISSION, PLANNING, WITHDRAWN
+ * - PROTOCOL_REVIEW → APPROVED, REGULATORY_SUBMISSION, PLANNING, WITHDRAWN
  * - REGULATORY_SUBMISSION → APPROVED, PROTOCOL_REVIEW, WITHDRAWN
  * - APPROVED → ACTIVE, WITHDRAWN
  * - ACTIVE → ENROLLMENT_COMPLETE, SUSPENDED, TERMINATED
@@ -16,6 +16,9 @@ package com.clinprecision.clinopsservice.study.domain.valueobjects;
  * - DATA_ANALYSIS → COMPLETED, TERMINATED
  * - SUSPENDED → ACTIVE, TERMINATED
  * - COMPLETED, TERMINATED, WITHDRAWN, CANCELLED → (Terminal states, no transitions)
+ * 
+ * Note: PROTOCOL_REVIEW → APPROVED requires at least one ACTIVE protocol version.
+ * This validation is enforced by CrossEntityStatusValidationService.
  */
 public enum StudyStatusCode {
     
@@ -96,6 +99,7 @@ public enum StudyStatusCode {
                 
             case PROTOCOL_REVIEW:
                 return newStatus == REGULATORY_SUBMISSION 
+                    || newStatus == APPROVED  // Allow direct approval when protocol is active
                     || newStatus == PLANNING 
                     || newStatus == WITHDRAWN;
                 

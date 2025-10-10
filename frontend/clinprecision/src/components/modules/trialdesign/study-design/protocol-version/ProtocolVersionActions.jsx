@@ -100,30 +100,16 @@ const ProtocolVersionActions = ({
 
             case 'APPROVED':
                 if (canActivate || statusInfo?.canActivate) {
-                    // Check if study is approved or active
-                    const studyApproved = studyStatus === 'APPROVED' || studyStatus === 'ACTIVE';
-
-                    if (studyApproved) {
-                        actions.push({
-                            key: 'activate',
-                            label: 'Activate',
-                            icon: Play,
-                            onClick: onActivate,
-                            variant: 'primary',
-                            confirmMessage: 'Are you sure you want to activate this protocol version? This will supersede the current active version.'
-                        });
-                    } else {
-                        // Show disabled button with tooltip
-                        actions.push({
-                            key: 'activate-disabled',
-                            label: 'Activate',
-                            icon: AlertTriangle,
-                            onClick: null,
-                            variant: 'secondary',
-                            disabled: true,
-                            tooltip: 'Study must be approved before protocol version can be activated'
-                        });
-                    }
+                    // Protocol version lifecycle is independent of study lifecycle
+                    // When protocol is APPROVED, it can be activated at any time
+                    actions.push({
+                        key: 'activate',
+                        label: 'Activate',
+                        icon: Play,
+                        onClick: onActivate,
+                        variant: 'primary',
+                        confirmMessage: 'Are you sure you want to activate this protocol version? This will make it the active protocol for the study.'
+                    });
                 }
                 break;
 

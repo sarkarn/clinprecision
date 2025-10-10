@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, XCircle, Eye, FileText, Users, Calendar, Link as LinkIcon, Send, Lock, Unlock } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
 import StudyDesignService from '../../../../services/StudyDesignService';
+import useProtocolVersioning from '../hooks/useProtocolVersioning';
 
 /**
  * Study Publish Workflow Component
@@ -11,6 +12,9 @@ import StudyDesignService from '../../../../services/StudyDesignService';
 const StudyPublishWorkflow = () => {
     const { studyId } = useParams();
     const navigate = useNavigate();
+
+    // Protocol versioning hook - to check for active protocol before study approval
+    const { protocolVersions } = useProtocolVersioning(studyId);
 
     // State management
     const [study, setStudy] = useState(null);
@@ -346,6 +350,12 @@ const StudyPublishWorkflow = () => {
         }
     };
 
+    // Check if there's an active protocol version (required for study approval)
+    // CORRECTED: Study can only be approved if protocol is ACTIVE (FDA/ICH-GCP compliant)
+    const hasActiveProtocol = () => {
+        return protocolVersions?.some(version => version.status === 'ACTIVE') || false;
+    };
+
     // Get publish status display
     const getPublishStatusDisplay = () => {
         switch (publishStatus) {
@@ -490,6 +500,7 @@ const StudyPublishWorkflow = () => {
                     onPublish={handlePublishStudy}
                     onApprove={handleApproveStudy}
                     publishing={publishing}
+                    hasActiveProtocol={hasActiveProtocol()}
                 />
             </div>
         </div>
@@ -756,7 +767,7 @@ const PublishSettings = ({ settings, onChange }) => {
 };
 
 // Publish Actions Component
-const PublishActions = ({ status, validationStatus, onPublish, onApprove, publishing }) => {
+const PublishActions = ({ status, validationStatus, onPublish, onApprove, publishing, hasActiveProtocol }) => {
     // For development - allow publishing from any status except already published
     const canPublish = status !== 'PUBLISHED';
     const hasValidationIssues = validationStatus === 'FAILED' || validationStatus === 'WARNING';
@@ -793,24 +804,33 @@ const PublishActions = ({ status, validationStatus, onPublish, onApprove, publis
 
             <div className="flex space-x-3">
                 {status === 'PROTOCOL_REVIEW' && (
-                    <Button
-                        onClick={onApprove}
-                        disabled={publishing}
-                        variant="primary"
-                        className="bg-blue-600 hover:bg-blue-700"
-                    >
-                        {publishing ? (
-                            <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                Approving...
-                            </>
-                        ) : (
-                            <>
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Approve Study
-                            </>
+                    <>
+                        <Button
+                            onClick={onApprove}
+                            disabled={publishing || !hasActiveProtocol}
+                            variant="primary"
+                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={!hasActiveProtocol ? 'At least one protocol version must be activated before the study can be approved' : ''}
+                        >
+                            {publishing ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Approving...
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Approve Study
+                                </>
+                            )}
+                        </Button>
+                        {!hasActiveProtocol && (
+                            <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-md border border-amber-200">
+                                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                <span>Please activate a protocol version in <strong>Protocol Management</strong> before approving the study</span>
+                            </div>
                         )}
-                    </Button>
+                    </>
                 )}
 
                 {status === 'READY_TO_PUBLISH' && (

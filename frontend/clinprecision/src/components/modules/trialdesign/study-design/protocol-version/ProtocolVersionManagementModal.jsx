@@ -97,11 +97,11 @@ const ProtocolVersionManagementModal = ({
     const handleCreateVersion = async (formData) => {
         try {
             const newVersion = await createProtocolVersion(formData);
-            setActiveTab('overview');
-            setSelectedVersion(newVersion);
             onVersionCreated?.(newVersion);
+            onClose(); // Close modal after successful creation
         } catch (error) {
             console.error('Error creating version:', error);
+            // Error is already handled by the hook and displayed in UI
         }
     };
 
@@ -111,10 +111,11 @@ const ProtocolVersionManagementModal = ({
 
         try {
             await updateProtocolVersion(selectedVersion.id, formData);
-            setActiveTab('overview');
             onVersionUpdated?.(selectedVersion.id);
+            onClose(); // Close modal after successful update
         } catch (error) {
             console.error('Error updating version:', error);
+            // Error is already handled by the hook and displayed in UI
         }
     };
 
@@ -324,22 +325,20 @@ const ProtocolVersionManagementModal = ({
                                                     />
 
                                                     {/* Workflow guidance message */}
-                                                    {selectedVersion.status === 'APPROVED' &&
-                                                        studyStatus !== 'APPROVED' &&
-                                                        studyStatus !== 'ACTIVE' && (
-                                                            <div className="mt-4 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                                                                <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-amber-900 mb-1">
-                                                                        Study Approval Required
-                                                                    </p>
-                                                                    <p className="text-sm text-amber-700">
-                                                                        This protocol version has been approved, but the study must be approved before the protocol can be activated.
-                                                                        Navigate to the <strong>Publish Study</strong> phase and click <strong>Approve Study</strong> to proceed.
-                                                                    </p>
-                                                                </div>
+                                                    {selectedVersion.status === 'APPROVED' && (
+                                                        <div className="mt-4 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                                            <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                                            <div>
+                                                                <p className="text-sm font-medium text-blue-900 mb-1">
+                                                                    Ready to Activate
+                                                                </p>
+                                                                <p className="text-sm text-blue-700">
+                                                                    This protocol version has been approved. Click <strong>Activate</strong> to make it the active protocol.
+                                                                    Note: At least one active protocol is required before you can approve the study in the <strong>Publish Study</strong> phase.
+                                                                </p>
                                                             </div>
-                                                        )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
 
