@@ -323,38 +323,21 @@ const ProtocolVersionManagementModal = ({
                                                         loading={loading}
                                                     />
 
-                                                    {/* Workflow guidance message - CORRECTED */}
-                                                    {selectedVersion.status === 'APPROVED' &&
-                                                        studyStatus === 'PROTOCOL_REVIEW' && (
-                                                            <div className="mt-4 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                                                <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-blue-900 mb-1">
-                                                                        Next Step: Activate Protocol
-                                                                    </p>
-                                                                    <p className="text-sm text-blue-700">
-                                                                        This protocol version has been approved. Click <strong>Activate</strong> to make it the active protocol.
-                                                                        After activation, you can approve the study in the <strong>Publish Study</strong> phase.
-                                                                    </p>
-                                                                </div>
+                                                    {/* Workflow guidance message */}
+                                                    {selectedVersion.status === 'APPROVED' && (
+                                                        <div className="mt-4 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                                            <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                                            <div>
+                                                                <p className="text-sm font-medium text-blue-900 mb-1">
+                                                                    Ready to Activate
+                                                                </p>
+                                                                <p className="text-sm text-blue-700">
+                                                                    This protocol version has been approved. Click <strong>Activate</strong> to make it the active protocol.
+                                                                    Note: At least one active protocol is required before you can approve the study in the <strong>Publish Study</strong> phase.
+                                                                </p>
                                                             </div>
-                                                        )}
-                                                    {selectedVersion.status === 'APPROVED' &&
-                                                        studyStatus !== 'PROTOCOL_REVIEW' &&
-                                                        studyStatus !== 'APPROVED' &&
-                                                        studyStatus !== 'ACTIVE' && (
-                                                            <div className="mt-4 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                                                                <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-amber-900 mb-1">
-                                                                        Study Not in Protocol Review
-                                                                    </p>
-                                                                    <p className="text-sm text-amber-700">
-                                                                        The study must be submitted for protocol review before this protocol version can be activated.
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
 
