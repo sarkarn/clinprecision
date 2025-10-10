@@ -23,10 +23,15 @@ import java.util.UUID;
  * 
  * Key Validations:
  * - Only ONE protocol version can be ACTIVE per study at a time
- * - Protocol version status transitions must align with study status
- * - Cannot activate version if study is not in appropriate status
+ * - Protocol version lifecycle is INDEPENDENT of study lifecycle
+ * - Protocol can be activated anytime it's APPROVED (no study status dependency)
  * - Cannot withdraw/supersede version if it's the only active version
- * - Study must have approved version before becoming APPROVED
+ * - Study must have at least one ACTIVE protocol version before becoming APPROVED
+ * 
+ * CORRECT WORKFLOW (FDA/ICH-GCP Compliant):
+ * 1. Protocol Version Lifecycle (INDEPENDENT): DRAFT → UNDER_REVIEW → APPROVED → ACTIVE
+ * 2. Study Lifecycle (INDEPENDENT): PLANNING → PROTOCOL_REVIEW → APPROVED → ACTIVE
+ * 3. Coupling Point: Study approval requires at least one ACTIVE protocol version
  * 
  * Architecture:
  * - Called by ProtocolVersionCommandService BEFORE dispatching commands
@@ -114,6 +119,10 @@ public class ProtocolVersionValidationService {
      * 
      * CRITICAL RULE: Only ONE active version allowed per study
      * 
+     * CORRECTED: Protocol version lifecycle is INDEPENDENT of study lifecycle
+     * - Protocol can be activated when it's APPROVED, regardless of study status
+     * - Study approval will separately validate that an ACTIVE protocol exists
+     * 
      * @param version Version to activate
      * @param study Associated study
      */
@@ -121,16 +130,8 @@ public class ProtocolVersionValidationService {
         log.debug("Validating protocol version activation: {} for study {}", 
             version.getVersionNumber(), study.getAggregateUuid());
         
-        // Check current study status
-        String studyStatus = study.getStudyStatus() != null ? study.getStudyStatus().getCode() : null;
-        
-        // Study must be in appropriate status to activate version
-        if (!"APPROVED".equals(studyStatus) && !"ACTIVE".equals(studyStatus)) {
-            throw new StudyStatusTransitionException(
-                String.format("Cannot activate protocol version %s: Study status is %s (must be APPROVED or ACTIVE)",
-                    version.getVersionNumber(), studyStatus)
-            );
-        }
+        // Protocol activation is independent of study status
+        // No study status validation needed here
         
         // CRITICAL: Check for existing active versions
         List<ProtocolVersionEntity> activeVersions = protocolVersionRepository

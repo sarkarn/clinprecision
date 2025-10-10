@@ -169,25 +169,14 @@ const ProtocolManagementDashboard = () => {
                 break;
 
             case 'APPROVED':
-                // Check if study is approved or active before allowing activation
-                const studyApproved = study?.studyStatus?.code === 'APPROVED' || study?.studyStatus?.code === 'ACTIVE';
-                if (studyApproved) {
-                    actions.push({
-                        label: 'Activate',
-                        icon: CheckCircle,
-                        onClick: () => handleActivateVersion(version.id),
-                        variant: 'primary'
-                    });
-                } else {
-                    actions.push({
-                        label: 'Activate',
-                        icon: AlertTriangle,
-                        onClick: () => { },
-                        variant: 'outline',
-                        disabled: true,
-                        tooltip: 'Study must be approved before protocol version can be activated'
-                    });
-                }
+                // Protocol version lifecycle is independent of study lifecycle
+                // When protocol is APPROVED, it can be activated at any time
+                actions.push({
+                    label: 'Activate',
+                    icon: CheckCircle,
+                    onClick: () => handleActivateVersion(version.id),
+                    variant: 'primary'
+                });
                 break;
 
             case 'ACTIVE':

@@ -245,7 +245,11 @@ public class StudyCommandController {
         }
         
         if (message.contains("approved protocol version")) {
-            return "At least one protocol version must be approved before proceeding.";
+            return "At least one protocol version must be activated before the study can be approved.";
+        }
+        
+        if (message.contains("active protocol version")) {
+            return "At least one protocol version must be activated before the study can be approved.";
         }
         
         if (message.contains("invalid status transition") || message.contains("not allowed")) {

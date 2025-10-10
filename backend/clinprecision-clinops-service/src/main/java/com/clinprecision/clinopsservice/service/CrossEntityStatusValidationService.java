@@ -153,20 +153,21 @@ public class CrossEntityStatusValidationService {
         
         logger.debug("Validating APPROVED dependencies for study {}", study.getId());
 
-        // Must have at least one approved protocol version
-        boolean hasApprovedVersion = versions.stream()
-            .anyMatch(v -> v.getStatus() == VersionStatus.APPROVED);
+        // CORRECTED: Must have at least one ACTIVE protocol version before study can be approved
+        // Protocol needs to be activated FIRST, then study can be approved
+        boolean hasActiveVersion = versions.stream()
+            .anyMatch(v -> v.getStatus() == VersionStatus.ACTIVE);
         
-        if (!hasApprovedVersion) {
-            errors.add("Study must have at least one approved protocol version");
+        if (!hasActiveVersion) {
+            errors.add("Study must have at least one active protocol version before it can be approved");
         }
 
-        // Check for unapproved amendments in approved versions
-        List<ProtocolVersionEntity> approvedVersions = versions.stream()
-            .filter(v -> v.getStatus() == VersionStatus.APPROVED)
+        // Check for unapproved amendments in active/approved versions
+        List<ProtocolVersionEntity> activeOrApprovedVersions = versions.stream()
+            .filter(v -> v.getStatus() == VersionStatus.ACTIVE || v.getStatus() == VersionStatus.APPROVED)
             .collect(Collectors.toList());
 
-        for (ProtocolVersionEntity version : approvedVersions) {
+        for (ProtocolVersionEntity version : activeOrApprovedVersions) {
             List<StudyAmendmentEntity> versionAmendments = amendments.stream()
                 .filter(a -> a.getStudyVersionId().equals(version.getId()))
                 .collect(Collectors.toList());
@@ -182,7 +183,7 @@ public class CrossEntityStatusValidationService {
             }
         }
 
-        details.put("approvedVersions", approvedVersions.size());
+        details.put("activeVersions", activeOrApprovedVersions.size());
     }
 
     /**

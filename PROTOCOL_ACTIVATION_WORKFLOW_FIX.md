@@ -1,4 +1,14 @@
-# Protocol Activation Workflow Fix
+# ⚠️ SUPERSEDED - DO NOT USE ⚠️
+
+**This document describes an INCORRECT implementation that was later corrected.**
+
+**See Instead**: [`CRITICAL_WORKFLOW_CORRECTION_FDA_COMPLIANT.md`](./CRITICAL_WORKFLOW_CORRECTION_FDA_COMPLIANT.md)
+
+**Why Superseded**: This document describes fixing the UI to prevent protocol activation until study was approved. However, this approach was **backwards** and violated FDA/ICH-GCP regulations. The correct workflow requires protocol activation **BEFORE** study approval, not after.
+
+---
+
+# Protocol Activation Workflow Fix (INCORRECT - FOR HISTORICAL REFERENCE ONLY)
 
 ## Problem Summary
 
