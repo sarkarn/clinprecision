@@ -97,11 +97,11 @@ const ProtocolVersionManagementModal = ({
     const handleCreateVersion = async (formData) => {
         try {
             const newVersion = await createProtocolVersion(formData);
-            setActiveTab('overview');
-            setSelectedVersion(newVersion);
             onVersionCreated?.(newVersion);
+            onClose(); // Close modal after successful creation
         } catch (error) {
             console.error('Error creating version:', error);
+            // Error is already handled by the hook and displayed in UI
         }
     };
 
@@ -111,10 +111,11 @@ const ProtocolVersionManagementModal = ({
 
         try {
             await updateProtocolVersion(selectedVersion.id, formData);
-            setActiveTab('overview');
             onVersionUpdated?.(selectedVersion.id);
+            onClose(); // Close modal after successful update
         } catch (error) {
             console.error('Error updating version:', error);
+            // Error is already handled by the hook and displayed in UI
         }
     };
 
