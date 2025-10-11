@@ -290,3 +290,215 @@ DELIMITER ;
 -- This would be populated during actual implementation
 
 COMMIT;
+
+
+DELIMITER $$
+
+CREATE TRIGGER study_field_metadata_after_insert
+AFTER INSERT ON study_field_metadata
+FOR EACH ROW
+BEGIN
+    INSERT INTO study_field_metadata_audit (
+        id, study_id, form_id, field_name, 
+        sdv_required, medical_review_required, critical_data_point, 
+        fda_required, audit_trail_level,
+        action_type, action_by
+    ) VALUES (
+        NEW.id, NEW.study_id, NEW.form_id, NEW.field_name,
+        NEW.sdv_required, NEW.medical_review_required, NEW.critical_data_point,
+        NEW.fda_required, NEW.audit_trail_level,
+        'INSERT', NEW.created_by
+    );
+END$$
+
+CREATE TRIGGER study_field_metadata_after_update
+AFTER UPDATE ON study_field_metadata
+FOR EACH ROW
+BEGIN
+    INSERT INTO study_field_metadata_audit (
+        id, study_id, form_id, field_name,
+        sdv_required, medical_review_required, critical_data_point,
+        fda_required, audit_trail_level,
+        action_type, action_by
+    ) VALUES (
+        NEW.id, NEW.study_id, NEW.form_id, NEW.field_name,
+        NEW.sdv_required, NEW.medical_review_required, NEW.critical_data_point,
+        NEW.fda_required, NEW.audit_trail_level,
+        'UPDATE', NEW.updated_by
+    );
+END$$
+
+DELIMITER ;
+
+-- =====================================================================================================================
+-- INDEXES FOR PERFORMANCE
+-- =====================================================================================================================
+
+-- Additional composite indexes for common query patterns
+
+-- Field metadata: Find all SDV required fields for a study
+CREATE INDEX idx_metadata_sdv_fields ON study_field_metadata(study_id, form_id, sdv_required) 
+WHERE sdv_required = TRUE;
+
+-- Field metadata: Find all critical data points
+CREATE INDEX idx_metadata_critical ON study_field_metadata(study_id, critical_data_point, safety_data_point)
+WHERE critical_data_point = TRUE OR safety_data_point = TRUE;
+
+-- CDASH mappings: Find all fields for a specific SDTM domain
+CREATE INDEX idx_cdash_sdtm_domain ON study_cdash_mappings(study_id, sdtm_domain, sdtm_variable);
+
+-- Medical coding: Find all fields requiring medical coding
+CREATE INDEX idx_coding_required ON study_medical_coding_config(study_id, form_id, coding_required)
+WHERE coding_required = TRUE;
+
+-- Reviews: Find all pending reviews for a study
+CREATE INDEX idx_reviews_pending ON study_form_data_reviews(study_id, review_type, review_status, review_date)
+WHERE review_status IN ('PENDING', 'IN_PROGRESS');
+
+-- Reviews: Find all queries raised
+CREATE INDEX idx_reviews_queries ON study_form_data_reviews(study_id, query_status, query_priority)
+WHERE query_id IS NOT NULL;
+
+-- =====================================================================================================================
+-- VIEWS FOR COMMON QUERIES
+-- =====================================================================================================================
+
+-- View: Critical fields requiring SDV
+CREATE OR REPLACE VIEW v_study_sdv_required_fields AS
+SELECT 
+    s.id AS study_id,
+    s.name AS study_name,
+    fd.id AS form_id,
+    fd.name AS form_name,
+    sfm.field_name,
+    sfm.field_label,
+    sfm.sdv_required,
+    sfm.medical_review_required,
+    sfm.critical_data_point
+FROM study_field_metadata sfm
+JOIN studies s ON sfm.study_id = s.id
+JOIN form_definitions fd ON sfm.form_id = fd.id
+WHERE sfm.sdv_required = TRUE
+   OR sfm.medical_review_required = TRUE
+   OR sfm.critical_data_point = TRUE;
+
+-- View: Pending reviews summary by study
+CREATE OR REPLACE VIEW v_study_pending_reviews_summary AS
+SELECT 
+    study_id,
+    review_type,
+    review_status,
+    COUNT(*) AS pending_count,
+    MIN(created_at) AS oldest_pending_date,
+    AVG(TIMESTAMPDIFF(HOUR, created_at, CURRENT_TIMESTAMP)) AS avg_age_hours
+FROM study_form_data_reviews
+WHERE review_status IN ('PENDING', 'IN_PROGRESS')
+GROUP BY study_id, review_type, review_status;
+
+-- =====================================================================================================================
+-- SAMPLE DATA (for testing)
+-- =====================================================================================================================
+
+-- Insert sample field metadata for testing
+-- This would normally be created by the worker service during database build
+
+-- Example: Vital Signs form with SDV requirements
+INSERT INTO study_field_metadata (
+    study_id, form_id, field_name, field_label,
+    sdv_required, critical_data_point, safety_data_point,
+    fda_required, audit_trail_level,
+    validation_rules
+) VALUES
+(1, 1, 'systolic_bp', 'Systolic Blood Pressure', TRUE, TRUE, TRUE, TRUE, 'FULL', 
+ '{"min": 60, "max": 250, "unit": "mmHg", "precision": 0}'),
+(1, 1, 'diastolic_bp', 'Diastolic Blood Pressure', TRUE, TRUE, TRUE, TRUE, 'FULL',
+ '{"min": 40, "max": 150, "unit": "mmHg", "precision": 0}'),
+(1, 1, 'heart_rate', 'Heart Rate', TRUE, TRUE, TRUE, TRUE, 'FULL',
+ '{"min": 30, "max": 200, "unit": "bpm", "precision": 0}');
+
+-- Example: CDASH mappings for vital signs
+INSERT INTO study_cdash_mappings (
+    study_id, form_id, field_name,
+    cdash_domain, cdash_variable, cdash_label,
+    sdtm_domain, sdtm_variable, sdtm_datatype,
+    origin
+) VALUES
+(1, 1, 'systolic_bp', 'VS', 'SYSBP', 'Systolic Blood Pressure', 'VS', 'VSORRES', 'NUM', 'CRF'),
+(1, 1, 'diastolic_bp', 'VS', 'DIABP', 'Diastolic Blood Pressure', 'VS', 'VSORRES', 'NUM', 'CRF'),
+(1, 1, 'heart_rate', 'VS', 'HR', 'Heart Rate', 'VS', 'VSORRES', 'NUM', 'CRF');
+
+-- =====================================================================================================================
+-- VERIFICATION QUERIES
+-- =====================================================================================================================
+
+-- Verify table creation
+SELECT 
+    TABLE_NAME,
+    TABLE_ROWS,
+    CREATE_TIME,
+    TABLE_COMMENT
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA = 'clinprecision'
+  AND TABLE_NAME IN (
+    'study_field_metadata',
+    'study_cdash_mappings',
+    'study_medical_coding_config',
+    'study_form_data_reviews'
+  );
+
+-- Verify partitioning
+SELECT 
+    TABLE_NAME,
+    PARTITION_NAME,
+    PARTITION_METHOD,
+    PARTITION_EXPRESSION,
+    TABLE_ROWS
+FROM INFORMATION_SCHEMA.PARTITIONS
+WHERE TABLE_SCHEMA = 'clinprecision'
+  AND TABLE_NAME IN (
+    'study_field_metadata',
+    'study_cdash_mappings',
+    'study_medical_coding_config',
+    'study_form_data_reviews'
+  )
+ORDER BY TABLE_NAME, PARTITION_ORDINAL_POSITION;
+
+-- Verify triggers
+SELECT 
+    TRIGGER_NAME,
+    EVENT_MANIPULATION,
+    EVENT_OBJECT_TABLE,
+    ACTION_TIMING,
+    ACTION_STATEMENT
+FROM INFORMATION_SCHEMA.TRIGGERS
+WHERE TRIGGER_SCHEMA = 'clinprecision'
+  AND TRIGGER_NAME LIKE 'study_field_metadata%';
+
+-- Verify indexes
+SELECT 
+    TABLE_NAME,
+    INDEX_NAME,
+    COLUMN_NAME,
+    SEQ_IN_INDEX,
+    NON_UNIQUE
+FROM INFORMATION_SCHEMA.STATISTICS
+WHERE TABLE_SCHEMA = 'clinprecision'
+  AND TABLE_NAME IN (
+    'study_field_metadata',
+    'study_cdash_mappings',
+    'study_medical_coding_config',
+    'study_form_data_reviews'
+  )
+ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;
+
+-- =====================================================================================================================
+-- MIGRATION COMPLETE
+-- =====================================================================================================================
+
+SELECT 'Phase 6 Migration Complete: Item-Level Metadata Tables Created' AS status;
+
+UPDATE study_cdash_mappings 
+SET data_origin = 'COLLECTED' 
+WHERE data_origin IS NULL;
+
+SELECT 'Phase 6 schema fix completed successfully' AS status;

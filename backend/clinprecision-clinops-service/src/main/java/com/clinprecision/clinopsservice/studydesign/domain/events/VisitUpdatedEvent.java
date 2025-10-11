@@ -1,5 +1,6 @@
 package com.clinprecision.clinopsservice.studydesign.domain.events;
 
+import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.VisitType;
 import lombok.Builder;
 import lombok.Data;
 
@@ -20,13 +21,14 @@ public class VisitUpdatedEvent {
     private final Integer timepoint;
     private final Integer windowBefore;
     private final Integer windowAfter;
+    private final VisitType visitType; // BUGFIX: Added visitType field
     private final Boolean isRequired;
     private final Long updatedBy;
     private final LocalDateTime occurredAt;
     
     public static VisitUpdatedEvent from(UUID studyDesignId, UUID visitId, String name,
                                         String description, Integer timepoint, Integer windowBefore,
-                                        Integer windowAfter, Boolean isRequired, Long updatedBy) {
+                                        Integer windowAfter, VisitType visitType, Boolean isRequired, Long updatedBy) {
         return VisitUpdatedEvent.builder()
             .studyDesignId(studyDesignId)
             .visitId(visitId)
@@ -35,6 +37,7 @@ public class VisitUpdatedEvent {
             .timepoint(timepoint)
             .windowBefore(windowBefore)
             .windowAfter(windowAfter)
+            .visitType(visitType) // BUGFIX: Added visitType
             .isRequired(isRequired)
             .updatedBy(updatedBy)
             .occurredAt(LocalDateTime.now())

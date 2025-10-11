@@ -19,6 +19,7 @@ public class UpdateVisitRequest {
     private Integer timepoint;
     private Integer windowBefore;
     private Integer windowAfter;
+    private String visitType; // BUGFIX: Added visitType field
     private Boolean isRequired;
     private Long updatedBy;
 }

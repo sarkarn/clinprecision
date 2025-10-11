@@ -83,9 +83,9 @@ public class Visit {
      * Update visit details
      */
     public Visit withUpdatedDetails(String name, String description, int timepoint, 
-                                    VisitWindow window, boolean isRequired) {
+                                    VisitWindow window, VisitType visitType, boolean isRequired) {
         return new Visit(this.visitId, name, description, timepoint, window, 
-                        this.visitType, isRequired, this.sequenceNumber, this.armId);
+                        visitType != null ? visitType : this.visitType, isRequired, this.sequenceNumber, this.armId);
     }
     
     /**

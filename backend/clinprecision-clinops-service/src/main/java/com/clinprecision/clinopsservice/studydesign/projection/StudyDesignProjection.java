@@ -181,6 +181,10 @@ public class StudyDesignProjection {
                 entity.setTimepoint(event.getTimepoint());
                 entity.setWindowBefore(event.getWindowBefore());
                 entity.setWindowAfter(event.getWindowAfter());
+                // BUGFIX: Update visitType if provided in event
+                if (event.getVisitType() != null) {
+                    entity.setVisitType(VisitDefinitionEntity.VisitType.valueOf(event.getVisitType().name()));
+                }
                 entity.setIsRequired(event.getIsRequired());
                 entity.setUpdatedAt(event.getOccurredAt());
                 // Handle null updatedBy gracefully
