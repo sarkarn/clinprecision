@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
+import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
 import java.util.Map;
 import java.util.UUID;
@@ -28,6 +29,7 @@ import java.util.UUID;
 @ToString
 public class CompleteStudyDatabaseBuildCommand extends BaseCommand {
     
+    @TargetAggregateIdentifier
     @NotNull(message = "Study database build ID is required")
     private final UUID studyDatabaseBuildId;
     

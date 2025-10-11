@@ -502,7 +502,7 @@ const StudyDesignDashboard = () => {
                                 {currentPhase === 'arms' && <StudyArmsDesigner onPhaseCompleted={loadDesignProgress} />}
                                 {currentPhase === 'visits' && <VisitScheduleDesigner onPhaseCompleted={loadDesignProgress} />}
                                 {currentPhase === 'forms' && <FormBindingDesigner />}
-                                {currentPhase === 'review' && <StudyReviewPanel study={study} designProgress={designProgress} onReviewSubmitted={() => { loadStudyData(); loadDesignProgress(); }} />}
+                                {currentPhase === 'review' && <StudyReviewPanel key={study?.status} study={study} designProgress={designProgress} onReviewSubmitted={() => { loadStudyData(); loadDesignProgress(); }} />}
                                 {currentPhase === 'publish' && <StudyPublishWorkflow />}
 
                             </div>
@@ -840,7 +840,7 @@ const StudyReviewPanel = ({ study, designProgress, onReviewSubmitted }) => {
 
             showSuccessMessage();
 
-            // Reload study data to update UI
+            // Reload study data to update UI - wait for completion to ensure state updates
             if (onReviewSubmitted) {
                 await onReviewSubmitted();
             }
