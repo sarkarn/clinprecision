@@ -170,6 +170,7 @@ public class StudyDesignCommandService {
             .timepoint(request.getTimepoint())
             .windowBefore(request.getWindowBefore())
             .windowAfter(request.getWindowAfter())
+            .visitType(request.getVisitType() != null ? VisitType.valueOf(request.getVisitType()) : null) // BUGFIX: Added visitType
             .isRequired(request.getIsRequired())
             .updatedBy(updatedBy)
             .build();

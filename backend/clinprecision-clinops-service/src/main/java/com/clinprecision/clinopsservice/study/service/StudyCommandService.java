@@ -49,6 +49,7 @@ public class StudyCommandService {
     private final StudyInterventionRepository interventionRepository;
     private final StudyRandomizationStrategyRepository randomizationStrategyRepository;
     private final com.clinprecision.clinopsservice.security.SecurityService securityService;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
     // private final SecurityService securityService;
     
     /**
@@ -234,6 +235,9 @@ public class StudyCommandService {
      * Change study status (generic status transition handler)
      * Supports all valid status transitions defined in StudyStatusCode
      * 
+     * BRIDGE PATTERN: Handles legacy studies that don't have event-sourced aggregates
+     * If aggregate not found in event store, creates it from legacy data first
+     * 
      * @param studyUuid UUID of study aggregate
      * @param newStatusString Target status as string (e.g., "PROTOCOL_REVIEW", "ACTIVE")
      * @param reason Optional reason for status change
@@ -244,6 +248,9 @@ public class StudyCommandService {
     @Transactional
     public void changeStudyStatus(UUID studyUuid, String newStatusString, String reason) {
         log.info("Changing study status: {} -> {}", studyUuid, newStatusString);
+        
+        // BRIDGE PATTERN: Ensure aggregate exists in event store (migrate legacy studies)
+        ensureAggregateExists(studyUuid);
         
         // Convert string to StudyStatusCode enum
         com.clinprecision.clinopsservice.study.domain.valueobjects.StudyStatusCode newStatus;
@@ -276,6 +283,110 @@ public class StudyCommandService {
         commandGateway.sendAndWait(command);
         
         log.info("Study status changed successfully: {} -> {}", studyUuid, newStatus);
+    }
+
+    /**
+     * BRIDGE PATTERN: Ensure legacy study has event-sourced aggregate
+     * 
+     * Checks if study aggregate exists in event store. If not, creates it from legacy data.
+     * This handles migration of pre-event-sourcing studies.
+     * 
+     * Strategy: Try to send a probe command. If AggregateNotFoundException occurs, migrate.
+     * 
+     * @param studyUuid UUID of study to check/migrate
+     */
+    private void ensureAggregateExists(UUID studyUuid) {
+        // Check if study exists in database first
+        StudyEntity legacyStudy;
+        try {
+            legacyStudy = studyQueryService.getStudyEntityByUuid(studyUuid);
+            if (legacyStudy == null) {
+                throw new IllegalArgumentException("Study not found: " + studyUuid);
+            }
+            log.info("Found study entity: {} (ID: {})", legacyStudy.getName(), legacyStudy.getId());
+        } catch (Exception e) {
+            log.error("Study not found in database: {}", studyUuid);
+            throw new IllegalArgumentException("Study not found: " + studyUuid, e);
+        }
+        
+        // Check if aggregate exists in event store by querying domain events table
+        // Legacy studies have no events, so we need to migrate them
+        try {
+            // Query to check if any events exist for this aggregate
+            Integer eventCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM domain_event_entry WHERE aggregate_identifier = ?",
+                Integer.class,
+                studyUuid.toString()
+            );
+            
+            if (eventCount != null && eventCount > 0) {
+                log.debug("Study aggregate exists in event store with {} events", eventCount);
+            } else {
+                log.warn("Legacy study detected (no events in event store): {}. Migrating...", studyUuid);
+                migrateLegacyStudyToEventStore(studyUuid, legacyStudy);
+            }
+        } catch (Exception e) {
+            log.error("Failed to check event store for study {}: {}", studyUuid, e.getMessage());
+            // Assume it's a legacy study and try to migrate
+            log.warn("Assuming legacy study, attempting migration: {}", studyUuid);
+            migrateLegacyStudyToEventStore(studyUuid, legacyStudy);
+        }
+    }
+
+    /**
+     * BRIDGE PATTERN: Migrate legacy study to event-sourced aggregate
+     * 
+     * Creates initial StudyCreated event from legacy database data.
+     * This allows legacy studies to work with event-sourcing commands.
+     * 
+     * @param studyUuid UUID of legacy study to migrate
+     * @param legacyStudy Study entity from database
+     */
+    private void migrateLegacyStudyToEventStore(UUID studyUuid, StudyEntity legacyStudy) {
+        log.info("Migrating legacy study {} to event store", studyUuid);
+        
+        try {
+            log.debug("Found legacy study: {} (ID: {})", legacyStudy.getProtocolNumber(), legacyStudy.getId());
+            
+            // Get current user for migration
+            UUID userId = securityService.getCurrentUserId();
+            String userName = securityService.getCurrentUserName();
+            
+            // Create CreateStudyCommand from legacy data
+            CreateStudyCommand migrateCommand = CreateStudyCommand.builder()
+                .studyAggregateUuid(studyUuid)
+                .name(legacyStudy.getName())
+                .description(legacyStudy.getDescription())
+                .sponsor(legacyStudy.getSponsor() != null ? legacyStudy.getSponsor() : "Unknown")
+                .protocolNumber(legacyStudy.getProtocolNumber())
+                .indication(legacyStudy.getIndication())
+                .studyType(legacyStudy.getStudyType() != null ? legacyStudy.getStudyType() : "INTERVENTIONAL")
+                .principalInvestigator(legacyStudy.getPrincipalInvestigator())
+                .studyCoordinator(legacyStudy.getStudyCoordinator())
+                .therapeuticArea(legacyStudy.getTherapeuticArea())
+                .plannedSubjects(legacyStudy.getPlannedSubjects())
+                .targetEnrollment(legacyStudy.getTargetEnrollment())
+                .primaryObjective(legacyStudy.getPrimaryObjective())
+                .primaryEndpoint(legacyStudy.getPrimaryEndpoint())
+                .startDate(legacyStudy.getStartDate())
+                .endDate(legacyStudy.getEndDate())
+                .studyStatusId(legacyStudy.getStudyStatus() != null ? legacyStudy.getStudyStatus().getId() : null)
+                .regulatoryStatusId(legacyStudy.getRegulatoryStatus() != null ? legacyStudy.getRegulatoryStatus().getId() : null)
+                .studyPhaseId(legacyStudy.getStudyPhase() != null ? legacyStudy.getStudyPhase().getId() : null)
+                .userId(userId)
+                .userName(userName)
+                .build();
+            
+            // Send command to create aggregate (will create StudyCreated event)
+            log.debug("Creating event-sourced aggregate for legacy study: {}", studyUuid);
+            commandGateway.sendAndWait(migrateCommand);
+            
+            log.info("Successfully migrated legacy study {} to event store", studyUuid);
+            
+        } catch (Exception e) {
+            log.error("Failed to migrate legacy study {} to event store: {}", studyUuid, e.getMessage(), e);
+            throw new RuntimeException("Failed to migrate legacy study: " + e.getMessage(), e);
+        }
     }
 
     private void scheduleProjectionAwait(UUID studyUuid, StudyUpdateRequestDto request, Duration timeout) {

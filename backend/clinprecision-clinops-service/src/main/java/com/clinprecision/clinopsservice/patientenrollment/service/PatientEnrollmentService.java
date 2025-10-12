@@ -1,6 +1,7 @@
 package com.clinprecision.clinopsservice.patientenrollment.service;
 
 import com.clinprecision.clinopsservice.patientenrollment.domain.commands.RegisterPatientCommand;
+import com.clinprecision.clinopsservice.patientenrollment.domain.commands.EnrollPatientCommand;
 import com.clinprecision.clinopsservice.patientenrollment.dto.EnrollPatientDto;
 import com.clinprecision.clinopsservice.patientenrollment.dto.RegisterPatientDto;
 import com.clinprecision.clinopsservice.patientenrollment.dto.PatientDto;
@@ -291,12 +292,18 @@ public class PatientEnrollmentService {
 
     /**
      * Enroll an existing patient into a study at a site.
-     * This is a minimal persistence flow to ensure siteId is stored.
-     * In future iterations, wire this to an Axon command + event + projection.
+     * 
+     * NOW USING EVENT SOURCING:
+     * - Sends EnrollPatientCommand to PatientAggregate
+     * - PatientAggregate validates and emits PatientEnrolledEvent
+     * - PatientEnrollmentProjector handles event and updates read models
+     * - Returns enrollment entity from projection
      */
     public PatientEnrollmentEntity enrollPatient(Long patientId, EnrollPatientDto dto, String createdBy) {
+        log.info("=== ENROLLMENT FLOW START ===");
         log.info("Enrolling patient {} into study {} at site {}", patientId, dto.getStudyId(), dto.getSiteId());
 
+        // Validate inputs
         if (patientId == null) {
             throw new IllegalArgumentException("Patient ID is required");
         }
@@ -310,9 +317,12 @@ public class PatientEnrollmentService {
             throw new IllegalArgumentException("Screening number is required");
         }
 
-        // Validate patient exists
+        // Validate patient exists and get UUID
         PatientEntity patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new IllegalArgumentException("Patient not found: " + patientId));
+        
+        UUID patientUuid = UUID.fromString(patient.getAggregateUuid());
+        log.info("Patient UUID: {}", patientUuid);
 
         // Uniqueness checks
         if (patientEnrollmentRepository.existsByPatientIdAndStudyId(patientId, dto.getStudyId())) {
@@ -322,18 +332,23 @@ public class PatientEnrollmentService {
             throw new IllegalArgumentException("Screening number already exists for this study");
         }
 
-    // Validate site-studies association exists and matches the study
-    SiteStudyEntity association = siteStudyRepository
-        .findByIdAndStudyId(dto.getSiteId(), dto.getStudyId())
-        .orElseThrow(() -> new IllegalArgumentException("Invalid site association: siteId does not belong to study"));
+        // Validate site-studies association exists and matches the study
+        SiteStudyEntity association = siteStudyRepository
+            .findByIdAndStudyId(dto.getSiteId(), dto.getStudyId())
+            .orElseThrow(() -> new IllegalArgumentException("Invalid site association: siteId does not belong to study"));
 
-    // Optional: ensure association is ACTIVE
-    if (association.getStatus() != null && association.getStatus() != SiteStudyEntity.SiteStudyStatus.ACTIVE) {
-        throw new IllegalArgumentException("Site is not ACTIVE for the selected study");
-    }
+        // Optional: ensure association is ACTIVE
+        if (association.getStatus() != null && association.getStatus() != SiteStudyEntity.SiteStudyStatus.ACTIVE) {
+            throw new IllegalArgumentException("Site is not ACTIVE for the selected study");
+        }
 
         // Determine site aggregate UUID from linked site if present
-    String siteAggregateUuid = association.getSite() != null ? association.getSite().getAggregateUuid() : "SITE-UUID-N/A";
+        String siteAggregateUuidStr = association.getSite() != null ? association.getSite().getAggregateUuid() : null;
+        if (siteAggregateUuidStr == null || siteAggregateUuidStr.trim().isEmpty()) {
+            throw new IllegalArgumentException("Site aggregate UUID not found for association");
+        }
+        UUID siteAggregateUuid = UUID.fromString(siteAggregateUuidStr);
+        log.info("Site UUID: {}", siteAggregateUuid);
 
         // Enforce site enrollment cap if configured
         if (association.getSubjectEnrollmentCap() != null) {
@@ -343,54 +358,122 @@ public class PatientEnrollmentService {
             }
         }
 
-    // Minimal enrollment persistence
+        // Generate enrollment UUID
         UUID enrollmentUuid = UUID.randomUUID();
-        PatientEnrollmentEntity enrollment = PatientEnrollmentEntity.builder()
-                .aggregateUuid(enrollmentUuid.toString())
-                .enrollmentNumber(generateEnrollmentNumber(dto))
-                .patientId(patient.getId())
-                .patientAggregateUuid(patient.getAggregateUuid())
-                .studyId(dto.getStudyId())
-        // Store association id in study_site_id as per schema FK to site_studies(id)
-        .studySiteId(dto.getSiteId())
-        .siteAggregateUuid(siteAggregateUuid != null ? siteAggregateUuid : "SITE-UUID-N/A")
+        log.info("Enrollment UUID: {}", enrollmentUuid);
+        
+        // Map studyId to UUID (for now, use a simple approach - in production, lookup from study table)
+        UUID studyUuid = mapLongIdToUuid("STUDY", dto.getStudyId());
+        log.info("Study UUID: {}", studyUuid);
+
+        // Create and send EnrollPatientCommand via Axon
+        com.clinprecision.clinopsservice.patientenrollment.domain.commands.EnrollPatientCommand command = 
+            com.clinprecision.clinopsservice.patientenrollment.domain.commands.EnrollPatientCommand.builder()
+                .patientId(patientUuid)
+                .enrollmentId(enrollmentUuid)
+                .studyId(studyUuid)
+                .siteId(siteAggregateUuid)
                 .screeningNumber(dto.getScreeningNumber())
-                .enrollmentDate(dto.getEnrollmentDate() != null ? dto.getEnrollmentDate() : java.time.LocalDate.now())
-                .enrollmentStatus(EnrollmentStatus.ENROLLED)
-                .eligibilityConfirmed(false)
-                .enrolledBy(createdBy != null ? createdBy : "system")
+                .enrollmentDate(dto.getEnrollmentDate())
+                .createdBy(createdBy != null ? createdBy : "system")
                 .build();
-
-    PatientEnrollmentEntity saved = patientEnrollmentRepository.save(enrollment);
-
+        
+        log.info("Sending EnrollPatientCommand to aggregate: {}", command);
+        
+        try {
+            // Send command and wait for completion
+            CompletableFuture<Object> future = commandGateway.send(command);
+            Object result = future.join(); // Wait for command to be processed
+            
+            log.info("EnrollPatientCommand processed successfully: {}", result);
+            
+        } catch (Exception e) {
+            log.error("Failed to process EnrollPatientCommand: {}", e.getMessage(), e);
+            throw new RuntimeException("Enrollment failed: " + e.getMessage(), e);
+        }
+        
+        // Wait for projection to complete (with retry logic)
+        log.info("Waiting for enrollment projection to complete...");
+        PatientEnrollmentEntity enrollment = waitForEnrollmentProjection(enrollmentUuid.toString(), 5000);
+        
+        if (enrollment == null) {
+            log.error("Enrollment projection not found after timeout");
+            throw new RuntimeException("Enrollment created but projection not found. Please check event processing.");
+        }
+        
+        log.info("Enrollment projection found: id={}, screening={}", enrollment.getId(), enrollment.getScreeningNumber());
+        
         // Update association enrollment count (best-effort)
         try {
             Integer count = association.getSubjectEnrollmentCount();
             association.setSubjectEnrollmentCount((count == null ? 0 : count) + 1);
             siteStudyRepository.save(association);
+            log.info("Updated association enrollment count: {}", association.getSubjectEnrollmentCount());
         } catch (Exception ex) {
             log.warn("Failed to update subjectEnrollmentCount for association {}: {}", association.getId(), ex.getMessage());
         }
-
-    // Write audit entry
-        try {
-            PatientEnrollmentAuditEntity audit = PatientEnrollmentAuditEntity.builder()
-            .entityType(PatientEnrollmentAuditEntity.AuditEntityType.ENROLLMENT)
-                    .entityId(saved.getId())
-                    .entityAggregateUuid(saved.getAggregateUuid())
-            .actionType(PatientEnrollmentAuditEntity.AuditActionType.ENROLL)
-                    .oldValues(null)
-            .newValues("{\"patientId\": " + saved.getPatientId() + ", \"studyId\": " + saved.getStudyId() + ", \"siteAssociationId\": " + saved.getStudySiteId() + "}")
-                    .performedBy(createdBy != null ? createdBy : "system")
-                    .performedAt(java.time.LocalDateTime.now())
-                    .reason("Patient enrolled")
-                    .build();
-            auditRepository.save(audit);
-        } catch (Exception ex) {
-            log.warn("Failed to write enrollment audit for enrollment {}: {}", saved.getId(), ex.getMessage());
+        
+        log.info("=== ENROLLMENT FLOW COMPLETE ===");
+        return enrollment;
+    }
+    
+    /**
+     * Wait for enrollment projection to be updated with retry logic
+     */
+    private PatientEnrollmentEntity waitForEnrollmentProjection(String enrollmentUuid, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        long delay = 50; // Start with 50ms delay
+        int attempts = 0;
+        
+        log.info("Waiting for enrollment projection with UUID: {}", enrollmentUuid);
+        
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            try {
+                attempts++;
+                Optional<PatientEnrollmentEntity> entity = patientEnrollmentRepository.findByAggregateUuid(enrollmentUuid);
+                if (entity.isPresent()) {
+                    log.info("Enrollment projection found after {}ms and {} attempts", 
+                        System.currentTimeMillis() - startTime, attempts);
+                    return entity.get();
+                }
+                
+                log.debug("Enrollment projection not found yet, attempt {}, waiting {}ms", attempts, delay);
+                
+                // Wait before retrying
+                Thread.sleep(delay);
+                
+                // Exponential backoff up to 500ms
+                delay = Math.min(delay * 2, 500);
+                
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while waiting for enrollment projection", e);
+            }
         }
-        log.info("Enrollment persisted with ID {} and UUID {}", saved.getId(), saved.getAggregateUuid());
-        return saved;
+        
+        log.warn("Enrollment projection not found after {}ms and {} attempts", timeoutMs, attempts);
+        return null;
+    }
+    
+    /**
+     * Map Long ID to UUID
+     * TODO: Replace with proper UUID lookup from entity tables
+     */
+    private UUID mapLongIdToUuid(String entityType, Long id) {
+        // This is a temporary solution for mapping Long IDs to UUIDs
+        // In production, we would look up the actual UUID from the entity table
+        
+        // For now, create a deterministic UUID based on entity type and ID
+        String uuidString = String.format("%s-%08d-0000-0000-000000000000", 
+            entityType.toLowerCase(), id);
+        
+        try {
+            return UUID.fromString(uuidString);
+        } catch (IllegalArgumentException e) {
+            // Fallback: create random UUID
+            log.warn("Failed to create deterministic UUID for {}:{}, using random UUID", entityType, id);
+            return UUID.randomUUID();
+        }
     }
 
     private String generateEnrollmentNumber(EnrollPatientDto dto) {

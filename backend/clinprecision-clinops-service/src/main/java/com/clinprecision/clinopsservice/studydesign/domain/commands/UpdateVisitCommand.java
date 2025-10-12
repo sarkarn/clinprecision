@@ -1,5 +1,6 @@
 package com.clinprecision.clinopsservice.studydesign.domain.commands;
 
+import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.VisitType;
 import lombok.Builder;
 import lombok.Data;
 import org.axonframework.modelling.command.TargetAggregateIdentifier;
@@ -27,6 +28,8 @@ public class UpdateVisitCommand {
     private final Integer windowBefore;
     
     private final Integer windowAfter;
+    
+    private final VisitType visitType; // BUGFIX: Added visitType field
     
     private final Boolean isRequired;
     

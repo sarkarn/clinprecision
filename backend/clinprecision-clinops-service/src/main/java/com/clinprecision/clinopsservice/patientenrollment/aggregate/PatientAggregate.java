@@ -7,7 +7,14 @@ import org.axonframework.modelling.command.AggregateLifecycle;
 import org.axonframework.spring.stereotype.Aggregate;
 
 import com.clinprecision.clinopsservice.patientenrollment.domain.commands.RegisterPatientCommand;
+import com.clinprecision.clinopsservice.patientenrollment.domain.commands.EnrollPatientCommand;
+import com.clinprecision.clinopsservice.patientenrollment.domain.commands.ChangePatientStatusCommand;
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientRegisteredEvent;
+import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientEnrolledEvent;
+import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientStatusChangedEvent;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,6 +34,8 @@ import java.util.UUID;
  */
 @Aggregate
 public class PatientAggregate {
+    
+    private static final Logger logger = LoggerFactory.getLogger(PatientAggregate.class);
 
     @AggregateIdentifier
     private UUID patientId;
@@ -97,6 +106,107 @@ public class PatientAggregate {
         this.registeredBy = event.getRegisteredBy();
     }
     
+    /**
+     * Command Handler: Enroll Patient
+     * Business Rules:
+     * - Patient must exist (aggregate already created)
+     * - Patient must be in REGISTERED or SCREENING status
+     * - Cannot enroll in same study twice
+     * - Study and site must be valid (validated by service layer)
+     */
+    @CommandHandler
+    public void handle(EnrollPatientCommand command) {
+        logger.info("Handling EnrollPatientCommand for patient: {}, study: {}, site: {}", 
+            command.getPatientId(), command.getStudyId(), command.getSiteId());
+        
+        // Validate command
+        command.validate();
+        
+        // Business rule validation
+        validateEnrollment(command);
+        
+        // Apply event
+        AggregateLifecycle.apply(PatientEnrolledEvent.builder()
+            .enrollmentId(command.getEnrollmentId())
+            .patientId(command.getPatientId())
+            .studyId(command.getStudyId())
+            .siteId(command.getSiteId())
+            .screeningNumber(command.getScreeningNumber())
+            .enrollmentDate(command.getEnrollmentDate() != null ? command.getEnrollmentDate() : LocalDate.now())
+            .enrollmentStatus("ENROLLED")
+            .enrolledBy(command.getCreatedBy())
+            .enrolledAt(LocalDateTime.now())
+            .createdBy(command.getCreatedBy())
+            .eligibilityConfirmed(false)
+            .build());
+        
+        logger.info("PatientEnrolledEvent emitted for patient: {}, enrollment: {}", 
+            command.getPatientId(), command.getEnrollmentId());
+    }
+    
+    /**
+     * Event Sourcing Handler: Patient Enrolled
+     */
+    @EventSourcingHandler
+    public void on(PatientEnrolledEvent event) {
+        logger.info("Applying PatientEnrolledEvent for patient: {}", event.getPatientId());
+        
+        // Add study to enrollments set
+        this.studyEnrollments.add(event.getStudyId());
+        
+        // Update status to ENROLLED
+        this.status = PatientStatus.ENROLLED;
+        
+        logger.info("Patient {} now enrolled in {} studies, status: {}", 
+            event.getPatientId(), this.studyEnrollments.size(), this.status);
+    }
+    
+    /**
+     * Command Handler: Change Patient Status
+     * Business Rules:
+     * - Patient must exist
+     * - Status transition must be valid
+     * - Reason must be provided
+     */
+    @CommandHandler
+    public void handle(ChangePatientStatusCommand command) {
+        logger.info("Handling ChangePatientStatusCommand for patient: {}, new status: {}", 
+            command.getPatientId(), command.getNewStatus());
+        
+        // Validate command
+        command.validate();
+        
+        // Validate status transition
+        validateStatusChange(command.getNewStatus(), command.getReason());
+        
+        // Apply event
+        AggregateLifecycle.apply(PatientStatusChangedEvent.builder()
+            .patientId(command.getPatientId())
+            .previousStatus(this.status.name())
+            .newStatus(command.getNewStatus().toUpperCase())
+            .reason(command.getReason())
+            .changedBy(command.getChangedBy())
+            .changedAt(LocalDateTime.now())
+            .enrollmentId(command.getEnrollmentId())
+            .notes(command.getNotes())
+            .build());
+        
+        logger.info("PatientStatusChangedEvent emitted for patient: {}", command.getPatientId());
+    }
+    
+    /**
+     * Event Sourcing Handler: Patient Status Changed
+     */
+    @EventSourcingHandler
+    public void on(PatientStatusChangedEvent event) {
+        logger.info("Applying PatientStatusChangedEvent for patient: {} from {} to {}", 
+            event.getPatientId(), event.getPreviousStatus(), event.getNewStatus());
+        
+        this.status = PatientStatus.valueOf(event.getNewStatus());
+        
+        logger.info("Patient {} status updated to {}", event.getPatientId(), this.status);
+    }
+    
     private void validatePatientRegistration(RegisterPatientCommand command) {
         if (!command.hasContactInfo()) {
             throw new IllegalArgumentException("Patient must have either phone number or email");
@@ -105,6 +215,61 @@ public class PatientAggregate {
         if (command.getAge() < 18) {
             throw new IllegalArgumentException("Patient must be at least 18 years old");
         }
+    }
+    
+    private void validateEnrollment(EnrollPatientCommand command) {
+        // Patient must be in eligible status
+        if (status != PatientStatus.REGISTERED && status != PatientStatus.SCREENING) {
+            throw new IllegalStateException(
+                String.format("Cannot enroll patient in status %s. Must be REGISTERED or SCREENING", status)
+            );
+        }
+        
+        // Cannot enroll in same study twice
+        if (studyEnrollments.contains(command.getStudyId())) {
+            throw new IllegalStateException(
+                String.format("Patient %s is already enrolled in study %s", patientId, command.getStudyId())
+            );
+        }
+        
+        logger.info("Enrollment validation passed for patient: {}", command.getPatientId());
+    }
+    
+    private void validateStatusChange(String newStatus, String reason) {
+        String currentStatusStr = this.status.name();
+        
+        // Build valid transition message
+        String validTransitions = "Valid transitions: REGISTERED→SCREENING, SCREENING→ENROLLED, " +
+                                 "ENROLLED→ACTIVE, ACTIVE→COMPLETED, ANY→WITHDRAWN";
+        
+        // Check if transition is valid
+        boolean isValid = false;
+        
+        if ("SCREENING".equals(newStatus) && "REGISTERED".equals(currentStatusStr)) {
+            isValid = true;
+        } else if ("ENROLLED".equals(newStatus) && "SCREENING".equals(currentStatusStr)) {
+            isValid = true;
+        } else if ("ACTIVE".equals(newStatus) && "ENROLLED".equals(currentStatusStr)) {
+            isValid = true;
+        } else if ("COMPLETED".equals(newStatus) && "ACTIVE".equals(currentStatusStr)) {
+            isValid = true;
+        } else if ("WITHDRAWN".equals(newStatus)) {
+            // Can withdraw from any status
+            isValid = true;
+        }
+        
+        if (!isValid) {
+            throw new IllegalStateException(
+                String.format("Invalid status transition from %s to %s. %s", 
+                    currentStatusStr, newStatus, validTransitions)
+            );
+        }
+        
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new IllegalArgumentException("Reason is required for status change");
+        }
+        
+        logger.info("Status change validation passed: {} → {}", currentStatusStr, newStatus);
     }
     
     // Business methods

@@ -150,8 +150,145 @@ END //
 
 DELIMITER ;
 
+-- ============================================================================
+-- 3. TRIGGERS FOR AUDIT TRAIL (FDA 21 CFR Part 11 Compliance)
+-- ============================================================================
+
+-- Trigger: Audit INSERT on study_form_data
+DELIMITER $$
+CREATE TRIGGER trg_study_form_data_insert
+AFTER INSERT ON study_form_data
+FOR EACH ROW
+BEGIN
+    INSERT INTO study_form_data_audit (
+        study_id, record_id, action, new_data, changed_by, changed_at
+    ) VALUES (
+        NEW.study_id, 
+        NEW.id, 
+        'INSERT',
+        JSON_OBJECT(
+            'form_id', NEW.form_id,
+            'subject_id', NEW.subject_id,
+            'visit_id', NEW.visit_id,
+            'status', NEW.status,
+            'form_data', NEW.form_data,
+            'created_by', NEW.created_by
+        ),
+        NEW.created_by,
+        NOW()
+    );
+END$$
+
+-- Trigger: Audit UPDATE on study_form_data
+CREATE TRIGGER trg_study_form_data_update
+AFTER UPDATE ON study_form_data
+FOR EACH ROW
+BEGIN
+    INSERT INTO study_form_data_audit (
+        study_id, record_id, action, old_data, new_data, changed_by, changed_at
+    ) VALUES (
+        NEW.study_id,
+        NEW.id,
+        'UPDATE',
+        JSON_OBJECT(
+            'form_id', OLD.form_id,
+            'subject_id', OLD.subject_id,
+            'visit_id', OLD.visit_id,
+            'status', OLD.status,
+            'form_data', OLD.form_data,
+            'is_locked', OLD.is_locked
+        ),
+        JSON_OBJECT(
+            'form_id', NEW.form_id,
+            'subject_id', NEW.subject_id,
+            'visit_id', NEW.visit_id,
+            'status', NEW.status,
+            'form_data', NEW.form_data,
+            'is_locked', NEW.is_locked
+        ),
+        NEW.updated_by,
+        NOW()
+    );
+END$$
+
+-- Trigger: Audit DELETE on study_form_data
+CREATE TRIGGER trg_study_form_data_delete
+BEFORE DELETE ON study_form_data
+FOR EACH ROW
+BEGIN
+    INSERT INTO study_form_data_audit (
+        study_id, record_id, action, old_data, changed_at
+    ) VALUES (
+        OLD.study_id,
+        OLD.id,
+        'DELETE',
+        JSON_OBJECT(
+            'form_id', OLD.form_id,
+            'subject_id', OLD.subject_id,
+            'visit_id', OLD.visit_id,
+            'status', OLD.status,
+            'form_data', OLD.form_data
+        ),
+        NOW()
+    );
+END$$
+
+-- Trigger: Audit INSERT on study_visit_instances
+CREATE TRIGGER trg_study_visit_instances_insert
+AFTER INSERT ON study_visit_instances
+FOR EACH ROW
+BEGIN
+    INSERT INTO study_visit_instances_audit (
+        study_id, record_id, action, new_data, changed_by, changed_at
+    ) VALUES (
+        NEW.study_id,
+        NEW.id,
+        'INSERT',
+        JSON_OBJECT(
+            'visit_id', NEW.visit_id,
+            'subject_id', NEW.subject_id,
+            'visit_date', NEW.visit_date,
+            'visit_status', NEW.visit_status
+        ),
+        NEW.created_by,
+        NOW()
+    );
+END$$
+
+-- Trigger: Audit UPDATE on study_visit_instances
+CREATE TRIGGER trg_study_visit_instances_update
+AFTER UPDATE ON study_visit_instances
+FOR EACH ROW
+BEGIN
+    INSERT INTO study_visit_instances_audit (
+        study_id, record_id, action, old_data, new_data, changed_by, changed_at
+    ) VALUES (
+        NEW.study_id,
+        NEW.id,
+        'UPDATE',
+        JSON_OBJECT(
+            'visit_date', OLD.visit_date,
+            'actual_visit_date', OLD.actual_visit_date,
+            'visit_status', OLD.visit_status,
+            'window_status', OLD.window_status
+        ),
+        JSON_OBJECT(
+            'visit_date', NEW.visit_date,
+            'actual_visit_date', NEW.actual_visit_date,
+            'visit_status', NEW.visit_status,
+            'window_status', NEW.window_status
+        ),
+        NEW.updated_by,
+        NOW()
+    );
+END$$
+
+DELIMITER ;
+
 
 -- Insert initial data for testing (if needed)
 -- This would be populated during actual implementation
 
 COMMIT;
+
+

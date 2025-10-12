@@ -750,6 +750,115 @@ const CRFBuilderIntegration = () => {
         }));
     };
 
+    // Export field metadata - Phase 6F Enhancement
+    const exportFieldMetadata = (field, format) => {
+        const metadata = {
+            fieldName: field.name || field.id,
+            fieldLabel: field.label,
+            fieldType: field.type,
+            required: field.required,
+            description: field.metadata?.description,
+            helpText: field.metadata?.helpText,
+            clinicalMetadata: {
+                sdvRequired: field.metadata?.clinicalMetadata?.sdvFlag || false,
+                medicalReview: field.metadata?.clinicalMetadata?.medicalReviewFlag || false,
+                cdashMapping: field.metadata?.clinicalMetadata?.cdashMapping || {},
+                sdtmMapping: field.metadata?.clinicalMetadata?.sdtmMapping || {},
+                medicalCoding: field.metadata?.clinicalMetadata?.medicalCoding || {},
+                dataQuality: field.metadata?.clinicalMetadata?.dataQuality || {},
+                regulatoryMetadata: field.metadata?.clinicalMetadata?.regulatoryMetadata || {}
+            },
+            validation: field.validation || {}
+        };
+
+        if (format === 'json') {
+            const blob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${field.name || field.id}_metadata.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } else if (format === 'csv') {
+            const csvRows = [
+                ['Field Name', 'Field Label', 'Type', 'Required', 'SDV', 'Medical Review', 'CDASH Domain', 'SDTM Domain', 'Medical Coding'],
+                [
+                    field.name || field.id,
+                    field.label,
+                    field.type,
+                    field.required ? 'Yes' : 'No',
+                    metadata.clinicalMetadata.sdvRequired ? 'Yes' : 'No',
+                    metadata.clinicalMetadata.medicalReview ? 'Yes' : 'No',
+                    metadata.clinicalMetadata.cdashMapping?.domain || '',
+                    metadata.clinicalMetadata.sdtmMapping?.domain || '',
+                    metadata.clinicalMetadata.medicalCoding?.meddraRequired ? 'MedDRA' : 'No'
+                ]
+            ];
+            const csvContent = csvRows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${field.name || field.id}_metadata.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } else if (format === 'excel') {
+            // For Excel, we'll use CSV format which Excel can open
+            // In a production app, you'd use a library like xlsx
+            exportFieldMetadata(field, 'csv');
+        }
+    };
+
+    // Export all fields metadata in a section
+    const exportAllFieldsMetadata = (section) => {
+        const allMetadata = section.fields.map(field => ({
+            fieldName: field.name || field.id,
+            fieldLabel: field.label,
+            fieldType: field.type,
+            required: field.required,
+            sdvRequired: field.metadata?.clinicalMetadata?.sdvFlag || false,
+            medicalReview: field.metadata?.clinicalMetadata?.medicalReviewFlag || false,
+            cdashDomain: field.metadata?.clinicalMetadata?.cdashMapping?.domain || '',
+            cdashVariable: field.metadata?.clinicalMetadata?.cdashMapping?.variable || '',
+            sdtmDomain: field.metadata?.clinicalMetadata?.sdtmMapping?.domain || '',
+            sdtmVariable: field.metadata?.clinicalMetadata?.sdtmMapping?.variable || '',
+            medicalCoding: field.metadata?.clinicalMetadata?.medicalCoding?.meddraRequired ? 'MedDRA' : '',
+            fdaRequired: field.metadata?.clinicalMetadata?.regulatoryMetadata?.fdaRequired || false,
+            emaRequired: field.metadata?.clinicalMetadata?.regulatoryMetadata?.emaRequired || false
+        }));
+
+        const csvRows = [
+            ['Field Name', 'Field Label', 'Type', 'Required', 'SDV', 'Medical Review', 'CDASH Domain', 'CDASH Variable', 'SDTM Domain', 'SDTM Variable', 'Medical Coding', 'FDA', 'EMA']
+        ];
+
+        allMetadata.forEach(field => {
+            csvRows.push([
+                field.fieldName,
+                field.fieldLabel,
+                field.fieldType,
+                field.required ? 'Yes' : 'No',
+                field.sdvRequired ? 'Yes' : 'No',
+                field.medicalReview ? 'Yes' : 'No',
+                field.cdashDomain,
+                field.cdashVariable,
+                field.sdtmDomain,
+                field.sdtmVariable,
+                field.medicalCoding,
+                field.fdaRequired ? 'Yes' : 'No',
+                field.emaRequired ? 'Yes' : 'No'
+            ]);
+        });
+
+        const csvContent = csvRows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${section.title}_all_fields_metadata.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     // Render field input based on type
     const renderFieldInput = (field, value, onChange, disabled = false) => {
         const fieldClasses = "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
@@ -1616,7 +1725,7 @@ const CRFBuilderIntegration = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* Enhanced Clinical Metadata Panel */}
+                                                {/* Clinical Metadata Panel */}
                                                 {showFieldMetadata[field.id] && (
                                                     <div className="border-t border-gray-200 pt-4 mt-4">
                                                         <div className="flex justify-between items-center mb-4">
@@ -1633,7 +1742,8 @@ const CRFBuilderIntegration = () => {
                                                                     { id: 'standards', label: 'CDASH/SDTM', icon: '📊' },
                                                                     { id: 'coding', label: 'Medical Coding', icon: '🏷️' },
                                                                     { id: 'quality', label: 'Data Quality', icon: '✅' },
-                                                                    { id: 'regulatory', label: 'Regulatory', icon: '📋' }
+                                                                    { id: 'regulatory', label: 'Regulatory', icon: '📋' },
+                                                                    { id: 'export', label: 'Export', icon: '📤' }
                                                                 ].map((tab) => (
                                                                     <button
                                                                         key={tab.id}
@@ -2429,6 +2539,114 @@ const CRFBuilderIntegration = () => {
                                                                         rows="3"
                                                                         placeholder="Regulatory and compliance notes"
                                                                     />
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Export Tab - NEW Phase 6F Enhancement */}
+                                                        {activeMetadataTab[field.id] === 'export' && (
+                                                            <div className="space-y-6">
+                                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                                                    <h5 className="text-sm font-semibold text-blue-900 mb-2">📤 Export Field Metadata</h5>
+                                                                    <p className="text-sm text-blue-700 mb-3">
+                                                                        Export metadata for this field in various formats for regulatory submissions and documentation.
+                                                                    </p>
+                                                                </div>
+
+                                                                {/* Quick Export Buttons */}
+                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                    <button
+                                                                        onClick={() => exportFieldMetadata(field, 'json')}
+                                                                        className="flex flex-col items-center p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                                                                    >
+                                                                        <span className="text-3xl mb-2">📄</span>
+                                                                        <span className="font-medium text-gray-900">JSON</span>
+                                                                        <span className="text-xs text-gray-500 mt-1">Machine-readable format</span>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => exportFieldMetadata(field, 'excel')}
+                                                                        className="flex flex-col items-center p-4 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
+                                                                    >
+                                                                        <span className="text-3xl mb-2">📊</span>
+                                                                        <span className="font-medium text-gray-900">Excel</span>
+                                                                        <span className="text-xs text-gray-500 mt-1">Spreadsheet format</span>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => exportFieldMetadata(field, 'csv')}
+                                                                        className="flex flex-col items-center p-4 border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
+                                                                    >
+                                                                        <span className="text-3xl mb-2">📑</span>
+                                                                        <span className="font-medium text-gray-900">CSV</span>
+                                                                        <span className="text-xs text-gray-500 mt-1">Universal format</span>
+                                                                    </button>
+                                                                </div>
+
+                                                                {/* Metadata Summary */}
+                                                                <div className="border border-gray-200 rounded-lg p-4">
+                                                                    <h6 className="text-sm font-semibold text-gray-900 mb-3">Metadata Summary</h6>
+                                                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                                                        <div>
+                                                                            <span className="text-gray-600">Field Name:</span>
+                                                                            <span className="ml-2 font-mono text-gray-900">{field.name || field.id}</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">Type:</span>
+                                                                            <span className="ml-2 font-medium text-gray-900">{field.type}</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">SDV Required:</span>
+                                                                            <span className={`ml-2 font-medium ${field.metadata?.clinicalMetadata?.sdvFlag ? 'text-green-600' : 'text-gray-400'}`}>
+                                                                                {field.metadata?.clinicalMetadata?.sdvFlag ? 'Yes' : 'No'}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">Medical Coding:</span>
+                                                                            <span className={`ml-2 font-medium ${field.metadata?.clinicalMetadata?.medicalCoding?.meddraRequired ? 'text-green-600' : 'text-gray-400'}`}>
+                                                                                {field.metadata?.clinicalMetadata?.medicalCoding?.meddraRequired ? 'Required' : 'Not Required'}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">CDASH Domain:</span>
+                                                                            <span className="ml-2 font-mono text-gray-900">{field.metadata?.clinicalMetadata?.cdashMapping?.domain || 'Not mapped'}</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">SDTM Domain:</span>
+                                                                            <span className="ml-2 font-mono text-gray-900">{field.metadata?.clinicalMetadata?.sdtmMapping?.domain || 'Not mapped'}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Export Options */}
+                                                                <div className="border border-gray-200 rounded-lg p-4">
+                                                                    <h6 className="text-sm font-semibold text-gray-900 mb-3">Export Options</h6>
+                                                                    <div className="space-y-2">
+                                                                        <label className="flex items-center">
+                                                                            <input type="checkbox" defaultChecked className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
+                                                                            <span className="ml-2 text-sm text-gray-700">Include CDASH/SDTM mappings</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input type="checkbox" defaultChecked className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
+                                                                            <span className="ml-2 text-sm text-gray-700">Include medical coding configuration</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input type="checkbox" defaultChecked className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
+                                                                            <span className="ml-2 text-sm text-gray-700">Include validation rules</span>
+                                                                        </label>
+                                                                        <label className="flex items-center">
+                                                                            <input type="checkbox" className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
+                                                                            <span className="ml-2 text-sm text-gray-700">Include regulatory requirements</span>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Bulk Export */}
+                                                                <div className="border-t border-gray-200 pt-4">
+                                                                    <button
+                                                                        onClick={() => exportAllFieldsMetadata(section)}
+                                                                        className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-colors font-medium"
+                                                                    >
+                                                                        📦 Export All Fields in This Section
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         )}

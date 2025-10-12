@@ -33,10 +33,14 @@ const transformVisitResponse = (visit) => {
             ? `Visit ${sequenceNumber}`
             : 'Visit';
 
+    // BUGFIX: Check visitType field more carefully and add logging
+    const visitType = visit.visitType || visit.type || DEFAULT_VISIT_TYPE;
+    console.log(`Transform visit ${visit.name}: backend visitType=${visit.visitType}, using=${visitType}`);
+
     return {
         id: visitId ? String(visitId) : null,
         name: resolvedName,
-        type: (visit.visitType || DEFAULT_VISIT_TYPE).toUpperCase(),
+        type: visitType.toUpperCase(),
         window: {
             days: [windowStart, windowEnd],
             description: visit.description || ''

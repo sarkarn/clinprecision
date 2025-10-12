@@ -1115,6 +1115,145 @@ CREATE TABLE user_qualifications (
 );
 
 
+-- Patient Enrollment Database Schema
+-- Following established ClinPrecision patterns with aggregate_uuid columns
+
+-- Patient Registration table
+CREATE TABLE IF NOT EXISTS patients (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier',
+    patient_number VARCHAR(50) NOT NULL COMMENT 'Human-readable patient identifier',
+    first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100),
+    last_name VARCHAR(100) NOT NULL,
+    date_of_birth DATE NOT NULL,
+    gender ENUM('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY') NOT NULL,
+    phone_number VARCHAR(20),
+    email VARCHAR(255),
+    status ENUM('REGISTERED', 'SCREENED', 'ELIGIBLE', 'INELIGIBLE', 'WITHDRAWN') DEFAULT 'REGISTERED',
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_patients_aggregate_uuid (aggregate_uuid),
+    INDEX idx_patients_patient_number (patient_number),
+    INDEX idx_patients_email (email),
+    INDEX idx_patients_status (status),
+    INDEX idx_patients_created_at (created_at)
+) COMMENT 'Patient registration records for clinical trials';
+
+
+-- Patient Enrollment table (many-to-many: patients can be enrolled in multiple studies)
+CREATE TABLE IF NOT EXISTS patient_enrollments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_uuid VARCHAR(255) UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier',
+    enrollment_number VARCHAR(50) NOT NULL COMMENT 'Human-readable enrollment identifier',
+    patient_id BIGINT NOT NULL,
+    patient_aggregate_uuid VARCHAR(255) NOT NULL COMMENT 'Reference to patient aggregate',
+    study_id BIGINT NOT NULL,
+    study_site_id BIGINT NOT NULL,
+    site_aggregate_uuid VARCHAR(255) NOT NULL COMMENT 'Reference to site aggregate',
+    screening_number VARCHAR(50) NOT NULL,
+    enrollment_date DATE NOT NULL,
+    enrollment_status ENUM('ENROLLED', 'SCREENING', 'ELIGIBLE', 'INELIGIBLE', 'WITHDRAWN', 'COMPLETED') DEFAULT 'ENROLLED',
+    eligibility_confirmed BOOLEAN DEFAULT FALSE,
+    eligibility_confirmed_by VARCHAR(255),
+    eligibility_confirmed_at TIMESTAMP NULL,
+    ineligibility_reason TEXT,
+    enrolled_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (study_id) REFERENCES studies(id),
+    FOREIGN KEY (study_site_id) REFERENCES site_studies(id),
+    
+    INDEX idx_enrollments_aggregate_uuid (aggregate_uuid),
+    INDEX idx_enrollments_patient (patient_id),
+    INDEX idx_enrollments_patient_uuid (patient_aggregate_uuid),
+    INDEX idx_enrollments_study (study_id),
+    INDEX idx_enrollments_site (study_site_id),
+    INDEX idx_enrollments_site_uuid (site_aggregate_uuid),
+    INDEX idx_enrollments_status (enrollment_status),
+    INDEX idx_enrollments_screening_number (screening_number),
+    INDEX idx_enrollments_enrollment_date (enrollment_date),
+    
+    UNIQUE KEY uk_screening_number (screening_number, study_id),
+    UNIQUE KEY uk_patient_study_enrollment (patient_id, study_id)
+) COMMENT 'Patient enrollment records linking patients to specific studies and sites';
+
+-- Patient Eligibility Assessments (detailed eligibility tracking)
+CREATE TABLE IF NOT EXISTS patient_eligibility_assessments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    enrollment_id BIGINT NOT NULL,
+    enrollment_aggregate_uuid VARCHAR(255) NOT NULL,
+    assessment_type ENUM('INCLUSION', 'EXCLUSION', 'GENERAL') NOT NULL,
+    criterion_description TEXT NOT NULL,
+    is_met BOOLEAN NOT NULL,
+    assessment_notes TEXT,
+    assessed_by VARCHAR(255) NOT NULL,
+    assessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (enrollment_id) REFERENCES patient_enrollments(id),
+    
+    INDEX idx_eligibility_enrollment (enrollment_id),
+    INDEX idx_eligibility_enrollment_uuid (enrollment_aggregate_uuid),
+    INDEX idx_eligibility_type (assessment_type),
+    INDEX idx_eligibility_assessed_at (assessed_at)
+) COMMENT 'Detailed eligibility assessments for patient enrollments';
+
+-- Patient Demographics (extended patient information)
+CREATE TABLE IF NOT EXISTS patient_demographics (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    patient_id BIGINT NOT NULL UNIQUE,
+    patient_aggregate_uuid VARCHAR(255) NOT NULL,
+    race VARCHAR(100),
+    ethnicity VARCHAR(100),
+    height_cm DECIMAL(5,2),
+    weight_kg DECIMAL(6,2),
+    bmi DECIMAL(4,1) GENERATED ALWAYS AS (weight_kg / POWER(height_cm/100, 2)) STORED,
+    blood_type VARCHAR(10),
+    medical_record_number VARCHAR(50),
+    insurance_information JSON,
+    emergency_contact JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    
+    INDEX idx_demographics_patient_uuid (patient_aggregate_uuid),
+    INDEX idx_demographics_race (race),
+    INDEX idx_demographics_ethnicity (ethnicity)
+) COMMENT 'Extended demographic information for patients';
+
+-- Audit trail for patient enrollment events (for FDA 21 CFR Part 11 compliance)
+CREATE TABLE IF NOT EXISTS patient_enrollment_audit (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id BIGINT NOT NULL,
+    entity_aggregate_uuid VARCHAR(255) NOT NULL,
+    action_type VARCHAR(50) NOT NULL,
+    old_values JSON COMMENT 'Previous values before change',
+    new_values JSON COMMENT 'New values after change',
+    performed_by VARCHAR(255) NOT NULL,
+    performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    reason TEXT,
+    
+    INDEX idx_audit_entity_type (entity_type),
+    INDEX idx_audit_entity_id (entity_id),
+    INDEX idx_audit_entity_uuid (entity_aggregate_uuid),
+    INDEX idx_audit_action (action_type),
+    INDEX idx_audit_performed_at (performed_at),
+    INDEX idx_audit_performed_by (performed_by)
+) COMMENT 'Complete audit trail for patient enrollment activities';
+
+-- ============================================================================
+-- Database Build: Study Database Build
+-- Version: 001
+-- ============================================================================
+
 CREATE TABLE study_database_builds (
   id bigint NOT NULL AUTO_INCREMENT,
   aggregate_uuid varchar(255) DEFAULT NULL COMMENT 'Aggregate UUID from Axon Framework - links to event-sourced aggregate',
@@ -1264,140 +1403,227 @@ CREATE TABLE study_build_notifications (
     INDEX idx_build_notifications_sent (is_sent)
 ) COMMENT='Notifications related to database build processes';
 
+-- ============================================================================
+-- Database Migration: Study Database Shared Tables
+-- Version: 002
+-- Date: October 9, 2025
+-- Description: Creates shared tables for multi-tenant study data capture
+--              Replaces per-study table creation with fixed schema tables
+--              Supports thousands of studies without table explosion
+-- ============================================================================
 
--- Patient Enrollment Database Schema
--- Following established ClinPrecision patterns with aggregate_uuid columns
+-- ============================================================================
+-- 1. MAIN DATA TABLES (Shared across all studies)
+-- ============================================================================
 
--- Patient Registration table
-CREATE TABLE IF NOT EXISTS patients (
+-- Study Form Data - Stores all form submission data for all studies
+
+
+CREATE TABLE IF NOT EXISTS study_form_data (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    aggregate_uuid VARCHAR(255) UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier',
-    patient_number VARCHAR(50) NOT NULL COMMENT 'Human-readable patient identifier',
-    first_name VARCHAR(100) NOT NULL,
-    middle_name VARCHAR(100),
-    last_name VARCHAR(100) NOT NULL,
-    date_of_birth DATE NOT NULL,
-    gender ENUM('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY') NOT NULL,
-    phone_number VARCHAR(20),
-    email VARCHAR(255),
-    status ENUM('REGISTERED', 'SCREENED', 'ELIGIBLE', 'INELIGIBLE', 'WITHDRAWN') DEFAULT 'REGISTERED',
-    created_by VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    INDEX idx_patients_aggregate_uuid (aggregate_uuid),
-    INDEX idx_patients_patient_number (patient_number),
-    INDEX idx_patients_email (email),
-    INDEX idx_patients_status (status),
-    INDEX idx_patients_created_at (created_at)
-) COMMENT 'Patient registration records for clinical trials';
-
-
--- Patient Enrollment table (many-to-many: patients can be enrolled in multiple studies)
-CREATE TABLE IF NOT EXISTS patient_enrollments (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    aggregate_uuid VARCHAR(255) UNIQUE COMMENT 'UUID used by Axon Framework as aggregate identifier',
-    enrollment_number VARCHAR(50) NOT NULL COMMENT 'Human-readable enrollment identifier',
-    patient_id BIGINT NOT NULL,
-    patient_aggregate_uuid VARCHAR(255) NOT NULL COMMENT 'Reference to patient aggregate',
     study_id BIGINT NOT NULL,
-    study_site_id BIGINT NOT NULL,
-    site_aggregate_uuid VARCHAR(255) NOT NULL COMMENT 'Reference to site aggregate',
-    screening_number VARCHAR(50) NOT NULL,
-    enrollment_date DATE NOT NULL,
-    enrollment_status ENUM('ENROLLED', 'SCREENING', 'ELIGIBLE', 'INELIGIBLE', 'WITHDRAWN', 'COMPLETED') DEFAULT 'ENROLLED',
-    eligibility_confirmed BOOLEAN DEFAULT FALSE,
-    eligibility_confirmed_by VARCHAR(255),
-    eligibility_confirmed_at TIMESTAMP NULL,
-    ineligibility_reason TEXT,
-    enrolled_by VARCHAR(255) NOT NULL,
+    form_id BIGINT NOT NULL,
+    subject_id BIGINT,
+    visit_id BIGINT,
+    site_id BIGINT,
+    status VARCHAR(50) DEFAULT 'DRAFT',
+    form_data JSON,                         -- All form field data as JSON
+    version INT DEFAULT 1,                  -- Form data version for history
+    is_locked BOOLEAN DEFAULT false,
+    locked_at TIMESTAMP NULL,
+    locked_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT,
     
-    FOREIGN KEY (patient_id) REFERENCES patients(id),
-    FOREIGN KEY (study_id) REFERENCES studies(id),
-    FOREIGN KEY (study_site_id) REFERENCES site_studies(id),
+    INDEX idx_study (study_id),
+    INDEX idx_study_form (study_id, form_id),
+    INDEX idx_study_subject (study_id, subject_id),
+    INDEX idx_study_visit (study_id, visit_id),
+    INDEX idx_study_site (study_id, site_id),
+    INDEX idx_status (study_id, status),
+    INDEX idx_created (study_id, created_at),
+    INDEX idx_subject_visit (study_id, subject_id, visit_id),
     
-    INDEX idx_enrollments_aggregate_uuid (aggregate_uuid),
-    INDEX idx_enrollments_patient (patient_id),
-    INDEX idx_enrollments_patient_uuid (patient_aggregate_uuid),
-    INDEX idx_enrollments_study (study_id),
-    INDEX idx_enrollments_site (study_site_id),
-    INDEX idx_enrollments_site_uuid (site_aggregate_uuid),
-    INDEX idx_enrollments_status (enrollment_status),
-    INDEX idx_enrollments_screening_number (screening_number),
-    INDEX idx_enrollments_enrollment_date (enrollment_date),
-    
-    UNIQUE KEY uk_screening_number (screening_number, study_id),
-    UNIQUE KEY uk_patient_study_enrollment (patient_id, study_id)
-) COMMENT 'Patient enrollment records linking patients to specific studies and sites';
+   CONSTRAINT fk_sfd_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- PARTITION BY HASH(study_id) PARTITIONS 16;
 
--- Patient Eligibility Assessments (detailed eligibility tracking)
-CREATE TABLE IF NOT EXISTS patient_eligibility_assessments (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    enrollment_id BIGINT NOT NULL,
-    enrollment_aggregate_uuid VARCHAR(255) NOT NULL,
-    assessment_type ENUM('INCLUSION', 'EXCLUSION', 'GENERAL') NOT NULL,
-    criterion_description TEXT NOT NULL,
-    is_met BOOLEAN NOT NULL,
-    assessment_notes TEXT,
-    assessed_by VARCHAR(255) NOT NULL,
-    assessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (enrollment_id) REFERENCES patient_enrollments(id),
-    
-    INDEX idx_eligibility_enrollment (enrollment_id),
-    INDEX idx_eligibility_enrollment_uuid (enrollment_aggregate_uuid),
-    INDEX idx_eligibility_type (assessment_type),
-    INDEX idx_eligibility_assessed_at (assessed_at)
-) COMMENT 'Detailed eligibility assessments for patient enrollments';
-
--- Patient Demographics (extended patient information)
-CREATE TABLE IF NOT EXISTS patient_demographics (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    patient_id BIGINT NOT NULL UNIQUE,
-    patient_aggregate_uuid VARCHAR(255) NOT NULL,
-    race VARCHAR(100),
-    ethnicity VARCHAR(100),
-    height_cm DECIMAL(5,2),
-    weight_kg DECIMAL(6,2),
-    bmi DECIMAL(4,1) GENERATED ALWAYS AS (weight_kg / POWER(height_cm/100, 2)) STORED,
-    blood_type VARCHAR(10),
-    medical_record_number VARCHAR(50),
-    insurance_information JSON,
-    emergency_contact JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (patient_id) REFERENCES patients(id),
-    
-    INDEX idx_demographics_patient_uuid (patient_aggregate_uuid),
-    INDEX idx_demographics_race (race),
-    INDEX idx_demographics_ethnicity (ethnicity)
-) COMMENT 'Extended demographic information for patients';
-
--- Audit trail for patient enrollment events (for FDA 21 CFR Part 11 compliance)
-CREATE TABLE IF NOT EXISTS patient_enrollment_audit (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    entity_type VARCHAR(50) NOT NULL,
-    entity_id BIGINT NOT NULL,
-    entity_aggregate_uuid VARCHAR(255) NOT NULL,
-    action_type VARCHAR(50) NOT NULL,
-    old_values JSON COMMENT 'Previous values before change',
-    new_values JSON COMMENT 'New values after change',
-    performed_by VARCHAR(255) NOT NULL,
-    performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ip_address VARCHAR(45),
+-- Study Form Data Audit - Audit trail for all form data changes (FDA 21 CFR Part 11)
+CREATE TABLE IF NOT EXISTS study_form_data_audit (
+    audit_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    record_id BIGINT NOT NULL,              -- ID from study_form_data
+    action VARCHAR(20) NOT NULL,            -- INSERT, UPDATE, DELETE, LOCK, UNLOCK
+    old_data JSON,                          -- Previous state (NULL for INSERT)
+    new_data JSON,                          -- New state (NULL for DELETE)
+    changed_by BIGINT,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    change_reason TEXT,
+    ip_address VARCHAR(50),
     user_agent TEXT,
-    reason TEXT,
     
-    INDEX idx_audit_entity_type (entity_type),
-    INDEX idx_audit_entity_id (entity_id),
-    INDEX idx_audit_entity_uuid (entity_aggregate_uuid),
-    INDEX idx_audit_action (action_type),
-    INDEX idx_audit_performed_at (performed_at),
-    INDEX idx_audit_performed_by (performed_by)
-) COMMENT 'Complete audit trail for patient enrollment activities';
+    INDEX idx_study (study_id),
+    INDEX idx_record (study_id, record_id),
+    INDEX idx_changed_at (changed_at),
+    INDEX idx_changed_by (changed_by),
+    INDEX idx_action (action)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- PARTITION BY HASH(study_id) PARTITIONS 16;
+
+-- Study Visit Instances - Tracks actual visit occurrences for subjects
+CREATE TABLE IF NOT EXISTS study_visit_instances (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    visit_id BIGINT NOT NULL,               -- FK to visit_definitions
+    subject_id BIGINT NOT NULL,             -- FK to study_subjects
+    site_id BIGINT,
+    visit_date DATE,                        -- Scheduled/planned date
+    actual_visit_date DATE,                 -- Actual date visit occurred
+    visit_status VARCHAR(50) DEFAULT 'SCHEDULED',  -- SCHEDULED, COMPLETED, MISSED, CANCELLED
+    window_status VARCHAR(50),              -- ON_TIME, EARLY, LATE, OUT_OF_WINDOW
+    completion_percentage DECIMAL(5,2),     -- % of required forms completed
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT,
+    
+    INDEX idx_study (study_id),
+    INDEX idx_study_subject (study_id, subject_id),
+    INDEX idx_study_visit (study_id, visit_id),
+    INDEX idx_subject_visit (subject_id, visit_id),
+    INDEX idx_status (study_id, visit_status),
+    INDEX idx_visit_date (study_id, visit_date),
+    
+   CONSTRAINT fk_svi_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- PARTITION BY HASH(study_id) PARTITIONS 16;
+
+-- Study Visit Instances Audit - Audit trail for visit changes
+CREATE TABLE IF NOT EXISTS study_visit_instances_audit (
+    audit_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    record_id BIGINT NOT NULL,              -- ID from study_visit_instances
+    action VARCHAR(20) NOT NULL,            -- INSERT, UPDATE, DELETE
+    old_data JSON,
+    new_data JSON,
+    changed_by BIGINT,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    change_reason TEXT,
+    
+    INDEX idx_study (study_id),
+    INDEX idx_record (study_id, record_id),
+    INDEX idx_changed_at (changed_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- PARTITION BY HASH(study_id) PARTITIONS 16;
+
+-- ============================================================================
+-- 2. CONFIGURATION TABLES (Study-specific settings)
+-- ============================================================================
+
+-- Study Visit Form Mapping - Associates forms with visits per study
+CREATE TABLE IF NOT EXISTS study_visit_form_mapping (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    visit_id BIGINT NOT NULL,
+    form_id BIGINT NOT NULL,
+    is_required BOOLEAN DEFAULT true,
+    sequence INT,                           -- Display order
+    conditional_logic JSON,                 -- Conditions for form visibility
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by BIGINT,
+    
+    UNIQUE KEY uk_study_visit_form (study_id, visit_id, form_id),
+    INDEX idx_study (study_id),
+    INDEX idx_visit (study_id, visit_id),
+    INDEX idx_form (study_id, form_id),
+    
+    CONSTRAINT fk_svfm_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Study Form Validation Rules - Field-level validation rules per study
+CREATE TABLE IF NOT EXISTS study_form_validation_rules (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    form_id BIGINT NOT NULL,
+    field_name VARCHAR(100) NOT NULL,
+    rule_type VARCHAR(50) NOT NULL,        -- REQUIRED, RANGE, REGEX, DATE_RANGE, CUSTOM
+    rule_value JSON,                       -- {"min": 0, "max": 120} or {"pattern": "..."}
+    error_message TEXT,
+    severity VARCHAR(20) DEFAULT 'ERROR',  -- ERROR, WARNING, INFO
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_study_form (study_id, form_id),
+    INDEX idx_field (study_id, form_id, field_name),
+    
+    CONSTRAINT fk_sfvr_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Study Visit Schedules - Visit timing and window configuration
+CREATE TABLE IF NOT EXISTS study_visit_schedules (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    visit_id BIGINT NOT NULL,
+    day_number INT,                        -- Study day (relative to enrollment, Day 1 = enrollment)
+    window_before INT,                     -- Days before target date (early window)
+    window_after INT,                      -- Days after target date (late window)
+    is_critical BOOLEAN DEFAULT false,     -- Critical visit (must be on time)
+    visit_type VARCHAR(50),                -- SCHEDULED, UNSCHEDULED, EARLY_TERMINATION
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_study (study_id),
+    INDEX idx_study_visit (study_id, visit_id),
+    INDEX idx_day (study_id, day_number),
+    
+    CONSTRAINT fk_svs_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Study Edit Checks - Data quality and consistency checks
+CREATE TABLE IF NOT EXISTS study_edit_checks (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    study_id BIGINT NOT NULL,
+    check_name VARCHAR(255) NOT NULL,
+    check_type VARCHAR(50) NOT NULL,       -- RANGE, CONSISTENCY, MISSING, DUPLICATE, CROSS_FORM
+    check_logic JSON,                      -- Logic definition (SQL, JavaScript, or JSON rules)
+    severity VARCHAR(20) DEFAULT 'MAJOR',  -- CRITICAL, MAJOR, MINOR
+    error_message TEXT,
+    action_required VARCHAR(50) DEFAULT 'QUERY',  -- QUERY, BLOCK, WARN
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_study (study_id),
+    INDEX idx_type (study_id, check_type),
+    INDEX idx_severity (study_id, severity),
+    
+    CONSTRAINT fk_sec_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Study Database Build Configuration - Tracks what was built/configured
+CREATE TABLE IF NOT EXISTS study_database_build_config (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    build_id BIGINT NOT NULL,              -- FK to study_database_builds
+    study_id BIGINT NOT NULL,
+    config_type VARCHAR(50) NOT NULL,      -- FORM_MAPPING, VALIDATION, VISIT_SCHEDULE, EDIT_CHECK, INDEX
+    config_name VARCHAR(255),
+    config_data JSON,
+    status VARCHAR(50) DEFAULT 'CREATED',  -- CREATED, ACTIVE, INACTIVE
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_build (build_id),
+    INDEX idx_study (study_id),
+    INDEX idx_type (study_id, config_type),
+    
+    CONSTRAINT fk_sdbc_build FOREIGN KEY (build_id) REFERENCES study_database_builds(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- Audit and logging tables
 CREATE TABLE audit_trail (
@@ -1586,6 +1812,8 @@ CREATE INDEX idx_study_versions_withdrawn_by ON study_versions(withdrawn_by);
 CREATE INDEX idx_study_versions_submission_date ON study_versions(submission_date);
 CREATE INDEX idx_study_versions_created_at ON study_versions(created_at);
 CREATE INDEX idx_study_versions_updated_at ON study_versions(updated_at);
+CREATE INDEX idx_sfd_study_subject_status ON study_form_data(study_id, subject_id, status);
+CREATE INDEX idx_sfd_study_visit_form ON study_form_data(study_id, visit_id, form_id);
 
 
 

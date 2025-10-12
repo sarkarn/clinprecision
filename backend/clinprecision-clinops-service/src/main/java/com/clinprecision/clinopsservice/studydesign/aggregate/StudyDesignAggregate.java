@@ -237,6 +237,7 @@ public class StudyDesignAggregate {
             command.getTimepoint(),
             command.getWindowBefore(),
             command.getWindowAfter(),
+            command.getVisitType(), // BUGFIX: Added visitType
             command.getIsRequired(),
             command.getUpdatedBy()
         ));
@@ -445,6 +446,7 @@ public class StudyDesignAggregate {
                 event.getDescription(),
                 event.getTimepoint(),
                 VisitWindow.of(event.getWindowBefore(), event.getWindowAfter()),
+                event.getVisitType(), // BUGFIX: Added visitType
                 event.getIsRequired()
             );
             this.visits.put(event.getVisitId(), updatedVisit);
