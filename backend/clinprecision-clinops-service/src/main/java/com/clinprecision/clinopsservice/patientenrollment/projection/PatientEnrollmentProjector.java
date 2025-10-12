@@ -1,5 +1,6 @@
 package com.clinprecision.clinopsservice.patientenrollment.projection;
 
+import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientRegisteredEvent;
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientEnrolledEvent;
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientStatusChangedEvent;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEntity;
@@ -41,6 +42,80 @@ public class PatientEnrollmentProjector {
     private final PatientRepository patientRepository;
     private final PatientEnrollmentAuditRepository auditRepository;
     private final PatientStatusHistoryRepository statusHistoryRepository;
+    
+    /**
+     * Handle PatientRegisteredEvent - Create initial status history record
+     * 
+     * This is the first event in a patient's lifecycle. We create:
+     * 1. Initial status history record with REGISTERED status
+     * 2. Audit record for patient creation
+     * 
+     * Note: The patient entity itself is already created by the patient service
+     * before the command is sent, so we just need to create the status history.
+     */
+    @EventHandler
+    @Transactional
+    public void on(PatientRegisteredEvent event) {
+        log.info("Projecting PatientRegisteredEvent: patient={}, name={} {}", 
+            event.getPatientId(), event.getFirstName(), event.getLastName());
+        
+        try {
+            // Find patient entity by aggregate UUID
+            Optional<PatientEntity> patientOpt = patientRepository.findByAggregateUuid(event.getPatientId().toString());
+            if (patientOpt.isEmpty()) {
+                log.error("Patient not found for UUID: {}", event.getPatientId());
+                return; // Patient might not be in projection yet
+            }
+            
+            PatientEntity patient = patientOpt.get();
+            
+            // Generate event identifier for idempotency
+            String eventId = generateEventIdForRegistration(event);
+            
+            // Check if initial status history already exists
+            if (statusHistoryRepository.existsByEventId(eventId)) {
+                log.info("Patient registration event already processed (idempotency check): eventId={}", eventId);
+                return;
+            }
+            
+            // Create initial status history record with REGISTERED status
+            PatientStatusHistoryEntity statusHistory = PatientStatusHistoryEntity.builder()
+                .patientId(patient.getId())
+                .aggregateUuid(event.getPatientId().toString())
+                .eventId(eventId)
+                .previousStatus(null) // No previous status for initial registration
+                .newStatus(PatientStatus.REGISTERED)
+                .reason("Initial patient registration")
+                .changedBy(event.getRegisteredBy())
+                .changedAt(event.getRegisteredAt() != null ? event.getRegisteredAt() : LocalDateTime.now())
+                .notes(String.format("Patient registered: %s %s", event.getFirstName(), event.getLastName()))
+                .enrollmentId(null) // No enrollment at registration
+                .build();
+            
+            PatientStatusHistoryEntity savedHistory = statusHistoryRepository.save(statusHistory);
+            
+            log.info("Initial status history record created: id={}, patient={}, status=REGISTERED", 
+                savedHistory.getId(), patient.getId());
+            
+            // Create audit record for patient registration
+            createAuditRecord(
+                patient.getId(),
+                event.getPatientId().toString(),
+                PatientEnrollmentAuditEntity.AuditActionType.REGISTER,
+                null,
+                String.format("{\"firstName\": \"%s\", \"lastName\": \"%s\", \"status\": \"REGISTERED\"}", 
+                    event.getFirstName(), event.getLastName()),
+                event.getRegisteredBy(),
+                "Patient registered in system"
+            );
+            
+            log.info("PatientRegisteredEvent projection completed successfully");
+            
+        } catch (Exception e) {
+            log.error("Error projecting PatientRegisteredEvent: {}", e.getMessage(), e);
+            // Don't throw - allow processing to continue
+        }
+    }
     
     /**
      * Handle PatientEnrolledEvent - Create enrollment record
@@ -276,6 +351,24 @@ public class PatientEnrollmentProjector {
             event.getNewStatus(),
             event.getChangedBy(),
             event.getChangedAt() != null ? event.getChangedAt().toString() : "now"
+        );
+        
+        // Generate UUID from composite string (deterministic)
+        return java.util.UUID.nameUUIDFromBytes(composite.getBytes()).toString();
+    }
+    
+    /**
+     * Generate unique event ID for PatientRegisteredEvent (idempotency).
+     * 
+     * @param event the patient registered event
+     * @return unique event identifier
+     */
+    private String generateEventIdForRegistration(PatientRegisteredEvent event) {
+        // Generate deterministic ID based on event properties
+        String composite = String.format("REGISTERED-%s-%s-%s",
+            event.getPatientId(),
+            event.getRegisteredBy(),
+            event.getRegisteredAt() != null ? event.getRegisteredAt().toString() : "now"
         );
         
         // Generate UUID from composite string (deterministic)

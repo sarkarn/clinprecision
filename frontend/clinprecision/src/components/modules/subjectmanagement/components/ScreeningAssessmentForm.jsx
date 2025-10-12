@@ -7,11 +7,11 @@ import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
  * Shown when changing patient status to SCREENING
  * Captures basic eligibility criteria
  */
-const ScreeningAssessmentForm = ({ 
-    onComplete, 
+const ScreeningAssessmentForm = ({
+    onComplete,
     onCancel,
     patientId,
-    patientName 
+    patientName
 }) => {
     const [assessment, setAssessment] = useState({
         // Basic eligibility checks
@@ -19,7 +19,7 @@ const ScreeningAssessmentForm = ({
         hasRequiredDiagnosis: null,
         noExclusionCriteria: null,
         informedConsentObtained: null,
-        
+
         // Additional info
         screeningDate: new Date().toISOString().split('T')[0],
         assessedBy: '', // TODO: Get from auth
@@ -66,7 +66,7 @@ const ScreeningAssessmentForm = ({
         }
 
         // Check if all criteria are met
-        const isEligible = 
+        const isEligible =
             assessment.meetsAgeRequirement === 'yes' &&
             assessment.hasRequiredDiagnosis === 'yes' &&
             assessment.noExclusionCriteria === 'yes' &&
@@ -116,14 +116,14 @@ const ScreeningAssessmentForm = ({
 
     // Calculate eligibility status for preview
     const getEligibilityPreview = () => {
-        if (assessment.meetsAgeRequirement === null || 
+        if (assessment.meetsAgeRequirement === null ||
             assessment.hasRequiredDiagnosis === null ||
             assessment.noExclusionCriteria === null ||
             assessment.informedConsentObtained === null) {
             return null;
         }
 
-        const isEligible = 
+        const isEligible =
             assessment.meetsAgeRequirement === 'yes' &&
             assessment.hasRequiredDiagnosis === 'yes' &&
             assessment.noExclusionCriteria === 'yes' &&
@@ -154,7 +154,7 @@ const ScreeningAssessmentForm = ({
             {/* Info Box */}
             <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
                 <p className="text-sm text-yellow-800">
-                    <strong>Note:</strong> Complete this screening assessment before proceeding. 
+                    <strong>Note:</strong> Complete this screening assessment before proceeding.
                     All criteria must be met for the patient to be eligible for enrollment.
                 </p>
             </div>
@@ -233,11 +233,10 @@ const ScreeningAssessmentForm = ({
 
             {/* Eligibility Preview */}
             {eligibilityPreview !== null && (
-                <div className={`rounded-lg p-4 mb-4 ${
-                    eligibilityPreview 
-                        ? 'bg-green-50 border border-green-200' 
+                <div className={`rounded-lg p-4 mb-4 ${eligibilityPreview
+                        ? 'bg-green-50 border border-green-200'
                         : 'bg-red-50 border border-red-200'
-                }`}>
+                    }`}>
                     <div className="flex items-center">
                         {eligibilityPreview ? (
                             <>
