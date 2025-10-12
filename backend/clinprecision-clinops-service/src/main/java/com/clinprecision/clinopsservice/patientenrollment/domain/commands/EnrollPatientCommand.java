@@ -13,6 +13,10 @@ import java.util.UUID;
 
 /**
  * Command to enroll a patient into a study
+ * 
+ * This command targets the Patient aggregate (not Enrollment aggregate)
+ * The enrollmentId is used for the enrollment record, but patientId is the aggregate root
+ * 
  * Follows established patterns from CreateUserCommand
  */
 @Getter
@@ -21,11 +25,11 @@ import java.util.UUID;
 public class EnrollPatientCommand extends BaseCommand {
 
     @TargetAggregateIdentifier
-    @NotNull(message = "Enrollment ID is required")
-    private final UUID enrollmentId;
-    
     @NotNull(message = "Patient ID is required")
     private final UUID patientId;
+    
+    @NotNull(message = "Enrollment ID is required")
+    private final UUID enrollmentId;
     
     @NotNull(message = "Study ID is required")
     private final UUID studyId;
@@ -35,6 +39,8 @@ public class EnrollPatientCommand extends BaseCommand {
     
     @NotBlank(message = "Screening number is required")
     private final String screeningNumber;
+    
+    private final java.time.LocalDate enrollmentDate;
     
     @NotBlank(message = "Created by is required")
     private final String createdBy;
