@@ -12,6 +12,7 @@ import com.clinprecision.clinopsservice.patientenrollment.domain.commands.Change
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientRegisteredEvent;
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientEnrolledEvent;
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientStatusChangedEvent;
+import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatus;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -295,25 +296,6 @@ public class PatientAggregate {
     public UUID getPatientId() { return patientId; }
     public PatientStatus getStatus() { return status; }
     public Set<UUID> getStudyEnrollments() { return studyEnrollments; }
-    
-    public enum PatientStatus {
-        REGISTERED("Registered", "Patient has been registered in system"),
-        SCREENING("Screening", "Patient is undergoing screening for studies"),
-        ENROLLED("Enrolled", "Patient is enrolled in one or more studies"),  
-        WITHDRAWN("Withdrawn", "Patient has withdrawn from all studies"),
-        COMPLETED("Completed", "Patient has completed all study participation");
-        
-        private final String displayName;
-        private final String description;
-        
-        PatientStatus(String displayName, String description) {
-            this.displayName = displayName;
-            this.description = description;
-        }
-        
-        public String getDisplayName() { return displayName; }
-        public String getDescription() { return description; }
-    }
 }
 
 

@@ -90,7 +90,18 @@ public class PatientEnrollmentEntity {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Convenience methods
+    // ==================== Relationships ====================
+
+    /**
+     * One-to-many relationship with PatientStatusHistoryEntity
+     * Tracks enrollment-specific status changes
+     * Lazy loading to avoid performance issues
+     */
+    @OneToMany(mappedBy = "enrollment", fetch = FetchType.LAZY)
+    private java.util.List<PatientStatusHistoryEntity> statusHistory;
+
+    // ==================== Convenience Methods ====================
+
     public boolean isEligible() {
         return Boolean.TRUE.equals(eligibilityConfirmed) && enrollmentStatus == EnrollmentStatus.ELIGIBLE;
     }

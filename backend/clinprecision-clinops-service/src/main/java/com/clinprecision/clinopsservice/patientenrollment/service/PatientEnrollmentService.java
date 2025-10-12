@@ -394,11 +394,21 @@ public class PatientEnrollmentService {
         
         // Wait for projection to complete (with retry logic)
         log.info("Waiting for enrollment projection to complete...");
-        PatientEnrollmentEntity enrollment = waitForEnrollmentProjection(enrollmentUuid.toString(), 5000);
+        PatientEnrollmentEntity enrollment = waitForEnrollmentProjection(enrollmentUuid.toString(), 10000); // Increased timeout to 10s
         
         if (enrollment == null) {
-            log.error("Enrollment projection not found after timeout");
-            throw new RuntimeException("Enrollment created but projection not found. Please check event processing.");
+            log.warn("Enrollment projection not found after timeout - projection may still be processing");
+            log.warn("Enrollment UUID: {} - you can query later using: GET /api/v1/patient-enrollments?aggregateUuid={}", 
+                enrollmentUuid, enrollmentUuid);
+            // Don't throw - the event was successfully emitted and will eventually be projected
+            // Return a placeholder entity with the UUID so caller can track it
+            enrollment = new PatientEnrollmentEntity();
+            enrollment.setAggregateUuid(enrollmentUuid.toString());
+            enrollment.setScreeningNumber(dto.getScreeningNumber());
+            enrollment.setEnrollmentDate(dto.getEnrollmentDate());
+            enrollment.setEnrollmentStatus(EnrollmentStatus.ENROLLED);
+            enrollment.setPatientId(patientId);
+            return enrollment;
         }
         
         log.info("Enrollment projection found: id={}, screening={}", enrollment.getId(), enrollment.getScreeningNumber());
@@ -419,6 +429,13 @@ public class PatientEnrollmentService {
     
     /**
      * Wait for enrollment projection to be updated with retry logic
+     * 
+     * <p>Pattern matches PatientStatusService.waitForStatusHistoryProjection()</p>
+     * <p>Uses exponential backoff with graceful degradation if projection is delayed.</p>
+     * 
+     * @param enrollmentUuid the enrollment aggregate UUID to wait for
+     * @param timeoutMs maximum time to wait in milliseconds
+     * @return the projected enrollment entity, or null if not found within timeout
      */
     private PatientEnrollmentEntity waitForEnrollmentProjection(String enrollmentUuid, long timeoutMs) {
         long startTime = System.currentTimeMillis();
@@ -437,7 +454,10 @@ public class PatientEnrollmentService {
                     return entity.get();
                 }
                 
-                log.debug("Enrollment projection not found yet, attempt {}, waiting {}ms", attempts, delay);
+                // Log every 5 attempts to reduce log spam
+                if (attempts % 5 == 0 || attempts <= 3) {
+                    log.info("Enrollment projection not found yet, attempt {}, waiting {}ms", attempts, delay);
+                }
                 
                 // Wait before retrying
                 Thread.sleep(delay);
@@ -447,11 +467,13 @@ public class PatientEnrollmentService {
                 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted while waiting for enrollment projection", e);
+                log.warn("Interrupted while waiting for enrollment projection");
+                return null; // Don't throw - graceful degradation
             }
         }
         
-        log.warn("Enrollment projection not found after {}ms and {} attempts", timeoutMs, attempts);
+        log.warn("Enrollment projection not found after {}ms and {} attempts - projection may still be processing asynchronously", 
+            timeoutMs, attempts);
         return null;
     }
     

@@ -5,11 +5,13 @@ import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientS
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEntity;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentEntity;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentAuditEntity;
+import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatusHistoryEntity;
 import com.clinprecision.clinopsservice.patientenrollment.entity.EnrollmentStatus;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatus;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientRepository;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentRepository;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentAuditRepository;
+import com.clinprecision.clinopsservice.patientenrollment.repository.PatientStatusHistoryRepository;
 
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
@@ -38,6 +40,7 @@ public class PatientEnrollmentProjector {
     private final PatientEnrollmentRepository patientEnrollmentRepository;
     private final PatientRepository patientRepository;
     private final PatientEnrollmentAuditRepository auditRepository;
+    private final PatientStatusHistoryRepository statusHistoryRepository;
     
     /**
      * Handle PatientEnrolledEvent - Create enrollment record
@@ -110,13 +113,20 @@ public class PatientEnrollmentProjector {
     }
     
     /**
-     * Handle PatientStatusChangedEvent - Update patient status
+     * Handle PatientStatusChangedEvent - Update patient status and create history record
+     * 
+     * This handler performs three key operations:
+     * 1. Updates patient status in read model (patients table)
+     * 2. Creates status history record for audit trail (patient_status_history table)
+     * 3. Optionally updates enrollment status if enrollment-specific
+     * 
+     * Idempotency: Uses event identifier to prevent duplicate status history records
      */
     @EventHandler
     @Transactional
     public void on(PatientStatusChangedEvent event) {
-        log.info("Projecting PatientStatusChangedEvent: patient={}, {} → {}", 
-            event.getPatientId(), event.getPreviousStatus(), event.getNewStatus());
+        log.info("Projecting PatientStatusChangedEvent: patient={}, {} → {}, reason={}", 
+            event.getPatientId(), event.getPreviousStatus(), event.getNewStatus(), event.getReason());
         
         try {
             // Find patient entity
@@ -128,32 +138,107 @@ public class PatientEnrollmentProjector {
             
             PatientEntity patient = patientOpt.get();
             PatientStatus oldStatus = patient.getStatus();
+            PatientStatus newStatus = PatientStatus.valueOf(event.getNewStatus());
             
-            // Update status
-            patient.setStatus(PatientStatus.valueOf(event.getNewStatus()));
+            // Generate event identifier for idempotency
+            // Note: In production, this should come from Axon's event metadata
+            String eventId = generateEventId(event);
+            
+            // ============================================================================
+            // STEP 1: Check Idempotency - Prevent duplicate status history records
+            // ============================================================================
+            if (statusHistoryRepository.existsByEventId(eventId)) {
+                log.info("Status change event already processed (idempotency check): eventId={}", eventId);
+                return; // Event already processed, skip
+            }
+            
+            // ============================================================================
+            // STEP 2: Create Status History Record - Audit Trail
+            // ============================================================================
+            try {
+                PatientStatus previousStatus = PatientStatus.valueOf(event.getPreviousStatus());
+                
+                // Determine enrollment ID (if enrollment-specific)
+                Long enrollmentId = null;
+                if (event.getEnrollmentId() != null) {
+                    Optional<PatientEnrollmentEntity> enrollmentOpt = 
+                        patientEnrollmentRepository.findByAggregateUuid(event.getEnrollmentId().toString());
+                    if (enrollmentOpt.isPresent()) {
+                        enrollmentId = enrollmentOpt.get().getId();
+                    }
+                }
+                
+                // Build status history entity
+                PatientStatusHistoryEntity statusHistory = PatientStatusHistoryEntity.builder()
+                    .patientId(patient.getId())
+                    .aggregateUuid(event.getPatientId().toString())
+                    .eventId(eventId)
+                    .previousStatus(previousStatus)
+                    .newStatus(newStatus)
+                    .reason(event.getReason())
+                    .changedBy(event.getChangedBy())
+                    .changedAt(event.getChangedAt() != null ? event.getChangedAt() : LocalDateTime.now())
+                    .notes(event.getNotes())
+                    .enrollmentId(enrollmentId)
+                    .build();
+                
+                // Save status history
+                PatientStatusHistoryEntity savedHistory = statusHistoryRepository.save(statusHistory);
+                
+                log.info("Status history record created: id={}, {} → {}, reason={}", 
+                    savedHistory.getId(), previousStatus, newStatus, event.getReason());
+                
+            } catch (IllegalArgumentException e) {
+                log.error("Invalid status value in event: previous={}, new={}", 
+                    event.getPreviousStatus(), event.getNewStatus(), e);
+                // Continue with patient status update even if history fails
+            } catch (Exception e) {
+                log.error("Failed to create status history record: {}", e.getMessage(), e);
+                // Continue with patient status update even if history fails
+            }
+            
+            // ============================================================================
+            // STEP 3: Update Patient Status - Read Model
+            // ============================================================================
+            patient.setStatus(newStatus);
             patient.setUpdatedAt(LocalDateTime.now());
             patientRepository.save(patient);
             
-            log.info("Patient status updated: {} → {}", oldStatus, event.getNewStatus());
+            log.info("Patient status updated: patientId={}, {} → {}", 
+                patient.getId(), oldStatus, newStatus);
             
-            // If enrollment-specific, update enrollment record
+            // ============================================================================
+            // STEP 4: Update Enrollment Status (if enrollment-specific)
+            // ============================================================================
             if (event.getEnrollmentId() != null) {
                 Optional<PatientEnrollmentEntity> enrollmentOpt = 
                     patientEnrollmentRepository.findByAggregateUuid(event.getEnrollmentId().toString());
                 
                 if (enrollmentOpt.isPresent()) {
                     PatientEnrollmentEntity enrollment = enrollmentOpt.get();
-                    enrollment.setEnrollmentStatus(
-                        EnrollmentStatus.valueOf(event.getNewStatus())
-                    );
-                    enrollment.setUpdatedAt(LocalDateTime.now());
-                    patientEnrollmentRepository.save(enrollment);
                     
-                    log.info("Enrollment status updated: {}", enrollment.getId());
+                    try {
+                        // Map patient status to enrollment status if applicable
+                        EnrollmentStatus enrollmentStatus = mapToEnrollmentStatus(newStatus);
+                        enrollment.setEnrollmentStatus(enrollmentStatus);
+                        enrollment.setUpdatedAt(LocalDateTime.now());
+                        patientEnrollmentRepository.save(enrollment);
+                        
+                        log.info("Enrollment status updated: enrollmentId={}, status={}", 
+                            enrollment.getId(), enrollmentStatus);
+                            
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Cannot map patient status {} to enrollment status: {}", 
+                            newStatus, e.getMessage());
+                    }
+                } else {
+                    log.warn("Enrollment not found for UUID: {}", event.getEnrollmentId());
                 }
             }
             
-            // Create audit record
+            // ============================================================================
+            // STEP 5: Create Audit Record (Legacy)
+            // ============================================================================
             createAuditRecord(
                 patient.getId(),
                 event.getPatientId().toString(),
@@ -164,11 +249,63 @@ public class PatientEnrollmentProjector {
                 event.getReason()
             );
             
-            log.info("PatientStatusChangedEvent projection completed successfully");
+            log.info("PatientStatusChangedEvent projection completed successfully: patient={}, {} → {}", 
+                event.getPatientId(), event.getPreviousStatus(), event.getNewStatus());
             
         } catch (Exception e) {
             log.error("Error projecting PatientStatusChangedEvent: {}", e.getMessage(), e);
-            // Don't throw - allow processing to continue
+            // Don't throw - allow processing to continue for other events
+        }
+    }
+    
+    /**
+     * Generate event identifier for idempotency checks
+     * 
+     * In production, this should be extracted from Axon's event metadata.
+     * For now, we generate a deterministic ID based on event properties.
+     * 
+     * @param event the status changed event
+     * @return unique event identifier
+     */
+    private String generateEventId(PatientStatusChangedEvent event) {
+        // Generate deterministic ID based on event properties
+        // In production, use: event.getMetaData().get("eventIdentifier")
+        String composite = String.format("%s-%s-%s-%s-%s",
+            event.getPatientId(),
+            event.getPreviousStatus(),
+            event.getNewStatus(),
+            event.getChangedBy(),
+            event.getChangedAt() != null ? event.getChangedAt().toString() : "now"
+        );
+        
+        // Generate UUID from composite string (deterministic)
+        return java.util.UUID.nameUUIDFromBytes(composite.getBytes()).toString();
+    }
+    
+    /**
+     * Map PatientStatus to EnrollmentStatus
+     * 
+     * Not all patient statuses have enrollment equivalents.
+     * This handles the mapping for enrollment-specific scenarios.
+     * 
+     * @param patientStatus the patient status
+     * @return corresponding enrollment status
+     * @throws IllegalArgumentException if no mapping exists
+     */
+    private EnrollmentStatus mapToEnrollmentStatus(PatientStatus patientStatus) {
+        switch (patientStatus) {
+            case ENROLLED:
+                return EnrollmentStatus.ENROLLED;
+            case ACTIVE:
+                return EnrollmentStatus.ENROLLED; // Active patients are enrolled
+            case COMPLETED:
+                return EnrollmentStatus.ENROLLED; // Completed patients remain enrolled
+            case WITHDRAWN:
+                return EnrollmentStatus.INELIGIBLE; // Map withdrawn to ineligible
+            default:
+                throw new IllegalArgumentException(
+                    "Patient status " + patientStatus + " has no enrollment status mapping"
+                );
         }
     }
     

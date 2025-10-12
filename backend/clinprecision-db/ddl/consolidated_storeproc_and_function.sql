@@ -1,25 +1,5 @@
 USE clinprecisiondb;
 
-DELIMITER $$
-
-
--- Create a view for easy progress reporting
-CREATE VIEW v_study_design_progress_summary AS
-SELECT 
-    s.id as study_id,
-    s.name as study_name,
-    COUNT(sdp.id) as total_phases,
-    SUM(CASE WHEN sdp.completed = TRUE THEN 1 ELSE 0 END) as completed_phases,
-    ROUND(AVG(sdp.percentage), 2) as overall_completion_percentage,
-    MAX(sdp.updated_at) as last_progress_update
-FROM studies s
-LEFT JOIN study_design_progress sdp ON s.id = sdp.study_id
-GROUP BY s.id, s.name;
-
--- Grant permissions (adjust as needed for your user)
-GRANT SELECT, INSERT, UPDATE, DELETE ON study_design_progress TO 'clinprecadmin'@'localhost';
-GRANT SELECT ON v_study_design_progress_summary TO 'clinprecadmin'@'localhost';
-
 -- Add some helpful stored procedures
 DELIMITER //
 
@@ -66,19 +46,6 @@ BEGIN
         updated_at = NOW()
     WHERE study_id = p_study_id AND phase = p_phase;
 END //
-
-DELIMITER ;
-
--- Grant execute permissions on procedures
-GRANT EXECUTE ON PROCEDURE InitializeStudyDesignProgress TO 'clinprecadmin'@'localhost';
-GRANT EXECUTE ON PROCEDURE MarkPhaseCompleted TO 'clinprecadmin'@'localhost';
-
-
--- Grant permissions to the application user
-GRANT SELECT, INSERT, UPDATE, DELETE ON study_documents TO 'clinprecadmin'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON study_document_audit TO 'clinprecadmin'@'localhost';
-
-DELIMITER ;
 
 
 -- Create triggers for audit trail
@@ -147,8 +114,6 @@ BEGIN
         OLD.updated_by, 'Record deleted'
     );
 END //
-
-DELIMITER ;
 
 -- ============================================================================
 -- 3. TRIGGERS FOR AUDIT TRAIL (FDA 21 CFR Part 11 Compliance)
@@ -283,12 +248,79 @@ BEGIN
     );
 END$$
 
+
+
+DELIMITER //
+
+CREATE FUNCTION IF NOT EXISTS fn_get_patient_status_count(
+    p_patient_id BIGINT
+) RETURNS INT
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE status_count INT;
+    
+    SELECT COUNT(*) INTO status_count
+    FROM patient_status_history
+    WHERE patient_id = p_patient_id;
+    
+    RETURN status_count;
+END //
+
+
+-- ============================================================================
+-- Trigger: Validate Status Transition
+-- Purpose: Ensure only valid status transitions are recorded
+-- ============================================================================
+
+DELIMITER //
+
+CREATE TRIGGER trg_validate_status_transition
+BEFORE INSERT ON patient_status_history
+FOR EACH ROW
+BEGIN
+    DECLARE valid_transition BOOLEAN DEFAULT FALSE;
+    
+    -- Valid transitions:
+    -- REGISTERED → SCREENING, WITHDRAWN
+    -- SCREENING → ENROLLED, WITHDRAWN
+    -- ENROLLED → ACTIVE, WITHDRAWN
+    -- ACTIVE → COMPLETED, WITHDRAWN
+    -- COMPLETED → (none - terminal)
+    -- WITHDRAWN → (none - terminal)
+    
+    -- Check if transition is valid
+    IF (NEW.previous_status = 'REGISTERED' AND NEW.new_status IN ('SCREENING', 'WITHDRAWN')) THEN
+        SET valid_transition = TRUE;
+    ELSEIF (NEW.previous_status = 'SCREENING' AND NEW.new_status IN ('ENROLLED', 'WITHDRAWN')) THEN
+        SET valid_transition = TRUE;
+    ELSEIF (NEW.previous_status = 'ENROLLED' AND NEW.new_status IN ('ACTIVE', 'WITHDRAWN')) THEN
+        SET valid_transition = TRUE;
+    ELSEIF (NEW.previous_status = 'ACTIVE' AND NEW.new_status IN ('COMPLETED', 'WITHDRAWN')) THEN
+        SET valid_transition = TRUE;
+    ELSEIF (NEW.new_status = 'WITHDRAWN') THEN
+        -- Can always withdraw from any non-terminal status
+        SET valid_transition = TRUE;
+    END IF;
+    
+    -- Raise error if invalid transition
+    IF NOT valid_transition THEN
+        SET @error_msg = CONCAT(
+            'Invalid status transition: ', 
+            NEW.previous_status, 
+            ' -> ', 
+            NEW.new_status,
+            '. Valid transitions: REGISTERED->SCREENING, SCREENING->ENROLLED, ENROLLED->ACTIVE, ACTIVE->COMPLETED, ANY->WITHDRAWN'
+        );
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = @error_msg;
+    END IF;
+    
+    -- Validate reason is not empty
+    IF NEW.reason IS NULL OR TRIM(NEW.reason) = '' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Reason is required for status change';
+    END IF;
+END //
+
 DELIMITER ;
-
-
--- Insert initial data for testing (if needed)
--- This would be populated during actual implementation
-
-COMMIT;
 
 

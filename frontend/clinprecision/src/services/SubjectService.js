@@ -68,9 +68,14 @@ export const getSubjectsByStudy = async (studyId) => {
   }
 
   try {
-    console.log('[SUBJECT SERVICE] Fetching subjects from backend at:', API_PATH);
+    console.log('[SUBJECT SERVICE] Fetching subjects from backend for study:', studyId);
     console.log('[SUBJECT SERVICE] Requested study ID:', studyId, 'Type:', typeof studyId);
-    const response = await ApiService.get(API_PATH);
+    
+    // Use the dedicated /study/{studyId} endpoint for better performance
+    const studyEndpoint = `${API_PATH}/study/${studyId}`;
+    console.log('[SUBJECT SERVICE] Using endpoint:', studyEndpoint);
+    
+    const response = await ApiService.get(studyEndpoint);
     
     console.log('=== SUBJECT SERVICE BACKEND RESPONSE ===');
     console.log('Response status:', response?.status);
@@ -79,7 +84,7 @@ export const getSubjectsByStudy = async (studyId) => {
     console.log('Is response data an array?', Array.isArray(response?.data));
     
     if (response?.data && Array.isArray(response.data)) {
-      console.log('Total patients in backend:', response.data.length);
+      console.log('Total patients from backend for study', studyId, ':', response.data.length);
       
       // Log each patient's studyId for debugging
       response.data.forEach((patient, index) => {
@@ -88,12 +93,13 @@ export const getSubjectsByStudy = async (studyId) => {
           patientNumber: patient.patientNumber,
           studyId: patient.studyId,
           studyIdType: typeof patient.studyId,
-          status: patient.status
+          status: patient.status,
+          screeningNumber: patient.screeningNumber
         });
       });
       
       // Transform backend patient data to frontend subject format
-      const allTransformed = response.data.map(patient => ({
+      const transformedSubjects = response.data.map(patient => ({
         id: patient.id.toString(),
         subjectId: patient.screeningNumber || patient.patientNumber || `SUBJ-${patient.id}`,
         patientNumber: patient.patientNumber, // Keep auto-generated number separate
@@ -105,20 +111,12 @@ export const getSubjectsByStudy = async (studyId) => {
         firstName: patient.firstName,
         lastName: patient.lastName,
         aggregateUuid: patient.aggregateUuid,
+        siteId: patient.siteId,
         visits: [] // Will be populated separately if needed
       }));
       
-      console.log('All transformed subjects:', allTransformed);
-      
-      // Filter by studyId
-      const filteredSubjects = allTransformed.filter(subject => {
-        const match = subject.studyId && subject.studyId.toString() === studyId.toString();
-        console.log(`Subject ${subject.subjectId}: studyId=${subject.studyId}, requested=${studyId}, match=${match}`);
-        return match;
-      });
-      
-      console.log('Filtered subjects for study', studyId, ':', filteredSubjects);
-      return filteredSubjects;
+      console.log('Transformed subjects for study', studyId, ':', transformedSubjects);
+      return transformedSubjects;
     }
     
     console.log('No subjects found or invalid response format');
@@ -382,20 +380,22 @@ export const searchSubjects = async (searchTerm) => {
 
 /**
  * Map backend patient status to frontend subject status
- * @param {string} patientStatus Backend patient status
- * @returns {string} Frontend subject status
+ * Follows the patient lifecycle: REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED
+ * @param {string} patientStatus Backend patient status (enum value)
+ * @returns {string} Frontend subject status (display value)
  */
 const mapPatientStatusToSubjectStatus = (patientStatus) => {
   const statusMap = {
-    'REGISTERED': 'Screening',
-    'ENROLLED': 'Enrolled',
-    'ACTIVE': 'Active',
-    'COMPLETED': 'Completed',
-    'WITHDRAWN': 'Withdrawn',
-    'SCREEN_FAILED': 'Screen Failed'
+    'REGISTERED': 'Registered',       // Patient registered, not yet screening
+    'SCREENING': 'Screening',         // Patient undergoing eligibility screening
+    'ENROLLED': 'Enrolled',           // Patient enrolled in study
+    'ACTIVE': 'Active',               // Patient actively participating
+    'COMPLETED': 'Completed',         // Patient completed study
+    'WITHDRAWN': 'Withdrawn',         // Patient withdrawn
+    'SCREEN_FAILED': 'Screen Failed'  // Patient failed screening
   };
   
-  return statusMap[patientStatus] || patientStatus || 'Active';
+  return statusMap[patientStatus] || patientStatus || 'Registered';
 };
 
 /**
@@ -424,10 +424,35 @@ export const getSubjectCount = async () => {
   }
 };
 
+/**
+ * Get status history for a patient
+ * Returns complete audit trail of all status changes
+ * 
+ * @param {number|string} patientId - The patient/subject ID
+ * @returns {Promise<Array>} Promise that resolves to array of status history records
+ */
+export const getStatusHistory = async (patientId) => {
+  try {
+    console.log('Getting status history for patient:', patientId);
+    const response = await ApiService.get(`${API_PATH}/${patientId}/status/history`);
+    
+    if (response?.data) {
+      console.log('Status history retrieved:', response.data.length, 'records');
+      return response.data;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error getting status history:', error);
+    throw error;
+  }
+};
+
 // Export service functions
 const SubjectService = {
   getSubjectsByStudy,
   getSubjectById,
+  getStatusHistory,
   enrollSubject,
   updateSubjectStatus,
   searchSubjects,

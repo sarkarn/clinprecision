@@ -1130,7 +1130,7 @@ CREATE TABLE IF NOT EXISTS patients (
     gender ENUM('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY') NOT NULL,
     phone_number VARCHAR(20),
     email VARCHAR(255),
-    status ENUM('REGISTERED', 'SCREENED', 'ELIGIBLE', 'INELIGIBLE', 'WITHDRAWN') DEFAULT 'REGISTERED',
+    status ENUM('REGISTERED', 'SCREENING', 'ENROLLED', 'ACTIVE', 'COMPLETED', 'WITHDRAWN') DEFAULT 'REGISTERED' COMMENT 'Current patient status. Flow: REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED/WITHDRAWN',
     created_by VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1248,6 +1248,58 @@ CREATE TABLE IF NOT EXISTS patient_enrollment_audit (
     INDEX idx_audit_performed_at (performed_at),
     INDEX idx_audit_performed_by (performed_by)
 ) COMMENT 'Complete audit trail for patient enrollment activities';
+
+
+-- ============================================================================
+-- Patient Status History Table Migration
+-- Version: 1.15
+-- Date: October 12, 2025
+-- Purpose: Track complete patient status transition history for audit trail
+-- Related: Week 2 - Subject Status Management Implementation
+-- ============================================================================
+
+-- Patient Status History table
+-- Tracks all status changes for complete audit trail (FDA 21 CFR Part 11 compliance)
+CREATE TABLE IF NOT EXISTS patient_status_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    
+    -- Patient References
+    patient_id BIGINT NOT NULL COMMENT 'FK to patients table (read model)',
+    aggregate_uuid VARCHAR(255) NOT NULL COMMENT 'Patient aggregate UUID for event sourcing',
+    
+    -- Event Tracking
+    event_id VARCHAR(255) NOT NULL UNIQUE COMMENT 'Unique UUID of PatientStatusChangedEvent from event store. Used for idempotency to prevent duplicate records on event replay.',
+    
+    -- Status Transition
+    previous_status VARCHAR(50) NOT NULL COMMENT 'Previous patient status',
+    new_status VARCHAR(50) NOT NULL COMMENT 'New patient status after transition',
+    
+    -- Change Context
+    reason TEXT NOT NULL COMMENT 'Mandatory reason for status change. Examples: "Screening visit scheduled", "Passed eligibility criteria", "First treatment completed", "Patient voluntary withdrawal"',
+    changed_by VARCHAR(100) NOT NULL COMMENT 'User who performed the status change',
+    changed_at TIMESTAMP NOT NULL COMMENT 'Timestamp from event when status actually changed (not when record was created). Important for accurate chronological audit trail.',
+    notes TEXT COMMENT 'Optional additional notes about the status change',
+    
+    -- Optional: Study/Enrollment Context
+    enrollment_id BIGINT NULL COMMENT 'Optional FK to patient_enrollments if status change is enrollment-specific',
+    
+    -- Audit
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Foreign Keys
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (enrollment_id) REFERENCES patient_enrollments(id) ON DELETE SET NULL,
+    
+    -- Indexes for performance
+    INDEX idx_patient_status_history_patient_id (patient_id),
+    INDEX idx_patient_status_history_aggregate_uuid (aggregate_uuid),
+    INDEX idx_patient_status_history_event_id (event_id),
+    INDEX idx_patient_status_history_changed_at (changed_at DESC),
+    INDEX idx_patient_status_history_new_status (new_status),
+    INDEX idx_patient_status_history_changed_by (changed_by),
+    INDEX idx_patient_status_history_enrollment_id (enrollment_id)
+    
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Tracks all patient status transitions with complete audit trail. Each status change generates one record capturing who, when, why, and what changed. Required for FDA 21 CFR Part 11 compliance and regulatory audits.Status flow: REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED/WITHDRAWN';
 
 -- ============================================================================
 -- Database Build: Study Database Build

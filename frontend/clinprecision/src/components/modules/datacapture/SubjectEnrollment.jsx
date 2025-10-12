@@ -28,12 +28,25 @@ export default function SubjectEnrollment() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Load all studies (not limited by user assignments)
+        // Load studies that are ready for patient enrollment
+        // Only PUBLISHED or ACTIVE studies should allow enrollment
         const fetchStudies = async () => {
             try {
                 setError(null);
                 const studiesData = await getStudies();
-                setStudies(studiesData);
+
+                // Filter to show only studies ready for enrollment (PUBLISHED or ACTIVE)
+                // Similar to DB Build form which filters for APPROVED/ACTIVE studies
+                const enrollmentReadyStudies = (studiesData || []).filter(study => {
+                    const status = study.studyStatus?.code || study.status;
+                    // Allow PUBLISHED (officially published) or ACTIVE (actively enrolling)
+                    return status === 'PUBLISHED' || status === 'ACTIVE' || status === 'APPROVED';
+                });
+
+                console.log('Total studies:', studiesData?.length || 0);
+                console.log('Enrollment-ready studies (PUBLISHED/ACTIVE/APPROVED):', enrollmentReadyStudies.length);
+
+                setStudies(enrollmentReadyStudies);
             } catch (err) {
                 console.error('Error fetching studies:', err);
                 setError('Failed to load studies.');
@@ -247,6 +260,9 @@ export default function SubjectEnrollment() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Study*
                         </label>
+                        <p className="text-xs text-gray-500 mb-2">
+                            Only studies with status PUBLISHED, APPROVED, or ACTIVE can enroll patients
+                        </p>
                         <select
                             name="studyId"
                             value={formData.studyId}
@@ -259,6 +275,11 @@ export default function SubjectEnrollment() {
                                 <option key={study.id} value={study.id}>{study.title || study.name}</option>
                             ))}
                         </select>
+                        {studies.length === 0 && (
+                            <p className="text-xs text-amber-600 mt-1">
+                                No enrollment-ready studies available. Studies must be PUBLISHED, APPROVED, or ACTIVE to enroll patients.
+                            </p>
+                        )}
                     </div>
 
                     <div>
