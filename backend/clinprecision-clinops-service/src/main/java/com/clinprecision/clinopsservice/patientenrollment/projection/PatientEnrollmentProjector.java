@@ -5,11 +5,11 @@ import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientS
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEntity;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentEntity;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentAuditEntity;
+import com.clinprecision.clinopsservice.patientenrollment.entity.EnrollmentStatus;
+import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatus;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientRepository;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentRepository;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentAuditRepository;
-import com.clinprecision.clinopsservice.sitestudy.entity.SiteStudyEntity;
-import com.clinprecision.clinopsservice.sitestudy.repository.SiteStudyRepository;
 
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
@@ -38,7 +38,6 @@ public class PatientEnrollmentProjector {
     private final PatientEnrollmentRepository patientEnrollmentRepository;
     private final PatientRepository patientRepository;
     private final PatientEnrollmentAuditRepository auditRepository;
-    private final SiteStudyRepository siteStudyRepository;
     
     /**
      * Handle PatientEnrolledEvent - Create enrollment record
@@ -75,11 +74,9 @@ public class PatientEnrollmentProjector {
                 .siteAggregateUuid(event.getSiteId().toString())
                 .screeningNumber(event.getScreeningNumber())
                 .enrollmentDate(event.getEnrollmentDate())
-                .enrollmentStatus(PatientEnrollmentEntity.EnrollmentStatus.ENROLLED)
+                .enrollmentStatus(EnrollmentStatus.ENROLLED)
                 .eligibilityConfirmed(event.getEligibilityConfirmed() != null ? event.getEligibilityConfirmed() : false)
                 .enrolledBy(event.getEnrolledBy())
-                .enrolledAt(event.getEnrolledAt())
-                .createdBy(event.getCreatedBy())
                 .createdAt(LocalDateTime.now())
                 .build();
             
@@ -87,9 +84,8 @@ public class PatientEnrollmentProjector {
             log.info("Enrollment record created: id={}, screening={}", saved.getId(), saved.getScreeningNumber());
             
             // Update patient status to ENROLLED
-            patient.setStatus("ENROLLED");
-            patient.setLastModifiedAt(LocalDateTime.now());
-            patient.setLastModifiedBy(event.getEnrolledBy());
+            patient.setStatus(PatientStatus.ENROLLED);
+            patient.setUpdatedAt(LocalDateTime.now());
             patientRepository.save(patient);
             log.info("Patient status updated to ENROLLED: {}", patient.getId());
             
@@ -131,12 +127,11 @@ public class PatientEnrollmentProjector {
             }
             
             PatientEntity patient = patientOpt.get();
-            String oldStatus = patient.getStatus();
+            PatientStatus oldStatus = patient.getStatus();
             
             // Update status
-            patient.setStatus(event.getNewStatus());
-            patient.setLastModifiedAt(LocalDateTime.now());
-            patient.setLastModifiedBy(event.getChangedBy());
+            patient.setStatus(PatientStatus.valueOf(event.getNewStatus()));
+            patient.setUpdatedAt(LocalDateTime.now());
             patientRepository.save(patient);
             
             log.info("Patient status updated: {} → {}", oldStatus, event.getNewStatus());
@@ -149,10 +144,9 @@ public class PatientEnrollmentProjector {
                 if (enrollmentOpt.isPresent()) {
                     PatientEnrollmentEntity enrollment = enrollmentOpt.get();
                     enrollment.setEnrollmentStatus(
-                        PatientEnrollmentEntity.EnrollmentStatus.valueOf(event.getNewStatus())
+                        EnrollmentStatus.valueOf(event.getNewStatus())
                     );
-                    enrollment.setLastModifiedAt(LocalDateTime.now());
-                    enrollment.setLastModifiedBy(event.getChangedBy());
+                    enrollment.setUpdatedAt(LocalDateTime.now());
                     patientEnrollmentRepository.save(enrollment);
                     
                     log.info("Enrollment status updated: {}", enrollment.getId());
@@ -163,7 +157,7 @@ public class PatientEnrollmentProjector {
             createAuditRecord(
                 patient.getId(),
                 event.getPatientId().toString(),
-                PatientEnrollmentAuditEntity.AuditActionType.STATUS_CHANGE,
+                PatientEnrollmentAuditEntity.AuditActionType.UPDATE,
                 String.format("{\"status\": \"%s\"}", event.getPreviousStatus()),
                 String.format("{\"status\": \"%s\"}", event.getNewStatus()),
                 event.getChangedBy(),

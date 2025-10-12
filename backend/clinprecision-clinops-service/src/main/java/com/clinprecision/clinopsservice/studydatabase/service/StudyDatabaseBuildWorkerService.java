@@ -10,13 +10,14 @@ import com.clinprecision.clinopsservice.studydatabase.domain.commands.CompleteSt
 import com.clinprecision.clinopsservice.studydatabase.domain.events.StudyDatabaseBuildStartedEvent;
 import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
 import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyFieldMetadataEntity;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyCdashMappingEntity;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyMedicalCodingConfigEntity;
+// Phase 6 imports REMOVED - See PHASE_6_BACKEND_NECESSITY_ANALYSIS.md
+// import com.clinprecision.clinopsservice.studydatabase.entity.StudyFieldMetadataEntity;
+// import com.clinprecision.clinopsservice.studydatabase.entity.StudyCdashMappingEntity;
+// import com.clinprecision.clinopsservice.studydatabase.entity.StudyMedicalCodingConfigEntity;
 import com.clinprecision.clinopsservice.studydatabase.repository.StudyDatabaseBuildRepository;
-import com.clinprecision.clinopsservice.studydatabase.repository.StudyFieldMetadataRepository;
-import com.clinprecision.clinopsservice.studydatabase.repository.StudyCdashMappingRepository;
-import com.clinprecision.clinopsservice.studydatabase.repository.StudyMedicalCodingConfigRepository;
+// import com.clinprecision.clinopsservice.studydatabase.repository.StudyFieldMetadataRepository;
+// import com.clinprecision.clinopsservice.studydatabase.repository.StudyCdashMappingRepository;
+// import com.clinprecision.clinopsservice.studydatabase.repository.StudyMedicalCodingConfigRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -66,10 +67,10 @@ public class StudyDatabaseBuildWorkerService {
     private final CommandGateway commandGateway;
     private final JdbcTemplate jdbcTemplate;
     
-    // Phase 6: Item-Level Metadata repositories
-    private final StudyFieldMetadataRepository fieldMetadataRepository;
-    private final StudyCdashMappingRepository cdashMappingRepository;
-    private final StudyMedicalCodingConfigRepository medicalCodingConfigRepository;
+    // Phase 6 repositories REMOVED - See PHASE_6_BACKEND_NECESSITY_ANALYSIS.md
+    // private final StudyFieldMetadataRepository fieldMetadataRepository;
+    // private final StudyCdashMappingRepository cdashMappingRepository;
+    // private final StudyMedicalCodingConfigRepository medicalCodingConfigRepository;
 
     /**
      * Event handler that starts the build process asynchronously
@@ -184,9 +185,8 @@ public class StudyDatabaseBuildWorkerService {
             validationRulesCreated = createValidationRules(studyId, buildId, forms);
             log.info("Created {} validation rules", validationRulesCreated);
             
-            // Phase 6: Create field-level metadata (clinical and regulatory flags)
-            fieldMetadataCreated = createFieldMetadata(studyId, buildId, forms);
-            log.info("Created {} field metadata records", fieldMetadataCreated);
+            // Phase 6 REMOVED: Field metadata now stored in form JSON (see PHASE_6_BACKEND_NECESSITY_ANALYSIS.md)
+            // fieldMetadataCreated = 0; // No longer creating Phase 6 tables
             
             formsConfigured = forms.size();
             
@@ -212,13 +212,11 @@ public class StudyDatabaseBuildWorkerService {
             schedulesCreated = createVisitSchedules(studyId, buildId, visits);
             log.info("Created {} visit schedules", schedulesCreated);
             
-            // Phase 6: Create CDASH/SDTM mappings for regulatory submissions
-            cdashMappingsCreated = createCdashMappings(studyId, buildId, forms);
-            log.info("Created {} CDASH/SDTM mappings", cdashMappingsCreated);
+            // Phase 6 REMOVED: CDASH/SDTM mappings now stored in form JSON (see PHASE_6_BACKEND_NECESSITY_ANALYSIS.md)
+            // cdashMappingsCreated = 0; // No longer creating Phase 6 tables
             
-            // Phase 6: Create medical coding configuration
-            codingConfigsCreated = createMedicalCodingConfig(studyId, buildId, forms);
-            log.info("Created {} medical coding configurations", codingConfigsCreated);
+            // Phase 6 REMOVED: Medical coding config now stored in form JSON (see PHASE_6_BACKEND_NECESSITY_ANALYSIS.md)
+            // codingConfigsCreated = 0; // No longer creating Phase 6 tables
             
             // Update progress: Phase 3 complete (60%)
             updateProgress(buildId, formsConfigured, mappingsCreated, indexesCreated, 
@@ -606,288 +604,38 @@ public class StudyDatabaseBuildWorkerService {
      * - Validation rules
      * - Data quality settings
      */
-    private int createFieldMetadata(Long studyId, UUID buildId, List<FormDefinitionEntity> forms) {
-        log.info("Phase 6: Creating field-level metadata for {} forms", forms.size());
-        
-        int metadataCreated = 0;
-        
-        try {
-            for (FormDefinitionEntity form : forms) {
-                // TODO: Parse form.formSchema JSON to extract actual field definitions
-                // For now, create sample field metadata for common fields
-                
-                // Example: Subject ID field - check if exists first (idempotent)
-                if (!fieldMetadataRepository.existsByStudyIdAndFormIdAndFieldName(studyId, form.getId(), "subject_id")) {
-                    StudyFieldMetadataEntity subjectIdMeta = StudyFieldMetadataEntity.builder()
-                        .studyId(studyId)
-                        .formId(form.getId())
-                        .fieldName("subject_id")
-                        .sdvRequired(true)
-                        .medicalReviewRequired(false)
-                        .criticalDataPoint(true)
-                        .safetyDataPoint(false)
-                        .efficacyDataPoint(false)
-                        .fdaRequired(true)
-                        .emaRequired(true)
-                        .cfr21Part11(true)
-                        .gcpRequired(true)
-                        .hipaaProtected(true)
-                        .auditTrailLevel(StudyFieldMetadataEntity.AuditTrailLevel.FULL)
-                        .electronicSignatureRequired(false)
-                        .reasonForChangeRequired(false)
-                        .validationRules("{\"required\": true, \"pattern\": \"^[A-Z0-9]{6,12}$\"}")
-                        .isDerivedField(false)
-                        .isQueryEnabled(true)
-                        .isEditableAfterLock(false)
-                        .build();
-                    
-                    fieldMetadataRepository.save(subjectIdMeta);
-                    metadataCreated++;
-                }
-                
-                // Example: Visit date field - check if exists first (idempotent)
-                if (!fieldMetadataRepository.existsByStudyIdAndFormIdAndFieldName(studyId, form.getId(), "visit_date")) {
-                    StudyFieldMetadataEntity visitDateMeta = StudyFieldMetadataEntity.builder()
-                        .studyId(studyId)
-                        .formId(form.getId())
-                        .fieldName("visit_date")
-                        .sdvRequired(true)
-                        .medicalReviewRequired(false)
-                        .criticalDataPoint(true)
-                        .safetyDataPoint(false)
-                        .efficacyDataPoint(false)
-                        .fdaRequired(true)
-                        .emaRequired(true)
-                        .cfr21Part11(true)
-                        .gcpRequired(true)
-                        .hipaaProtected(false)
-                        .auditTrailLevel(StudyFieldMetadataEntity.AuditTrailLevel.BASIC)
-                        .electronicSignatureRequired(false)
-                        .reasonForChangeRequired(true)
-                        .validationRules("{\"required\": true, \"type\": \"date\", \"min\": \"2020-01-01\", \"max\": \"2030-12-31\"}")
-                        .isDerivedField(false)
-                        .isQueryEnabled(true)
-                        .isEditableAfterLock(false)
-                        .build();
-                    
-                    fieldMetadataRepository.save(visitDateMeta);
-                    metadataCreated++;
-                }
-                
-                // Track configuration
-                trackBuildConfig(buildId, studyId, "FIELD_METADATA", 
-                               String.format("Form %d field metadata", form.getId()));
-            }
-            
-            log.info("Phase 6: Created {} field metadata records", metadataCreated);
-            
-        } catch (Exception e) {
-            log.error("Failed to create field metadata: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create field metadata", e);
-        }
-        
-        return metadataCreated;
-    }
-
-    /**
-     * Create CDASH/SDTM mappings - CDISC compliance for regulatory submissions
-     * Phase 6: Extract CDASH mappings from form schemas
-     * 
-     * Creates records in study_cdash_mappings table with:
-     * - CDASH domain and variable (data collection standard)
-     * - SDTM domain and variable (submission format)
-     * - Controlled terminology codes
-     * - Transformation rules
-     * - Unit conversion rules
-     */
-    private int createCdashMappings(Long studyId, UUID buildId, List<FormDefinitionEntity> forms) {
-        log.info("Phase 6: Creating CDASH/SDTM mappings for {} forms", forms.size());
-        
-        int mappingsCreated = 0;
-        
-        try {
-            for (FormDefinitionEntity form : forms) {
-                // TODO: Parse form.formSchema JSON to extract CDASH annotations
-                // For now, create sample mappings for vital signs domain
-                
-                // Check if this is a vital signs form (by name or form type)
-                if (form.getName().toLowerCase().contains("vital") || 
-                    form.getFormType().equalsIgnoreCase("VITALS")) {
-                    
-                    // Example: Systolic Blood Pressure mapping - check if exists first (idempotent)
-                    if (!cdashMappingRepository.existsByStudyIdAndFormIdAndFieldName(studyId, form.getId(), "systolic_bp")) {
-                        StudyCdashMappingEntity sysBpMapping = StudyCdashMappingEntity.builder()
-                            .studyId(studyId)
-                            .formId(form.getId())
-                            .fieldName("systolic_bp")
-                            .cdashDomain("VS")
-                            .cdashVariable("SYSBP")
-                            .cdashLabel("Systolic Blood Pressure")
-                            .sdtmDomain("VS")
-                            .sdtmVariable("VSORRES")
-                            .sdtmLabel("Result or Finding in Original Units")
-                            .sdtmDatatype("Num")
-                            .sdtmLength(8)
-                            .cdiscTerminologyCode("C25298")
-                            .dataOrigin("COLLECTED")
-                            .unitConversionRule("mmHg to kPa: multiply by 0.133322")
-                            .mappingNotes("Systolic blood pressure collected in mmHg")
-                            .isActive(true)
-                            .build();
-                        
-                        cdashMappingRepository.save(sysBpMapping);
-                        mappingsCreated++;
-                    }
-                    
-                    // Example: Diastolic Blood Pressure mapping - check if exists first (idempotent)
-                    if (!cdashMappingRepository.existsByStudyIdAndFormIdAndFieldName(studyId, form.getId(), "diastolic_bp")) {
-                        StudyCdashMappingEntity diaBpMapping = StudyCdashMappingEntity.builder()
-                            .studyId(studyId)
-                            .formId(form.getId())
-                            .fieldName("diastolic_bp")
-                            .cdashDomain("VS")
-                            .cdashVariable("DIABP")
-                            .cdashLabel("Diastolic Blood Pressure")
-                            .sdtmDomain("VS")
-                            .sdtmVariable("VSORRES")
-                            .sdtmLabel("Result or Finding in Original Units")
-                            .sdtmDatatype("Num")
-                            .sdtmLength(8)
-                            .cdiscTerminologyCode("C25299")
-                            .dataOrigin("COLLECTED")
-                            .unitConversionRule("mmHg to kPa: multiply by 0.133322")
-                            .mappingNotes("Diastolic blood pressure collected in mmHg")
-                            .isActive(true)
-                            .build();
-                        
-                        cdashMappingRepository.save(diaBpMapping);
-                        mappingsCreated++;
-                    }
-                    
-                    // Track configuration
-                    trackBuildConfig(buildId, studyId, "CDASH_MAPPING", 
-                                   String.format("Form %d CDASH mappings", form.getId()));
-                }
-            }
-            
-            log.info("Phase 6: Created {} CDASH/SDTM mappings", mappingsCreated);
-            
-        } catch (Exception e) {
-            log.error("Failed to create CDASH mappings: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create CDASH mappings", e);
-        }
-        
-        return mappingsCreated;
-    }
-
-    /**
-     * Create medical coding configuration - Medical dictionary setup
-     * Phase 6: Configure medical coding requirements
-     * 
-     * Creates records in study_medical_coding_config table with:
-     * - Dictionary type (MedDRA, WHO-DD, SNOMED, ICD-10, LOINC)
-     * - Auto-coding configuration
-     * - Coding workflow (single coder, dual coder, adjudication)
-     * - MedDRA hierarchy levels
-     * - Verbatim text capture settings
-     */
-    private int createMedicalCodingConfig(Long studyId, UUID buildId, List<FormDefinitionEntity> forms) {
-        log.info("Phase 6: Creating medical coding configuration for {} forms", forms.size());
-        
-        int configsCreated = 0;
-        
-        try {
-            for (FormDefinitionEntity form : forms) {
-                // TODO: Parse form.formSchema JSON to extract coding requirements
-                // For now, create sample coding config for adverse events
-                
-                // Check if this is an adverse events form
-                if (form.getName().toLowerCase().contains("adverse") || 
-                    form.getFormType().equalsIgnoreCase("AE")) {
-                    
-                    // Example: MedDRA coding for adverse events - check if exists first (idempotent)
-                    if (!medicalCodingConfigRepository.existsByStudyIdAndFormIdAndFieldName(studyId, form.getId(), "adverse_event_term")) {
-                        StudyMedicalCodingConfigEntity aeCoding = StudyMedicalCodingConfigEntity.builder()
-                            .studyId(studyId)
-                            .formId(form.getId())
-                            .fieldName("adverse_event_term")
-                            .dictionaryType("MedDRA")
-                            .dictionaryVersion("26.0")
-                            .codingRequired(true)
-                            .autoCodingEnabled(true)
-                            .autoCodingThreshold(85)
-                            .manualReviewRequired(true)
-                            .verbatimFieldLabel("Adverse Event Description")
-                            .verbatimMaxLength(500)
-                            .verbatimRequired(true)
-                            .codeToLevel("PT")  // Preferred Term
-                            .capturePrimarySoc(true)
-                            .showAllMatches(false)
-                            .maxMatchesDisplayed(10)
-                            .primaryCoderRole("MEDICAL_CODER")
-                            .secondaryCoderRole("SENIOR_MEDICAL_CODER")
-                            .adjudicationRequired(true)
-                            .adjudicatorRole("MEDICAL_MONITOR")
-                            .workflowType("DUAL_CODER")
-                            .codingInstructions("Code to MedDRA PT level. Use LLT only if PT not available. Adjudication required for discrepancies.")
-                            .isActive(true)
-                            .build();
-                        
-                        medicalCodingConfigRepository.save(aeCoding);
-                        configsCreated++;
-                    }
-                    
-                    // Track configuration
-                    trackBuildConfig(buildId, studyId, "MEDICAL_CODING", 
-                                   String.format("Form %d medical coding config", form.getId()));
-                }
-                
-                // Check if this is a medical history form
-                if (form.getName().toLowerCase().contains("medical history") || 
-                    form.getFormType().equalsIgnoreCase("MH")) {
-                    
-                    // Example: WHO-DD coding for medical history - check if exists first (idempotent)
-                    if (!medicalCodingConfigRepository.existsByStudyIdAndFormIdAndFieldName(studyId, form.getId(), "medical_condition")) {
-                        StudyMedicalCodingConfigEntity mhCoding = StudyMedicalCodingConfigEntity.builder()
-                            .studyId(studyId)
-                            .formId(form.getId())
-                            .fieldName("medical_condition")
-                            .dictionaryType("WHO_DD")
-                            .dictionaryVersion("2024-Q1")
-                            .codingRequired(true)
-                            .autoCodingEnabled(true)
-                            .autoCodingThreshold(80)
-                            .manualReviewRequired(false)
-                            .verbatimFieldLabel("Medical Condition Description")
-                            .verbatimMaxLength(300)
-                            .verbatimRequired(true)
-                            .showAllMatches(true)
-                            .maxMatchesDisplayed(15)
-                            .primaryCoderRole("DATA_MANAGER")
-                            .workflowType("SINGLE_CODER")
-                            .codingInstructions("Code to WHO-DD. Review for accuracy.")
-                            .isActive(true)
-                            .build();
-                        
-                        medicalCodingConfigRepository.save(mhCoding);
-                        configsCreated++;
-                    }
-                    
-                    // Track configuration
-                    trackBuildConfig(buildId, studyId, "MEDICAL_CODING", 
-                                   String.format("Form %d medical coding config", form.getId()));
-                }
-            }
-            
-            log.info("Phase 6: Created {} medical coding configurations", configsCreated);
-            
-        } catch (Exception e) {
-            log.error("Failed to create medical coding configuration: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create medical coding configuration", e);
-        }
-        
-        return configsCreated;
-    }
+    // =====================================================================================================================
+    // PHASE 6A-6E METHODS REMOVED - See PHASE_6_BACKEND_NECESSITY_ANALYSIS.md
+    // =====================================================================================================================
+    // 
+    // The following methods have been REMOVED because Phase 6 backend was found to be DEAD CODE:
+    // 1. createFieldMetadata() - Only created 2 dummy records (subject_id, visit_date), never parsed actual form JSON
+    // 2. createCdashMappings() - CRF Builder already stores CDASH/SDTM mappings in form JSON
+    // 3. createMedicalCodingConfig() - CRF Builder already stores medical coding config in form JSON
+    //
+    // All metadata is now stored in form JSON via CRFBuilderIntegration.jsx (6 tabs):
+    //   - Clinical Flags (sdvFlag, medicalReviewFlag, criticalDataPoint, etc.)
+    //   - CDASH/SDTM Mapping (cdashMapping, sdtmMapping)
+    //   - Medical Coding (medicalCoding with MedDRA, WHO Drug, ICD-10/11 config)
+    //   - Data Quality (criticalDataPoint, editChecks, validation rules)
+    //   - Regulatory Metadata (fdaRequired, emaRequired, part11, auditTrail, etc.)
+    //
+    // FormDefinitionEntity stores everything in JSON columns (fields, structure)
+    // Postgres JSONB queries are sufficient for current scale (no performance issues)
+    //
+    // Removal Summary:
+    //   - 4 database tables removed (study_field_metadata, study_cdash_mappings, study_medical_coding_config, study_form_data_reviews)
+    //   - 4 entities removed (107 fields total)
+    //   - 4 repositories removed (81+ query methods)
+    //   - 1 service removed (StudyFieldMetadataService - 485 lines, 14 methods)
+    //   - 1 controller removed (StudyMetadataQueryController - 10 REST endpoints)
+    //   - 3 DTOs removed
+    //   - 3 worker methods removed (this file)
+    //   - Total: 2,085+ lines of backend code eliminated
+    //
+    // Database removal script: database/migrations/PHASE_6_BACKEND_REMOVAL.sql
+    // Full analysis: PHASE_6_BACKEND_NECESSITY_ANALYSIS.md
+    // =====================================================================================================================
 
     /**
      * Track build configuration items
