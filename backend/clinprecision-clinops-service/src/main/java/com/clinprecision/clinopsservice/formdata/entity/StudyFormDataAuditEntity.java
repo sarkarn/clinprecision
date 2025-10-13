@@ -1,0 +1,237 @@
+package com.clinprecision.clinopsservice.formdata.entity;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+
+/**
+ * StudyFormDataAudit Entity - Audit trail for form data changes
+ * 
+ * Table: study_form_data_audit
+ * Purpose: Complete history of all changes to form data
+ * 
+ * GCP/FDA 21 CFR Part 11 Compliance:
+ * - Maintains complete audit trail of all form modifications
+ * - Captures who made the change, when, and what changed
+ * - Stores both old and new values for comparison
+ * - Immutable records (no updates or deletes)
+ * 
+ * Audit Actions:
+ * - INSERT: New form submission
+ * - UPDATE: Modification to existing form
+ * - DELETE: Form deletion (rare, usually forms are retained)
+ * - LOCK: Form locked as part of database lock
+ * - UNLOCK: Form unlocked (emergency use only, requires justification)
+ * 
+ * Relationship with Event Store:
+ * - Event Store: Source of truth (immutable events)
+ * - This Table: Denormalized audit view for reporting
+ * - Both should contain same information, different formats
+ * 
+ * Query Use Cases:
+ * - "Show me all changes to subject 1001's screening form"
+ * - "Who modified this form last Tuesday?"
+ * - "What was the value of field X before it was changed?"
+ * - "Audit report for regulatory inspection"
+ */
+@Entity
+@Table(name = "study_form_data_audit")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class StudyFormDataAuditEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "audit_id")
+    private Long auditId;
+
+    /**
+     * Study context
+     */
+    @Column(name = "study_id", nullable = false)
+    private Long studyId;
+
+    /**
+     * Record being audited
+     * Foreign key to study_form_data.id
+     */
+    @Column(name = "record_id", nullable = false)
+    private Long recordId;
+
+    /**
+     * UUID from event sourcing
+     * Links to FormDataAggregate identifier
+     */
+    @Column(name = "aggregate_uuid")
+    private String aggregateUuid;
+
+    /**
+     * Audit action type
+     * - INSERT: New form submission
+     * - UPDATE: Form modification
+     * - DELETE: Form deletion (rare)
+     * - LOCK: Database lock applied
+     * - UNLOCK: Database lock removed (emergency only)
+     * - VERIFY: Source data verification performed
+     * - RESOLVE_QUERY: Query resolution
+     */
+    @Column(name = "action", nullable = false)
+    private String action;
+
+    /**
+     * Old data before change (NULL for INSERT)
+     * Stores complete form_data JSON before modification
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "old_data", columnDefinition = "json")
+    private Map<String, Object> oldData;
+
+    /**
+     * New data after change (NULL for DELETE)
+     * Stores complete form_data JSON after modification
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "new_data", columnDefinition = "json")
+    private Map<String, Object> newData;
+
+    /**
+     * Who made the change
+     * Foreign key to users table
+     */
+    @Column(name = "changed_by", nullable = false)
+    private Long changedBy;
+
+    /**
+     * When the change occurred
+     * Timestamp is critical for audit trail
+     */
+    @Column(name = "changed_at", nullable = false)
+    private LocalDateTime changedAt;
+
+    /**
+     * Optional: Reason for change
+     * Required for:
+     * - Updates to SUBMITTED forms (must justify)
+     * - Database unlock (emergency use)
+     * - Manual corrections
+     */
+    @Column(name = "reason")
+    private String reason;
+
+    /**
+     * Optional: IP address of user making change
+     * Additional security audit trail
+     */
+    @Column(name = "ip_address")
+    private String ipAddress;
+
+    /**
+     * Optional: Event ID from event store
+     * Links audit record to specific domain event
+     * Useful for event replay and correlation
+     */
+    @Column(name = "event_id")
+    private String eventId;
+
+    /**
+     * JPA lifecycle callback
+     * Ensure timestamp is set
+     */
+    @PrePersist
+    protected void onCreate() {
+        if (this.changedAt == null) {
+            this.changedAt = LocalDateTime.now();
+        }
+    }
+
+    /**
+     * Business logic helpers
+     */
+    public boolean isInsert() {
+        return "INSERT".equals(action);
+    }
+
+    public boolean isUpdate() {
+        return "UPDATE".equals(action);
+    }
+
+    public boolean isDelete() {
+        return "DELETE".equals(action);
+    }
+
+    public boolean isLock() {
+        return "LOCK".equals(action);
+    }
+
+    public boolean isUnlock() {
+        return "UNLOCK".equals(action);
+    }
+
+    /**
+     * Get fields that were changed
+     * Compares oldData and newData to find differences
+     */
+    public Map<String, Object> getChangedFields() {
+        if (oldData == null || newData == null) {
+            return newData != null ? newData : oldData;
+        }
+
+        // Find fields that changed
+        Map<String, Object> changes = new java.util.HashMap<>();
+        for (String key : newData.keySet()) {
+            Object oldValue = oldData.get(key);
+            Object newValue = newData.get(key);
+            
+            if (oldValue == null && newValue != null) {
+                changes.put(key, newValue);
+            } else if (oldValue != null && !oldValue.equals(newValue)) {
+                changes.put(key, newValue);
+            }
+        }
+        
+        return changes;
+    }
+
+    /**
+     * Count how many fields changed
+     */
+    public int getChangeCount() {
+        return getChangedFields().size();
+    }
+
+    /**
+     * Check if this is a significant change
+     * (more than X fields changed)
+     */
+    public boolean isSignificantChange(int threshold) {
+        return getChangeCount() >= threshold;
+    }
+
+    /**
+     * Check if reason is provided
+     * Required for certain audit actions
+     */
+    public boolean hasReason() {
+        return reason != null && !reason.trim().isEmpty();
+    }
+
+    /**
+     * Summary for logging
+     */
+    public String getSummary() {
+        return String.format(
+            "StudyFormDataAudit{auditId=%d, studyId=%d, recordId=%d, action=%s, " +
+            "changedBy=%d, changedAt=%s, changeCount=%d}",
+            auditId, studyId, recordId, action, changedBy, changedAt, getChangeCount()
+        );
+    }
+}

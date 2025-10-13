@@ -2,7 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import PatientStatusService from '../../../../services/PatientStatusService';
+import FormDataService from '../../../../services/FormDataService';
 import ScreeningAssessmentForm from './ScreeningAssessmentForm';
+import { FORM_IDS, FORM_STATUS, DEFAULT_STUDY_CONFIG } from '../../../../constants/FormConstants';
 
 /**
  * Modal for changing patient status
@@ -148,7 +150,64 @@ const StatusChangeModal = ({
         setErrorMessage('');
 
         try {
-            // Prepare status change data
+            // Step 1: Save screening form data if present (NEW - saves to study_form_data table)
+            let formDataSubmissionId = null;
+            if (screeningData) {
+                try {
+                    console.log('[STATUS_CHANGE_MODAL] Saving screening assessment to database...');
+
+                    const formSubmission = {
+                        // Use default study for pre-enrollment screening forms
+                        // Once patient is enrolled in a specific study, that studyId should be used
+                        studyId: DEFAULT_STUDY_CONFIG.DEFAULT_STUDY_ID,
+
+                        // Use screening assessment form ID from constants
+                        formId: FORM_IDS.SCREENING_ASSESSMENT,
+
+                        // Link to patient being screened
+                        subjectId: patientId,
+
+                        // Screening is pre-enrollment (no visit context yet)
+                        visitId: null,
+
+                        // Site context - currently null, will be enhanced when auth context is available
+                        // TODO: Get from authenticated user's site: AuthContext.user.siteId
+                        siteId: DEFAULT_STUDY_CONFIG.DEFAULT_SITE_ID,
+
+                        formData: {
+                            // Map screening assessment to form fields
+                            eligibility_age: screeningData.meetsAgeRequirement,
+                            eligibility_diagnosis: screeningData.hasRequiredDiagnosis,
+                            eligibility_exclusions: screeningData.noExclusionCriteria,
+                            eligibility_consent: screeningData.informedConsentObtained,
+                            eligibility_status: screeningData.eligibilityStatus,
+                            screening_date: screeningData.screeningDate,
+                            assessor_name: screeningData.assessedBy,
+                            notes: screeningData.notes || ''
+                        },
+
+                        // Use form status constant for official submission
+                        status: FORM_STATUS.SUBMITTED,
+
+                        // Will be linked to status change later if needed
+                        relatedRecordId: null
+                    };
+
+                    const formResponse = await FormDataService.submitFormData(formSubmission);
+                    formDataSubmissionId = formResponse.formDataId;
+
+                    console.log('[STATUS_CHANGE_MODAL] Screening data saved:', {
+                        formDataId: formResponse.formDataId,
+                        recordId: formResponse.recordId
+                    });
+                } catch (formError) {
+                    console.error('[STATUS_CHANGE_MODAL] Error saving screening data:', formError);
+                    // Log error but continue with status change (form data is supplementary)
+                    // In production, you might want to block status change if form save fails
+                }
+            }
+
+            // Step 2: Prepare status change data
             const statusChangeData = {
                 newStatus: formData.newStatus,
                 reason: formData.reason.trim(),
@@ -168,6 +227,7 @@ Screening Assessment Completed:
 - Screening Date: ${screeningData.screeningDate}
 - Assessed By: ${screeningData.assessedBy}
 ${screeningData.notes ? `- Additional Notes: ${screeningData.notes}` : ''}
+${formDataSubmissionId ? `- Form Data ID: ${formDataSubmissionId}` : ''}
                 `.trim();
 
                 statusChangeData.notes = statusChangeData.notes
@@ -175,7 +235,7 @@ ${screeningData.notes ? `- Additional Notes: ${screeningData.notes}` : ''}
                     : screeningNotes;
             }
 
-            // Call API to change status
+            // Step 3: Call API to change status
             const result = await PatientStatusService.changePatientStatus(patientId, statusChangeData);
 
             console.log('Status changed successfully:', result);
@@ -368,8 +428,8 @@ ${screeningData.notes ? `- Additional Notes: ${screeningData.notes}` : ''}
                         {/* Screening Completed Indicator */}
                         {screeningData && (
                             <div className={`p-3 rounded-lg border ${screeningData.isEligible
-                                    ? 'bg-green-50 border-green-200'
-                                    : 'bg-red-50 border-red-200'
+                                ? 'bg-green-50 border-green-200'
+                                : 'bg-red-50 border-red-200'
                                 }`}>
                                 <div className="flex items-center">
                                     <CheckCircle2 className={`w-5 h-5 mr-2 ${screeningData.isEligible ? 'text-green-600' : 'text-red-600'

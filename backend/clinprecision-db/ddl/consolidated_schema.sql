@@ -1271,7 +1271,7 @@ CREATE TABLE IF NOT EXISTS patient_status_history (
     event_id VARCHAR(255) NOT NULL UNIQUE COMMENT 'Unique UUID of PatientStatusChangedEvent from event store. Used for idempotency to prevent duplicate records on event replay.',
     
     -- Status Transition
-    previous_status VARCHAR(50) NOT NULL COMMENT 'Previous patient status',
+    previous_status VARCHAR(50) NULL COMMENT 'Previous patient status',
     new_status VARCHAR(50) NOT NULL COMMENT 'New patient status after transition',
     
     -- Change Context

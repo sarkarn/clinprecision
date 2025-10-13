@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS patient_status_history (
     event_id VARCHAR(255) NOT NULL UNIQUE COMMENT 'Unique UUID of PatientStatusChangedEvent from event store. Used for idempotency to prevent duplicate records on event replay.',
     
     -- Status Transition
-    previous_status VARCHAR(50) NOT NULL COMMENT 'Previous patient status',
+    previous_status VARCHAR(50) NULL COMMENT 'Previous patient status (NULL for initial registration)',
     new_status VARCHAR(50) NOT NULL COMMENT 'New patient status after transition',
     
     -- Change Context
@@ -126,8 +126,10 @@ BEFORE INSERT ON patient_status_history
 FOR EACH ROW
 BEGIN
     DECLARE valid_transition BOOLEAN DEFAULT FALSE;
+    DECLARE error_msg VARCHAR(500);
     
     -- Valid transitions:
+    -- NULL (initial) → REGISTERED (initial patient registration)
     -- REGISTERED → SCREENING, WITHDRAWN
     -- SCREENING → ENROLLED, WITHDRAWN
     -- ENROLLED → ACTIVE, WITHDRAWN
@@ -136,7 +138,10 @@ BEGIN
     -- WITHDRAWN → (none - terminal)
     
     -- Check if transition is valid
-    IF (NEW.previous_status = 'REGISTERED' AND NEW.new_status IN ('SCREENING', 'WITHDRAWN')) THEN
+    IF (NEW.previous_status IS NULL AND NEW.new_status = 'REGISTERED') THEN
+        -- Initial registration (no previous status)
+        SET valid_transition = TRUE;
+    ELSEIF (NEW.previous_status = 'REGISTERED' AND NEW.new_status IN ('SCREENING', 'WITHDRAWN')) THEN
         SET valid_transition = TRUE;
     ELSEIF (NEW.previous_status = 'SCREENING' AND NEW.new_status IN ('ENROLLED', 'WITHDRAWN')) THEN
         SET valid_transition = TRUE;
@@ -144,21 +149,21 @@ BEGIN
         SET valid_transition = TRUE;
     ELSEIF (NEW.previous_status = 'ACTIVE' AND NEW.new_status IN ('COMPLETED', 'WITHDRAWN')) THEN
         SET valid_transition = TRUE;
-    ELSEIF (NEW.new_status = 'WITHDRAWN') THEN
-        -- Can always withdraw from any non-terminal status
+    ELSEIF (NEW.previous_status IS NOT NULL AND NEW.new_status = 'WITHDRAWN') THEN
+        -- Can always withdraw from any non-terminal status (but not from NULL)
         SET valid_transition = TRUE;
     END IF;
     
     -- Raise error if invalid transition
     IF NOT valid_transition THEN
-        SET @error_msg = CONCAT(
+        SET error_msg = CONCAT(
             'Invalid status transition: ', 
-            NEW.previous_status, 
+            COALESCE(NEW.previous_status, 'NULL'), 
             ' -> ', 
             NEW.new_status,
-            '. Valid transitions: REGISTERED->SCREENING, SCREENING->ENROLLED, ENROLLED->ACTIVE, ACTIVE->COMPLETED, ANY->WITHDRAWN'
+            '. Valid transitions: NULL->REGISTERED (initial), REGISTERED->SCREENING, SCREENING->ENROLLED, ENROLLED->ACTIVE, ACTIVE->COMPLETED, ANY->WITHDRAWN'
         );
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = @error_msg;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     END IF;
     
     -- Validate reason is not empty
