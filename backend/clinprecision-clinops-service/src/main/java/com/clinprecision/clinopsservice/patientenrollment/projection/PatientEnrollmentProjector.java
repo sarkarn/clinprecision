@@ -329,7 +329,8 @@ public class PatientEnrollmentProjector {
             
         } catch (Exception e) {
             log.error("Error projecting PatientStatusChangedEvent: {}", e.getMessage(), e);
-            // Don't throw - allow processing to continue for other events
+            // Throw exception to ensure transaction rollback and retry
+            throw new RuntimeException("Failed to project PatientStatusChangedEvent", e);
         }
     }
     

@@ -303,6 +303,61 @@ REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED/WITHDRAWN
 
 ---
 
+### Phase 3: Form Template/Library Design (2-3 weeks) - **FUTURE**
+
+**⚠️ Important Note**: Form data capture backend is complete (Week 2 bonus), but we need a UI for managing form templates/definitions.
+
+#### Form Template Designer
+**Objective**: Create UI for designing reusable form templates
+
+**Tasks**:
+1. Create FormTemplateDesigner.jsx component
+2. Drag-and-drop field builder (text, dropdown, date, number, checkbox, etc.)
+3. Field validation rules configuration
+4. Form preview functionality
+5. Save templates to form_definitions table
+6. Integration with FormConstants.js (assign FORM_IDS)
+
+**Deliverables**:
+- ✅ Users can create custom form templates
+- ✅ Field types: text, number, date, dropdown, checkbox, radio, textarea
+- ✅ Validation rules: required, min/max, regex, custom
+- ✅ Live preview of form as designed
+- ✅ Templates saved with unique FORM_ID
+
+#### Form Library Management
+**Objective**: Browse, manage, and version form templates
+
+**Tasks**:
+1. Create FormLibrary.jsx component
+2. Search and filter form templates
+3. Form template preview/detail view
+4. Form versioning system
+5. Form activation/deactivation
+6. Form cloning (create new from existing)
+7. Form usage statistics (how many times used)
+
+**Deliverables**:
+- ✅ Form library browser with search/filter
+- ✅ Preview form templates before use
+- ✅ Version history for each form
+- ✅ Track which studies use which forms
+- ✅ Retire old form versions
+
+#### Integration with Existing System
+**Tasks**:
+1. Link to existing form_definitions table
+2. Update FormConstants.js with new FORM_IDS
+3. Integration with CRF Builder (import from library)
+4. Integration with StatusChangeModal (use library forms)
+5. Form data capture uses library forms
+
+**Priority**: Medium (after Subject Management Phase 1)  
+**Estimated Effort**: 2-3 weeks  
+**Dependencies**: Form data capture backend (✅ Complete)
+
+---
+
 ## 🎯 Recommended Next Steps (Priority Order)
 
 ### 1. ~~Complete Phase 6 Bug Fixes~~ - **NO LONGER NEEDED** ✅
@@ -479,6 +534,24 @@ REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED/WITHDRAWN
 3. **Integration Testing Priority**
    - Create comprehensive test suite for Study Design → Subject Management integration
    - Catch cross-module issues early
+
+4. **⚠️ Future Enhancement: Form Template/Library Design UI** ⏳
+   - **Context**: Form data capture backend now complete (Week 2 bonus)
+   - **Need**: Restore/create UI for form template design and form library management
+   - **Purpose**: Allow users to create, manage, and version form templates/definitions
+   - **Current State**: CRF Builder exists for study-specific forms, but need standalone form library
+   - **Priority**: Medium (after Subject Management Weeks 3-4)
+   - **Scope**:
+     * Form template designer (drag-and-drop fields, validation rules)
+     * Form library browser (search, filter, preview templates)
+     * Form versioning and lifecycle management
+     * Link to existing form_definitions table
+     * Integration with FormConstants.js (FORM_IDS)
+   - **Location**: Study Design Module or new "Form Library" section
+   - **Estimated Effort**: 2-3 weeks
+   - **Dependencies**: None (can be done anytime after Week 2)
+   - **See**: FormConstants.js already defines FORM_IDS (5, 6, 7, 10, 20, etc.)
+   - **Action Item**: Add to backlog, prioritize after Subject Management Phase 1
 
 ---
 

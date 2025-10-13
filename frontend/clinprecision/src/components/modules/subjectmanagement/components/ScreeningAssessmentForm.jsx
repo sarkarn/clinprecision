@@ -21,6 +21,7 @@ const ScreeningAssessmentForm = ({
         informedConsentObtained: null,
 
         // Additional info
+        screenId: '', // Screening ID/Number
         screeningDate: new Date().toISOString().split('T')[0],
         assessedBy: '', // TODO: Get from auth
         notes: ''
@@ -50,6 +51,10 @@ const ScreeningAssessmentForm = ({
         }
         if (assessment.informedConsentObtained === null) {
             newErrors.informedConsentObtained = 'Required';
+        }
+
+        if (!assessment.screenId.trim()) {
+            newErrors.screenId = 'Screen ID is required';
         }
 
         if (!assessment.assessedBy.trim()) {
@@ -185,6 +190,26 @@ const ScreeningAssessmentForm = ({
                     errors.informedConsentObtained
                 )}
 
+                {/* Screen ID */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Screen ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        value={assessment.screenId}
+                        onChange={(e) => handleChange('screenId', e.target.value)}
+                        placeholder="Enter screening ID/number (e.g., SCR-001)"
+                        className="border border-gray-300 rounded-md w-full px-3 py-2"
+                    />
+                    {errors.screenId && (
+                        <p className="text-red-500 text-xs mt-1">{errors.screenId}</p>
+                    )}
+                    <p className="text-sm text-gray-500 mt-1">
+                        Unique identifier for this screening visit
+                    </p>
+                </div>
+
                 {/* Screening Date */}
                 <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -234,8 +259,8 @@ const ScreeningAssessmentForm = ({
             {/* Eligibility Preview */}
             {eligibilityPreview !== null && (
                 <div className={`rounded-lg p-4 mb-4 ${eligibilityPreview
-                        ? 'bg-green-50 border border-green-200'
-                        : 'bg-red-50 border border-red-200'
+                    ? 'bg-green-50 border border-green-200'
+                    : 'bg-red-50 border border-red-200'
                     }`}>
                     <div className="flex items-center">
                         {eligibilityPreview ? (

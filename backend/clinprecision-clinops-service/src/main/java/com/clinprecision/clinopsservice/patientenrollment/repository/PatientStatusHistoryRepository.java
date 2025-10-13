@@ -297,7 +297,7 @@ public interface PatientStatusHistoryRepository extends JpaRepository<PatientSta
      * @param patientId the patient's database ID
      * @return average days between changes, or null if insufficient data
      */
-    @Query("SELECT AVG(DATEDIFF(current.changedAt, previous.changedAt)) " +
+    @Query("SELECT AVG(TIMESTAMPDIFF(DAY, previous.changedAt, current.changedAt)) " +
            "FROM PatientStatusHistoryEntity current " +
            "JOIN PatientStatusHistoryEntity previous " +
            "ON current.patientId = previous.patientId " +
@@ -318,7 +318,7 @@ public interface PatientStatusHistoryRepository extends JpaRepository<PatientSta
            "JOIN PatientStatusHistoryEntity h2 ON h1.patientId = h2.patientId " +
            "WHERE h1.newStatus = :targetStatus " +
            "AND h2.newStatus = 'ENROLLED' " +
-           "AND DATEDIFF(h1.changedAt, h2.changedAt) <= :maxDays " +
+           "AND TIMESTAMPDIFF(DAY, h2.changedAt, h1.changedAt) <= :maxDays " +
            "AND h1.changedAt > h2.changedAt")
     List<Long> findPatientsReachingStatusWithinDays(
         @Param("targetStatus") PatientStatus targetStatus,
@@ -336,7 +336,7 @@ public interface PatientStatusHistoryRepository extends JpaRepository<PatientSta
     @Query("SELECT DISTINCT psh.patientId " +
            "FROM PatientStatusHistoryEntity psh " +
            "WHERE psh.newStatus = :status " +
-           "AND DATEDIFF(CURRENT_TIMESTAMP, psh.changedAt) > :days " +
+           "AND TIMESTAMPDIFF(DAY, psh.changedAt, CURRENT_TIMESTAMP) > :days " +
            "AND NOT EXISTS (" +
            "  SELECT 1 FROM PatientStatusHistoryEntity later " +
            "  WHERE later.patientId = psh.patientId " +

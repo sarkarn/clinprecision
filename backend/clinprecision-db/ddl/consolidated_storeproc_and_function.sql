@@ -280,46 +280,40 @@ BEFORE INSERT ON patient_status_history
 FOR EACH ROW
 BEGIN
     DECLARE valid_transition BOOLEAN DEFAULT FALSE;
+    DECLARE error_msg VARCHAR(500);
     
-    -- Valid transitions:
-    -- REGISTERED → SCREENING, WITHDRAWN
-    -- SCREENING → ENROLLED, WITHDRAWN
-    -- ENROLLED → ACTIVE, WITHDRAWN
-    -- ACTIVE → COMPLETED, WITHDRAWN
-    -- COMPLETED → (none - terminal)
-    -- WITHDRAWN → (none - terminal)
-    
-    -- Check if transition is valid
-    IF (NEW.previous_status = 'REGISTERED' AND NEW.new_status IN ('SCREENING', 'WITHDRAWN')) THEN
+    -- Allow NULL → REGISTERED (initial registration)
+    IF (NEW.previous_status IS NULL AND NEW.new_status = 'REGISTERED') THEN
         SET valid_transition = TRUE;
-    ELSEIF (NEW.previous_status = 'SCREENING' AND NEW.new_status IN ('ENROLLED', 'WITHDRAWN')) THEN
+    -- Allow REGISTERED → SCREENING
+    ELSEIF (NEW.previous_status = 'REGISTERED' AND NEW.new_status = 'SCREENING') THEN
         SET valid_transition = TRUE;
-    ELSEIF (NEW.previous_status = 'ENROLLED' AND NEW.new_status IN ('ACTIVE', 'WITHDRAWN')) THEN
+    -- Allow SCREENING → ENROLLED
+    ELSEIF (NEW.previous_status = 'SCREENING' AND NEW.new_status = 'ENROLLED') THEN
         SET valid_transition = TRUE;
-    ELSEIF (NEW.previous_status = 'ACTIVE' AND NEW.new_status IN ('COMPLETED', 'WITHDRAWN')) THEN
+    -- Allow ENROLLED → ACTIVE
+    ELSEIF (NEW.previous_status = 'ENROLLED' AND NEW.new_status = 'ACTIVE') THEN
         SET valid_transition = TRUE;
+    -- Allow ACTIVE → COMPLETED
+    ELSEIF (NEW.previous_status = 'ACTIVE' AND NEW.new_status = 'COMPLETED') THEN
+        SET valid_transition = TRUE;
+    -- Allow any status → WITHDRAWN
     ELSEIF (NEW.new_status = 'WITHDRAWN') THEN
-        -- Can always withdraw from any non-terminal status
         SET valid_transition = TRUE;
     END IF;
     
-    -- Raise error if invalid transition
+    -- If not a valid transition, raise error
     IF NOT valid_transition THEN
-        SET @error_msg = CONCAT(
-            'Invalid status transition: ', 
-            NEW.previous_status, 
-            ' -> ', 
+        SET error_msg = CONCAT(
+            'Invalid status transition: ',
+            COALESCE(NEW.previous_status, 'NULL'),
+            ' → ',
             NEW.new_status,
-            '. Valid transitions: REGISTERED->SCREENING, SCREENING->ENROLLED, ENROLLED->ACTIVE, ACTIVE->COMPLETED, ANY->WITHDRAWN'
+            '. Please check patient status workflow.'
         );
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = @error_msg;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     END IF;
-    
-    -- Validate reason is not empty
-    IF NEW.reason IS NULL OR TRIM(NEW.reason) = '' THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Reason is required for status change';
-    END IF;
-END //
+END//
 
 DELIMITER ;
 

@@ -1473,6 +1473,7 @@ CREATE TABLE study_build_notifications (
 
 CREATE TABLE IF NOT EXISTS study_form_data (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+	aggregate_uuid VARCHAR(36) NULL UNIQUE COMMENT 'UUID of the FormData aggregate (for event sourcing)',
     study_id BIGINT NOT NULL,
     form_id BIGINT NOT NULL,
     subject_id BIGINT,
@@ -1481,6 +1482,7 @@ CREATE TABLE IF NOT EXISTS study_form_data (
     status VARCHAR(50) DEFAULT 'DRAFT',
     form_data JSON,                         -- All form field data as JSON
     version INT DEFAULT 1,                  -- Form data version for history
+	related_record_id VARCHAR(255) NULL COMMENT 'Optional link to related records (patient status change UUID, query ID, SDV record ID)',
     is_locked BOOLEAN DEFAULT false,
     locked_at TIMESTAMP NULL,
     locked_by BIGINT,
@@ -1866,7 +1868,7 @@ CREATE INDEX idx_study_versions_created_at ON study_versions(created_at);
 CREATE INDEX idx_study_versions_updated_at ON study_versions(updated_at);
 CREATE INDEX idx_sfd_study_subject_status ON study_form_data(study_id, subject_id, status);
 CREATE INDEX idx_sfd_study_visit_form ON study_form_data(study_id, visit_id, form_id);
-
-
+CREATE INDEX idx_study_form_data_aggregate_uuid ON study_form_data(aggregate_uuid);
+CREATE INDEX idx_study_form_data_related_record ON study_form_data(related_record_id);
 
 

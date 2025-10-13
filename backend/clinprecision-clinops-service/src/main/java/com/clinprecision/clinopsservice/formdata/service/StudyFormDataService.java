@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -65,7 +66,8 @@ public class StudyFormDataService {
      * @param request Form submission request from frontend
      * @return Response with formDataId and recordId
      */
-    @Transactional
+    // DO NOT ADD @Transactional - it prevents projection from seeing the committed event!
+    // Axon handles transactions internally for command processing
     public FormSubmissionResponse submitFormData(FormSubmissionRequest request) {
         log.info("Submitting form data: studyId={}, formId={}, subjectId={}, status={}", 
             request.getStudyId(), request.getFormId(), request.getSubjectId(), request.getStatus());
@@ -102,10 +104,9 @@ public class StudyFormDataService {
             
             log.info("SubmitFormDataCommand completed successfully: formDataId={}", formDataId);
             
-            // Step 6: Query database for created record (projection should be complete)
-            // Note: There might be a small delay for projection, add retry if needed
-            StudyFormDataEntity savedEntity = formDataRepository.findByAggregateUuid(formDataId.toString())
-                .orElseThrow(() -> new RuntimeException("Form data not found after submission: " + formDataId));
+            // Step 6: Wait for projection to complete (with retry)
+            // Event sourcing: Command completes immediately, but projection may take a few ms
+            StudyFormDataEntity savedEntity = waitForFormDataProjection(formDataId.toString());
             
             // Step 7: Build response
             FormSubmissionResponse response = FormSubmissionResponse.builder()
@@ -281,5 +282,59 @@ public class StudyFormDataService {
         // return user.getId();
         
         return 1L; // Placeholder - replace with actual security integration
+    }
+
+    /**
+     * Wait for form data projection to complete
+     * 
+     * Event sourcing pattern: Commands complete immediately, but projections
+     * are asynchronous and may take a few milliseconds. This method polls
+     * the database until the projection is found or timeout occurs.
+     * 
+     * Polling Strategy (same as PatientStatusService):
+     * - Attempt 1-3: 50ms, 100ms, 200ms (exponential backoff)
+     * - Attempt 4-13: 500ms each (steady polling)
+     * - Total timeout: ~5 seconds
+     * 
+     * @param aggregateUuid UUID of FormData aggregate
+     * @return StudyFormDataEntity from projection
+     * @throws RuntimeException if projection not found after timeout
+     */
+    private StudyFormDataEntity waitForFormDataProjection(String aggregateUuid) {
+        log.info("Waiting for form data projection: aggregateUuid={}", aggregateUuid);
+        
+        int maxAttempts = 13;
+        int attempt = 0;
+        long totalWaitTime = 0;
+        
+        while (attempt < maxAttempts) {
+            attempt++;
+            
+            // Check if projection exists
+            Optional<StudyFormDataEntity> formData = formDataRepository.findByAggregateUuid(aggregateUuid);
+            
+            if (formData.isPresent()) {
+                log.info("Form data projection found: aggregateUuid={}, recordId={}, attempts={}, totalWait={}ms", 
+                    aggregateUuid, formData.get().getId(), attempt, totalWaitTime);
+                return formData.get();
+            }
+            
+            // Calculate delay (exponential backoff, then steady)
+            long delay = attempt <= 3 ? (long) Math.pow(2, attempt - 1) * 50 : 500;
+            totalWaitTime += delay;
+            
+            log.debug("Form data projection not found yet, attempt {}, waiting {}ms", attempt, delay);
+            
+            try {
+                Thread.sleep(delay);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while waiting for form data projection", e);
+            }
+        }
+        
+        log.error("Form data projection not found after {}ms and {} attempts: aggregateUuid={}", 
+            totalWaitTime, maxAttempts, aggregateUuid);
+        throw new RuntimeException("Form data not found after submission timeout: " + aggregateUuid);
     }
 }

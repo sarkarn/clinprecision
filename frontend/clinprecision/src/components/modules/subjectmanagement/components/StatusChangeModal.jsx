@@ -176,6 +176,7 @@ const StatusChangeModal = ({
 
                         formData: {
                             // Map screening assessment to form fields
+                            screen_id: screeningData.screenId,
                             eligibility_age: screeningData.meetsAgeRequirement,
                             eligibility_diagnosis: screeningData.hasRequiredDiagnosis,
                             eligibility_exclusions: screeningData.noExclusionCriteria,
@@ -219,6 +220,7 @@ const StatusChangeModal = ({
             if (screeningData) {
                 const screeningNotes = `
 Screening Assessment Completed:
+- Screen ID: ${screeningData.screenId}
 - Age Requirement: ${screeningData.meetsAgeRequirement}
 - Required Diagnosis: ${screeningData.hasRequiredDiagnosis}
 - No Exclusion Criteria: ${screeningData.noExclusionCriteria}

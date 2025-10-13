@@ -65,9 +65,13 @@ import java.util.concurrent.CompletableFuture;
  * @see ChangePatientStatusCommand
  * @see PatientStatusHistoryEntity
  * @see PatientStatus
+ * 
+ * NOTE: No class-level @Transactional - Axon handles transactions for command processing.
+ * Adding @Transactional prevents projections from seeing committed events due to transaction
+ * isolation - the waitForProjection() method can't see the INSERT until transaction commits,
+ * but the transaction can't commit because the method is still waiting (circular deadlock).
  */
 @Service
-@Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class PatientStatusService {
