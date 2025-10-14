@@ -47,7 +47,22 @@ export default function SubjectList() {
             }
         };
 
+        const fetchAllPatients = async () => {
+            try {
+                console.log('[SUBJECT LIST] Fetching all registered patients on initial load...');
+                const response = await ApiService.get('/clinops-ws/api/v1/patients');
+                if (response?.data) {
+                    console.log('[SUBJECT LIST] All patients loaded:', response.data.length);
+                    setAllPatients(response.data);
+                    setShowAllPatients(true); // Show all patients by default
+                }
+            } catch (error) {
+                console.error('[SUBJECT LIST] Error fetching all patients:', error);
+            }
+        };
+
         fetchStudies();
+        fetchAllPatients(); // Load all patients on initial page load
     }, []);
 
     useEffect(() => {
@@ -93,7 +108,18 @@ export default function SubjectList() {
         setSelectedPatient(null);
         setPreselectedStatus(null);
 
-        // Re-fetch subjects for the current study
+        // Re-fetch all patients to reflect status changes
+        try {
+            const response = await ApiService.get('/clinops-ws/api/v1/patients');
+            if (response?.data) {
+                console.log('[SUBJECT LIST] Refreshed all patients after status change');
+                setAllPatients(response.data);
+            }
+        } catch (error) {
+            console.error('[SUBJECT LIST] Error refreshing all patients:', error);
+        }
+
+        // Re-fetch subjects for the current study if one is selected
         if (selectedStudy) {
             setLoading(true);
             try {
@@ -214,7 +240,7 @@ export default function SubjectList() {
                                     if (!showAllPatients) {
                                         // Fetch all patients when showing for the first time
                                         try {
-                                            const response = await ApiService.get('/datacapture-ws/api/v1/patients');
+                                            const response = await ApiService.get('/clinops-ws/api/v1/patients');
                                             if (response?.data) {
                                                 setAllPatients(response.data);
                                             }
@@ -388,8 +414,14 @@ export default function SubjectList() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                    ${patient.studyId ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                    {patient.studyId ? 'Enrolled' : 'Registered Only'}
+                                                    ${patient.status === 'REGISTERED' ? 'bg-blue-100 text-blue-800' :
+                                                        patient.status === 'SCREENING' ? 'bg-yellow-100 text-yellow-800' :
+                                                            patient.status === 'ENROLLED' ? 'bg-green-100 text-green-800' :
+                                                                patient.status === 'ACTIVE' ? 'bg-violet-100 text-violet-800' :
+                                                                    patient.status === 'COMPLETED' ? 'bg-gray-100 text-gray-800' :
+                                                                        patient.status === 'WITHDRAWN' ? 'bg-red-100 text-red-800' :
+                                                                            'bg-gray-100 text-gray-800'}`}>
+                                                    {patient.status || 'REGISTERED'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">

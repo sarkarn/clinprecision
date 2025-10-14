@@ -31,10 +31,12 @@ export default function SubjectDetails() {
         }
     };
 
-    const handleStatusChanged = () => {
+    const handleStatusChanged = (result) => {
+        console.log('Status changed successfully, result:', result);
+        // Close modal first for immediate UI feedback
+        setShowStatusModal(false);
         // Refresh subject data after status change
         fetchSubjectDetails();
-        setShowStatusModal(false);
     };
 
     if (loading) {
@@ -232,7 +234,8 @@ export default function SubjectDetails() {
                     isOpen={showStatusModal}
                     onClose={() => setShowStatusModal(false)}
                     patientId={subject.id}
-                    currentStatus={subject.status}
+                    patientName={`${subject.firstName || ''} ${subject.lastName || ''}`.trim() || subject.subjectId}
+                    currentStatus={subject.status?.toUpperCase() || 'REGISTERED'}
                     onStatusChanged={handleStatusChanged}
                 />
             )}
