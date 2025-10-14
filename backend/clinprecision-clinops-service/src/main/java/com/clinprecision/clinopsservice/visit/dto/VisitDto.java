@@ -1,0 +1,126 @@
+package com.clinprecision.clinopsservice.visit.dto;
+
+import com.clinprecision.clinopsservice.visit.entity.VisitEntity;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * DTO for visit data transfer
+ * Used for converting between entity and API responses
+ */
+public class VisitDto {
+
+    private UUID visitId;
+    private Long patientId;
+    private Long studyId;
+    private Long siteId;
+    private String visitType;
+    private LocalDate visitDate;
+    private String status;
+    private String createdBy;
+    private LocalDateTime createdAt;
+    private String notes;
+
+    // Default constructor
+    public VisitDto() {
+    }
+
+    // Static factory method to create DTO from Entity
+    public static VisitDto fromEntity(VisitEntity entity) {
+        VisitDto dto = new VisitDto();
+        dto.setVisitId(entity.getVisitId());
+        dto.setPatientId(entity.getPatientId());
+        dto.setStudyId(entity.getStudyId());
+        dto.setSiteId(entity.getSiteId());
+        dto.setVisitType(entity.getVisitType());
+        dto.setVisitDate(entity.getVisitDate());
+        dto.setStatus(entity.getStatus());
+        dto.setCreatedBy(entity.getCreatedBy());
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setNotes(entity.getNotes());
+        return dto;
+    }
+
+    // Getters and Setters
+    public UUID getVisitId() {
+        return visitId;
+    }
+
+    public void setVisitId(UUID visitId) {
+        this.visitId = visitId;
+    }
+
+    public Long getPatientId() {
+        return patientId;
+    }
+
+    public void setPatientId(Long patientId) {
+        this.patientId = patientId;
+    }
+
+    public Long getStudyId() {
+        return studyId;
+    }
+
+    public void setStudyId(Long studyId) {
+        this.studyId = studyId;
+    }
+
+    public Long getSiteId() {
+        return siteId;
+    }
+
+    public void setSiteId(Long siteId) {
+        this.siteId = siteId;
+    }
+
+    public String getVisitType() {
+        return visitType;
+    }
+
+    public void setVisitType(String visitType) {
+        this.visitType = visitType;
+    }
+
+    public LocalDate getVisitDate() {
+        return visitDate;
+    }
+
+    public void setVisitDate(LocalDate visitDate) {
+        this.visitDate = visitDate;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+}

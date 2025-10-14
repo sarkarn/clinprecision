@@ -123,8 +123,14 @@ public class PatientEnrollmentProjector {
     @EventHandler
     @Transactional
     public void on(PatientEnrolledEvent event) {
-        log.info("Projecting PatientEnrolledEvent: patient={}, study={}, enrollment={}", 
-            event.getPatientId(), event.getStudyId(), event.getEnrollmentId());
+        log.info("Projecting PatientEnrolledEvent: patient={}, study={}, enrollment={}, studySiteId={}", 
+            event.getPatientId(), event.getStudyId(), event.getEnrollmentId(), event.getStudySiteId());
+        
+        // Skip old events that don't have studySiteId (created before immutability fix)
+        if (event.getStudySiteId() == null) {
+            log.warn("Skipping PatientEnrolledEvent without studySiteId (old event): {}", event.getEnrollmentId());
+            return;
+        }
         
         try {
             // Find patient entity by aggregate UUID
@@ -148,7 +154,7 @@ public class PatientEnrollmentProjector {
                 .patientId(patient.getId())
                 .patientAggregateUuid(event.getPatientId().toString())
                 .studyId(extractLongId(event.getStudyId().toString()))
-                .studySiteId(null) // Will be updated when we have proper site-study lookup
+                .studySiteId(event.getStudySiteId()) // Use FK from immutable event
                 .siteAggregateUuid(event.getSiteId().toString())
                 .screeningNumber(event.getScreeningNumber())
                 .enrollmentDate(event.getEnrollmentDate())

@@ -1,41 +1,96 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getSubjectById, updateSubjectStatus } from '../../../services/SubjectService';
+import { getPatientVisits } from '../../../services/VisitService';
 import PatientStatusBadge from '../subjectmanagement/components/PatientStatusBadge';
 import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
 import StatusHistoryTimeline from '../subjectmanagement/components/StatusHistoryTimeline';
+import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVisitModal';
 
 export default function SubjectDetails() {
+    console.log('[SUBJECT DETAILS] Component mounted/rendering');
     const { subjectId } = useParams();
+    console.log('[SUBJECT DETAILS] subjectId from useParams:', subjectId);
     const [subject, setSubject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [showVisitModal, setShowVisitModal] = useState(false);
+    const [visitType, setVisitType] = useState(null);
+    const [visits, setVisits] = useState([]);
+    const [visitsLoading, setVisitsLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchSubjectDetails();
     }, [subjectId]);
 
+    useEffect(() => {
+        if (subject?.id) {
+            fetchVisits();
+        }
+    }, [subject?.id]);
+
     const fetchSubjectDetails = async () => {
+        console.log('[SUBJECT DETAILS] Fetching details for subjectId:', subjectId);
         setLoading(true);
         try {
             const subjectData = await getSubjectById(subjectId);
+            console.log('[SUBJECT DETAILS] Received data:', subjectData);
             setSubject(subjectData);
         } catch (error) {
-            console.error('Error fetching subject details:', error);
-            setError('Failed to load subject details. Please try again later.');
+            console.error('[SUBJECT DETAILS] Error fetching subject details:', error);
+            console.error('[SUBJECT DETAILS] Error details:', {
+                message: error.message,
+                response: error.response,
+                status: error.response?.status
+            });
+            setError(`Failed to load subject details: ${error.message || 'Please try again later.'}`);
         } finally {
             setLoading(false);
         }
     };
 
     const handleStatusChanged = (result) => {
-        console.log('Status changed successfully, result:', result);
-        // Close modal first for immediate UI feedback
+        console.log('[SUBJECT DETAILS] Status changed successfully, result:', result);
+
+        // Close status modal first
         setShowStatusModal(false);
-        // Refresh subject data after status change
+
+        // Check if user wants to create a visit
+        if (result?.createVisit && result?.visitType) {
+            console.log('[SUBJECT DETAILS] Opening visit modal for type:', result.visitType);
+            setVisitType(result.visitType);
+            setShowVisitModal(true);
+        } else {
+            console.log('[SUBJECT DETAILS] No visit creation requested, refreshing data');
+            // Refresh subject data if no visit creation
+            fetchSubjectDetails();
+        }
+    };
+
+    const fetchVisits = async () => {
+        if (!subject?.id) return;
+
+        setVisitsLoading(true);
+        try {
+            console.log('[SUBJECT DETAILS] Fetching visits for patient:', subject.id);
+            const visitsData = await getPatientVisits(subject.id);
+            console.log('[SUBJECT DETAILS] Visits loaded:', visitsData);
+            setVisits(visitsData || []);
+        } catch (error) {
+            console.error('[SUBJECT DETAILS] Error fetching visits:', error);
+            setVisits([]);
+        } finally {
+            setVisitsLoading(false);
+        }
+    }; const handleVisitCreated = (visit) => {
+        console.log('[SUBJECT DETAILS] Visit created successfully:', visit);
+        setShowVisitModal(false);
+        // Refresh visits after creation
+        fetchVisits();
+        // Also refresh subject data
         fetchSubjectDetails();
     };
 
@@ -188,7 +243,11 @@ export default function SubjectDetails() {
                     </Link>
                 </div>
 
-                {subject.visits && subject.visits.length > 0 ? (
+                {visitsLoading ? (
+                    <div className="text-center py-4 bg-gray-50 border border-gray-200 rounded-md">
+                        <p className="text-gray-500">Loading visits...</p>
+                    </div>
+                ) : visits && visits.length > 0 ? (
                     <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md">
                         <thead className="bg-gray-50">
                             <tr>
@@ -199,7 +258,7 @@ export default function SubjectDetails() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {subject.visits.map(visit => (
+                            {visits.map(visit => (
                                 <tr key={visit.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3">{visit.visitName}</td>
                                     <td className="px-4 py-3">{new Date(visit.visitDate).toLocaleDateString()}</td>
@@ -281,6 +340,20 @@ export default function SubjectDetails() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Unscheduled Visit Modal */}
+            {showVisitModal && subject && (
+                <UnscheduledVisitModal
+                    isOpen={showVisitModal}
+                    onClose={() => setShowVisitModal(false)}
+                    patientId={subject.id}
+                    patientName={`${subject.firstName || ''} ${subject.lastName || ''}`.trim() || subject.subjectId}
+                    studyId={subject.studyId}
+                    siteId={subject.siteId || 1}
+                    visitType={visitType}
+                    onVisitCreated={handleVisitCreated}
+                />
             )}
         </div>
     );

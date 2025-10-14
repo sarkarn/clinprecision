@@ -378,12 +378,13 @@ public class PatientEnrollmentService {
                 .enrollmentId(enrollmentUuid)
                 .studyId(studyUuid)
                 .siteId(siteAggregateUuid)
+                .studySiteId(association.getId()) // Pass FK for immutable event sourcing
                 .screeningNumber(dto.getScreeningNumber())
                 .enrollmentDate(dto.getEnrollmentDate())
                 .createdBy(createdBy != null ? createdBy : "system")
                 .build();
         
-        log.info("Sending EnrollPatientCommand to aggregate: {}", command);
+        log.info("Sending EnrollPatientCommand to aggregate with studySiteId={}: {}", association.getId(), command);
         
         try {
             // Send command and wait for completion

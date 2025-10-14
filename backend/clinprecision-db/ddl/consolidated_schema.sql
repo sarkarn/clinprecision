@@ -1455,6 +1455,23 @@ CREATE TABLE study_build_notifications (
     INDEX idx_build_notifications_sent (is_sent)
 ) COMMENT='Notifications related to database build processes';
 
+
+CREATE TABLE visit (
+    visit_id BINARY(16) PRIMARY KEY COMMENT 'UUID of visit',
+    patient_id BIGINT NOT NULL COMMENT 'FK to patients',
+    study_id BIGINT NOT NULL COMMENT 'FK to studies',
+    site_id BIGINT NOT NULL COMMENT 'FK to sites',
+    visit_type VARCHAR(50) NOT NULL,
+    visit_date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED',
+    created_by VARCHAR(100),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    INDEX idx_patient_id (patient_id),
+    INDEX idx_study_id (study_id),
+    INDEX idx_visit_type (visit_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ============================================================================
 -- Database Migration: Study Database Shared Tables
 -- Version: 002

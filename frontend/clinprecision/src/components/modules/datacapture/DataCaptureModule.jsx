@@ -12,6 +12,7 @@ import PatientDetails from './PatientDetails';
 import DataCaptureDashboard from './DataCaptureDashboard';
 
 export default function DataCaptureModule() {
+    console.log('[DATA CAPTURE MODULE] Rendering, current pathname:', window.location.pathname);
     return (
         <div className="container mx-auto px-4 pb-4">
             <Routes>

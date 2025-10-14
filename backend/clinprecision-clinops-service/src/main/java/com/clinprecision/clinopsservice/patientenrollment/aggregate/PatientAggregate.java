@@ -127,11 +127,13 @@ public class PatientAggregate {
         validateEnrollment(command);
         
         // Apply event
+        logger.info("Creating PatientEnrolledEvent with studySiteId={}", command.getStudySiteId());
         AggregateLifecycle.apply(PatientEnrolledEvent.builder()
             .enrollmentId(command.getEnrollmentId())
             .patientId(command.getPatientId())
             .studyId(command.getStudyId())
             .siteId(command.getSiteId())
+            .studySiteId(command.getStudySiteId())  // Pass FK from command to event for immutable projection
             .screeningNumber(command.getScreeningNumber())
             .enrollmentDate(command.getEnrollmentDate() != null ? command.getEnrollmentDate() : LocalDate.now())
             .enrollmentStatus("ENROLLED")

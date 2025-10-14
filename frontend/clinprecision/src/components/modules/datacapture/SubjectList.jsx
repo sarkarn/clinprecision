@@ -5,6 +5,7 @@ import { getStudies } from '../../../services/StudyService';
 import { getSubjectsByStudy } from '../../../services/SubjectService';
 import ApiService from '../../../services/ApiService';
 import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
+import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVisitModal';
 
 export default function SubjectList() {
     const [studies, setStudies] = useState([]);
@@ -16,6 +17,8 @@ export default function SubjectList() {
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [preselectedStatus, setPreselectedStatus] = useState(null);
+    const [showVisitModal, setShowVisitModal] = useState(false);
+    const [visitType, setVisitType] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -102,33 +105,71 @@ export default function SubjectList() {
         setShowStatusModal(true);
     };
 
-    const handleStatusChanged = async () => {
-        // Refresh subjects list after status change
+    const handleStatusChanged = async (result) => {
+        console.log('[SUBJECT LIST] Status changed, result:', result);
+
+        // Close status modal
         setShowStatusModal(false);
+
+        // Check if user wants to create a visit
+        if (result?.createVisit && result?.visitType) {
+            console.log('[SUBJECT LIST] Opening visit modal for type:', result.visitType);
+            setVisitType(result.visitType);
+            setShowVisitModal(true);
+            // Don't clear selectedPatient yet - we need it for visit creation
+        } else {
+            console.log('[SUBJECT LIST] No visit creation requested, refreshing data');
+            setSelectedPatient(null);
+            setPreselectedStatus(null);
+
+            // Re-fetch all patients to reflect status changes
+            try {
+                const response = await ApiService.get('/clinops-ws/api/v1/patients');
+                if (response?.data) {
+                    console.log('[SUBJECT LIST] Refreshed all patients after status change');
+                    setAllPatients(response.data);
+                }
+            } catch (error) {
+                console.error('[SUBJECT LIST] Error refreshing all patients:', error);
+            }
+
+            // Re-fetch subjects for the current study if one is selected
+            if (selectedStudy) {
+                setLoading(true);
+                try {
+                    const subjectsData = await getSubjectsByStudy(selectedStudy);
+                    setSubjects(subjectsData);
+                } catch (error) {
+                    console.error('[SUBJECT LIST] Error refreshing subjects:', error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        }
+    };
+
+    const handleVisitCreated = async (visit) => {
+        console.log('[SUBJECT LIST] Visit created successfully:', visit);
+        setShowVisitModal(false);
         setSelectedPatient(null);
         setPreselectedStatus(null);
 
-        // Re-fetch all patients to reflect status changes
+        // Refresh data after visit creation
         try {
             const response = await ApiService.get('/clinops-ws/api/v1/patients');
             if (response?.data) {
-                console.log('[SUBJECT LIST] Refreshed all patients after status change');
                 setAllPatients(response.data);
             }
         } catch (error) {
-            console.error('[SUBJECT LIST] Error refreshing all patients:', error);
+            console.error('[SUBJECT LIST] Error refreshing patients:', error);
         }
 
-        // Re-fetch subjects for the current study if one is selected
         if (selectedStudy) {
-            setLoading(true);
             try {
                 const subjectsData = await getSubjectsByStudy(selectedStudy);
                 setSubjects(subjectsData);
             } catch (error) {
                 console.error('[SUBJECT LIST] Error refreshing subjects:', error);
-            } finally {
-                setLoading(false);
             }
         }
     };
@@ -275,7 +316,12 @@ export default function SubjectList() {
                                     <tr key={subject.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex flex-col">
-                                                <span className="font-medium text-gray-900">{subject.subjectId}</span>
+                                                <Link
+                                                    to={`/datacapture-management/subjects/${subject.id}`}
+                                                    className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                                >
+                                                    {subject.subjectId}
+                                                </Link>
                                                 <span className="text-xs text-gray-500">Screening #{subject.subjectId}</span>
                                             </div>
                                         </td>
@@ -400,11 +446,21 @@ export default function SubjectList() {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {allPatients.map(patient => (
                                         <tr key={patient.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                                                {patient.screeningNumber || 'N/A'}
+                                            <td className="px-6 py-4 whitespace-nowrap font-medium">
+                                                <Link
+                                                    to={`/datacapture-management/subjects/${patient.id}`}
+                                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                >
+                                                    {patient.screeningNumber || 'N/A'}
+                                                </Link>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                {patient.patientNumber}
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <Link
+                                                    to={`/datacapture-management/subjects/${patient.id}`}
+                                                    className="text-gray-700 hover:text-blue-600 hover:underline"
+                                                >
+                                                    {patient.patientNumber}
+                                                </Link>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {patient.firstName && patient.lastName ?
@@ -467,9 +523,28 @@ export default function SubjectList() {
                         setPreselectedStatus(null);
                     }}
                     patientId={selectedPatient.id}
+                    patientName={`${selectedPatient.firstName || ''} ${selectedPatient.lastName || ''}`.trim() || `Patient ${selectedPatient.id}`}
                     currentStatus={selectedPatient.status}
                     preselectedStatus={preselectedStatus}
                     onStatusChanged={handleStatusChanged}
+                />
+            )}
+
+            {/* Unscheduled Visit Modal */}
+            {showVisitModal && selectedPatient && (
+                <UnscheduledVisitModal
+                    isOpen={showVisitModal}
+                    onClose={() => {
+                        setShowVisitModal(false);
+                        setSelectedPatient(null);
+                        setVisitType(null);
+                    }}
+                    patientId={selectedPatient.id}
+                    patientName={`${selectedPatient.firstName || ''} ${selectedPatient.lastName || ''}`.trim() || `Patient ${selectedPatient.id}`}
+                    studyId={selectedPatient.studyId || (selectedStudy ? parseInt(selectedStudy) : null)}
+                    siteId={selectedPatient.siteId || 1}
+                    visitType={visitType}
+                    onVisitCreated={handleVisitCreated}
                 />
             )}
         </div>
