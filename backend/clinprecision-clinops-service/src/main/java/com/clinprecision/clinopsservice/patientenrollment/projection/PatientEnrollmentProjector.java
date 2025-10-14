@@ -42,6 +42,7 @@ public class PatientEnrollmentProjector {
     private final PatientRepository patientRepository;
     private final PatientEnrollmentAuditRepository auditRepository;
     private final PatientStatusHistoryRepository statusHistoryRepository;
+    private final com.clinprecision.clinopsservice.patientenrollment.repository.SiteStudyRepository siteStudyRepository;
     
     /**
      * Handle PatientRegisteredEvent - Create initial status history record
@@ -60,14 +61,15 @@ public class PatientEnrollmentProjector {
             event.getPatientId(), event.getFirstName(), event.getLastName());
         
         try {
-            // Find patient entity by aggregate UUID
-            Optional<PatientEntity> patientOpt = patientRepository.findByAggregateUuid(event.getPatientId().toString());
-            if (patientOpt.isEmpty()) {
-                log.error("Patient not found for UUID: {}", event.getPatientId());
-                return; // Patient might not be in projection yet
-            }
+            // Wait for patient entity to be created by PatientProjectionHandler
+            // Since both handlers process PatientRegisteredEvent in parallel,
+            // we need to retry until the patient entity exists
+            PatientEntity patient = waitForPatientEntity(event.getPatientId().toString(), 3000); // 3 second timeout
             
-            PatientEntity patient = patientOpt.get();
+            if (patient == null) {
+                log.error("Patient entity not created after waiting: {}", event.getPatientId());
+                return; // Give up after timeout
+            }
             
             // Generate event identifier for idempotency
             String eventId = generateEventIdForRegistration(event);
@@ -132,6 +134,15 @@ public class PatientEnrollmentProjector {
             return;
         }
         
+        // Idempotency check: Skip if enrollment already exists
+        Optional<PatientEnrollmentEntity> existingEnrollment = 
+            patientEnrollmentRepository.findByAggregateUuid(event.getEnrollmentId().toString());
+        if (existingEnrollment.isPresent()) {
+            log.info("Enrollment already exists (idempotent replay): enrollmentId={}, screening={}", 
+                event.getEnrollmentId(), existingEnrollment.get().getScreeningNumber());
+            return;
+        }
+        
         try {
             // Find patient entity by aggregate UUID
             Optional<PatientEntity> patientOpt = patientRepository.findByAggregateUuid(event.getPatientId().toString());
@@ -142,10 +153,13 @@ public class PatientEnrollmentProjector {
             
             PatientEntity patient = patientOpt.get();
             
-            // Find site-study association to get Long IDs
-            // Note: event.getSiteId() is the site aggregate UUID, we need to find the association
-            // For now, we'll need to look up by study and site UUIDs
-            // This is a temporary solution - ideally we'd pass the association ID in the command
+            // Look up the real study ID from the site_studies table using studySiteId
+            com.clinprecision.common.entity.SiteStudyEntity siteStudy = siteStudyRepository.findById(event.getStudySiteId())
+                .orElseThrow(() -> new IllegalStateException(
+                    "Site-Study association not found: " + event.getStudySiteId()));
+            
+            Long realStudyId = siteStudy.getStudyId();
+            log.info("Resolved studySiteId={} to studyId={}", event.getStudySiteId(), realStudyId);
             
             // Create enrollment record
             PatientEnrollmentEntity enrollment = PatientEnrollmentEntity.builder()
@@ -153,7 +167,7 @@ public class PatientEnrollmentProjector {
                 .enrollmentNumber(generateEnrollmentNumber(patient.getId(), event.getStudyId().toString()))
                 .patientId(patient.getId())
                 .patientAggregateUuid(event.getPatientId().toString())
-                .studyId(extractLongId(event.getStudyId().toString()))
+                .studyId(realStudyId) // Use real study ID from site_studies table
                 .studySiteId(event.getStudySiteId()) // Use FK from immutable event
                 .siteAggregateUuid(event.getSiteId().toString())
                 .screeningNumber(event.getScreeningNumber())
@@ -175,14 +189,14 @@ public class PatientEnrollmentProjector {
             // This prevents confusion where enrolling in a study automatically sets status to ENROLLED
             log.info("Patient enrolled in study, but status remains: {}", patient.getStatus());
             
-            // Create audit record
+            // Create audit record using real study ID (Long), not UUID
             createAuditRecord(
                 saved.getId(),
                 event.getEnrollmentId().toString(),
                 PatientEnrollmentAuditEntity.AuditActionType.ENROLL,
                 null,
-                String.format("{\"patientId\": %d, \"studyId\": %s, \"screeningNumber\": \"%s\"}", 
-                    patient.getId(), event.getStudyId(), event.getScreeningNumber()),
+                String.format("{\"patientId\": %d, \"studyId\": %d, \"studySiteId\": %d, \"screeningNumber\": \"%s\"}", 
+                    patient.getId(), realStudyId, event.getStudySiteId(), event.getScreeningNumber()),
                 event.getEnrolledBy(),
                 "Patient enrolled in study"
             );
@@ -382,6 +396,48 @@ public class PatientEnrollmentProjector {
         
         // Generate UUID from composite string (deterministic)
         return java.util.UUID.nameUUIDFromBytes(composite.getBytes()).toString();
+    }
+    
+    /**
+     * Wait for patient entity to be created by PatientProjectionHandler.
+     * 
+     * Since multiple event handlers process PatientRegisteredEvent in parallel,
+     * this projector may execute before the patient entity is created.
+     * This method implements exponential backoff retry logic.
+     * 
+     * @param patientAggregateUuid the patient aggregate UUID
+     * @param timeoutMs maximum time to wait in milliseconds
+     * @return patient entity if found, null if timeout
+     */
+    private PatientEntity waitForPatientEntity(String patientAggregateUuid, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        int attempt = 0;
+        long[] delays = {10, 20, 50, 100, 200, 500}; // Exponential backoff
+        
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            Optional<PatientEntity> patientOpt = patientRepository.findByAggregateUuid(patientAggregateUuid);
+            
+            if (patientOpt.isPresent()) {
+                log.info("Patient entity found after {}ms (attempt {})", 
+                    System.currentTimeMillis() - startTime, attempt + 1);
+                return patientOpt.get();
+            }
+            
+            // Exponential backoff
+            long delay = attempt < delays.length ? delays[attempt] : delays[delays.length - 1];
+            attempt++;
+            
+            try {
+                Thread.sleep(delay);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("Wait for patient entity interrupted");
+                return null;
+            }
+        }
+        
+        log.error("Patient entity not found after {}ms and {} attempts", timeoutMs, attempt);
+        return null;
     }
     
     /**
