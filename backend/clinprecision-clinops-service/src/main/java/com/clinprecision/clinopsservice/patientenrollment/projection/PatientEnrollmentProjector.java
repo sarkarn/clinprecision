@@ -167,11 +167,13 @@ public class PatientEnrollmentProjector {
             PatientEnrollmentEntity saved = patientEnrollmentRepository.save(enrollment);
             log.info("Enrollment record created: id={}, screening={}", saved.getId(), saved.getScreeningNumber());
             
-            // Update patient status to ENROLLED
-            patient.setStatus(PatientStatus.ENROLLED);
-            patient.setUpdatedAt(LocalDateTime.now());
-            patientRepository.save(patient);
-            log.info("Patient status updated to ENROLLED: {}", patient.getId());
+            // NOTE: Do NOT automatically change patient status during study enrollment
+            // Patient status and study enrollment are separate concepts:
+            // - Enrollment = Association with a study (patient_enrollments table)
+            // - Status = Lifecycle state (REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED)
+            // The status should be changed explicitly via ChangePatientStatusCommand
+            // This prevents confusion where enrolling in a study automatically sets status to ENROLLED
+            log.info("Patient enrolled in study, but status remains: {}", patient.getStatus());
             
             // Create audit record
             createAuditRecord(
