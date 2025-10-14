@@ -1509,6 +1509,7 @@ CREATE TABLE IF NOT EXISTS study_form_data_audit (
     audit_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     study_id BIGINT NOT NULL,
     record_id BIGINT NOT NULL,              -- ID from study_form_data
+	aggregate_uuid VARCHAR(255),
     action VARCHAR(20) NOT NULL,            -- INSERT, UPDATE, DELETE, LOCK, UNLOCK
     old_data JSON,                          -- Previous state (NULL for INSERT)
     new_data JSON,                          -- New state (NULL for DELETE)
@@ -1516,6 +1517,7 @@ CREATE TABLE IF NOT EXISTS study_form_data_audit (
     changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     change_reason TEXT,
     ip_address VARCHAR(50),
+	event_id VARCHAR(255),
     user_agent TEXT,
     
     INDEX idx_study (study_id),

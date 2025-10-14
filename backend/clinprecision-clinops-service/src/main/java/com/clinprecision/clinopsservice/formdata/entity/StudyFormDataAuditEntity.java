@@ -124,7 +124,7 @@ public class StudyFormDataAuditEntity {
      * - Database unlock (emergency use)
      * - Manual corrections
      */
-    @Column(name = "reason")
+    @Column(name = "change_reason")
     private String reason;
 
     /**

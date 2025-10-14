@@ -17,7 +17,18 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * FormData Aggregate - Core domain object for form data submissions
+ * FormData Aggregate - Core domain object for visit-based form data submissions
+ * 
+ * DOMAIN PURPOSE:
+ * This aggregate is the "source of truth" for all clinical trial form data.
+ * It enforces business rules, validates submissions, and emits domain events
+ * that build the complete audit trail required for regulatory compliance.
+ * 
+ * USAGE CONTEXT (October 2025 Architecture):
+ * - Used for ALL visit-based form data collection
+ * - NOT tied to status changes (status changes are separate domain)
+ * - Generic, reusable infrastructure for any form type
+ * - Enforces GCP/FDA 21 CFR Part 11 compliance rules
  * 
  * Implements Event Sourcing for:
  * - Complete audit trail of all form submissions (FDA 21 CFR Part 11 compliance)
@@ -31,17 +42,29 @@ import java.util.UUID;
  * 3. Locking (future: LockFormDataCommand for database lock)
  * 4. Source data verification (future: VerifyFormDataCommand)
  * 
- * Business Context:
- * - Electronic Data Capture (EDC)
- * - Case Report Forms (CRF)
- * - Screening assessments
- * - Enrollment forms
- * - Visit-based data collection
+ * Business Context (Visit-Based Data Collection):
+ * ✓ Electronic Data Capture (EDC)
+ * ✓ Case Report Forms (CRF)
+ * ✓ Scheduled visit forms (protocol-defined)
+ * ✓ Unscheduled visit forms:
+ *   - Screening assessments
+ *   - Enrollment forms
+ *   - Discontinuation forms
+ *   - Adverse event forms
+ *   - Protocol deviation forms
+ * 
+ * NOT Used For:
+ * ✗ Status change logic (handled by PatientAggregate)
+ * ✗ Visit creation (handled by VisitAggregate)
  * 
  * Related Aggregates:
  * - PatientAggregate (subject who completed the form)
  * - StudyAggregate (study context)
- * - VisitAggregate (visit context, if applicable)
+ * - VisitAggregate (visit context providing structure)
+ * 
+ * Architectural Pattern:
+ * Status Change → (Optional) Visit Creation → Form Collection → Data Capture
+ * Each aggregate handles its own domain responsibility
  */
 @Aggregate
 public class FormDataAggregate {

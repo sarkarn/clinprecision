@@ -15,7 +15,21 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Optional;
 
 /**
- * FormData Projector - Event sourcing projection handler
+ * FormData Projector - Event sourcing projection handler for visit-based form data
+ * 
+ * PURPOSE:
+ * This projector is the event handler that transforms domain events into read models
+ * for querying and reporting. It's a critical component of the CQRS pattern used
+ * in this event-sourced clinical trial system.
+ * 
+ * USAGE CONTEXT:
+ * - Processes FormDataSubmittedEvent from FormDataAggregate
+ * - Builds denormalized read models for efficient querying
+ * - Creates immutable audit trail for regulatory compliance
+ * 
+ * NOT TIED TO:
+ * - Status changes (processes events from any source)
+ * - Specific workflows (generic form data processor)
  * 
  * Handles event sourcing projections to build read models:
  * - study_form_data table (current state of form submissions)
@@ -42,6 +56,11 @@ import java.util.Optional;
  * - Captures who, what, when for regulatory compliance
  * - Original event preserved in event store
  * - Audit record in database for reporting
+ * 
+ * Future Integration (Week 3-4):
+ * - Will process events from UnscheduledVisitService
+ * - Visit context will be preserved in read model
+ * - Audit trail will link: Visit → Form → Data
  */
 @Component
 @RequiredArgsConstructor

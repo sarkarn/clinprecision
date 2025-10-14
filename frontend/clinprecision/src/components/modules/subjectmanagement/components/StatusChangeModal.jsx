@@ -2,9 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import PatientStatusService from '../../../../services/PatientStatusService';
-import FormDataService from '../../../../services/FormDataService';
-import ScreeningAssessmentForm from './ScreeningAssessmentForm';
-import { FORM_IDS, FORM_STATUS, DEFAULT_STUDY_CONFIG } from '../../../../constants/FormConstants';
 
 /**
  * Modal for changing patient status
@@ -50,10 +47,6 @@ const StatusChangeModal = ({
     const [showSuccess, setShowSuccess] = useState(false);
     const [showError, setShowError] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
-
-    // Form workflow state
-    const [showScreeningForm, setShowScreeningForm] = useState(false);
-    const [screeningData, setScreeningData] = useState(null);
 
     /**
      * Load valid status transitions when modal opens
@@ -130,7 +123,8 @@ const StatusChangeModal = ({
 
     /**
      * Handle form submission
-     * If changing to SCREENING, show screening assessment form first
+     * Simple status change - no form data collection
+     * Forms will be collected via unscheduled visits
      */
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -139,76 +133,12 @@ const StatusChangeModal = ({
             return;
         }
 
-        // Check if changing to SCREENING status - show assessment form
-        if (formData.newStatus === 'SCREENING' && !screeningData) {
-            setShowScreeningForm(true);
-            return;
-        }
-
         setSubmitting(true);
         setShowError(false);
         setErrorMessage('');
 
         try {
-            // Step 1: Save screening form data if present (NEW - saves to study_form_data table)
-            let formDataSubmissionId = null;
-            if (screeningData) {
-                try {
-                    console.log('[STATUS_CHANGE_MODAL] Saving screening assessment to database...');
-
-                    const formSubmission = {
-                        // Use default study for pre-enrollment screening forms
-                        // Once patient is enrolled in a specific study, that studyId should be used
-                        studyId: DEFAULT_STUDY_CONFIG.DEFAULT_STUDY_ID,
-
-                        // Use screening assessment form ID from constants
-                        formId: FORM_IDS.SCREENING_ASSESSMENT,
-
-                        // Link to patient being screened
-                        subjectId: patientId,
-
-                        // Screening is pre-enrollment (no visit context yet)
-                        visitId: null,
-
-                        // Site context - currently null, will be enhanced when auth context is available
-                        // TODO: Get from authenticated user's site: AuthContext.user.siteId
-                        siteId: DEFAULT_STUDY_CONFIG.DEFAULT_SITE_ID,
-
-                        formData: {
-                            // Map screening assessment to form fields
-                            screen_id: screeningData.screenId,
-                            eligibility_age: screeningData.meetsAgeRequirement,
-                            eligibility_diagnosis: screeningData.hasRequiredDiagnosis,
-                            eligibility_exclusions: screeningData.noExclusionCriteria,
-                            eligibility_consent: screeningData.informedConsentObtained,
-                            eligibility_status: screeningData.eligibilityStatus,
-                            screening_date: screeningData.screeningDate,
-                            assessor_name: screeningData.assessedBy,
-                            notes: screeningData.notes || ''
-                        },
-
-                        // Use form status constant for official submission
-                        status: FORM_STATUS.SUBMITTED,
-
-                        // Will be linked to status change later if needed
-                        relatedRecordId: null
-                    };
-
-                    const formResponse = await FormDataService.submitFormData(formSubmission);
-                    formDataSubmissionId = formResponse.formDataId;
-
-                    console.log('[STATUS_CHANGE_MODAL] Screening data saved:', {
-                        formDataId: formResponse.formDataId,
-                        recordId: formResponse.recordId
-                    });
-                } catch (formError) {
-                    console.error('[STATUS_CHANGE_MODAL] Error saving screening data:', formError);
-                    // Log error but continue with status change (form data is supplementary)
-                    // In production, you might want to block status change if form save fails
-                }
-            }
-
-            // Step 2: Prepare status change data
+            // Prepare status change data
             const statusChangeData = {
                 newStatus: formData.newStatus,
                 reason: formData.reason.trim(),
@@ -216,28 +146,7 @@ const StatusChangeModal = ({
                 notes: formData.notes.trim() || null
             };
 
-            // If screening data exists, include it in notes
-            if (screeningData) {
-                const screeningNotes = `
-Screening Assessment Completed:
-- Screen ID: ${screeningData.screenId}
-- Age Requirement: ${screeningData.meetsAgeRequirement}
-- Required Diagnosis: ${screeningData.hasRequiredDiagnosis}
-- No Exclusion Criteria: ${screeningData.noExclusionCriteria}
-- Informed Consent: ${screeningData.informedConsentObtained}
-- Eligibility Status: ${screeningData.eligibilityStatus}
-- Screening Date: ${screeningData.screeningDate}
-- Assessed By: ${screeningData.assessedBy}
-${screeningData.notes ? `- Additional Notes: ${screeningData.notes}` : ''}
-${formDataSubmissionId ? `- Form Data ID: ${formDataSubmissionId}` : ''}
-                `.trim();
-
-                statusChangeData.notes = statusChangeData.notes
-                    ? `${statusChangeData.notes}\n\n${screeningNotes}`
-                    : screeningNotes;
-            }
-
-            // Step 3: Call API to change status
+            // Call API to change status
             const result = await PatientStatusService.changePatientStatus(patientId, statusChangeData);
 
             console.log('Status changed successfully:', result);
@@ -262,33 +171,6 @@ ${formDataSubmissionId ? `- Form Data ID: ${formDataSubmissionId}` : ''}
         } finally {
             setSubmitting(false);
         }
-    };
-
-    /**
-     * Handle screening assessment completion
-     */
-    const handleScreeningComplete = (assessment) => {
-        console.log('Screening assessment completed:', assessment);
-        setScreeningData(assessment);
-        setShowScreeningForm(false);
-
-        // Auto-populate reason with screening result
-        const screeningReason = assessment.isEligible
-            ? 'Patient meets all screening criteria and is eligible for enrollment'
-            : 'Patient does not meet all screening criteria';
-
-        setFormData(prev => ({
-            ...prev,
-            reason: screeningReason
-        }));
-    };
-
-    /**
-     * Cancel screening assessment
-     */
-    const handleScreeningCancel = () => {
-        setShowScreeningForm(false);
-        setScreeningData(null);
     };
 
     /**
@@ -415,146 +297,118 @@ ${formDataSubmissionId ? `- Form Data ID: ${formDataSubmissionId}` : ''}
                     </div>
                 )}
 
-                {/* Screening Assessment Form */}
-                {showScreeningForm ? (
-                    <ScreeningAssessmentForm
-                        onComplete={handleScreeningComplete}
-                        onCancel={handleScreeningCancel}
-                        patientId={patientId}
-                        patientName={patientName}
-                    />
-                ) : (
-                    /* Status Change Form */
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Status Change Form */}
+                <form onSubmit={handleSubmit} className="space-y-4">
 
-                        {/* Screening Completed Indicator */}
-                        {screeningData && (
-                            <div className={`p-3 rounded-lg border ${screeningData.isEligible
-                                ? 'bg-green-50 border-green-200'
-                                : 'bg-red-50 border-red-200'
-                                }`}>
-                                <div className="flex items-center">
-                                    <CheckCircle2 className={`w-5 h-5 mr-2 ${screeningData.isEligible ? 'text-green-600' : 'text-red-600'
-                                        }`} />
-                                    <span className={`text-sm font-medium ${screeningData.isEligible ? 'text-green-800' : 'text-red-800'
-                                        }`}>
-                                        Screening Assessment Completed - Patient is {screeningData.isEligible ? 'Eligible' : 'Not Eligible'}
-                                    </span>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* New Status Dropdown */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                New Status *
-                            </label>
-                            <select
-                                value={formData.newStatus}
-                                onChange={(e) => handleInputChange('newStatus', e.target.value)}
-                                className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.newStatus ? 'border-red-300' : 'border-gray-300'
-                                    }`}
-                                disabled={submitting || loadingTransitions || validTransitions.length === 0}
-                            >
-                                <option value="">
-                                    {loadingTransitions ? 'Loading...' :
-                                        validTransitions.length === 0 ? 'No valid transitions available' :
-                                            'Select new status'}
+                    {/* New Status Dropdown */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            New Status *
+                        </label>
+                        <select
+                            value={formData.newStatus}
+                            onChange={(e) => handleInputChange('newStatus', e.target.value)}
+                            className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.newStatus ? 'border-red-300' : 'border-gray-300'
+                                }`}
+                            disabled={submitting || loadingTransitions || validTransitions.length === 0}
+                        >
+                            <option value="">
+                                {loadingTransitions ? 'Loading...' :
+                                    validTransitions.length === 0 ? 'No valid transitions available' :
+                                        'Select new status'}
+                            </option>
+                            {validTransitions.map((status) => (
+                                <option key={status} value={status}>
+                                    {formatStatus(status)}
                                 </option>
-                                {validTransitions.map((status) => (
-                                    <option key={status} value={status}>
-                                        {formatStatus(status)}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.newStatus && (
-                                <p className="mt-1 text-sm text-red-600">{errors.newStatus}</p>
-                            )}
-                            {validTransitions.length === 0 && !loadingTransitions && (
-                                <p className="mt-1 text-sm text-gray-500">
-                                    No valid status transitions available from {formatStatus(currentStatus)}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Reason Textarea */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Reason for Status Change *
-                            </label>
-                            <textarea
-                                value={formData.reason}
-                                onChange={(e) => handleInputChange('reason', e.target.value)}
-                                placeholder="Enter the reason for this status change (min 10 characters)"
-                                rows={3}
-                                className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.reason ? 'border-red-300' : 'border-gray-300'
-                                    }`}
-                                disabled={submitting}
-                            />
-                            {errors.reason && (
-                                <p className="mt-1 text-sm text-red-600">{errors.reason}</p>
-                            )}
+                            ))}
+                        </select>
+                        {errors.newStatus && (
+                            <p className="mt-1 text-sm text-red-600">{errors.newStatus}</p>
+                        )}
+                        {validTransitions.length === 0 && !loadingTransitions && (
                             <p className="mt-1 text-sm text-gray-500">
-                                {formData.reason.trim().length}/10 characters minimum
+                                No valid status transitions available from {formatStatus(currentStatus)}
                             </p>
-                        </div>
+                        )}
+                    </div>
 
-                        {/* Notes Textarea (Optional) */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Additional Notes (Optional)
-                            </label>
-                            <textarea
-                                value={formData.notes}
-                                onChange={(e) => handleInputChange('notes', e.target.value)}
-                                placeholder="Enter any additional context or notes"
-                                rows={2}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                disabled={submitting}
-                            />
-                            <p className="mt-1 text-sm text-gray-500">
-                                Provide extra details if needed
-                            </p>
-                        </div>
+                    {/* Reason Textarea */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Reason for Status Change *
+                        </label>
+                        <textarea
+                            value={formData.reason}
+                            onChange={(e) => handleInputChange('reason', e.target.value)}
+                            placeholder="Enter the reason for this status change (min 10 characters)"
+                            rows={3}
+                            className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.reason ? 'border-red-300' : 'border-gray-300'
+                                }`}
+                            disabled={submitting}
+                        />
+                        {errors.reason && (
+                            <p className="mt-1 text-sm text-red-600">{errors.reason}</p>
+                        )}
+                        <p className="mt-1 text-sm text-gray-500">
+                            {formData.reason.trim().length}/10 characters minimum
+                        </p>
+                    </div>
 
-                        {/* Changed By (Hidden for now - TODO: get from auth) */}
-                        <input type="hidden" value={formData.changedBy} />
+                    {/* Notes Textarea (Optional) */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Additional Notes (Optional)
+                        </label>
+                        <textarea
+                            value={formData.notes}
+                            onChange={(e) => handleInputChange('notes', e.target.value)}
+                            placeholder="Enter any additional context or notes"
+                            rows={2}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            disabled={submitting}
+                        />
+                        <p className="mt-1 text-sm text-gray-500">
+                            Provide extra details if needed
+                        </p>
+                    </div>
 
-                        {/* Info Message */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                            <p className="text-sm text-blue-700">
-                                <strong>Important:</strong> This status change will be recorded in the patient's audit trail with timestamp and user information. Make sure to provide a clear reason for compliance purposes.
-                            </p>
-                        </div>
+                    {/* Changed By (Hidden for now - TODO: get from auth) */}
+                    <input type="hidden" value={formData.changedBy} />
 
-                        {/* Form Actions */}
-                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                            <button
-                                type="button"
-                                onClick={handleClose}
-                                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                disabled={submitting}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={submitting || validTransitions.length === 0 || loadingTransitions}
-                            >
-                                {submitting ? (
-                                    <>
-                                        <RefreshCw className="w-4 h-4 mr-2 animate-spin inline" />
-                                        Changing Status...
-                                    </>
-                                ) : (
-                                    'Change Status'
-                                )}
-                            </button>
-                        </div>
-                    </form>
-                )}
-                {/* End conditional rendering for screening form vs status form */}
+                    {/* Info Message */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                        <p className="text-sm text-blue-700">
+                            <strong>Important:</strong> This status change will be recorded in the patient's audit trail with timestamp and user information. Make sure to provide a clear reason for compliance purposes.
+                        </p>
+                    </div>
+
+                    {/* Form Actions */}
+                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                        <button
+                            type="button"
+                            onClick={handleClose}
+                            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            disabled={submitting}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={submitting || validTransitions.length === 0 || loadingTransitions}
+                        >
+                            {submitting ? (
+                                <>
+                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin inline" />
+                                    Changing Status...
+                                </>
+                            ) : (
+                                'Change Status'
+                            )}
+                        </button>
+                    </div>
+                </form>
 
             </div>
         </div>

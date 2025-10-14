@@ -19,7 +19,38 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * StudyFormDataService - Business logic for form data submissions
+ * StudyFormDataService - Generic form data capture service for clinical trials
+ * 
+ * PURPOSE:
+ * This service provides a generic, reusable infrastructure for capturing ALL types
+ * of clinical trial form data through a visit-based data collection model.
+ * 
+ * USE CASES (Visit-Based Data Collection):
+ * ✓ Scheduled Visits: Protocol-defined forms (baseline, week 4, week 8, etc.)
+ * ✓ Unscheduled Visits: 
+ *   - Screening assessment forms
+ *   - Enrollment confirmation forms
+ *   - Discontinuation/withdrawal forms
+ *   - Adverse event (AE) reporting forms
+ *   - Protocol deviation forms
+ *   - Safety follow-up forms
+ * ✓ Electronic Data Capture (EDC): All study questionnaires and case report forms
+ * 
+ * NOT USED FOR:
+ * ✗ Patient status changes (status transitions are separate from data capture)
+ * ✗ Direct status-to-form coupling
+ * 
+ * ARCHITECTURE DECISION (October 2025):
+ * - Status Changes = State transitions (simple, fast, no form dependency)
+ * - Form Collection = Data capture via visits (structured, audited, visit-linked)
+ * - Separation of Concerns = Clean architecture with proper boundaries
+ * 
+ * Why Separation?
+ * 1. Status changes should be fast and not dependent on form completion
+ * 2. Forms can be completed multiple times (corrections, updates)
+ * 3. Visit-based model aligns with clinical trial standards (ICH-GCP)
+ * 4. Easier to audit: Visit → Forms → Data vs Status → Forms (tight coupling)
+ * 5. Flexibility: Can collect screening data before status change if needed
  * 
  * Responsibilities:
  * 1. Form submission validation
@@ -38,6 +69,11 @@ import java.util.stream.Collectors;
  * 3. Aggregate validates and emits FormDataSubmittedEvent
  * 4. FormDataProjector handles event and updates database
  * 5. Service returns response to controller
+ * 
+ * Future Integration (Week 3-4):
+ * - UnscheduledVisitService will call this service
+ * - Visit context will be provided (visitId, visitType)
+ * - Forms linked to visits for proper audit trail
  */
 @Service
 @RequiredArgsConstructor

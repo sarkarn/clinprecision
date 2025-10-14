@@ -15,7 +15,31 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
 /**
- * StudyFormDataController - REST API for form data submissions
+ * StudyFormDataController - REST API for visit-based form data submissions
+ * 
+ * USAGE CONTEXT:
+ * This controller provides REST endpoints for capturing clinical trial form data
+ * through a visit-based data collection model. It is designed to be called from:
+ * 
+ * ✓ Visit Management UI (scheduled/unscheduled visits)
+ * ✓ Electronic Data Capture (EDC) forms
+ * ✓ Mobile data collection apps
+ * ✓ External systems via API integration
+ * 
+ * ✗ NOT called directly from Status Change workflows (status changes are separate)
+ * 
+ * ARCHITECTURAL PATTERN (October 2025):
+ * - Status changes trigger visit creation (if appropriate)
+ * - Visit context provides structure for form collection
+ * - Forms are captured within visit boundaries
+ * - Audit trail links: Visit → Forms → Data Points
+ * 
+ * Example Flow:
+ * 1. User changes status to SCREENING
+ * 2. System optionally prompts: "Create screening visit?"
+ * 3. Visit created (unscheduled, type=SCREENING)
+ * 4. Forms collected via this API (visitId provided)
+ * 5. Audit trail shows: Visit → Screening Form → Eligibility Data
  * 
  * Endpoints:
  * - POST /api/v1/form-data - Submit new form data
