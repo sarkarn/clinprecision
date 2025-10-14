@@ -6,8 +6,10 @@ import org.axonframework.eventsourcing.eventstore.jpa.JpaEventStorageEngine;
 import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.serialization.json.JacksonSerializer;
+import org.axonframework.spring.messaging.unitofwork.SpringTransactionManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -46,15 +48,24 @@ public class AxonConfig {
     }
 
     /**
+     * Configure Axon Transaction Manager to wrap Spring's PlatformTransactionManager
+     * This ensures Axon events are persisted within Spring-managed transactions
+     */
+    @Bean
+    public TransactionManager axonTransactionManager(PlatformTransactionManager platformTransactionManager) {
+        return new SpringTransactionManager(platformTransactionManager);
+    }
+
+    /**
      * Configure JPA Event Storage Engine for event sourcing
      * Uses the manually configured database schema with secure Jackson serialization
      */
     @Bean
-    public JpaEventStorageEngine eventStorageEngine(TransactionManager transactionManager, 
+    public JpaEventStorageEngine eventStorageEngine(TransactionManager axonTransactionManager, 
                                                      Serializer eventSerializer) {
         return JpaEventStorageEngine.builder()
                 .entityManagerProvider(() -> entityManager)
-                .transactionManager(transactionManager)
+                .transactionManager(axonTransactionManager)
                 .eventSerializer(eventSerializer)
                 .snapshotSerializer(eventSerializer)
                 .build();

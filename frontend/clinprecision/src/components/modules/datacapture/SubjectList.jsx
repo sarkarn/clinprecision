@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { getStudies } from '../../../services/StudyService';
 import { getSubjectsByStudy } from '../../../services/SubjectService';
 import ApiService from '../../../services/ApiService';
+import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
 
 export default function SubjectList() {
     const [studies, setStudies] = useState([]);
@@ -12,6 +13,9 @@ export default function SubjectList() {
     const [allPatients, setAllPatients] = useState([]);
     const [showAllPatients, setShowAllPatients] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [selectedPatient, setSelectedPatient] = useState(null);
+    const [preselectedStatus, setPreselectedStatus] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -28,7 +32,15 @@ export default function SubjectList() {
                     console.log('[SUBJECT LIST] First study name:', studiesData[0].name);
                 }
 
-                setStudies(studiesData);
+                // Filter for studies that are ready to have subjects viewed
+                // Only PUBLISHED, APPROVED, or ACTIVE studies should be shown
+                const filteredStudies = studiesData.filter(study => {
+                    const status = study.status?.toUpperCase();
+                    return status === 'PUBLISHED' || status === 'APPROVED' || status === 'ACTIVE';
+                });
+
+                console.log('[SUBJECT LIST] Filtered studies for viewing:', filteredStudies.length);
+                setStudies(filteredStudies);
                 // No automatic selection - user must choose a study
             } catch (error) {
                 console.error('[SUBJECT LIST] Error fetching studies:', error);
@@ -59,6 +71,42 @@ export default function SubjectList() {
         fetchSubjects();
     }, [selectedStudy]);
 
+    const handleEditSubject = (subjectId) => {
+        // Navigate to subject edit page
+        navigate(`/datacapture-management/subjects/${subjectId}/edit`);
+    };
+
+    const handleWithdrawSubject = (subject) => {
+        // Open status change modal with WITHDRAWN preselected
+        if (subject.status === 'Withdrawn' || subject.status === 'WITHDRAWN') {
+            alert('This subject has already been withdrawn.');
+            return;
+        }
+        setSelectedPatient(subject);
+        setPreselectedStatus('WITHDRAWN');
+        setShowStatusModal(true);
+    };
+
+    const handleStatusChanged = async () => {
+        // Refresh subjects list after status change
+        setShowStatusModal(false);
+        setSelectedPatient(null);
+        setPreselectedStatus(null);
+
+        // Re-fetch subjects for the current study
+        if (selectedStudy) {
+            setLoading(true);
+            try {
+                const subjectsData = await getSubjectsByStudy(selectedStudy);
+                setSubjects(subjectsData);
+            } catch (error) {
+                console.error('[SUBJECT LIST] Error refreshing subjects:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
@@ -85,6 +133,9 @@ export default function SubjectList() {
                         Select Study Protocol
                         {studies.length > 0 && <span className="text-green-600 ml-2">({studies.length} active studies)</span>}
                     </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                        Showing only studies with status PUBLISHED, APPROVED, or ACTIVE
+                    </p>
                     <select
                         value={selectedStudy}
                         onChange={(e) => setSelectedStudy(e.target.value)}
@@ -92,7 +143,7 @@ export default function SubjectList() {
                     >
                         <option value="">-- Select a Study Protocol --</option>
                         {studies.length === 0 ? (
-                            <option value="" disabled>Loading studies...</option>
+                            <option value="" disabled>No active studies available</option>
                         ) : (
                             studies.map(study => (
                                 <option key={study.id} value={study.id}>
@@ -103,32 +154,37 @@ export default function SubjectList() {
                             ))
                         )}
                     </select>
+                    {studies.length === 0 && (
+                        <p className="text-xs text-amber-600 mt-1">
+                            No studies available for viewing subjects. Studies must be PUBLISHED, APPROVED, or ACTIVE.
+                        </p>
+                    )}
                 </div>
 
-                {/* Subject Summary Statistics */}
+                {/* Subject Summary Statistics - Reflects Patient Lifecycle */}
                 {selectedStudy && subjects.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
                         <div className="text-center">
                             <div className="text-2xl font-bold text-blue-600">{subjects.length}</div>
-                            <div className="text-sm text-gray-600">Total Enrolled</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-green-600">
-                                {subjects.filter(s => s.status === 'Active' || s.status === 'Enrolled').length}
-                            </div>
-                            <div className="text-sm text-gray-600">Active Subjects</div>
+                            <div className="text-sm text-gray-600">Total</div>
                         </div>
                         <div className="text-center">
                             <div className="text-2xl font-bold text-yellow-600">
-                                {subjects.filter(s => s.status === 'Screening').length}
+                                {subjects.filter(s => s.status === 'Registered' || s.status === 'Screening').length}
                             </div>
-                            <div className="text-sm text-gray-600">Screening</div>
+                            <div className="text-sm text-gray-600">Pre-Enrollment</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-2xl font-bold text-red-600">
-                                {subjects.filter(s => s.status === 'Withdrawn' || s.status === 'Screen Failed').length}
+                            <div className="text-2xl font-bold text-green-600">
+                                {subjects.filter(s => s.status === 'Enrolled' || s.status === 'Active').length}
                             </div>
-                            <div className="text-sm text-gray-600">Discontinued</div>
+                            <div className="text-sm text-gray-600">Active</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-gray-600">
+                                {subjects.filter(s => s.status === 'Completed' || s.status === 'Withdrawn' || s.status === 'Screen Failed').length}
+                            </div>
+                            <div className="text-sm text-gray-600">Completed/Discontinued</div>
                         </div>
                     </div>
                 )}
@@ -207,12 +263,14 @@ export default function SubjectList() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                ${subject.status === 'Active' || subject.status === 'Enrolled' ? 'bg-green-100 text-green-800' :
-                                                    subject.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                                                        subject.status === 'Withdrawn' ? 'bg-red-100 text-red-800' :
-                                                            subject.status === 'Screening' ? 'bg-yellow-100 text-yellow-800' :
-                                                                subject.status === 'Screen Failed' ? 'bg-red-100 text-red-800' :
-                                                                    'bg-gray-100 text-gray-800'}`}>
+                                                ${subject.status === 'Registered' ? 'bg-gray-100 text-gray-800' :
+                                                    subject.status === 'Screening' ? 'bg-yellow-100 text-yellow-800' :
+                                                        subject.status === 'Enrolled' ? 'bg-blue-100 text-blue-800' :
+                                                            subject.status === 'Active' ? 'bg-green-100 text-green-800' :
+                                                                subject.status === 'Completed' ? 'bg-purple-100 text-purple-800' :
+                                                                    subject.status === 'Withdrawn' ? 'bg-red-100 text-red-800' :
+                                                                        subject.status === 'Screen Failed' ? 'bg-red-100 text-red-800' :
+                                                                            'bg-gray-100 text-gray-800'}`}>
                                                 {subject.status}
                                             </span>
                                         </td>
@@ -226,17 +284,61 @@ export default function SubjectList() {
                                             {subject.siteId ? `Site ${subject.siteId}` : 'N/A'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div className="flex space-x-2">
+                                            <div className="flex space-x-3 items-center">
                                                 <Link
                                                     to={`/datacapture-management/subjects/${subject.id}`}
-                                                    className="text-indigo-600 hover:text-indigo-900"
+                                                    className="text-indigo-600 hover:text-indigo-900 flex items-center"
+                                                    title="View subject details"
                                                 >
+                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
                                                     View
                                                 </Link>
-                                                <button className="text-gray-600 hover:text-gray-900">
+
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedPatient(subject);
+                                                        setPreselectedStatus(null);
+                                                        setShowStatusModal(true);
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-900 flex items-center"
+                                                    title="Change subject status"
+                                                >
+                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                                    </svg>
+                                                    Status
+                                                </button>
+
+                                                <button
+                                                    onClick={() => handleEditSubject(subject.id)}
+                                                    className="text-gray-600 hover:text-gray-900 flex items-center"
+                                                    title="Edit subject details"
+                                                >
+                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
                                                     Edit
                                                 </button>
-                                                <button className="text-red-600 hover:text-red-900">
+
+                                                <button
+                                                    onClick={() => handleWithdrawSubject(subject)}
+                                                    className={`flex items-center ${subject.status === 'Withdrawn' || subject.status === 'WITHDRAWN'
+                                                        ? 'text-gray-400 cursor-not-allowed'
+                                                        : 'text-red-600 hover:text-red-900'
+                                                        }`}
+                                                    disabled={subject.status === 'Withdrawn' || subject.status === 'WITHDRAWN'}
+                                                    title={
+                                                        subject.status === 'Withdrawn' || subject.status === 'WITHDRAWN'
+                                                            ? 'Subject already withdrawn'
+                                                            : 'Withdraw subject from study'
+                                                    }
+                                                >
+                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
                                                     Withdraw
                                                 </button>
                                             </div>
@@ -266,6 +368,7 @@ export default function SubjectList() {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Study</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -295,6 +398,24 @@ export default function SubjectList() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                                 {patient.createdAt ? new Date(patient.createdAt).toLocaleDateString() : 'N/A'}
                                             </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <div className="flex space-x-3 items-center">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedPatient(patient);
+                                                            setPreselectedStatus(null);
+                                                            setShowStatusModal(true);
+                                                        }}
+                                                        className="text-blue-600 hover:text-blue-900 flex items-center"
+                                                        title="Change patient status"
+                                                    >
+                                                        <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                                        </svg>
+                                                        Change Status
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -302,6 +423,22 @@ export default function SubjectList() {
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* Status Change Modal for Withdrawal */}
+            {showStatusModal && selectedPatient && (
+                <StatusChangeModal
+                    isOpen={showStatusModal}
+                    onClose={() => {
+                        setShowStatusModal(false);
+                        setSelectedPatient(null);
+                        setPreselectedStatus(null);
+                    }}
+                    patientId={selectedPatient.id}
+                    currentStatus={selectedPatient.status}
+                    preselectedStatus={preselectedStatus}
+                    onStatusChanged={handleStatusChanged}
+                />
             )}
         </div>
     );

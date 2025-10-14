@@ -25,6 +25,7 @@ import com.clinprecision.axon.config.AxonConfig;
         "com.clinprecision.clinopsservice.protocolversion.repository",
         "com.clinprecision.clinopsservice.studydatabase.repository",
         "com.clinprecision.clinopsservice.patientenrollment.repository",
+        "com.clinprecision.clinopsservice.formdata.repository",
         "com.clinprecision.common.repository"
 })
 @EntityScan(basePackages = {
@@ -34,6 +35,7 @@ import com.clinprecision.axon.config.AxonConfig;
         "com.clinprecision.clinopsservice.protocolversion.entity",
         "com.clinprecision.clinopsservice.studydatabase.entity",
         "com.clinprecision.clinopsservice.patientenrollment.entity",
+        "com.clinprecision.clinopsservice.formdata.entity",
         "com.clinprecision.common.entity",
         "com.clinprecision.common.entity.clinops",
         "org.axonframework.eventsourcing.eventstore.jpa",

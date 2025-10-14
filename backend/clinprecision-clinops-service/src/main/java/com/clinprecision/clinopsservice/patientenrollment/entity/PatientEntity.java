@@ -80,7 +80,18 @@ public class PatientEntity {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Computed properties for convenience
+    // ==================== Relationships ====================
+
+    /**
+     * One-to-many relationship with PatientStatusHistoryEntity
+     * Complete audit trail of all status changes for this patient
+     * Lazy loading to avoid performance issues
+     */
+    @OneToMany(mappedBy = "patient", fetch = FetchType.LAZY)
+    private java.util.List<PatientStatusHistoryEntity> statusHistory;
+
+    // ==================== Computed Properties ====================
+
     public String getFullName() {
         StringBuilder fullName = new StringBuilder(firstName);
         if (middleName != null && !middleName.trim().isEmpty()) {

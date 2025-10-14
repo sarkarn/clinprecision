@@ -1130,7 +1130,7 @@ CREATE TABLE IF NOT EXISTS patients (
     gender ENUM('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY') NOT NULL,
     phone_number VARCHAR(20),
     email VARCHAR(255),
-    status ENUM('REGISTERED', 'SCREENED', 'ELIGIBLE', 'INELIGIBLE', 'WITHDRAWN') DEFAULT 'REGISTERED',
+    status ENUM('REGISTERED', 'SCREENING', 'ENROLLED', 'ACTIVE', 'COMPLETED', 'WITHDRAWN') DEFAULT 'REGISTERED' COMMENT 'Current patient status. Flow: REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED/WITHDRAWN',
     created_by VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1248,6 +1248,58 @@ CREATE TABLE IF NOT EXISTS patient_enrollment_audit (
     INDEX idx_audit_performed_at (performed_at),
     INDEX idx_audit_performed_by (performed_by)
 ) COMMENT 'Complete audit trail for patient enrollment activities';
+
+
+-- ============================================================================
+-- Patient Status History Table Migration
+-- Version: 1.15
+-- Date: October 12, 2025
+-- Purpose: Track complete patient status transition history for audit trail
+-- Related: Week 2 - Subject Status Management Implementation
+-- ============================================================================
+
+-- Patient Status History table
+-- Tracks all status changes for complete audit trail (FDA 21 CFR Part 11 compliance)
+CREATE TABLE IF NOT EXISTS patient_status_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    
+    -- Patient References
+    patient_id BIGINT NOT NULL COMMENT 'FK to patients table (read model)',
+    aggregate_uuid VARCHAR(255) NOT NULL COMMENT 'Patient aggregate UUID for event sourcing',
+    
+    -- Event Tracking
+    event_id VARCHAR(255) NOT NULL UNIQUE COMMENT 'Unique UUID of PatientStatusChangedEvent from event store. Used for idempotency to prevent duplicate records on event replay.',
+    
+    -- Status Transition
+    previous_status VARCHAR(50) NULL COMMENT 'Previous patient status',
+    new_status VARCHAR(50) NOT NULL COMMENT 'New patient status after transition',
+    
+    -- Change Context
+    reason TEXT NOT NULL COMMENT 'Mandatory reason for status change. Examples: "Screening visit scheduled", "Passed eligibility criteria", "First treatment completed", "Patient voluntary withdrawal"',
+    changed_by VARCHAR(100) NOT NULL COMMENT 'User who performed the status change',
+    changed_at TIMESTAMP NOT NULL COMMENT 'Timestamp from event when status actually changed (not when record was created). Important for accurate chronological audit trail.',
+    notes TEXT COMMENT 'Optional additional notes about the status change',
+    
+    -- Optional: Study/Enrollment Context
+    enrollment_id BIGINT NULL COMMENT 'Optional FK to patient_enrollments if status change is enrollment-specific',
+    
+    -- Audit
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Foreign Keys
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (enrollment_id) REFERENCES patient_enrollments(id) ON DELETE SET NULL,
+    
+    -- Indexes for performance
+    INDEX idx_patient_status_history_patient_id (patient_id),
+    INDEX idx_patient_status_history_aggregate_uuid (aggregate_uuid),
+    INDEX idx_patient_status_history_event_id (event_id),
+    INDEX idx_patient_status_history_changed_at (changed_at DESC),
+    INDEX idx_patient_status_history_new_status (new_status),
+    INDEX idx_patient_status_history_changed_by (changed_by),
+    INDEX idx_patient_status_history_enrollment_id (enrollment_id)
+    
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Tracks all patient status transitions with complete audit trail. Each status change generates one record capturing who, when, why, and what changed. Required for FDA 21 CFR Part 11 compliance and regulatory audits.Status flow: REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED/WITHDRAWN';
 
 -- ============================================================================
 -- Database Build: Study Database Build
@@ -1421,6 +1473,7 @@ CREATE TABLE study_build_notifications (
 
 CREATE TABLE IF NOT EXISTS study_form_data (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+	aggregate_uuid VARCHAR(36) NULL UNIQUE COMMENT 'UUID of the FormData aggregate (for event sourcing)',
     study_id BIGINT NOT NULL,
     form_id BIGINT NOT NULL,
     subject_id BIGINT,
@@ -1429,6 +1482,7 @@ CREATE TABLE IF NOT EXISTS study_form_data (
     status VARCHAR(50) DEFAULT 'DRAFT',
     form_data JSON,                         -- All form field data as JSON
     version INT DEFAULT 1,                  -- Form data version for history
+	related_record_id VARCHAR(255) NULL COMMENT 'Optional link to related records (patient status change UUID, query ID, SDV record ID)',
     is_locked BOOLEAN DEFAULT false,
     locked_at TIMESTAMP NULL,
     locked_by BIGINT,
@@ -1455,6 +1509,7 @@ CREATE TABLE IF NOT EXISTS study_form_data_audit (
     audit_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     study_id BIGINT NOT NULL,
     record_id BIGINT NOT NULL,              -- ID from study_form_data
+	aggregate_uuid VARCHAR(255),
     action VARCHAR(20) NOT NULL,            -- INSERT, UPDATE, DELETE, LOCK, UNLOCK
     old_data JSON,                          -- Previous state (NULL for INSERT)
     new_data JSON,                          -- New state (NULL for DELETE)
@@ -1462,6 +1517,7 @@ CREATE TABLE IF NOT EXISTS study_form_data_audit (
     changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     change_reason TEXT,
     ip_address VARCHAR(50),
+	event_id VARCHAR(255),
     user_agent TEXT,
     
     INDEX idx_study (study_id),
@@ -1814,7 +1870,7 @@ CREATE INDEX idx_study_versions_created_at ON study_versions(created_at);
 CREATE INDEX idx_study_versions_updated_at ON study_versions(updated_at);
 CREATE INDEX idx_sfd_study_subject_status ON study_form_data(study_id, subject_id, status);
 CREATE INDEX idx_sfd_study_visit_form ON study_form_data(study_id, visit_id, form_id);
-
-
+CREATE INDEX idx_study_form_data_aggregate_uuid ON study_form_data(aggregate_uuid);
+CREATE INDEX idx_study_form_data_related_record ON study_form_data(related_record_id);
 
 

@@ -17,9 +17,13 @@ import java.util.UUID;
 /**
  * Command service for study document operations
  * Handles all write operations via Axon Command Gateway
+ * 
+ * NOTE: No class-level @Transactional - Axon handles transactions for command processing.
+ * Adding @Transactional prevents projections from seeing committed events due to transaction
+ * isolation - the waitForDocumentProjection() method can't see the INSERT until transaction
+ * commits, but the transaction can't commit because the method is still waiting (circular deadlock).
  */
 @Service
-@Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class StudyDocumentCommandService {

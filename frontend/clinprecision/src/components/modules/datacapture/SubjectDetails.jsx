@@ -1,47 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getSubjectById, updateSubjectStatus } from '../../../services/SubjectService';
+import PatientStatusBadge from '../subjectmanagement/components/PatientStatusBadge';
+import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
+import StatusHistoryTimeline from '../subjectmanagement/components/StatusHistoryTimeline';
 
 export default function SubjectDetails() {
     const { subjectId } = useParams();
     const [subject, setSubject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchSubjectDetails = async () => {
-            setLoading(true);
-            try {
-                const subjectData = await getSubjectById(subjectId);
-                setSubject(subjectData);
-            } catch (error) {
-                console.error('Error fetching subject details:', error);
-                setError('Failed to load subject details. Please try again later.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchSubjectDetails();
     }, [subjectId]);
 
-    const handleStatusChange = async (newStatus) => {
-        if (!window.confirm(`Are you sure you want to change the subject status to ${newStatus}?`)) {
-            return;
-        }
-
-        setStatusUpdateLoading(true);
+    const fetchSubjectDetails = async () => {
+        setLoading(true);
         try {
-            const updatedSubject = await updateSubjectStatus(subjectId, newStatus);
-            setSubject(updatedSubject);
+            const subjectData = await getSubjectById(subjectId);
+            setSubject(subjectData);
         } catch (error) {
-            console.error('Error updating subject status:', error);
-            alert('Failed to update subject status. Please try again.');
+            console.error('Error fetching subject details:', error);
+            setError('Failed to load subject details. Please try again later.');
         } finally {
-            setStatusUpdateLoading(false);
+            setLoading(false);
         }
+    };
+
+    const handleStatusChanged = () => {
+        // Refresh subject data after status change
+        fetchSubjectDetails();
+        setShowStatusModal(false);
     };
 
     if (loading) {
@@ -90,42 +83,22 @@ export default function SubjectDetails() {
                 <Link to="/subject-management" className="text-blue-600 hover:underline">
                     &larr; Back to Subject Management
                 </Link>
-                <div className="flex justify-between items-center mt-2">
+                <div className="flex justify-between items-center mt-4">
                     <h3 className="text-xl font-bold">Subject Details: {subject.subjectId}</h3>
-                    <div className="flex items-center">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full mr-2 
-              ${subject.status === 'Active' ? 'bg-green-100 text-green-800' :
-                                subject.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                                    subject.status === 'Withdrawn' ? 'bg-red-100 text-red-800' :
-                                        'bg-gray-100 text-gray-800'}`}>
-                            {subject.status}
-                        </span>
-                        <div className="relative">
-                            <button
-                                className="border border-gray-300 rounded-md px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-                                onClick={() => document.getElementById('statusMenu').classList.toggle('hidden')}
-                                disabled={statusUpdateLoading}
-                            >
-                                {statusUpdateLoading ? 'Updating...' : 'Change Status'}
-                            </button>
-                            <div id="statusMenu" className="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                                <div className="py-1" role="menu" aria-orientation="vertical">
-                                    {['Active', 'Screening', 'Screen Failed', 'Completed', 'Withdrawn'].map(status => (
-                                        <button
-                                            key={status}
-                                            className={`block w-full text-left px-4 py-2 text-sm ${status === subject.status ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-100'}`}
-                                            onClick={() => {
-                                                document.getElementById('statusMenu').classList.add('hidden');
-                                                if (status !== subject.status) handleStatusChange(status);
-                                            }}
-                                            disabled={status === subject.status}
-                                        >
-                                            {status}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+                    <div className="flex items-center gap-3">
+                        <PatientStatusBadge status={subject.status} size="lg" />
+                        <button
+                            onClick={() => setShowStatusModal(true)}
+                            className="border border-gray-300 rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            Change Status
+                        </button>
+                        <button
+                            onClick={() => setShowHistory(true)}
+                            className="border border-blue-500 text-blue-600 rounded-md px-4 py-2 text-sm font-medium hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            View History
+                        </button>
                     </div>
                 </div>
             </div>
@@ -252,6 +225,60 @@ export default function SubjectDetails() {
                     </div>
                 )}
             </div>
+
+            {/* Status Change Modal */}
+            {showStatusModal && (
+                <StatusChangeModal
+                    isOpen={showStatusModal}
+                    onClose={() => setShowStatusModal(false)}
+                    patientId={subject.id}
+                    currentStatus={subject.status}
+                    onStatusChanged={handleStatusChanged}
+                />
+            )}
+
+            {/* Status History Modal */}
+            {showHistory && (
+                <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowHistory(false)}></div>
+                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                            <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                        Status History - {subject.subjectId}
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowHistory(false)}
+                                        className="text-gray-400 hover:text-gray-500"
+                                    >
+                                        <span className="sr-only">Close</span>
+                                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div className="mt-4">
+                                    <StatusHistoryTimeline
+                                        patientId={subject.id}
+                                        onClose={() => setShowHistory(false)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowHistory(false)}
+                                    className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
