@@ -125,6 +125,10 @@ public class FormDataProjector {
                 .createdBy(event.getSubmittedBy())
                 .updatedBy(event.getSubmittedBy())
                 .relatedRecordId(event.getRelatedRecordId())
+                .totalFields(event.getTotalFields())
+                .completedFields(event.getCompletedFields())
+                .requiredFields(event.getRequiredFields())
+                .completedRequiredFields(event.getCompletedRequiredFields())
                 .build();
             
             // Step 3: Save to study_form_data table

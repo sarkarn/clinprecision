@@ -126,6 +126,15 @@ public class FormDataSubmittedEvent {
     private final Integer formVersion;
 
     /**
+     * Field completion tracking
+     * Helps monitor form completion progress
+     */
+    private final Integer totalFields;
+    private final Integer completedFields;
+    private final Integer requiredFields;
+    private final Integer completedRequiredFields;
+
+    /**
      * Check if this is a screening form (pre-enrollment)
      */
     public boolean isScreeningForm() {

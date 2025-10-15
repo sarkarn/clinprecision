@@ -268,6 +268,7 @@ export default function SubjectDetails() {
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visit Name</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -277,6 +278,26 @@ export default function SubjectDetails() {
                                 <tr key={visit.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3">{visit.visitName}</td>
                                     <td className="px-4 py-3">{new Date(visit.visitDate).toLocaleDateString()}</td>
+                                    <td className="px-4 py-3">
+                                        {visit.completionPercentage !== undefined ? (
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-[80px]">
+                                                    <div
+                                                        className={`h-2 rounded-full transition-all duration-300 ${visit.completionPercentage === 100 ? 'bg-green-600' :
+                                                                visit.completionPercentage > 0 ? 'bg-yellow-500' :
+                                                                    'bg-gray-400'
+                                                            }`}
+                                                        style={{ width: `${visit.completionPercentage}%` }}
+                                                    ></div>
+                                                </div>
+                                                <span className="text-xs text-gray-600 whitespace-nowrap">
+                                                    {Math.round(visit.completionPercentage)}%
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-gray-400">N/A</span>
+                                        )}
+                                    </td>
                                     <td className="px-4 py-3">
                                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                       ${visit.status === 'complete' ? 'bg-green-100 text-green-800' :

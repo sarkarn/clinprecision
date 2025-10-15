@@ -130,6 +130,10 @@ public class StudyFormDataService {
                 .status(request.getStatus())
                 .submittedBy(currentUserId)
                 .relatedRecordId(request.getRelatedRecordId())
+                .totalFields(request.getTotalFields())
+                .completedFields(request.getCompletedFields())
+                .requiredFields(request.getRequiredFields())
+                .completedRequiredFields(request.getCompletedRequiredFields())
                 .version(1)
                 .build();
             
@@ -244,6 +248,30 @@ public class StudyFormDataService {
         return entities.stream()
             .map(this::toDto)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Get form data for a specific visit and form
+     * 
+     * @param visitId Visit instance ID
+     * @param formId Form definition ID
+     * @return Form data if exists, null otherwise
+     */
+    @Transactional(readOnly = true)
+    public FormDataDto getFormDataByVisitAndForm(Long visitId, Long formId) {
+        log.info("Retrieving form data for visit {} and form {}", visitId, formId);
+        
+        Optional<StudyFormDataEntity> entity = formDataRepository
+            .findFirstByVisitIdAndFormIdOrderByCreatedAtDesc(visitId, formId);
+        
+        if (entity.isPresent()) {
+            log.info("Found form data: visitId={}, formId={}, status={}", 
+                visitId, formId, entity.get().getStatus());
+            return toDto(entity.get());
+        } else {
+            log.info("No form data found for visit {} and form {}", visitId, formId);
+            return null;
+        }
     }
 
     /**

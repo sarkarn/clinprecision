@@ -68,6 +68,14 @@ public interface StudyFormDataRepository extends JpaRepository<StudyFormDataEnti
         Long subjectId, Long formId);
 
     /**
+     * Find specific form for a visit
+     * Use case: Load existing form data when user opens a form for editing
+     * Returns: Most recent submission for this visit+form combination
+     */
+    Optional<StudyFormDataEntity> findFirstByVisitIdAndFormIdOrderByCreatedAtDesc(
+        Long visitId, Long formId);
+
+    /**
      * Find forms by status
      * Use case: "Show me all draft forms" or "Show me all locked forms"
      */

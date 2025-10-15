@@ -98,7 +98,36 @@ export default function VisitDetails() {
             </div>
 
             <div className="mb-6">
-                <h4 className="font-medium mb-2">Forms</h4>
+                <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-medium">Forms</h4>
+                    {visitDetails.forms.length > 0 && (
+                        <div className="flex items-center gap-4">
+                            <div className="text-sm text-gray-600">
+                                <span className="font-semibold text-green-600">
+                                    {visitDetails.forms.filter(f => f.status === 'complete').length}
+                                </span>
+                                {' of '}
+                                <span className="font-semibold">
+                                    {visitDetails.forms.length}
+                                </span>
+                                {' forms completed'}
+                            </div>
+                            <div className="flex-1 max-w-xs">
+                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div
+                                        className="bg-green-600 h-2.5 rounded-full transition-all duration-300"
+                                        style={{
+                                            width: `${(visitDetails.forms.filter(f => f.status === 'complete').length / visitDetails.forms.length) * 100}%`
+                                        }}
+                                    ></div>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1 text-center">
+                                    {Math.round((visitDetails.forms.filter(f => f.status === 'complete').length / visitDetails.forms.length) * 100)}% complete
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {visitDetails.forms.length === 0 ? (
                     <p className="text-gray-500">No forms assigned to this visit.</p>

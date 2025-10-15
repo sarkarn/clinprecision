@@ -262,6 +262,45 @@ public class StudyFormDataController {
     }
 
     /**
+     * Get form data for a specific visit and form
+     * 
+     * GET /api/v1/form-data/visit/{visitId}/form/{formId}
+     * 
+     * Use case: Load existing form data when user opens a form for editing
+     * Returns: Most recent form submission for this visit+form combination
+     * 
+     * @param visitId Visit instance ID
+     * @param formId Form definition ID
+     * @return Form data or 404 if not found
+     */
+    @GetMapping("/visit/{visitId}/form/{formId}")
+    public ResponseEntity<FormDataDto> getFormDataByVisitAndForm(
+            @PathVariable Long visitId,
+            @PathVariable Long formId) {
+        
+        log.info("GET /api/v1/form-data/visit/{}/form/{} - Get form data by visit and form", 
+            visitId, formId);
+        
+        try {
+            FormDataDto formData = formDataService.getFormDataByVisitAndForm(visitId, formId);
+            
+            if (formData != null) {
+                log.info("Retrieved form data: visitId={}, formId={}, status={}", 
+                    visitId, formId, formData.getStatus());
+                return ResponseEntity.ok(formData);
+            } else {
+                log.info("No form data found for visit {} and form {}", visitId, formId);
+                return ResponseEntity.notFound().build();
+            }
+            
+        } catch (Exception e) {
+            log.error("Error retrieving form data: visitId={}, formId={}, error={}", 
+                visitId, formId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
      * Health check endpoint
      * 
      * GET /api/v1/form-data/health

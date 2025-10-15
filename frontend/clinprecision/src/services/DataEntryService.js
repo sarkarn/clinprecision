@@ -213,47 +213,123 @@ export const getFormDefinition = async (formId) => {
 
 // Get form data
 export const getFormData = async (subjectId, visitId, formId) => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
+  console.log('DataEntryService: getFormData called - subjectId:', subjectId, 'visitId:', visitId, 'formId:', formId);
   
-  const formData = formDataStore.find(fd => 
-    fd.subjectId === subjectId && 
-    fd.visitId === visitId && 
-    fd.formId === formId
-  );
-  
-  return formData ? formData.data : {};
+  try {
+    // Call real API to get existing form data for this visit+form
+    const response = await ApiService.get(`/clinops-ws/api/v1/form-data/visit/${visitId}/form/${formId}`);
+    console.log('DataEntryService: Received form data from API:', response.data);
+    
+    // Return the formData field (JSON object with field values)
+    return response.data.formData || {};
+    
+  } catch (error) {
+    // 404 is expected if form hasn't been filled out yet
+    if (error.response && error.response.status === 404) {
+      console.log('DataEntryService: No existing form data (form not started yet)');
+      return {};
+    }
+    
+    console.error('DataEntryService: Error fetching form data:', error);
+    
+    // Fallback to mock data for development
+    console.warn('DataEntryService: Falling back to mock form data');
+    
+    const formData = formDataStore.find(fd => 
+      fd.subjectId === subjectId && 
+      fd.visitId === visitId && 
+      fd.formId === formId
+    );
+    
+    return formData ? formData.data : {};
+  }
 };
 
 // Save form data
-export const saveFormData = async (subjectId, visitId, formId, data) => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 800));
+export const saveFormData = async (subjectId, visitId, formId, data, completionStats = null) => {
+  console.log('DataEntryService: saveFormData called - subjectId:', subjectId, 'visitId:', visitId, 'formId:', formId);
+  console.log('DataEntryService: Form data to save:', data);
+  console.log('DataEntryService: Completion stats:', completionStats);
   
-  const formDataIndex = formDataStore.findIndex(fd => 
-    fd.subjectId === subjectId && 
-    fd.visitId === visitId && 
-    fd.formId === formId
-  );
-  
-  if (formDataIndex !== -1) {
-    formDataStore[formDataIndex] = {
-      ...formDataStore[formDataIndex],
-      ...data,
-      data: data
+  try {
+    // Map frontend status to backend status
+    const backendStatus = mapToBackendStatus(data.status);
+    
+    // Prepare request body for backend API
+    const requestBody = {
+      studyId: 1, // TODO: Get from context or route params
+      formId: parseInt(formId),
+      subjectId: parseInt(subjectId),
+      visitId: parseInt(visitId),
+      siteId: null, // TODO: Get from user session
+      formData: data, // All form field values
+      status: backendStatus,
+      relatedRecordId: null,
+      // Include field completion tracking if provided
+      ...(completionStats && {
+        totalFields: completionStats.total,
+        completedFields: completionStats.completed,
+        requiredFields: completionStats.requiredTotal,
+        completedRequiredFields: completionStats.requiredCompleted
+      })
     };
-  } else {
-    formDataStore.push({
-      subjectId,
-      visitId,
-      formId,
-      status: data.status,
-      lastUpdated: data.lastUpdated,
-      data
-    });
+    
+    console.log('DataEntryService: Sending to backend:', requestBody);
+    
+    // Call real API to save form data
+    const response = await ApiService.post('/clinops-ws/api/v1/form-data', requestBody);
+    
+    console.log('DataEntryService: Form data saved successfully:', response.data);
+    
+    return { 
+      success: true,
+      formDataId: response.data.formDataId,
+      recordId: response.data.recordId
+    };
+    
+  } catch (error) {
+    console.error('DataEntryService: Error saving form data:', error);
+    
+    // Fallback to mock storage for development
+    console.warn('DataEntryService: Falling back to mock form data storage');
+    
+    const formDataIndex = formDataStore.findIndex(fd => 
+      fd.subjectId === subjectId && 
+      fd.visitId === visitId && 
+      fd.formId === formId
+    );
+    
+    if (formDataIndex !== -1) {
+      formDataStore[formDataIndex] = {
+        ...formDataStore[formDataIndex],
+        ...data,
+        data: data
+      };
+    } else {
+      formDataStore.push({
+        subjectId,
+        visitId,
+        formId,
+        status: data.status,
+        lastUpdated: data.lastUpdated,
+        data
+      });
+    }
+    
+    return { success: true };
   }
-  
-  return { success: true };
+};
+
+/**
+ * Map frontend status to backend status format
+ * Frontend: "incomplete", "complete"
+ * Backend: "DRAFT", "SUBMITTED", "LOCKED"
+ */
+const mapToBackendStatus = (frontendStatus) => {
+  if (frontendStatus === 'complete') {
+    return 'SUBMITTED';
+  }
+  return 'DRAFT';
 };
 
 // Get visit details

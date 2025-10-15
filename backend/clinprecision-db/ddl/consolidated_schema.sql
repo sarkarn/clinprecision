@@ -1483,6 +1483,10 @@ CREATE TABLE IF NOT EXISTS study_form_data (
     site_id BIGINT,
     status VARCHAR(50) DEFAULT 'DRAFT',
     form_data JSON,                         -- All form field data as JSON
+	total_fields INT NULL COMMENT 'Total number of fields in the form definition',
+    completed_fields INT NULL COMMENT 'Number of fields that have been filled out',
+    required_fields INT NULL COMMENT 'Number of required fields in the form',
+    completed_required_fields INT NULL COMMENT 'Number of required fields that have been completed',
     version INT DEFAULT 1,                  -- Form data version for history
 	related_record_id VARCHAR(255) NULL COMMENT 'Optional link to related records (patient status change UUID, query ID, SDV record ID)',
     is_locked BOOLEAN DEFAULT false,
@@ -1501,6 +1505,7 @@ CREATE TABLE IF NOT EXISTS study_form_data (
     INDEX idx_status (study_id, status),
     INDEX idx_created (study_id, created_at),
     INDEX idx_subject_visit (study_id, subject_id, visit_id),
+	INDEX idx_study_form_data_completion (completed_fields, total_fields, status),
     
    CONSTRAINT fk_sfd_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

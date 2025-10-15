@@ -171,6 +171,22 @@ public class StudyFormDataEntity {
     private String relatedRecordId;
 
     /**
+     * Field completion tracking
+     * Helps monitor form completion progress
+     */
+    @Column(name = "total_fields")
+    private Integer totalFields;
+
+    @Column(name = "completed_fields")
+    private Integer completedFields;
+
+    @Column(name = "required_fields")
+    private Integer requiredFields;
+
+    @Column(name = "completed_required_fields")
+    private Integer completedRequiredFields;
+
+    /**
      * JPA lifecycle callbacks
      */
     @PrePersist
