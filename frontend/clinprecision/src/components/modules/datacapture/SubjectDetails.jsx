@@ -197,19 +197,19 @@ export default function SubjectDetails() {
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Study
+                        Study Name
                     </label>
                     <div className="bg-gray-50 border border-gray-300 rounded-md p-2">
-                        {subject.studyName || `Study ID: ${subject.studyId}`}
+                        {subject.studyName || (subject.studyId ? `Study ID: ${subject.studyId}` : 'Not Enrolled')}
                     </div>
                 </div>
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Study Arm
+                        Treatment Arm
                     </label>
                     <div className="bg-gray-50 border border-gray-300 rounded-md p-2">
-                        {subject.armName || 'Not Assigned'}
+                        {subject.treatmentArmName || 'Not Assigned'}
                     </div>
                 </div>
 

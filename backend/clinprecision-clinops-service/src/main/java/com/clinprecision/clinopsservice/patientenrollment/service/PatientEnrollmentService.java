@@ -14,6 +14,10 @@ import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnro
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentAuditEntity;
 import com.clinprecision.clinopsservice.patientenrollment.repository.SiteStudyRepository;
 import com.clinprecision.common.entity.SiteStudyEntity;
+import com.clinprecision.clinopsservice.repository.StudyRepository;
+import com.clinprecision.clinopsservice.repository.StudyArmRepository;
+import com.clinprecision.clinopsservice.entity.StudyEntity;
+import com.clinprecision.clinopsservice.entity.StudyArmEntity;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +56,8 @@ public class PatientEnrollmentService {
     private final PatientEnrollmentRepository patientEnrollmentRepository;
     private final SiteStudyRepository siteStudyRepository;
     private final PatientEnrollmentAuditRepository auditRepository;
+    private final StudyRepository studyRepository;
+    private final StudyArmRepository studyArmRepository;
 
     /**
      * Register a new patient in the system
@@ -136,7 +142,7 @@ public class PatientEnrollmentService {
     }
 
     /**
-     * Get patient by database ID
+     * Get patient by database ID with enrollment information
      */
     public PatientDto getPatientById(Long patientId) {
         log.info("Fetching patient by ID: {}", patientId);
@@ -144,7 +150,8 @@ public class PatientEnrollmentService {
         PatientEntity entity = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found: " + patientId));
         
-        return mapToDto(entity);
+        // Return with enrollment information if available
+        return mapToDtoWithEnrollment(entity);
     }
 
     /**
@@ -288,8 +295,22 @@ public class PatientEnrollmentService {
                 .screeningNumber(enrollment.getScreeningNumber())
                 .siteId(enrollment.getStudySiteId());
             
-            // TODO: Add study name and site name lookup when available
-            // For now, these will be null and can be populated by frontend
+            // Lookup study name (protocol number + title)
+            if (enrollment.getStudyId() != null) {
+                studyRepository.findById(enrollment.getStudyId()).ifPresent(study -> {
+                    // Use protocol number if available, otherwise study name
+                    String studyDisplay = study.getProtocolNumber() != null 
+                        ? study.getProtocolNumber() + " - " + study.getName()
+                        : study.getName();
+                    builder.studyName(studyDisplay);
+                });
+            }
+            
+            // TODO: Lookup treatment arm name when arm_id field is added to patient_enrollments table
+            // Randomization to treatment arms is typically done after enrollment
+            // For now, leave treatmentArm and treatmentArmName as null
+            
+            // TODO: Add site name lookup when SiteRepository is available
         }
 
         return builder.build();
