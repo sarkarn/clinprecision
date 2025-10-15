@@ -2,8 +2,10 @@ package com.clinprecision.clinopsservice.visit.controller;
 
 import com.clinprecision.clinopsservice.visit.dto.CreateVisitRequest;
 import com.clinprecision.clinopsservice.visit.dto.VisitDto;
+import com.clinprecision.clinopsservice.visit.dto.VisitFormDto;
 import com.clinprecision.clinopsservice.visit.dto.VisitResponse;
 import com.clinprecision.clinopsservice.visit.service.UnscheduledVisitService;
+import com.clinprecision.clinopsservice.visit.service.VisitFormQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -61,6 +63,7 @@ import java.util.UUID;
 public class VisitController {
 
     private final UnscheduledVisitService visitService;
+    private final VisitFormQueryService visitFormQueryService;
 
     /**
      * Create a new unscheduled visit
@@ -160,6 +163,121 @@ public class VisitController {
         } catch (Exception e) {
             log.error("REST: Error getting visit: {}", visitId, e);
             return ResponseEntity.badRequest().body(new ErrorResponse("Error retrieving visit: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get all forms associated with a visit instance
+     * Gap #2: Visit-Form Association API
+     * 
+     * Returns forms that are defined in the protocol schedule for this visit.
+     * For protocol visits (Screening, Baseline, etc.), returns forms from visit_forms table.
+     * For unscheduled visits, returns empty list (no pre-defined forms).
+     * 
+     * @param visitInstanceId Visit instance Long ID (from study_visit_instances.id)
+     * @return ResponseEntity with List<VisitFormDto> or 404 if visit not found
+     */
+    @GetMapping("/{visitInstanceId}/forms")
+    public ResponseEntity<?> getVisitForms(@PathVariable Long visitInstanceId) {
+        log.info("REST: Getting forms for visit instance: {}", visitInstanceId);
+        
+        try {
+            List<VisitFormDto> forms = visitFormQueryService.getFormsForVisitInstance(visitInstanceId);
+            
+            log.info("REST: Found {} forms for visit instance: {}", forms.size(), visitInstanceId);
+            return ResponseEntity.ok(forms);
+            
+        } catch (RuntimeException e) {
+            log.error("REST: Error fetching forms for visit {}: {}", visitInstanceId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse("Visit not found: " + visitInstanceId));
+                    
+        } catch (Exception e) {
+            log.error("REST: Error getting visit forms", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Failed to retrieve visit forms: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get only required forms for a visit instance
+     * 
+     * @param visitInstanceId Visit instance Long ID
+     * @return ResponseEntity with List<VisitFormDto> containing only required forms
+     */
+    @GetMapping("/{visitInstanceId}/forms/required")
+    public ResponseEntity<?> getRequiredForms(@PathVariable Long visitInstanceId) {
+        log.info("REST: Getting required forms for visit instance: {}", visitInstanceId);
+        
+        try {
+            List<VisitFormDto> forms = visitFormQueryService.getRequiredFormsForVisitInstance(visitInstanceId);
+            
+            log.info("REST: Found {} required forms for visit instance: {}", forms.size(), visitInstanceId);
+            return ResponseEntity.ok(forms);
+            
+        } catch (RuntimeException e) {
+            log.error("REST: Error fetching required forms for visit {}: {}", visitInstanceId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse("Visit not found: " + visitInstanceId));
+                    
+        } catch (Exception e) {
+            log.error("REST: Error getting required visit forms", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Failed to retrieve required forms: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get visit completion status
+     * Returns percentage of required forms completed and overall visit status
+     * 
+     * @param visitInstanceId Visit instance Long ID
+     * @return ResponseEntity with completion percentage
+     */
+    @GetMapping("/{visitInstanceId}/completion")
+    public ResponseEntity<?> getVisitCompletion(@PathVariable Long visitInstanceId) {
+        log.info("REST: Getting completion status for visit instance: {}", visitInstanceId);
+        
+        try {
+            Double completionPercentage = visitFormQueryService.calculateVisitCompletionPercentage(visitInstanceId);
+            boolean isComplete = visitFormQueryService.isVisitComplete(visitInstanceId);
+            
+            var response = new VisitCompletionResponse(completionPercentage, isComplete);
+            
+            log.info("REST: Visit {} completion: {}% (complete={})", 
+                     visitInstanceId, completionPercentage, isComplete);
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            log.error("REST: Error calculating completion for visit {}: {}", visitInstanceId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse("Visit not found: " + visitInstanceId));
+                    
+        } catch (Exception e) {
+            log.error("REST: Error getting visit completion", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Failed to calculate visit completion: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Visit completion response DTO
+     */
+    private static class VisitCompletionResponse {
+        private final Double completionPercentage;
+        private final Boolean isComplete;
+
+        public VisitCompletionResponse(Double completionPercentage, Boolean isComplete) {
+            this.completionPercentage = completionPercentage;
+            this.isComplete = isComplete;
+        }
+
+        public Double getCompletionPercentage() {
+            return completionPercentage;
+        }
+
+        public Boolean getIsComplete() {
+            return isComplete;
         }
     }
 

@@ -1,6 +1,8 @@
 // DataEntryService.js
 // Mock data and service functions for data entry
 
+import ApiService from './ApiService';
+
 // Storage for form data (replace with actual API calls in production)
 let formDataStore = [
   {
@@ -224,44 +226,63 @@ export const saveFormData = async (subjectId, visitId, formId, data) => {
 
 // Get visit details
 export const getVisitDetails = async (subjectId, visitId) => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
+  console.log('DataEntryService: getVisitDetails called with subjectId:', subjectId, 'visitId:', visitId);
   
-  // In a real implementation, this would fetch from the backend
-  // For now, we'll use mock data
-  const visitDetails = {
-    id: visitId,
-    subjectId: 'SUBJ-001',
-    visitName: 'Screening Visit',
-    description: 'Initial patient assessment and eligibility screening',
-    visitDate: '2024-04-15',
-    status: 'incomplete',
-    timepoint: 0,
-    forms: [
-      {
-        id: '1-1-1-1',
-        name: 'Demographics Form',
-        status: 'complete',
-        lastUpdated: '2024-04-15T14:30:00Z'
-      },
-      {
-        id: '1-1-1-2',
-        name: 'Medical History',
-        status: 'not_started',
-        lastUpdated: null
-      }
-    ]
-  };
-  
-  // Update status based on form data
-  const formStatuses = visitDetails.forms.map(form => form.status);
-  if (formStatuses.every(status => status === 'complete')) {
-    visitDetails.status = 'complete';
-  } else if (formStatuses.some(status => status === 'complete' || status === 'incomplete')) {
-    visitDetails.status = 'incomplete';
-  } else {
-    visitDetails.status = 'not_started';
+  try {
+    // Call real API to get forms for this visit instance
+    // Gap #2: Replace hardcoded forms with database query
+    const formsResponse = await ApiService.get(`/clinops-ws/api/v1/visits/${visitId}/forms`);
+    
+    console.log('DataEntryService: Received forms from API:', formsResponse.data);
+    
+    // Map backend DTO to frontend format
+    const forms = formsResponse.data.map(form => ({
+      id: form.formId.toString(),
+      name: form.formName,
+      status: form.completionStatus || 'not_started',
+      lastUpdated: form.lastUpdated
+    }));
+    
+    // Build visit details object
+    const visitDetails = {
+      id: visitId,
+      subjectId: subjectId,
+      visitName: 'Visit', // TODO: Get from visit instance API
+      description: '', // TODO: Get from visit definition
+      visitDate: new Date().toISOString().split('T')[0], // TODO: Get from visit instance
+      status: 'incomplete',
+      timepoint: 0, // TODO: Get from visit definition
+      forms: forms
+    };
+    
+    // Calculate visit status based on form completion
+    const formStatuses = visitDetails.forms.map(form => form.status);
+    if (visitDetails.forms.length === 0) {
+      visitDetails.status = 'not_started';
+    } else if (formStatuses.every(status => status === 'complete')) {
+      visitDetails.status = 'complete';
+    } else if (formStatuses.some(status => status === 'complete' || status === 'incomplete')) {
+      visitDetails.status = 'incomplete';
+    } else {
+      visitDetails.status = 'not_started';
+    }
+    
+    console.log('DataEntryService: Final visit details:', visitDetails);
+    return visitDetails;
+    
+  } catch (error) {
+    console.error('DataEntryService: Error fetching visit forms:', error);
+    
+    // Fallback to empty forms list on error
+    return {
+      id: visitId,
+      subjectId: subjectId,
+      visitName: 'Visit',
+      description: '',
+      visitDate: new Date().toISOString().split('T')[0],
+      status: 'not_started',
+      timepoint: 0,
+      forms: []
+    };
   }
-  
-  return visitDetails;
 };

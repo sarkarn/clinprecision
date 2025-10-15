@@ -12,7 +12,8 @@ import java.util.UUID;
  */
 public class VisitDto {
 
-    private UUID visitId;
+    private Long id;           // Long ID from study_visit_instances.id (primary key)
+    private UUID visitId;      // UUID (generated or from aggregateUuid for backward compatibility)
     private Long patientId;
     private Long studyId;
     private Long siteId;
@@ -45,6 +46,14 @@ public class VisitDto {
     }
 
     // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public UUID getVisitId() {
         return visitId;
     }
