@@ -22,12 +22,43 @@ let formDataStore = [
 
 // Get form definition (fields, metadata, etc.)
 export const getFormDefinition = async (formId) => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
+  console.log('DataEntryService: getFormDefinition called with formId:', formId);
   
-  // This would typically come from your form template service
-  // For now, we'll use a simple mapping
-  const formDefinitions = {
+  try {
+    // Call real API to get form definition
+    const response = await ApiService.get(`/clinops-ws/api/form-definitions/${formId}`);
+    console.log('DataEntryService: Received form definition from API:', response.data);
+    
+    // Map backend DTO to frontend format expected by FormEntry component
+    const formDef = response.data;
+    
+    // Parse fields from JSON string if needed
+    let fields = [];
+    if (formDef.fields) {
+      try {
+        fields = typeof formDef.fields === 'string' 
+          ? JSON.parse(formDef.fields) 
+          : formDef.fields;
+      } catch (parseError) {
+        console.error('DataEntryService: Error parsing fields JSON:', parseError);
+        fields = [];
+      }
+    }
+    
+    return {
+      id: formDef.id,
+      name: formDef.name,
+      description: formDef.description,
+      fields: fields
+    };
+    
+  } catch (error) {
+    console.error('DataEntryService: Error fetching form definition:', error);
+    
+    // Fallback to mock data for development/testing
+    console.warn('DataEntryService: Falling back to mock form definitions');
+    
+    const formDefinitions = {
     '1-1-1-1': {
       id: '1-1-1-1',
       name: 'Demographics Form',
@@ -176,7 +207,8 @@ export const getFormDefinition = async (formId) => {
     }
   };
   
-  return formDefinitions[formId] || null;
+    return formDefinitions[formId] || null;
+  }
 };
 
 // Get form data

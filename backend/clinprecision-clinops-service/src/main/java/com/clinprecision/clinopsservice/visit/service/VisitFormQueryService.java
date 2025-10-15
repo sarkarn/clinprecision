@@ -6,13 +6,17 @@ import com.clinprecision.clinopsservice.repository.VisitFormRepository;
 import com.clinprecision.clinopsservice.visit.repository.StudyVisitInstanceRepository;
 import com.clinprecision.clinopsservice.visit.dto.VisitFormDto;
 import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.formdata.entity.StudyFormDataEntity;
+import com.clinprecision.clinopsservice.formdata.repository.StudyFormDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -28,6 +32,7 @@ public class VisitFormQueryService {
 
     private final StudyVisitInstanceRepository visitInstanceRepository;
     private final VisitFormRepository visitFormRepository;
+    private final StudyFormDataRepository formDataRepository;
 
     /**
      * Get all forms associated with a visit instance
@@ -126,11 +131,15 @@ public class VisitFormQueryService {
     /**
      * Map VisitFormEntity to VisitFormDto with completion status
      * 
-     * TODO Phase 2: Query form_data table to get actual completion status
-     * For now, returns "not_started" as default
+     * Queries study_form_data table to get real completion status
      */
     private VisitFormDto mapToDto(VisitFormEntity visitForm, StudyVisitInstanceEntity visitInstance) {
         FormDefinitionEntity formDef = visitForm.getFormDefinition();
+
+        // Get real completion status from study_form_data table
+        String completionStatus = getFormCompletionStatus(visitInstance.getId(), formDef.getId());
+        LocalDateTime lastUpdated = getLastUpdated(visitInstance.getId(), formDef.getId());
+        Long updatedBy = getUpdatedBy(visitInstance.getId(), formDef.getId());
 
         return VisitFormDto.builder()
                 .formId(formDef.getId())
@@ -140,14 +149,91 @@ public class VisitFormQueryService {
                 .isRequired(visitForm.getIsRequired())
                 .displayOrder(visitForm.getDisplayOrder())
                 .instructions(visitForm.getInstructions())
-                // TODO: Query form_data table for completion status
-                .completionStatus("not_started") // Default for now
-                .lastUpdated(null) // TODO: Get from form_data
-                .updatedBy(null)   // TODO: Get from form_data
-                // TODO: Get field counts from form template
+                .completionStatus(completionStatus)
+                .lastUpdated(lastUpdated)
+                .updatedBy(updatedBy)
+                // TODO Phase 3: Get field counts from form template
                 .fieldCount(null)
                 .completedFieldCount(null)
                 .build();
+    }
+
+    /**
+     * Get form completion status from study_form_data table
+     * 
+     * Logic:
+     * 1. Query for most recent form submission for this visit+form
+     * 2. If no record → "not_started"
+     * 3. If status = SUBMITTED or LOCKED → "complete"
+     * 4. If status = DRAFT with data → "in_progress"
+     * 5. Else → "not_started"
+     * 
+     * @param visitInstanceId ID of the visit instance
+     * @param formId ID of the form definition
+     * @return Completion status: "not_started", "in_progress", or "complete"
+     */
+    private String getFormCompletionStatus(Long visitInstanceId, Long formId) {
+        log.debug("Checking completion status for visitInstanceId={}, formId={}", visitInstanceId, formId);
+        
+        // Query study_form_data for this visit + form combination
+        List<StudyFormDataEntity> formDataList = formDataRepository
+                .findByVisitIdOrderByCreatedAtDesc(visitInstanceId);
+        
+        // Find matching form (most recent by created_at DESC ordering)
+        Optional<StudyFormDataEntity> formData = formDataList.stream()
+                .filter(fd -> fd.getFormId().equals(formId))
+                .findFirst();
+        
+        if (formData.isEmpty()) {
+            log.debug("No form data found → not_started");
+            return "not_started";
+        }
+        
+        StudyFormDataEntity data = formData.get();
+        
+        // Check if form is submitted or locked
+        if (data.isSubmitted()) {
+            log.debug("Form status={} → complete", data.getStatus());
+            return "complete";
+        }
+        
+        // Check if form is draft with data
+        if (data.isDraft() && data.getFieldCount() > 0) {
+            log.debug("Form is DRAFT with {} fields → in_progress", data.getFieldCount());
+            return "in_progress";
+        }
+        
+        log.debug("Form status={}, fields={} → not_started", 
+                  data.getStatus(), data.getFieldCount());
+        return "not_started";
+    }
+    
+    /**
+     * Get last updated timestamp for form
+     */
+    private LocalDateTime getLastUpdated(Long visitInstanceId, Long formId) {
+        List<StudyFormDataEntity> formDataList = formDataRepository
+                .findByVisitIdOrderByCreatedAtDesc(visitInstanceId);
+        
+        return formDataList.stream()
+                .filter(fd -> fd.getFormId().equals(formId))
+                .findFirst()
+                .map(StudyFormDataEntity::getUpdatedAt)
+                .orElse(null);
+    }
+    
+    /**
+     * Get user ID who last updated form
+     */
+    private Long getUpdatedBy(Long visitInstanceId, Long formId) {
+        List<StudyFormDataEntity> formDataList = formDataRepository
+                .findByVisitIdOrderByCreatedAtDesc(visitInstanceId);
+        
+        return formDataList.stream()
+                .filter(fd -> fd.getFormId().equals(formId))
+                .findFirst()
+                .map(StudyFormDataEntity::getUpdatedBy)
+                .orElse(null);
     }
 
     /**
