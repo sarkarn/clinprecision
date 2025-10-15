@@ -5,6 +5,7 @@ import { getStudies } from '../../../services/StudyService';
 import { getSubjectsByStudy } from '../../../services/SubjectService';
 import ApiService from '../../../services/ApiService';
 import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
+import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVisitModal';
 
 export default function SubjectList() {
     const [studies, setStudies] = useState([]);
@@ -16,6 +17,8 @@ export default function SubjectList() {
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [preselectedStatus, setPreselectedStatus] = useState(null);
+    const [showVisitModal, setShowVisitModal] = useState(false);
+    const [visitType, setVisitType] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -47,7 +50,22 @@ export default function SubjectList() {
             }
         };
 
+        const fetchAllPatients = async () => {
+            try {
+                console.log('[SUBJECT LIST] Fetching all registered patients on initial load...');
+                const response = await ApiService.get('/clinops-ws/api/v1/patients');
+                if (response?.data) {
+                    console.log('[SUBJECT LIST] All patients loaded:', response.data.length);
+                    setAllPatients(response.data);
+                    setShowAllPatients(true); // Show all patients by default
+                }
+            } catch (error) {
+                console.error('[SUBJECT LIST] Error fetching all patients:', error);
+            }
+        };
+
         fetchStudies();
+        fetchAllPatients(); // Load all patients on initial page load
     }, []);
 
     useEffect(() => {
@@ -87,13 +105,26 @@ export default function SubjectList() {
         setShowStatusModal(true);
     };
 
-    const handleStatusChanged = async () => {
-        // Refresh subjects list after status change
+    const handleStatusChanged = async (result) => {
+        console.log('[SUBJECT LIST] Status changed, result:', result);
+
+        // Close status modal
         setShowStatusModal(false);
         setSelectedPatient(null);
         setPreselectedStatus(null);
 
-        // Re-fetch subjects for the current study
+        // Re-fetch all patients to reflect status changes
+        try {
+            const response = await ApiService.get('/clinops-ws/api/v1/patients');
+            if (response?.data) {
+                console.log('[SUBJECT LIST] Refreshed all patients after status change');
+                setAllPatients(response.data);
+            }
+        } catch (error) {
+            console.error('[SUBJECT LIST] Error refreshing all patients:', error);
+        }
+
+        // Re-fetch subjects for the current study if one is selected
         if (selectedStudy) {
             setLoading(true);
             try {
@@ -103,6 +134,32 @@ export default function SubjectList() {
                 console.error('[SUBJECT LIST] Error refreshing subjects:', error);
             } finally {
                 setLoading(false);
+            }
+        }
+    };
+
+    const handleVisitCreated = async (visit) => {
+        console.log('[SUBJECT LIST] Visit created successfully:', visit);
+        setShowVisitModal(false);
+        setSelectedPatient(null);
+        setPreselectedStatus(null);
+
+        // Refresh data after visit creation
+        try {
+            const response = await ApiService.get('/clinops-ws/api/v1/patients');
+            if (response?.data) {
+                setAllPatients(response.data);
+            }
+        } catch (error) {
+            console.error('[SUBJECT LIST] Error refreshing patients:', error);
+        }
+
+        if (selectedStudy) {
+            try {
+                const subjectsData = await getSubjectsByStudy(selectedStudy);
+                setSubjects(subjectsData);
+            } catch (error) {
+                console.error('[SUBJECT LIST] Error refreshing subjects:', error);
             }
         }
     };
@@ -214,7 +271,7 @@ export default function SubjectList() {
                                     if (!showAllPatients) {
                                         // Fetch all patients when showing for the first time
                                         try {
-                                            const response = await ApiService.get('/datacapture-ws/api/v1/patients');
+                                            const response = await ApiService.get('/clinops-ws/api/v1/patients');
                                             if (response?.data) {
                                                 setAllPatients(response.data);
                                             }
@@ -249,7 +306,12 @@ export default function SubjectList() {
                                     <tr key={subject.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex flex-col">
-                                                <span className="font-medium text-gray-900">{subject.subjectId}</span>
+                                                <Link
+                                                    to={`/datacapture-management/subjects/${subject.id}`}
+                                                    className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                                >
+                                                    {subject.subjectId}
+                                                </Link>
                                                 <span className="text-xs text-gray-500">Screening #{subject.subjectId}</span>
                                             </div>
                                         </td>
@@ -374,11 +436,21 @@ export default function SubjectList() {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {allPatients.map(patient => (
                                         <tr key={patient.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                                                {patient.screeningNumber || 'N/A'}
+                                            <td className="px-6 py-4 whitespace-nowrap font-medium">
+                                                <Link
+                                                    to={`/datacapture-management/subjects/${patient.id}`}
+                                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                >
+                                                    {patient.screeningNumber || 'N/A'}
+                                                </Link>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                {patient.patientNumber}
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <Link
+                                                    to={`/datacapture-management/subjects/${patient.id}`}
+                                                    className="text-gray-700 hover:text-blue-600 hover:underline"
+                                                >
+                                                    {patient.patientNumber}
+                                                </Link>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {patient.firstName && patient.lastName ?
@@ -388,8 +460,14 @@ export default function SubjectList() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                    ${patient.studyId ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                    {patient.studyId ? 'Enrolled' : 'Registered Only'}
+                                                    ${patient.status === 'REGISTERED' ? 'bg-blue-100 text-blue-800' :
+                                                        patient.status === 'SCREENING' ? 'bg-yellow-100 text-yellow-800' :
+                                                            patient.status === 'ENROLLED' ? 'bg-green-100 text-green-800' :
+                                                                patient.status === 'ACTIVE' ? 'bg-violet-100 text-violet-800' :
+                                                                    patient.status === 'COMPLETED' ? 'bg-gray-100 text-gray-800' :
+                                                                        patient.status === 'WITHDRAWN' ? 'bg-red-100 text-red-800' :
+                                                                            'bg-gray-100 text-gray-800'}`}>
+                                                    {patient.status || 'REGISTERED'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -435,9 +513,28 @@ export default function SubjectList() {
                         setPreselectedStatus(null);
                     }}
                     patientId={selectedPatient.id}
+                    patientName={`${selectedPatient.firstName || ''} ${selectedPatient.lastName || ''}`.trim() || `Patient ${selectedPatient.id}`}
                     currentStatus={selectedPatient.status}
                     preselectedStatus={preselectedStatus}
                     onStatusChanged={handleStatusChanged}
+                />
+            )}
+
+            {/* Unscheduled Visit Modal */}
+            {showVisitModal && selectedPatient && (
+                <UnscheduledVisitModal
+                    isOpen={showVisitModal}
+                    onClose={() => {
+                        setShowVisitModal(false);
+                        setSelectedPatient(null);
+                        setVisitType(null);
+                    }}
+                    patientId={selectedPatient.id}
+                    patientName={`${selectedPatient.firstName || ''} ${selectedPatient.lastName || ''}`.trim() || `Patient ${selectedPatient.id}`}
+                    studyId={selectedPatient.studyId || (selectedStudy ? parseInt(selectedStudy) : null)}
+                    siteId={selectedPatient.siteId || 1}
+                    visitType={visitType}
+                    onVisitCreated={handleVisitCreated}
                 />
             )}
         </div>

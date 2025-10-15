@@ -1455,6 +1455,8 @@ CREATE TABLE study_build_notifications (
     INDEX idx_build_notifications_sent (is_sent)
 ) COMMENT='Notifications related to database build processes';
 
+
+
 -- ============================================================================
 -- Database Migration: Study Database Shared Tables
 -- Version: 002
@@ -1531,6 +1533,7 @@ CREATE TABLE IF NOT EXISTS study_form_data_audit (
 -- Study Visit Instances - Tracks actual visit occurrences for subjects
 CREATE TABLE IF NOT EXISTS study_visit_instances (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+	aggregate_uuid VARCHAR(36) NULL COMMENT 'UUID for event sourcing - populated for unscheduled visits created via events',
     study_id BIGINT NOT NULL,
     visit_id BIGINT NOT NULL,               -- FK to visit_definitions
     subject_id BIGINT NOT NULL,             -- FK to study_subjects
@@ -1553,7 +1556,8 @@ CREATE TABLE IF NOT EXISTS study_visit_instances (
     INDEX idx_status (study_id, visit_status),
     INDEX idx_visit_date (study_id, visit_date),
     
-   CONSTRAINT fk_svi_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
+   CONSTRAINT fk_svi_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+   CONSTRAINT fk_svi_visit_definition FOREIGN KEY (visit_id) REFERENCES visit_definitions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- PARTITION BY HASH(study_id) PARTITIONS 16;
 
@@ -1872,5 +1876,6 @@ CREATE INDEX idx_sfd_study_subject_status ON study_form_data(study_id, subject_i
 CREATE INDEX idx_sfd_study_visit_form ON study_form_data(study_id, visit_id, form_id);
 CREATE INDEX idx_study_form_data_aggregate_uuid ON study_form_data(aggregate_uuid);
 CREATE INDEX idx_study_form_data_related_record ON study_form_data(related_record_id);
+CREATE INDEX idx_aggregate_uuid ON study_visit_instances(aggregate_uuid);
 
 

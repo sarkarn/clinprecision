@@ -553,18 +553,27 @@ public class PatientStatusController {
         log.info("API Request: Get valid status transitions for patient {}", patientId);
         
         try {
-            // Get current status
-            PatientStatusHistoryEntity current = 
-                patientStatusService.getCurrentPatientStatus(patientId);
+            // Try to get current status from status history
+            PatientStatus currentStatus;
             
-            if (current == null) {
-                log.warn("No status history found for patient {}", patientId);
-                return ResponseEntity.notFound().build();
+            try {
+                PatientStatusHistoryEntity current = 
+                    patientStatusService.getCurrentPatientStatus(patientId);
+                currentStatus = current.getNewStatus();
+            } catch (IllegalArgumentException e) {
+                // No status history - fallback to patient table status
+                log.info("No status history found for patient {}, using patient table status", patientId);
+                
+                PatientEntity patient = patientRepository.findById(patientId)
+                    .orElseThrow(() -> new IllegalArgumentException("Patient not found: " + patientId));
+                
+                currentStatus = patient.getStatus();
+                log.info("Patient {} current status from patient table: {}", patientId, currentStatus);
             }
             
             // Get valid transitions from service
             List<PatientStatus> validTransitions = 
-                patientStatusService.getValidTransitions(current.getNewStatus());
+                patientStatusService.getValidTransitions(currentStatus);
             
             // Convert to strings
             List<String> transitions = validTransitions.stream()
@@ -572,7 +581,7 @@ public class PatientStatusController {
                 .collect(Collectors.toList());
             
             log.info("API Response: Patient {} can transition from {} to: {}", 
-                     patientId, current.getNewStatus(), transitions);
+                     patientId, currentStatus, transitions);
             
             return ResponseEntity.ok(transitions);
             

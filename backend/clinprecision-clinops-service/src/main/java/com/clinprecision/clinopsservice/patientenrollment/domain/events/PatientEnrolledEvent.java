@@ -45,6 +45,13 @@ public class PatientEnrolledEvent {
     private final UUID siteId;
     
     /**
+     * Study-Site association ID (FK to study_sites table)
+     * Required for enrollment record persistence in projections.
+     * This makes the event immutable and self-contained with all data needed for projection.
+     */
+    private final Long studySiteId;
+    
+    /**
      * Screening number assigned to patient for this study
      * This is the user-visible subject identifier (e.g., SCR-001, SUBJ-001)
      */

@@ -37,6 +37,13 @@ public class EnrollPatientCommand extends BaseCommand {
     @NotNull(message = "Site ID is required")
     private final UUID siteId;
     
+    /**
+     * Study-Site association ID (FK to study_sites table)
+     * Required for enrollment record persistence in projections
+     */
+    @NotNull(message = "Study Site ID is required")
+    private final Long studySiteId;
+    
     @NotBlank(message = "Screening number is required")
     private final String screeningNumber;
     

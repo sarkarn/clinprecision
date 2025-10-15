@@ -127,11 +127,13 @@ public class PatientAggregate {
         validateEnrollment(command);
         
         // Apply event
+        logger.info("Creating PatientEnrolledEvent with studySiteId={}", command.getStudySiteId());
         AggregateLifecycle.apply(PatientEnrolledEvent.builder()
             .enrollmentId(command.getEnrollmentId())
             .patientId(command.getPatientId())
             .studyId(command.getStudyId())
             .siteId(command.getSiteId())
+            .studySiteId(command.getStudySiteId())  // Pass FK from command to event for immutable projection
             .screeningNumber(command.getScreeningNumber())
             .enrollmentDate(command.getEnrollmentDate() != null ? command.getEnrollmentDate() : LocalDate.now())
             .enrollmentStatus("ENROLLED")
@@ -147,6 +149,11 @@ public class PatientAggregate {
     
     /**
      * Event Sourcing Handler: Patient Enrolled
+     * 
+     * NOTE: Enrollment in a study does NOT automatically change patient status.
+     * Patient status lifecycle (REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED)
+     * is separate from study enrollment (association with a study).
+     * Status changes must be explicit via ChangePatientStatusCommand.
      */
     @EventSourcingHandler
     public void on(PatientEnrolledEvent event) {
@@ -155,10 +162,10 @@ public class PatientAggregate {
         // Add study to enrollments set
         this.studyEnrollments.add(event.getStudyId());
         
-        // Update status to ENROLLED
-        this.status = PatientStatus.ENROLLED;
+        // DO NOT change status here - enrollment ≠ status change
+        // Status remains whatever it was (typically REGISTERED)
         
-        logger.info("Patient {} now enrolled in {} studies, status: {}", 
+        logger.info("Patient {} now enrolled in {} studies, status remains: {}", 
             event.getPatientId(), this.studyEnrollments.size(), this.status);
     }
     

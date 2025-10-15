@@ -13,6 +13,8 @@ import com.clinprecision.clinopsservice.patientenrollment.repository.PatientRepo
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentRepository;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentAuditRepository;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientStatusHistoryRepository;
+import com.clinprecision.clinopsservice.visit.service.ProtocolVisitInstantiationService;
+import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
 
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
@@ -22,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.List;
 
 /**
  * Projector for Patient Enrollment Events
@@ -42,6 +45,8 @@ public class PatientEnrollmentProjector {
     private final PatientRepository patientRepository;
     private final PatientEnrollmentAuditRepository auditRepository;
     private final PatientStatusHistoryRepository statusHistoryRepository;
+    private final com.clinprecision.clinopsservice.patientenrollment.repository.SiteStudyRepository siteStudyRepository;
+    private final ProtocolVisitInstantiationService protocolVisitInstantiationService;
     
     /**
      * Handle PatientRegisteredEvent - Create initial status history record
@@ -60,14 +65,15 @@ public class PatientEnrollmentProjector {
             event.getPatientId(), event.getFirstName(), event.getLastName());
         
         try {
-            // Find patient entity by aggregate UUID
-            Optional<PatientEntity> patientOpt = patientRepository.findByAggregateUuid(event.getPatientId().toString());
-            if (patientOpt.isEmpty()) {
-                log.error("Patient not found for UUID: {}", event.getPatientId());
-                return; // Patient might not be in projection yet
-            }
+            // Wait for patient entity to be created by PatientProjectionHandler
+            // Since both handlers process PatientRegisteredEvent in parallel,
+            // we need to retry until the patient entity exists
+            PatientEntity patient = waitForPatientEntity(event.getPatientId().toString(), 3000); // 3 second timeout
             
-            PatientEntity patient = patientOpt.get();
+            if (patient == null) {
+                log.error("Patient entity not created after waiting: {}", event.getPatientId());
+                return; // Give up after timeout
+            }
             
             // Generate event identifier for idempotency
             String eventId = generateEventIdForRegistration(event);
@@ -123,8 +129,23 @@ public class PatientEnrollmentProjector {
     @EventHandler
     @Transactional
     public void on(PatientEnrolledEvent event) {
-        log.info("Projecting PatientEnrolledEvent: patient={}, study={}, enrollment={}", 
-            event.getPatientId(), event.getStudyId(), event.getEnrollmentId());
+        log.info("Projecting PatientEnrolledEvent: patient={}, study={}, enrollment={}, studySiteId={}", 
+            event.getPatientId(), event.getStudyId(), event.getEnrollmentId(), event.getStudySiteId());
+        
+        // Skip old events that don't have studySiteId (created before immutability fix)
+        if (event.getStudySiteId() == null) {
+            log.warn("Skipping PatientEnrolledEvent without studySiteId (old event): {}", event.getEnrollmentId());
+            return;
+        }
+        
+        // Idempotency check: Skip if enrollment already exists
+        Optional<PatientEnrollmentEntity> existingEnrollment = 
+            patientEnrollmentRepository.findByAggregateUuid(event.getEnrollmentId().toString());
+        if (existingEnrollment.isPresent()) {
+            log.info("Enrollment already exists (idempotent replay): enrollmentId={}, screening={}", 
+                event.getEnrollmentId(), existingEnrollment.get().getScreeningNumber());
+            return;
+        }
         
         try {
             // Find patient entity by aggregate UUID
@@ -136,10 +157,13 @@ public class PatientEnrollmentProjector {
             
             PatientEntity patient = patientOpt.get();
             
-            // Find site-study association to get Long IDs
-            // Note: event.getSiteId() is the site aggregate UUID, we need to find the association
-            // For now, we'll need to look up by study and site UUIDs
-            // This is a temporary solution - ideally we'd pass the association ID in the command
+            // Look up the real study ID from the site_studies table using studySiteId
+            com.clinprecision.common.entity.SiteStudyEntity siteStudy = siteStudyRepository.findById(event.getStudySiteId())
+                .orElseThrow(() -> new IllegalStateException(
+                    "Site-Study association not found: " + event.getStudySiteId()));
+            
+            Long realStudyId = siteStudy.getStudyId();
+            log.info("Resolved studySiteId={} to studyId={}", event.getStudySiteId(), realStudyId);
             
             // Create enrollment record
             PatientEnrollmentEntity enrollment = PatientEnrollmentEntity.builder()
@@ -147,8 +171,8 @@ public class PatientEnrollmentProjector {
                 .enrollmentNumber(generateEnrollmentNumber(patient.getId(), event.getStudyId().toString()))
                 .patientId(patient.getId())
                 .patientAggregateUuid(event.getPatientId().toString())
-                .studyId(extractLongId(event.getStudyId().toString()))
-                .studySiteId(null) // Will be updated when we have proper site-study lookup
+                .studyId(realStudyId) // Use real study ID from site_studies table
+                .studySiteId(event.getStudySiteId()) // Use FK from immutable event
                 .siteAggregateUuid(event.getSiteId().toString())
                 .screeningNumber(event.getScreeningNumber())
                 .enrollmentDate(event.getEnrollmentDate())
@@ -161,20 +185,22 @@ public class PatientEnrollmentProjector {
             PatientEnrollmentEntity saved = patientEnrollmentRepository.save(enrollment);
             log.info("Enrollment record created: id={}, screening={}", saved.getId(), saved.getScreeningNumber());
             
-            // Update patient status to ENROLLED
-            patient.setStatus(PatientStatus.ENROLLED);
-            patient.setUpdatedAt(LocalDateTime.now());
-            patientRepository.save(patient);
-            log.info("Patient status updated to ENROLLED: {}", patient.getId());
+            // NOTE: Do NOT automatically change patient status during study enrollment
+            // Patient status and study enrollment are separate concepts:
+            // - Enrollment = Association with a study (patient_enrollments table)
+            // - Status = Lifecycle state (REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED)
+            // The status should be changed explicitly via ChangePatientStatusCommand
+            // This prevents confusion where enrolling in a study automatically sets status to ENROLLED
+            log.info("Patient enrolled in study, but status remains: {}", patient.getStatus());
             
-            // Create audit record
+            // Create audit record using real study ID (Long), not UUID
             createAuditRecord(
                 saved.getId(),
                 event.getEnrollmentId().toString(),
                 PatientEnrollmentAuditEntity.AuditActionType.ENROLL,
                 null,
-                String.format("{\"patientId\": %d, \"studyId\": %s, \"screeningNumber\": \"%s\"}", 
-                    patient.getId(), event.getStudyId(), event.getScreeningNumber()),
+                String.format("{\"patientId\": %d, \"studyId\": %d, \"studySiteId\": %d, \"screeningNumber\": \"%s\"}", 
+                    patient.getId(), realStudyId, event.getStudySiteId(), event.getScreeningNumber()),
                 event.getEnrolledBy(),
                 "Patient enrolled in study"
             );
@@ -312,6 +338,59 @@ public class PatientEnrollmentProjector {
             }
             
             // ============================================================================
+            // STEP 4.5: Protocol Visit Instantiation (Gap #1 Resolution)
+            // ============================================================================
+            // When patient becomes ACTIVE, auto-create protocol visits from study schedule
+            // Industry standard: Medidata Rave, Oracle InForm auto-instantiate visits
+            if ("ACTIVE".equals(event.getNewStatus()) && !"ACTIVE".equals(event.getPreviousStatus())) {
+                log.info("Patient transitioned to ACTIVE status, instantiating protocol visits: patientId={}, aggregateUuid={}", 
+                    patient.getId(), patient.getAggregateUuid());
+                
+                try {
+                    // Find patient's enrollment to get study and site information
+                    // Try by patient ID first, then by aggregate UUID
+                    List<PatientEnrollmentEntity> enrollments = patientEnrollmentRepository.findByPatientId(patient.getId());
+                    
+                    if (enrollments.isEmpty()) {
+                        log.warn("No enrollment found by patient ID {}, trying by aggregate UUID: {}", 
+                            patient.getId(), patient.getAggregateUuid());
+                        enrollments = patientEnrollmentRepository.findByPatientAggregateUuid(patient.getAggregateUuid());
+                    }
+                    
+                    Optional<PatientEnrollmentEntity> enrollmentOpt = enrollments.stream().findFirst();
+                    
+                    if (enrollmentOpt.isPresent()) {
+                        PatientEnrollmentEntity enrollment = enrollmentOpt.get();
+                        
+                        log.info("Found enrollment: enrollmentId={}, studyId={}, studySiteId={}, enrollmentDate={}", 
+                            enrollment.getId(), enrollment.getStudyId(), enrollment.getStudySiteId(), enrollment.getEnrollmentDate());
+                        
+                        // Instantiate protocol visits
+                        List<StudyVisitInstanceEntity> visits = protocolVisitInstantiationService
+                            .instantiateProtocolVisits(
+                                patient.getId(),           // patientId
+                                enrollment.getStudyId(),   // studyId
+                                enrollment.getStudySiteId(), // siteId (study_site_id)
+                                null,                      // armId (TODO: add when arm assignment implemented)
+                                enrollment.getEnrollmentDate() // baselineDate
+                            );
+                        
+                        log.info("Protocol visits instantiated successfully: patientId={}, count={}", 
+                            patient.getId(), visits.size());
+                            
+                    } else {
+                        log.warn("Cannot instantiate protocol visits - no enrollment found for patientId: {}", 
+                            patient.getId());
+                    }
+                    
+                } catch (Exception e) {
+                    log.error("Error instantiating protocol visits for patientId: {}", 
+                        patient.getId(), e);
+                    // Don't throw - allow status change to succeed even if visit instantiation fails
+                }
+            }
+            
+            // ============================================================================
             // STEP 5: Create Audit Record (Legacy)
             // ============================================================================
             createAuditRecord(
@@ -374,6 +453,48 @@ public class PatientEnrollmentProjector {
         
         // Generate UUID from composite string (deterministic)
         return java.util.UUID.nameUUIDFromBytes(composite.getBytes()).toString();
+    }
+    
+    /**
+     * Wait for patient entity to be created by PatientProjectionHandler.
+     * 
+     * Since multiple event handlers process PatientRegisteredEvent in parallel,
+     * this projector may execute before the patient entity is created.
+     * This method implements exponential backoff retry logic.
+     * 
+     * @param patientAggregateUuid the patient aggregate UUID
+     * @param timeoutMs maximum time to wait in milliseconds
+     * @return patient entity if found, null if timeout
+     */
+    private PatientEntity waitForPatientEntity(String patientAggregateUuid, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        int attempt = 0;
+        long[] delays = {10, 20, 50, 100, 200, 500}; // Exponential backoff
+        
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            Optional<PatientEntity> patientOpt = patientRepository.findByAggregateUuid(patientAggregateUuid);
+            
+            if (patientOpt.isPresent()) {
+                log.info("Patient entity found after {}ms (attempt {})", 
+                    System.currentTimeMillis() - startTime, attempt + 1);
+                return patientOpt.get();
+            }
+            
+            // Exponential backoff
+            long delay = attempt < delays.length ? delays[attempt] : delays[delays.length - 1];
+            attempt++;
+            
+            try {
+                Thread.sleep(delay);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("Wait for patient entity interrupted");
+                return null;
+            }
+        }
+        
+        log.error("Patient entity not found after {}ms and {} attempts", timeoutMs, attempt);
+        return null;
     }
     
     /**

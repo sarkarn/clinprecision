@@ -1,40 +1,101 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getSubjectById, updateSubjectStatus } from '../../../services/SubjectService';
+import { getPatientVisits } from '../../../services/VisitService';
 import PatientStatusBadge from '../subjectmanagement/components/PatientStatusBadge';
 import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
 import StatusHistoryTimeline from '../subjectmanagement/components/StatusHistoryTimeline';
+import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVisitModal';
 
 export default function SubjectDetails() {
+    console.log('[SUBJECT DETAILS] Component mounted/rendering');
     const { subjectId } = useParams();
+    console.log('[SUBJECT DETAILS] subjectId from useParams:', subjectId);
     const [subject, setSubject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [showVisitModal, setShowVisitModal] = useState(false);
+    const [visitType, setVisitType] = useState(null);
+    const [visits, setVisits] = useState([]);
+    const [visitsLoading, setVisitsLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchSubjectDetails();
     }, [subjectId]);
 
+    useEffect(() => {
+        if (subject?.id) {
+            fetchVisits();
+        }
+    }, [subject?.id]);
+
     const fetchSubjectDetails = async () => {
+        console.log('[SUBJECT DETAILS] Fetching details for subjectId:', subjectId);
         setLoading(true);
         try {
             const subjectData = await getSubjectById(subjectId);
+            console.log('[SUBJECT DETAILS] Received data:', subjectData);
             setSubject(subjectData);
         } catch (error) {
-            console.error('Error fetching subject details:', error);
-            setError('Failed to load subject details. Please try again later.');
+            console.error('[SUBJECT DETAILS] Error fetching subject details:', error);
+            console.error('[SUBJECT DETAILS] Error details:', {
+                message: error.message,
+                response: error.response,
+                status: error.response?.status
+            });
+            setError(`Failed to load subject details: ${error.message || 'Please try again later.'}`);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleStatusChanged = () => {
-        // Refresh subject data after status change
-        fetchSubjectDetails();
+    const handleStatusChanged = (result) => {
+        console.log('[SUBJECT DETAILS] Status changed successfully, result:', result);
+
+        // Close status modal first
         setShowStatusModal(false);
+
+        // Check if user wants to create a visit
+        if (result?.createVisit && result?.visitType) {
+            console.log('[SUBJECT DETAILS] Opening visit modal for type:', result.visitType);
+            setVisitType(result.visitType);
+            setShowVisitModal(true);
+        } else {
+            console.log('[SUBJECT DETAILS] No visit creation requested, refreshing data');
+            // Refresh both subject data AND visits (protocol visits may have been created)
+            fetchSubjectDetails();
+            // Small delay to allow backend event processing to complete
+            setTimeout(() => {
+                fetchVisits();
+            }, 500);
+        }
+    };
+
+    const fetchVisits = async () => {
+        if (!subject?.id) return;
+
+        setVisitsLoading(true);
+        try {
+            console.log('[SUBJECT DETAILS] Fetching visits for patient:', subject.id);
+            const visitsData = await getPatientVisits(subject.id);
+            console.log('[SUBJECT DETAILS] Visits loaded:', visitsData);
+            setVisits(visitsData || []);
+        } catch (error) {
+            console.error('[SUBJECT DETAILS] Error fetching visits:', error);
+            setVisits([]);
+        } finally {
+            setVisitsLoading(false);
+        }
+    }; const handleVisitCreated = (visit) => {
+        console.log('[SUBJECT DETAILS] Visit created successfully:', visit);
+        setShowVisitModal(false);
+        // Refresh visits after creation
+        fetchVisits();
+        // Also refresh subject data
+        fetchSubjectDetails();
     };
 
     if (loading) {
@@ -136,19 +197,19 @@ export default function SubjectDetails() {
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Study
+                        Study Name
                     </label>
                     <div className="bg-gray-50 border border-gray-300 rounded-md p-2">
-                        {subject.studyName || `Study ID: ${subject.studyId}`}
+                        {subject.studyName || (subject.studyId ? `Study ID: ${subject.studyId}` : 'Not Enrolled')}
                     </div>
                 </div>
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Study Arm
+                        Treatment Arm
                     </label>
                     <div className="bg-gray-50 border border-gray-300 rounded-md p-2">
-                        {subject.armName || 'Not Assigned'}
+                        {subject.treatmentArmName || 'Not Assigned'}
                     </div>
                 </div>
 
@@ -178,15 +239,30 @@ export default function SubjectDetails() {
             <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
                     <h4 className="font-medium">Visits</h4>
-                    <Link
-                        to={`/datacapture-management/subjects/${subjectId}/visits`}
-                        className="text-blue-600 hover:underline text-sm"
-                    >
-                        View All Visits
-                    </Link>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                setVisitType('SCREENING'); // Default to SCREENING
+                                setShowVisitModal(true);
+                            }}
+                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            + Create Visit
+                        </button>
+                        <Link
+                            to={`/datacapture-management/subjects/${subjectId}/visits`}
+                            className="text-blue-600 hover:underline text-sm"
+                        >
+                            View All Visits
+                        </Link>
+                    </div>
                 </div>
 
-                {subject.visits && subject.visits.length > 0 ? (
+                {visitsLoading ? (
+                    <div className="text-center py-4 bg-gray-50 border border-gray-200 rounded-md">
+                        <p className="text-gray-500">Loading visits...</p>
+                    </div>
+                ) : visits && visits.length > 0 ? (
                     <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md">
                         <thead className="bg-gray-50">
                             <tr>
@@ -197,7 +273,7 @@ export default function SubjectDetails() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {subject.visits.map(visit => (
+                            {visits.map(visit => (
                                 <tr key={visit.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3">{visit.visitName}</td>
                                     <td className="px-4 py-3">{new Date(visit.visitDate).toLocaleDateString()}</td>
@@ -232,7 +308,8 @@ export default function SubjectDetails() {
                     isOpen={showStatusModal}
                     onClose={() => setShowStatusModal(false)}
                     patientId={subject.id}
-                    currentStatus={subject.status}
+                    patientName={`${subject.firstName || ''} ${subject.lastName || ''}`.trim() || subject.subjectId}
+                    currentStatus={subject.status?.toUpperCase() || 'REGISTERED'}
                     onStatusChanged={handleStatusChanged}
                 />
             )}
@@ -278,6 +355,20 @@ export default function SubjectDetails() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Unscheduled Visit Modal */}
+            {showVisitModal && subject && (
+                <UnscheduledVisitModal
+                    isOpen={showVisitModal}
+                    onClose={() => setShowVisitModal(false)}
+                    patientId={subject.id}
+                    patientName={`${subject.firstName || ''} ${subject.lastName || ''}`.trim() || subject.subjectId}
+                    studyId={subject.studyId}
+                    siteId={subject.siteId || 1}
+                    visitType={visitType}
+                    onVisitCreated={handleVisitCreated}
+                />
             )}
         </div>
     );

@@ -54,10 +54,15 @@ const StatusChangeModal = ({
     useEffect(() => {
         if (isOpen && patientId) {
             loadValidTransitions();
-            // Set default changedBy (TODO: replace with authenticated user)
+            // Get current user from localStorage or default to 'admin'
+            // TODO: Replace with proper authentication context
+            const currentUser = localStorage.getItem('currentUser') ||
+                localStorage.getItem('username') ||
+                'admin';
+
             setFormData(prev => ({
                 ...prev,
-                changedBy: 'system',
+                changedBy: currentUser,
                 newStatus: preselectedStatus || prev.newStatus
             }));
         }
