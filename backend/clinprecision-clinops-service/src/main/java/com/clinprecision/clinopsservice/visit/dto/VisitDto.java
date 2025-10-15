@@ -17,6 +17,7 @@ public class VisitDto {
     private Long studyId;
     private Long siteId;
     private String visitType;
+    private String visitName; // Name from visit_definitions (e.g., "Screening", "Week 4 Visit")
     private LocalDate visitDate;
     private String status;
     private String createdBy;
@@ -82,6 +83,14 @@ public class VisitDto {
 
     public void setVisitType(String visitType) {
         this.visitType = visitType;
+    }
+
+    public String getVisitName() {
+        return visitName;
+    }
+
+    public void setVisitName(String visitName) {
+        this.visitName = visitName;
     }
 
     public LocalDate getVisitDate() {

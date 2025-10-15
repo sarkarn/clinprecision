@@ -12,7 +12,7 @@ public class CreateVisitRequest {
     private Long siteId;
     private String visitType; // SCREENING, ENROLLMENT, DISCONTINUATION, ADVERSE_EVENT
     private LocalDate visitDate;
-    private String createdBy;
+    private Long createdBy; // User ID of the person creating the visit
     private String notes;
 
     // Default constructor
@@ -60,11 +60,11 @@ public class CreateVisitRequest {
         this.visitDate = visitDate;
     }
 
-    public String getCreatedBy() {
+    public Long getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(String createdBy) {
+    public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
     }
 

@@ -1,11 +1,13 @@
 package com.clinprecision.clinopsservice.visit.service;
 
+import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.repository.VisitDefinitionRepository;
 import com.clinprecision.clinopsservice.visit.domain.commands.CreateVisitCommand;
 import com.clinprecision.clinopsservice.visit.dto.CreateVisitRequest;
 import com.clinprecision.clinopsservice.visit.dto.VisitDto;
 import com.clinprecision.clinopsservice.visit.dto.VisitResponse;
-import com.clinprecision.clinopsservice.visit.entity.VisitEntity;
-import com.clinprecision.clinopsservice.visit.repository.VisitRepository;
+import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.visit.repository.StudyVisitInstanceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -73,7 +75,8 @@ import java.util.stream.Collectors;
 public class UnscheduledVisitService {
 
     private final CommandGateway commandGateway;
-    private final VisitRepository visitRepository;
+    private final StudyVisitInstanceRepository studyVisitInstanceRepository;
+    private final VisitDefinitionRepository visitDefinitionRepository;
 
     // ==================== Command Operations (Write) ====================
 
@@ -122,23 +125,32 @@ public class UnscheduledVisitService {
             log.info("CreateVisitCommand sent successfully for visitId: {}", visitId);
 
             // Wait for projection (with timeout to avoid infinite wait)
-            VisitEntity visitEntity = waitForVisitProjection(visitId, 5000);
+            StudyVisitInstanceEntity visitEntity = waitForVisitProjection(visitId, 5000);
 
             if (visitEntity != null) {
                 log.info("Visit created successfully: visitId={}, patientId={}, visitType={}", 
                         visitId, request.getPatientId(), request.getVisitType());
                 
+                // Get visit name - for unscheduled visits, use "Unscheduled Visit"
+                String visitName = "Unscheduled Visit";
+                if (visitEntity.getVisitId() != null) {
+                    // Protocol visit - try to get name from visit_definitions
+                    visitName = visitDefinitionRepository.findById(visitEntity.getVisitId())
+                        .map(vd -> vd.getName())
+                        .orElse("Unknown Visit");
+                }
+                
                 return new VisitResponse(
-                    visitEntity.getVisitId(),
-                    visitEntity.getPatientId(),
+                    visitId, // Use the command's UUID
+                    visitEntity.getSubjectId(),
                     visitEntity.getStudyId(),
                     visitEntity.getSiteId(),
-                    visitEntity.getVisitType(),
+                    visitName, // Visit name from visit_definitions or default
                     visitEntity.getVisitDate(),
-                    visitEntity.getStatus(),
-                    visitEntity.getCreatedBy(),
+                    visitEntity.getVisitStatus(),
+                    null, // createdBy - not stored in study_visit_instances
                     visitEntity.getCreatedAt(),
-                    visitEntity.getNotes()
+                    null  // notes - not stored in study_visit_instances yet
                 );
             } else {
                 throw new RuntimeException("Visit projection not found after timeout");
@@ -157,12 +169,12 @@ public class UnscheduledVisitService {
      * @param studyId Study ID
      * @param siteId Site ID
      * @param visitDate Date of screening visit
-     * @param createdBy User creating the visit
+     * @param createdBy User ID creating the visit
      * @param notes Optional notes
      * @return VisitResponse
      */
     public VisitResponse createScreeningVisit(Long patientId, Long studyId, Long siteId, 
-                                             LocalDate visitDate, String createdBy, String notes) {
+                                             LocalDate visitDate, Long createdBy, String notes) {
         log.info("Creating screening visit for patientId: {}", patientId);
         
         CreateVisitRequest request = new CreateVisitRequest();
@@ -184,12 +196,12 @@ public class UnscheduledVisitService {
      * @param studyId Study ID
      * @param siteId Site ID
      * @param visitDate Date of enrollment visit
-     * @param createdBy User creating the visit
+     * @param createdBy User ID creating the visit
      * @param notes Optional notes
      * @return VisitResponse
      */
     public VisitResponse createEnrollmentVisit(Long patientId, Long studyId, Long siteId,
-                                              LocalDate visitDate, String createdBy, String notes) {
+                                              LocalDate visitDate, Long createdBy, String notes) {
         log.info("Creating enrollment visit for patientId: {}", patientId);
         
         CreateVisitRequest request = new CreateVisitRequest();
@@ -211,12 +223,12 @@ public class UnscheduledVisitService {
      * @param studyId Study ID
      * @param siteId Site ID
      * @param visitDate Date of discontinuation visit
-     * @param createdBy User creating the visit
+     * @param createdBy User ID creating the visit
      * @param reason Reason for discontinuation
      * @return VisitResponse
      */
     public VisitResponse createDiscontinuationVisit(Long patientId, Long studyId, Long siteId,
-                                                   LocalDate visitDate, String createdBy, String reason) {
+                                                   LocalDate visitDate, Long createdBy, String reason) {
         log.info("Creating discontinuation visit for patientId: {}", patientId);
         
         CreateVisitRequest request = new CreateVisitRequest();
@@ -242,10 +254,11 @@ public class UnscheduledVisitService {
     public List<VisitDto> getPatientVisits(Long patientId) {
         log.debug("Getting visits for patientId: {}", patientId);
         
-        List<VisitEntity> visits = visitRepository.findByPatientIdOrderByVisitDateDesc(patientId);
+        List<StudyVisitInstanceEntity> visits = studyVisitInstanceRepository
+                .findBySubjectIdOrderByVisitDateDesc(patientId);
         
         return visits.stream()
-                .map(VisitDto::fromEntity)
+                .map(this::mapToVisitDto)
                 .collect(Collectors.toList());
     }
 
@@ -258,10 +271,10 @@ public class UnscheduledVisitService {
     public List<VisitDto> getStudyVisits(Long studyId) {
         log.debug("Getting visits for studyId: {}", studyId);
         
-        List<VisitEntity> visits = visitRepository.findByStudyId(studyId);
+        List<StudyVisitInstanceEntity> visits = studyVisitInstanceRepository.findByStudyId(studyId);
         
         return visits.stream()
-                .map(VisitDto::fromEntity)
+                .map(this::mapToVisitDto)
                 .collect(Collectors.toList());
     }
 
@@ -274,24 +287,25 @@ public class UnscheduledVisitService {
     public List<VisitDto> getVisitsByType(String visitType) {
         log.debug("Getting visits by type: {}", visitType);
         
-        List<VisitEntity> visits = visitRepository.findByVisitType(visitType);
+        List<StudyVisitInstanceEntity> visits = studyVisitInstanceRepository.findByVisitStatus(visitType);
         
         return visits.stream()
-                .map(VisitDto::fromEntity)
+                .map(this::mapToVisitDto)
                 .collect(Collectors.toList());
     }
 
     /**
      * Get a single visit by ID
+     * Note: study_visit_instances uses Long id, not UUID
      * 
-     * @param visitId Visit UUID
+     * @param visitId Visit ID (Long, not UUID)
      * @return VisitDto or null if not found
      */
-    public VisitDto getVisitById(UUID visitId) {
+    public VisitDto getVisitById(Long visitId) {
         log.debug("Getting visit by visitId: {}", visitId);
         
-        return visitRepository.findById(visitId)
-                .map(VisitDto::fromEntity)
+        return studyVisitInstanceRepository.findById(visitId)
+                .map(this::mapToVisitDto)
                 .orElse(null);
     }
 
@@ -320,12 +334,13 @@ public class UnscheduledVisitService {
 
     /**
      * Wait for visit projection to be available (with timeout)
+     * Looks for study_visit_instances created by event projector
      * 
-     * @param visitId UUID of the visit
+     * @param visitId UUID of the visit (stored in aggregate_uuid column)
      * @param timeoutMs Maximum wait time in milliseconds
-     * @return VisitEntity or null if not found within timeout
+     * @return StudyVisitInstanceEntity or null if not found within timeout
      */
-    private VisitEntity waitForVisitProjection(UUID visitId, long timeoutMs) {
+    private StudyVisitInstanceEntity waitForVisitProjection(UUID visitId, long timeoutMs) {
         log.debug("Waiting for visit projection: visitId={}", visitId);
         
         long startTime = System.currentTimeMillis();
@@ -334,7 +349,8 @@ public class UnscheduledVisitService {
         while (System.currentTimeMillis() - startTime < timeoutMs) {
             attempts++;
             
-            var visitOpt = visitRepository.findById(visitId);
+            // Query by aggregate_uuid (for unscheduled visits created via events)
+            var visitOpt = studyVisitInstanceRepository.findByAggregateUuid(visitId.toString());
             if (visitOpt.isPresent()) {
                 log.debug("Visit projection found after {} attempts ({}ms)", 
                          attempts, System.currentTimeMillis() - startTime);
@@ -354,5 +370,44 @@ public class UnscheduledVisitService {
         log.warn("Visit projection not found after {}ms ({} attempts): visitId={}", 
                 timeoutMs, attempts, visitId);
         return null;
+    }
+
+    /**
+     * Map StudyVisitInstanceEntity to VisitDto
+     * Looks up visit definition to get visit name and type
+     */
+    private VisitDto mapToVisitDto(StudyVisitInstanceEntity entity) {
+        VisitDto dto = new VisitDto();
+        
+        // Map direct fields
+        dto.setVisitId(entity.getId() != null ? 
+                UUID.nameUUIDFromBytes(entity.getId().toString().getBytes()) : null);
+        dto.setPatientId(entity.getSubjectId());
+        dto.setStudyId(entity.getStudyId());
+        dto.setSiteId(entity.getSiteId());
+        dto.setVisitDate(entity.getVisitDate());
+        dto.setStatus(entity.getVisitStatus());
+        dto.setCreatedAt(entity.getCreatedAt());
+        
+        // Get visit name and type from visit_definitions
+        if (entity.getVisitId() != null) {
+            // Protocol visit - get name from visit_definitions
+            visitDefinitionRepository.findById(entity.getVisitId()).ifPresent(visitDef -> {
+                dto.setVisitName(visitDef.getName());
+                dto.setVisitType(visitDef.getVisitType() != null ? visitDef.getVisitType().name() : "UNKNOWN");
+            });
+            
+            // Fallback if visit definition not found
+            if (dto.getVisitName() == null) {
+                dto.setVisitName("Unknown Visit");
+                dto.setVisitType("UNKNOWN");
+            }
+        } else {
+            // Unscheduled visit (event-sourced)
+            dto.setVisitName("Unscheduled Visit");
+            dto.setVisitType("UNSCHEDULED");
+        }
+        
+        return dto;
     }
 }

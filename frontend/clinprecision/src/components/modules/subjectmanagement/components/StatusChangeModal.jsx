@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import PatientStatusService from '../../../../services/PatientStatusService';
-import { shouldPromptForVisit, getVisitTypeForStatus, getVisitTypeLabel } from '../../../../services/VisitService';
 
 /**
  * Modal for changing patient status
@@ -48,10 +47,6 @@ const StatusChangeModal = ({
     const [showSuccess, setShowSuccess] = useState(false);
     const [showError, setShowError] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
-
-    // Visit prompt state
-    const [showVisitPrompt, setShowVisitPrompt] = useState(false);
-    const [promptedVisitType, setPromptedVisitType] = useState(null);
 
     /**
      * Load valid status transitions when modal opens
@@ -164,24 +159,15 @@ const StatusChangeModal = ({
             // Show success message
             setShowSuccess(true);
 
-            // Check if we should prompt for visit creation
-            if (shouldPromptForVisit(formData.newStatus)) {
-                const visitType = getVisitTypeForStatus(formData.newStatus);
-                console.log('[STATUS MODAL] Prompting for visit creation:', visitType);
-                setPromptedVisitType(visitType);
-                setShowVisitPrompt(true);
-                // Don't auto-close - wait for user decision on visit
-            } else {
-                // Call success callback
-                if (onStatusChanged) {
-                    onStatusChanged(result);
-                }
-
-                // Close modal after 2 seconds if no visit prompt
-                setTimeout(() => {
-                    handleClose();
-                }, 2000);
+            // Call success callback
+            if (onStatusChanged) {
+                onStatusChanged(result);
             }
+
+            // Close modal after 2 seconds
+            setTimeout(() => {
+                handleClose();
+            }, 2000);
 
         } catch (error) {
             console.error('Error changing status:', error);
@@ -190,41 +176,6 @@ const StatusChangeModal = ({
         } finally {
             setSubmitting(false);
         }
-    };
-
-    /**
-     * Handle "Yes" on visit prompt - trigger visit creation
-     */
-    const handleCreateVisit = () => {
-        console.log('[STATUS MODAL] User chose to create visit:', promptedVisitType);
-
-        // Call success callback with visit creation flag
-        if (onStatusChanged) {
-            onStatusChanged({
-                success: true,
-                createVisit: true,
-                visitType: promptedVisitType
-            });
-        }
-
-        handleClose();
-    };
-
-    /**
-     * Handle "No" on visit prompt - skip visit creation
-     */
-    const handleSkipVisit = () => {
-        console.log('[STATUS MODAL] User chose to skip visit creation');
-
-        // Call success callback without visit flag
-        if (onStatusChanged) {
-            onStatusChanged({
-                success: true,
-                createVisit: false
-            });
-        }
-
-        handleClose();
     };
 
     /**
@@ -241,8 +192,6 @@ const StatusChangeModal = ({
         setShowSuccess(false);
         setShowError(false);
         setErrorMessage('');
-        setShowVisitPrompt(false);
-        setPromptedVisitType(null);
         onClose();
     };
 
@@ -314,7 +263,7 @@ const StatusChangeModal = ({
                 </div>
 
                 {/* Success Alert */}
-                {showSuccess && !showVisitPrompt && (
+                {showSuccess && (
                     <div className="mb-4 bg-green-50 border border-green-200 rounded-md p-4">
                         <div className="flex">
                             <CheckCircle2 className="h-5 w-5 text-green-400" />
@@ -325,42 +274,6 @@ const StatusChangeModal = ({
                                 <p className="mt-2 text-sm text-green-700">
                                     Patient status has been updated. Closing modal...
                                 </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Visit Creation Prompt */}
-                {showSuccess && showVisitPrompt && (
-                    <div className="mb-4 bg-blue-50 border border-blue-200 rounded-md p-4">
-                        <div className="flex items-start">
-                            <CheckCircle2 className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <div className="ml-3 flex-1">
-                                <h3 className="text-sm font-medium text-blue-900">
-                                    Status Changed Successfully!
-                                </h3>
-                                <p className="mt-2 text-sm text-blue-800">
-                                    Would you like to create a <span className="font-semibold">{getVisitTypeLabel(promptedVisitType)}</span> for this patient?
-                                </p>
-                                <p className="mt-1 text-xs text-blue-700">
-                                    This will allow you to collect visit-specific forms and data.
-                                </p>
-                                <div className="mt-4 flex space-x-3">
-                                    <button
-                                        type="button"
-                                        onClick={handleCreateVisit}
-                                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        Yes, Create Visit
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleSkipVisit}
-                                        className="px-4 py-2 bg-white text-blue-700 text-sm border border-blue-300 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        No, Skip for Now
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     </div>

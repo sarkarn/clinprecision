@@ -13,6 +13,8 @@ import com.clinprecision.clinopsservice.patientenrollment.repository.PatientRepo
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentRepository;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentAuditRepository;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientStatusHistoryRepository;
+import com.clinprecision.clinopsservice.visit.service.ProtocolVisitInstantiationService;
+import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
 
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
@@ -22,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.List;
 
 /**
  * Projector for Patient Enrollment Events
@@ -43,6 +46,7 @@ public class PatientEnrollmentProjector {
     private final PatientEnrollmentAuditRepository auditRepository;
     private final PatientStatusHistoryRepository statusHistoryRepository;
     private final com.clinprecision.clinopsservice.patientenrollment.repository.SiteStudyRepository siteStudyRepository;
+    private final ProtocolVisitInstantiationService protocolVisitInstantiationService;
     
     /**
      * Handle PatientRegisteredEvent - Create initial status history record
@@ -330,6 +334,59 @@ public class PatientEnrollmentProjector {
                     }
                 } else {
                     log.warn("Enrollment not found for UUID: {}", event.getEnrollmentId());
+                }
+            }
+            
+            // ============================================================================
+            // STEP 4.5: Protocol Visit Instantiation (Gap #1 Resolution)
+            // ============================================================================
+            // When patient becomes ACTIVE, auto-create protocol visits from study schedule
+            // Industry standard: Medidata Rave, Oracle InForm auto-instantiate visits
+            if ("ACTIVE".equals(event.getNewStatus()) && !"ACTIVE".equals(event.getPreviousStatus())) {
+                log.info("Patient transitioned to ACTIVE status, instantiating protocol visits: patientId={}, aggregateUuid={}", 
+                    patient.getId(), patient.getAggregateUuid());
+                
+                try {
+                    // Find patient's enrollment to get study and site information
+                    // Try by patient ID first, then by aggregate UUID
+                    List<PatientEnrollmentEntity> enrollments = patientEnrollmentRepository.findByPatientId(patient.getId());
+                    
+                    if (enrollments.isEmpty()) {
+                        log.warn("No enrollment found by patient ID {}, trying by aggregate UUID: {}", 
+                            patient.getId(), patient.getAggregateUuid());
+                        enrollments = patientEnrollmentRepository.findByPatientAggregateUuid(patient.getAggregateUuid());
+                    }
+                    
+                    Optional<PatientEnrollmentEntity> enrollmentOpt = enrollments.stream().findFirst();
+                    
+                    if (enrollmentOpt.isPresent()) {
+                        PatientEnrollmentEntity enrollment = enrollmentOpt.get();
+                        
+                        log.info("Found enrollment: enrollmentId={}, studyId={}, studySiteId={}, enrollmentDate={}", 
+                            enrollment.getId(), enrollment.getStudyId(), enrollment.getStudySiteId(), enrollment.getEnrollmentDate());
+                        
+                        // Instantiate protocol visits
+                        List<StudyVisitInstanceEntity> visits = protocolVisitInstantiationService
+                            .instantiateProtocolVisits(
+                                patient.getId(),           // patientId
+                                enrollment.getStudyId(),   // studyId
+                                enrollment.getStudySiteId(), // siteId (study_site_id)
+                                null,                      // armId (TODO: add when arm assignment implemented)
+                                enrollment.getEnrollmentDate() // baselineDate
+                            );
+                        
+                        log.info("Protocol visits instantiated successfully: patientId={}, count={}", 
+                            patient.getId(), visits.size());
+                            
+                    } else {
+                        log.warn("Cannot instantiate protocol visits - no enrollment found for patientId: {}", 
+                            patient.getId());
+                    }
+                    
+                } catch (Exception e) {
+                    log.error("Error instantiating protocol visits for patientId: {}", 
+                        patient.getId(), e);
+                    // Don't throw - allow status change to succeed even if visit instantiation fails
                 }
             }
             

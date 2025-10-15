@@ -52,14 +52,82 @@ export default function Home() {
                     </div>
 
                     <div className="p-6">
-                        {/* Study Management Section */}
+                        {/* =============================================== */}
+                        {/* ADMINISTRATION SECTION                           */}
+                        {/* User Management, Organizations, Sites            */}
+                        {/* =============================================== */}
+                        {hasCategoryAccess('study-management') && (
+                            <div className="mb-8">
+                                <h2 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4 px-2 flex items-center">
+                                    <svg className="w-3 h-3 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    Administration
+                                </h2>
+                                <div className="space-y-1">
+                                    {/* Identity & Access Management */}
+                                    {hasModuleAccess('user-management') && (
+                                        <Link to="/identity-access" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-slate-50 hover:text-slate-700 transition-all duration-200 border border-transparent hover:border-slate-200">
+                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-slate-400 group-hover:text-slate-600">
+                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div>User Management</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-slate-500">User accounts & permissions</div>
+                                            </div>
+                                            <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full group-hover:bg-slate-200">IAM</span>
+                                        </Link>
+                                    )}
+
+                                    {/* Organization Administration */}
+                                    {hasModuleAccess('user-management') && (
+                                        <Link to="/organization-admin" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-slate-50 hover:text-slate-700 transition-all duration-200 border border-transparent hover:border-slate-200">
+                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-slate-400 group-hover:text-slate-600">
+                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div>Organizations</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-slate-500">Sponsors & CROs</div>
+                                            </div>
+                                            <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full group-hover:bg-slate-200">ORG</span>
+                                        </Link>
+                                    )}
+
+                                    {/* Site Operations Management */}
+                                    {hasModuleAccess('user-management') && (
+                                        <Link to="/site-operations" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-slate-50 hover:text-slate-700 transition-all duration-200 border border-transparent hover:border-slate-200">
+                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-slate-400 group-hover:text-slate-600">
+                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div>Site Management</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-slate-500">Clinical site operations</div>
+                                            </div>
+                                            <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full group-hover:bg-slate-200">SITES</span>
+                                        </Link>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* =============================================== */}
+                        {/* STUDY SETUP SECTION                              */}
+                        {/* Protocol Design, Database Build                  */}
+                        {/* =============================================== */}
                         {hasCategoryAccess('study-management') && (
                             <div className="mb-8">
                                 <h2 className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-4 px-2 flex items-center">
                                     <svg className="w-3 h-3 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                     </svg>
-                                    Study Management
+                                    Study Setup
                                 </h2>
                                 <div className="space-y-1">
                                     {hasModuleAccess('study-design') && (
@@ -71,56 +139,9 @@ export default function Home() {
                                             </div>
                                             <div className="flex-1">
                                                 <div>Protocol Design</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-blue-500">Design and manage study protocols</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-blue-500">Design study protocols & CRFs</div>
                                             </div>
                                             <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-200">CRF</span>
-                                        </Link>
-                                    )}
-                                    {/* Identity & Access Management */}
-                                    {hasModuleAccess('user-management') && (
-                                        <Link to="/identity-access" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 border border-transparent hover:border-blue-200">
-                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-blue-400 group-hover:text-blue-600">
-                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                                                </svg>
-                                            </div>
-                                            <div className="flex-1">
-                                                <div>Identity & Access</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-blue-500">User & role management</div>
-                                            </div>
-                                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-200">IAM</span>
-                                        </Link>
-                                    )}
-
-                                    {/* Organization Administration */}
-                                    {hasModuleAccess('user-management') && (
-                                        <Link to="/organization-admin" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition-all duration-200 border border-transparent hover:border-violet-200">
-                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-violet-400 group-hover:text-violet-600">
-                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-                                                </svg>
-                                            </div>
-                                            <div className="flex-1">
-                                                <div>Organization Admin</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-violet-500">Sponsors & CROs</div>
-                                            </div>
-                                            <span className="text-xs px-2 py-1 bg-violet-100 text-violet-600 rounded-full group-hover:bg-violet-200">ORG</span>
-                                        </Link>
-                                    )}
-
-                                    {/* Site Operations Management */}
-                                    {hasModuleAccess('user-management') && (
-                                        <Link to="/site-operations" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-amber-50 hover:text-amber-700 transition-all duration-200 border border-transparent hover:border-amber-200">
-                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-amber-400 group-hover:text-amber-600">
-                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
-                                                </svg>
-                                            </div>
-                                            <div className="flex-1">
-                                                <div>Site Operations</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-amber-500">Clinical site management</div>
-                                            </div>
-                                            <span className="text-xs px-2 py-1 bg-amber-100 text-amber-600 rounded-full group-hover:bg-amber-200">SITES</span>
                                         </Link>
                                     )}
                                     {hasModuleAccess('study-design') && (
@@ -132,39 +153,31 @@ export default function Home() {
                                             </div>
                                             <div className="flex-1">
                                                 <div>Database Build</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-blue-500">Build & manage study databases</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-blue-500">Build & version study databases</div>
                                             </div>
-                                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-200">NEW</span>
+                                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-200">DB</span>
                                         </Link>
                                     )}
                                 </div>
                             </div>
                         )}
 
-                        {/* Clinical Operations Section */}
+                        {/* =============================================== */}
+                        {/* CLINICAL OPERATIONS SECTION (MERGED MODULE)      */}
+                        {/* Dashboard, Subject Management, Visit Mgmt, Data  */}
+                        {/* =============================================== */}
                         {hasCategoryAccess('clinical-operations') && (
                             <div className="mb-8">
-                                <h2 className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-4 px-2 flex items-center">
-                                    <svg className="w-3 h-3 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Clinical Operations
-                                </h2>
+                                <div className="bg-green-50 border-l-4 border-green-500 rounded-r-lg px-2 py-1 mb-4">
+                                    <h2 className="text-xs font-semibold text-green-700 uppercase tracking-wider flex items-center">
+                                        <svg className="w-3 h-3 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        Clinical Operations
+                                    </h2>
+                                </div>
                                 <div className="space-y-1">
-                                    {hasModuleAccess('datacapture-management') && (
-                                        <Link to="/datacapture-management" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all duration-200 border border-transparent hover:border-green-200">
-                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-green-400 group-hover:text-green-600">
-                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
-                                                </svg>
-                                            </div>
-                                            <div className="flex-1">
-                                                <div>Data Capture & Entry</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-green-500">Electronic case report forms</div>
-                                            </div>
-                                            <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full group-hover:bg-green-200">eCRF</span>
-                                        </Link>
-                                    )}
+                                    {/* Subject Management */}
                                     {hasModuleAccess('subject-management') && (
                                         <Link to="/subject-management" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all duration-200 border border-transparent hover:border-green-200">
                                             <div className="flex items-center justify-center h-5 w-5 mr-3 text-green-400 group-hover:text-green-600">
@@ -174,23 +187,42 @@ export default function Home() {
                                             </div>
                                             <div className="flex-1">
                                                 <div>Subject Management</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-green-500">Patient enrollment & tracking</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-green-500">Screening, enrollment & tracking</div>
                                             </div>
-                                            <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full group-hover:bg-green-200">SDV</span>
+                                            <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full group-hover:bg-green-200">ICF</span>
+                                        </Link>
+                                    )}
+
+                                    {/* Data Capture & Entry */}
+                                    {hasModuleAccess('datacapture-management') && (
+                                        <Link to="/datacapture-management" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all duration-200 border border-transparent hover:border-green-200">
+                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-green-400 group-hover:text-green-600">
+                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div>Data Capture & Forms</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-green-500">Visit data & eCRF entry</div>
+                                            </div>
+                                            <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full group-hover:bg-green-200">eCRF</span>
                                         </Link>
                                     )}
                                 </div>
                             </div>
                         )}
 
-                        {/* Data Quality & Compliance Section */}
+                        {/* =============================================== */}
+                        {/* QUALITY & COMPLIANCE SECTION                     */}
+                        {/* Data Quality, Audit Trail, Medical Coding        */}
+                        {/* =============================================== */}
                         {hasCategoryAccess('data-quality') && (
                             <div className="mb-8">
                                 <h2 className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-4 px-2 flex items-center">
                                     <svg className="w-3 h-3 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                     </svg>
-                                    Data Quality & Compliance
+                                    Quality & Compliance
                                 </h2>
                                 <div className="space-y-1">
                                     {hasModuleAccess('dq-management') && (
@@ -201,10 +233,10 @@ export default function Home() {
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <div>Data Quality & Validation</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-purple-500">Query management & validation</div>
+                                                <div>Data Quality</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-purple-500">Queries & validation rules</div>
                                             </div>
-                                            <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-200">21 CFR</span>
+                                            <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-200">DQ</span>
                                         </Link>
                                     )}
                                     {hasModuleAccess('audit-trail') && (
@@ -216,23 +248,40 @@ export default function Home() {
                                             </div>
                                             <div className="flex-1">
                                                 <div>Audit Trail</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-purple-500">Compliance & audit logging</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-purple-500">Compliance & 21 CFR Part 11</div>
                                             </div>
                                             <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-200">GCP</span>
+                                        </Link>
+                                    )}
+                                    {hasModuleAccess('medical-coding') && (
+                                        <Link to="/medical-coding" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-all duration-200 border border-transparent hover:border-purple-200">
+                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-purple-400 group-hover:text-purple-600">
+                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div>Medical Coding</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-purple-500">MedDRA & WHO Drug coding</div>
+                                            </div>
+                                            <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-200">AE</span>
                                         </Link>
                                     )}
                                 </div>
                             </div>
                         )}
 
-                        {/* Clinical Analytics Section */}
+                        {/* =============================================== */}
+                        {/* REPORTING SECTION                                */}
+                        {/* Clinical Reports & Analytics                     */}
+                        {/* =============================================== */}
                         {hasCategoryAccess('clinical-analytics') && (
                             <div className="mb-8">
                                 <h2 className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-4 px-2 flex items-center">
                                     <svg className="w-3 h-3 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                     </svg>
-                                    Clinical Analytics
+                                    Reporting
                                 </h2>
                                 <div className="space-y-1">
                                     {hasModuleAccess('reports') && (
@@ -243,24 +292,10 @@ export default function Home() {
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <div>Clinical Reports</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-orange-500">Study reports & analytics</div>
+                                                <div>Study Reports</div>
+                                                <div className="text-xs text-gray-500 group-hover:text-orange-500">CSR & analytics dashboards</div>
                                             </div>
                                             <span className="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded-full group-hover:bg-orange-200">CSR</span>
-                                        </Link>
-                                    )}
-                                    {hasModuleAccess('medical-coding') && (
-                                        <Link to="/medical-coding" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition-all duration-200 border border-transparent hover:border-orange-200">
-                                            <div className="flex items-center justify-center h-5 w-5 mr-3 text-orange-400 group-hover:text-orange-600">
-                                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
-                                                </svg>
-                                            </div>
-                                            <div className="flex-1">
-                                                <div>Medical Coding</div>
-                                                <div className="text-xs text-gray-500 group-hover:text-orange-500">Adverse events & medical coding</div>
-                                            </div>
-                                            <span className="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded-full group-hover:bg-orange-200">AE</span>
                                         </Link>
                                     )}
                                 </div>

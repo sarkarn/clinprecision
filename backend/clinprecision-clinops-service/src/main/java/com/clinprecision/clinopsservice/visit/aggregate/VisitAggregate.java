@@ -52,7 +52,7 @@ public class VisitAggregate {
     private String visitType;
     private LocalDate visitDate;
     private String status;
-    private String createdBy;
+    private Long createdBy;  // User ID who created the visit
     private LocalDateTime createdAt;
     private String notes;
 
@@ -162,7 +162,7 @@ public class VisitAggregate {
         return status;
     }
 
-    public String getCreatedBy() {
+    public Long getCreatedBy() {
         return createdBy;
     }
 

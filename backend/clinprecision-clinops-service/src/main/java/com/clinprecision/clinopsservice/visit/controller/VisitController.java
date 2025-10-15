@@ -141,16 +141,15 @@ public class VisitController {
     /**
      * Get a specific visit by ID
      * 
-     * @param visitId Visit UUID
+     * @param visitId Visit ID (Long primary key from study_visit_instances)
      * @return ResponseEntity with VisitDto or 404 if not found
      */
     @GetMapping("/{visitId}")
-    public ResponseEntity<?> getVisitById(@PathVariable String visitId) {
+    public ResponseEntity<?> getVisitById(@PathVariable Long visitId) {
         log.debug("REST: Getting visit by visitId: {}", visitId);
         
         try {
-            UUID uuid = UUID.fromString(visitId);
-            VisitDto visit = visitService.getVisitById(uuid);
+            VisitDto visit = visitService.getVisitById(visitId);
             
             if (visit != null) {
                 return ResponseEntity.ok(visit);
@@ -158,9 +157,9 @@ public class VisitController {
                 return ResponseEntity.notFound().build();
             }
             
-        } catch (IllegalArgumentException e) {
-            log.error("REST: Invalid visitId format: {}", visitId);
-            return ResponseEntity.badRequest().body(new ErrorResponse("Invalid visit ID format"));
+        } catch (Exception e) {
+            log.error("REST: Error getting visit: {}", visitId, e);
+            return ResponseEntity.badRequest().body(new ErrorResponse("Error retrieving visit: " + e.getMessage()));
         }
     }
 

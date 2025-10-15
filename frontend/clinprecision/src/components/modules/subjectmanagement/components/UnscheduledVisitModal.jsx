@@ -44,7 +44,7 @@ const UnscheduledVisitModal = ({
         visitType: visitType,
         visitDate: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD
         notes: '',
-        createdBy: '' // TODO: Get from auth context
+        createdBy: '' // User ID from localStorage (set in useEffect)
     });
 
     // UI state
@@ -60,11 +60,14 @@ const UnscheduledVisitModal = ({
      */
     useEffect(() => {
         if (isOpen) {
+            // Get logged-in user ID from localStorage
+            const userId = localStorage.getItem('userId') || '1'; // Default to user 1 if not found
+
             setFormData({
                 visitType: visitType,
                 visitDate: new Date().toISOString().split('T')[0],
                 notes: '',
-                createdBy: 'system' // TODO: Replace with authenticated user
+                createdBy: userId
             });
             setShowSuccess(false);
             setShowError(false);
@@ -108,8 +111,8 @@ const UnscheduledVisitModal = ({
             }
         }
 
-        if (!formData.createdBy || formData.createdBy.trim().length === 0) {
-            newErrors.createdBy = 'User identifier is required';
+        if (!formData.createdBy) {
+            newErrors.createdBy = 'User ID is required (not logged in?)';
         }
 
         setErrors(newErrors);
@@ -139,7 +142,7 @@ const UnscheduledVisitModal = ({
                 siteId: siteId,
                 visitType: formData.visitType,
                 visitDate: formData.visitDate,
-                createdBy: formData.createdBy.trim(),
+                createdBy: parseInt(formData.createdBy, 10), // Convert to number (Long in backend)
                 notes: formData.notes.trim() || null
             };
 
@@ -181,11 +184,12 @@ const UnscheduledVisitModal = ({
      */
     const handleClose = () => {
         if (!submitting) {
+            const userId = localStorage.getItem('userId') || '1';
             setFormData({
                 visitType: visitType,
                 visitDate: new Date().toISOString().split('T')[0],
                 notes: '',
-                createdBy: 'system'
+                createdBy: userId
             });
             setErrors({});
             setShowSuccess(false);

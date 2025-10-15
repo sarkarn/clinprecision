@@ -110,40 +110,30 @@ export default function SubjectList() {
 
         // Close status modal
         setShowStatusModal(false);
+        setSelectedPatient(null);
+        setPreselectedStatus(null);
 
-        // Check if user wants to create a visit
-        if (result?.createVisit && result?.visitType) {
-            console.log('[SUBJECT LIST] Opening visit modal for type:', result.visitType);
-            setVisitType(result.visitType);
-            setShowVisitModal(true);
-            // Don't clear selectedPatient yet - we need it for visit creation
-        } else {
-            console.log('[SUBJECT LIST] No visit creation requested, refreshing data');
-            setSelectedPatient(null);
-            setPreselectedStatus(null);
-
-            // Re-fetch all patients to reflect status changes
-            try {
-                const response = await ApiService.get('/clinops-ws/api/v1/patients');
-                if (response?.data) {
-                    console.log('[SUBJECT LIST] Refreshed all patients after status change');
-                    setAllPatients(response.data);
-                }
-            } catch (error) {
-                console.error('[SUBJECT LIST] Error refreshing all patients:', error);
+        // Re-fetch all patients to reflect status changes
+        try {
+            const response = await ApiService.get('/clinops-ws/api/v1/patients');
+            if (response?.data) {
+                console.log('[SUBJECT LIST] Refreshed all patients after status change');
+                setAllPatients(response.data);
             }
+        } catch (error) {
+            console.error('[SUBJECT LIST] Error refreshing all patients:', error);
+        }
 
-            // Re-fetch subjects for the current study if one is selected
-            if (selectedStudy) {
-                setLoading(true);
-                try {
-                    const subjectsData = await getSubjectsByStudy(selectedStudy);
-                    setSubjects(subjectsData);
-                } catch (error) {
-                    console.error('[SUBJECT LIST] Error refreshing subjects:', error);
-                } finally {
-                    setLoading(false);
-                }
+        // Re-fetch subjects for the current study if one is selected
+        if (selectedStudy) {
+            setLoading(true);
+            try {
+                const subjectsData = await getSubjectsByStudy(selectedStudy);
+                setSubjects(subjectsData);
+            } catch (error) {
+                console.error('[SUBJECT LIST] Error refreshing subjects:', error);
+            } finally {
+                setLoading(false);
             }
         }
     };

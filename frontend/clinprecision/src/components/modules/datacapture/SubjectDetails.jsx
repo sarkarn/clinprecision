@@ -65,8 +65,12 @@ export default function SubjectDetails() {
             setShowVisitModal(true);
         } else {
             console.log('[SUBJECT DETAILS] No visit creation requested, refreshing data');
-            // Refresh subject data if no visit creation
+            // Refresh both subject data AND visits (protocol visits may have been created)
             fetchSubjectDetails();
+            // Small delay to allow backend event processing to complete
+            setTimeout(() => {
+                fetchVisits();
+            }, 500);
         }
     };
 
@@ -235,12 +239,23 @@ export default function SubjectDetails() {
             <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
                     <h4 className="font-medium">Visits</h4>
-                    <Link
-                        to={`/datacapture-management/subjects/${subjectId}/visits`}
-                        className="text-blue-600 hover:underline text-sm"
-                    >
-                        View All Visits
-                    </Link>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                setVisitType('SCREENING'); // Default to SCREENING
+                                setShowVisitModal(true);
+                            }}
+                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            + Create Visit
+                        </button>
+                        <Link
+                            to={`/datacapture-management/subjects/${subjectId}/visits`}
+                            className="text-blue-600 hover:underline text-sm"
+                        >
+                            View All Visits
+                        </Link>
+                    </div>
                 </div>
 
                 {visitsLoading ? (

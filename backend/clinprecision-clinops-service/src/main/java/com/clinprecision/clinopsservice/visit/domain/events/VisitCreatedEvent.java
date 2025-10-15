@@ -21,13 +21,13 @@ public class VisitCreatedEvent {
     private final String visitType;
     private final LocalDate visitDate;
     private final String status;
-    private final String createdBy;
+    private final Long createdBy; // User ID who created the visit
     private final LocalDateTime createdAt;
     private final String notes;
 
     public VisitCreatedEvent(UUID visitId, Long patientId, Long studyId, Long siteId,
                            String visitType, LocalDate visitDate, String status,
-                           String createdBy, LocalDateTime createdAt, String notes) {
+                           Long createdBy, LocalDateTime createdAt, String notes) {
         this.visitId = visitId;
         this.patientId = patientId;
         this.studyId = studyId;
@@ -69,7 +69,7 @@ public class VisitCreatedEvent {
         return status;
     }
 
-    public String getCreatedBy() {
+    public Long getCreatedBy() {
         return createdBy;
     }
 

@@ -26,13 +26,13 @@ public class CreateVisitCommand {
     private final String visitType; // SCREENING, ENROLLMENT, DISCONTINUATION, ADVERSE_EVENT
     private final LocalDate visitDate;
     private final String status; // SCHEDULED, COMPLETED, CANCELLED
-    private final String createdBy;
+    private final Long createdBy; // User ID who is creating the visit
     private final LocalDateTime createdAt;
     private final String notes;
 
     public CreateVisitCommand(UUID visitId, Long patientId, Long studyId, Long siteId, 
                             String visitType, LocalDate visitDate, String status, 
-                            String createdBy, String notes) {
+                            Long createdBy, String notes) {
         this.visitId = visitId;
         this.patientId = patientId;
         this.studyId = studyId;
@@ -74,7 +74,7 @@ public class CreateVisitCommand {
         return status;
     }
 
-    public String getCreatedBy() {
+    public Long getCreatedBy() {
         return createdBy;
     }
 
