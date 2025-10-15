@@ -379,7 +379,10 @@ public class UnscheduledVisitService {
     private VisitDto mapToVisitDto(StudyVisitInstanceEntity entity) {
         VisitDto dto = new VisitDto();
         
-        // Map direct fields
+        // Map primary key (Long ID)
+        dto.setId(entity.getId());
+        
+        // Map visitId (UUID for backward compatibility)
         dto.setVisitId(entity.getId() != null ? 
                 UUID.nameUUIDFromBytes(entity.getId().toString().getBytes()) : null);
         dto.setPatientId(entity.getSubjectId());
