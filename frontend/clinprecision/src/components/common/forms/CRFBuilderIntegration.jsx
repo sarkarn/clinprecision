@@ -479,15 +479,18 @@ const CRFBuilderIntegration = () => {
             console.log('Form saved to:', isStudyContext ? 'STUDY-SPECIFIC' : 'LIBRARY');
 
             // Show success message for manual save
+            console.log('*** SETTING SUCCESS MESSAGE ***');
             setSuccessMessage({
-                title: 'Success',
-                message: 'Form saved successfully!'
+                title: 'Success!',
+                message: `Form "${savedForm.name || formData.name}" has been saved successfully!`
             });
+            console.log('*** SUCCESS MESSAGE SET - Should be visible now ***');
 
-            // Auto-dismiss after 3 seconds
+            // Auto-dismiss after 5 seconds (increased from 3)
             setTimeout(() => {
+                console.log('*** AUTO-DISMISSING SUCCESS MESSAGE ***');
                 setSuccessMessage(null);
-            }, 3000);
+            }, 5000);
 
             // For new forms, update the URL without navigation to avoid reload
             if (!formId) {
@@ -1474,14 +1477,41 @@ const CRFBuilderIntegration = () => {
 
     return (
         <div className="bg-white shadow rounded-lg p-6">
+            {/* Fixed Position Success Toast - Always visible at top */}
+            {successMessage && (
+                <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
+                    {console.log('*** SUCCESS MESSAGE TOAST RENDERING:', successMessage)}
+                    <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 min-w-[320px]">
+                        <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="flex-1">
+                            <p className="font-semibold">{successMessage.title}</p>
+                            <p className="text-sm text-green-100">{successMessage.message}</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                console.log('*** SUCCESS MESSAGE CLOSED BY USER ***');
+                                setSuccessMessage(null);
+                            }}
+                            className="text-white hover:text-green-100 flex-shrink-0"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <h2 className="text-2xl font-bold mb-6">
                 {formId ? `Edit Form: ${form?.name}` : "Create New Form"}
             </h2>
 
-            {/* Success Message */}
+            {/* Inline Success Message (original - keep for context) */}
             {successMessage && (
                 <div className="mb-6">
-                    {console.log('*** SUCCESS MESSAGE RENDERING:', successMessage)}
+                    {console.log('*** SUCCESS MESSAGE ALERT RENDERING:', successMessage)}
                     <Alert
                         type="success"
                         title={successMessage.title}
@@ -1982,8 +2012,8 @@ const CRFBuilderIntegration = () => {
                                                                     </div>
                                                                 )}
 
-                                                                {/* Options for select/radio/checkbox fields */}
-                                                                {(field.type === 'select' || field.type === 'multiselect' || field.type === 'radio' || field.type === 'checkbox') && (
+                                                                {/* Options for select/radio fields (excluding checkbox - it's just boolean) */}
+                                                                {(field.type === 'select' || field.type === 'multiselect' || field.type === 'radio') && (
                                                                     <div className="col-span-2 space-y-3">
                                                                         {/* Option Source Toggle */}
                                                                         <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-md">
