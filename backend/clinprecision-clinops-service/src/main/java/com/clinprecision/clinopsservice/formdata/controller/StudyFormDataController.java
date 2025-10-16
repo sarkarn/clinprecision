@@ -60,7 +60,7 @@ import java.util.List;
 @RequestMapping("/api/v1/form-data")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*") // TODO: Configure proper CORS policy
+// CORS is handled by API Gateway - do not add @CrossOrigin here
 public class StudyFormDataController {
 
     private final StudyFormDataService formDataService;

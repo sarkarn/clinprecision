@@ -1,0 +1,1040 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://clinprecision.com/schemas/form-field-metadata.json",
+    "title": "Form Field Metadata Schema",
+    "description": "Comprehensive metadata schema for clinical trial form field definitions",
+    "version": "1.0.0",
+    "type": "object",
+    "properties": {
+        "validation": {
+            "$ref": "#/definitions/ValidationConfig"
+        },
+        "ui": {
+            "$ref": "#/definitions/UIConfig"
+        },
+        "clinical": {
+            "$ref": "#/definitions/ClinicalFlags"
+        },
+        "cdash": {
+            "$ref": "#/definitions/CdashMapping"
+        },
+        "sdtm": {
+            "$ref": "#/definitions/SdtmMapping"
+        },
+        "coding": {
+            "$ref": "#/definitions/MedicalCoding"
+        },
+        "dataQuality": {
+            "$ref": "#/definitions/DataQualityRules"
+        },
+        "regulatory": {
+            "$ref": "#/definitions/RegulatoryMetadata"
+        },
+        "audit": {
+            "$ref": "#/definitions/AuditConfig"
+        },
+        "dataEntry": {
+            "$ref": "#/definitions/DataEntryConfig"
+        },
+        "export": {
+            "$ref": "#/definitions/ExportConfig"
+        },
+        "query": {
+            "$ref": "#/definitions/QueryConfig"
+        },
+        "description": {
+            "type": "string",
+            "description": "Detailed field description"
+        },
+        "implementationNotes": {
+            "type": "string",
+            "description": "Special instructions for data entry"
+        },
+        "dataSource": {
+            "type": "string",
+            "enum": [
+                "CRF",
+                "eCOA",
+                "ePRO",
+                "Lab",
+                "Device",
+                "EHR",
+                "Other"
+            ],
+            "description": "Source of the data"
+        },
+        "captureMethod": {
+            "type": "string",
+            "enum": [
+                "manual",
+                "automated",
+                "imported",
+                "derived"
+            ],
+            "description": "How the data is captured"
+        }
+    },
+    "definitions": {
+        "ValidationConfig": {
+            "type": "object",
+            "description": "Validation rules for field values",
+            "properties": {
+                "required": {
+                    "type": "boolean",
+                    "description": "Whether the field is required"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "string",
+                        "integer",
+                        "decimal",
+                        "date",
+                        "datetime",
+                        "time",
+                        "email",
+                        "phone",
+                        "url"
+                    ],
+                    "description": "Expected data type"
+                },
+                "minLength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Minimum string length"
+                },
+                "maxLength": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum string length"
+                },
+                "minValue": {
+                    "type": "number",
+                    "description": "Minimum numeric value"
+                },
+                "maxValue": {
+                    "type": "number",
+                    "description": "Maximum numeric value"
+                },
+                "pattern": {
+                    "type": "string",
+                    "description": "Regular expression pattern"
+                },
+                "patternDescription": {
+                    "type": "string",
+                    "description": "Human-readable pattern description"
+                },
+                "decimalPlaces": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of decimal places allowed"
+                },
+                "allowNegative": {
+                    "type": "boolean",
+                    "description": "Whether negative numbers are allowed"
+                },
+                "customRules": {
+                    "type": "array",
+                    "description": "Custom validation rules",
+                    "items": {
+                        "$ref": "#/definitions/CustomValidationRule"
+                    }
+                },
+                "conditionalValidation": {
+                    "type": "array",
+                    "description": "Conditional validation rules",
+                    "items": {
+                        "$ref": "#/definitions/ConditionalValidation"
+                    }
+                }
+            }
+        },
+        "CustomValidationRule": {
+            "type": "object",
+            "required": [
+                "ruleId",
+                "expression",
+                "errorMessage"
+            ],
+            "properties": {
+                "ruleId": {
+                    "type": "string",
+                    "description": "Unique rule identifier"
+                },
+                "ruleType": {
+                    "type": "string",
+                    "enum": [
+                        "range",
+                        "consistency",
+                        "format",
+                        "business"
+                    ],
+                    "description": "Type of validation rule"
+                },
+                "expression": {
+                    "type": "string",
+                    "description": "JavaScript expression to evaluate"
+                },
+                "errorMessage": {
+                    "type": "string",
+                    "description": "Error message to display"
+                },
+                "severity": {
+                    "type": "string",
+                    "enum": [
+                        "error",
+                        "warning",
+                        "info"
+                    ],
+                    "default": "error",
+                    "description": "Severity level"
+                }
+            }
+        },
+        "ConditionalValidation": {
+            "type": "object",
+            "required": [
+                "condition",
+                "rules"
+            ],
+            "properties": {
+                "condition": {
+                    "type": "string",
+                    "description": "JavaScript condition expression"
+                },
+                "rules": {
+                    "type": "object",
+                    "description": "Validation rules to apply when condition is true"
+                }
+            }
+        },
+        "UIConfig": {
+            "type": "object",
+            "description": "UI display configuration",
+            "properties": {
+                "placeholder": {
+                    "type": "string",
+                    "description": "Placeholder text"
+                },
+                "helpText": {
+                    "type": "string",
+                    "description": "Help text or tooltip"
+                },
+                "units": {
+                    "type": "string",
+                    "description": "Units of measurement"
+                },
+                "unitsPosition": {
+                    "type": "string",
+                    "enum": [
+                        "prefix",
+                        "suffix"
+                    ],
+                    "default": "suffix",
+                    "description": "Position of units relative to value"
+                },
+                "options": {
+                    "type": "array",
+                    "description": "Options for radio/dropdown fields",
+                    "items": {
+                        "$ref": "#/definitions/FieldOption"
+                    }
+                },
+                "checkboxLabel": {
+                    "type": "string",
+                    "description": "Label for checkbox fields"
+                },
+                "defaultValue": {
+                    "description": "Default field value"
+                },
+                "readOnly": {
+                    "type": "boolean",
+                    "description": "Whether field is read-only"
+                },
+                "hidden": {
+                    "type": "boolean",
+                    "description": "Whether field is hidden"
+                },
+                "conditionalDisplay": {
+                    "$ref": "#/definitions/ConditionalDisplay"
+                }
+            }
+        },
+        "FieldOption": {
+            "type": "object",
+            "required": [
+                "value",
+                "label"
+            ],
+            "properties": {
+                "value": {
+                    "type": "string",
+                    "description": "Option value"
+                },
+                "label": {
+                    "type": "string",
+                    "description": "Display label"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Option description"
+                },
+                "order": {
+                    "type": "integer",
+                    "description": "Display order"
+                },
+                "codingValue": {
+                    "type": "string",
+                    "description": "Coded value for standards"
+                },
+                "codingSystem": {
+                    "type": "string",
+                    "description": "Coding system (e.g., HL7)"
+                }
+            }
+        },
+        "ConditionalDisplay": {
+            "type": "object",
+            "required": [
+                "field",
+                "operator",
+                "value"
+            ],
+            "properties": {
+                "field": {
+                    "type": "string",
+                    "description": "Field ID to check"
+                },
+                "operator": {
+                    "type": "string",
+                    "enum": [
+                        "equals",
+                        "notEquals",
+                        "greaterThan",
+                        "lessThan",
+                        "contains",
+                        "notContains"
+                    ],
+                    "description": "Comparison operator"
+                },
+                "value": {
+                    "description": "Value to compare against"
+                }
+            }
+        },
+        "ClinicalFlags": {
+            "type": "object",
+            "description": "Clinical significance flags",
+            "properties": {
+                "sdvRequired": {
+                    "type": "boolean",
+                    "description": "Source Data Verification required"
+                },
+                "medicalReviewRequired": {
+                    "type": "boolean",
+                    "description": "Medical review required"
+                },
+                "criticalDataPoint": {
+                    "type": "boolean",
+                    "description": "Critical data point"
+                },
+                "safetyDataPoint": {
+                    "type": "boolean",
+                    "description": "Safety data point"
+                },
+                "efficacyDataPoint": {
+                    "type": "boolean",
+                    "description": "Efficacy data point"
+                },
+                "dataReviewRequired": {
+                    "type": "boolean",
+                    "description": "Data review required"
+                },
+                "medicallySignificant": {
+                    "type": "boolean",
+                    "description": "Medically significant data"
+                },
+                "requiresMonitoring": {
+                    "type": "boolean",
+                    "description": "Requires ongoing monitoring"
+                },
+                "requiresSourceDocumentation": {
+                    "type": "boolean",
+                    "description": "Requires source documentation"
+                },
+                "allowableDeviationRange": {
+                    "$ref": "#/definitions/DeviationRange"
+                }
+            }
+        },
+        "DeviationRange": {
+            "type": "object",
+            "properties": {
+                "lowerBound": {
+                    "type": "number",
+                    "description": "Lower bound of allowable deviation"
+                },
+                "upperBound": {
+                    "type": "number",
+                    "description": "Upper bound of allowable deviation"
+                },
+                "units": {
+                    "type": "string",
+                    "description": "Units for deviation (%, absolute, etc.)"
+                }
+            }
+        },
+        "CdashMapping": {
+            "type": "object",
+            "description": "CDASH standard mapping",
+            "properties": {
+                "domain": {
+                    "type": "string",
+                    "description": "CDASH domain (e.g., DM, AE, VS)"
+                },
+                "variable": {
+                    "type": "string",
+                    "description": "CDASH variable name"
+                },
+                "dataType": {
+                    "type": "string",
+                    "enum": [
+                        "Char",
+                        "Num",
+                        "Date",
+                        "Time"
+                    ],
+                    "description": "CDASH data type"
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "Identifier",
+                        "Topic",
+                        "Timing",
+                        "Qualifier"
+                    ],
+                    "description": "Variable role"
+                },
+                "coreStatus": {
+                    "type": "string",
+                    "enum": [
+                        "Required",
+                        "Expected",
+                        "Permissible"
+                    ],
+                    "description": "Core variable status"
+                },
+                "implementationNotes": {
+                    "type": "string",
+                    "description": "CDASH implementation notes"
+                },
+                "controlledTerminology": {
+                    "type": "string",
+                    "description": "Controlled terminology code"
+                }
+            }
+        },
+        "SdtmMapping": {
+            "type": "object",
+            "description": "SDTM standard mapping",
+            "properties": {
+                "domain": {
+                    "type": "string",
+                    "description": "SDTM domain (e.g., DM, AE, VS)"
+                },
+                "variable": {
+                    "type": "string",
+                    "description": "SDTM variable name"
+                },
+                "dataType": {
+                    "type": "string",
+                    "enum": [
+                        "Char",
+                        "Num",
+                        "ISO8601"
+                    ],
+                    "description": "SDTM data type"
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "Identifier",
+                        "Topic",
+                        "Timing",
+                        "Grouping",
+                        "Qualifier"
+                    ],
+                    "description": "Variable role"
+                },
+                "coreStatus": {
+                    "type": "string",
+                    "enum": [
+                        "Req",
+                        "Exp",
+                        "Perm"
+                    ],
+                    "description": "Core variable status"
+                },
+                "transformation": {
+                    "type": "string",
+                    "enum": [
+                        "Direct",
+                        "Derived",
+                        "Concatenated",
+                        "Split"
+                    ],
+                    "description": "Data transformation type"
+                },
+                "transformationRule": {
+                    "type": "string",
+                    "description": "Transformation rule or formula"
+                },
+                "controlledTerminology": {
+                    "type": "string",
+                    "description": "Controlled terminology code"
+                },
+                "codelist": {
+                    "type": "string",
+                    "description": "CDISC codelist name"
+                }
+            }
+        },
+        "MedicalCoding": {
+            "type": "object",
+            "description": "Medical coding configuration",
+            "properties": {
+                "dictionary": {
+                    "type": "string",
+                    "enum": [
+                        "MedDRA",
+                        "WHODrug",
+                        "ICD-10",
+                        "ICD-11",
+                        "SNOMED-CT"
+                    ],
+                    "description": "Medical dictionary to use"
+                },
+                "version": {
+                    "type": "string",
+                    "description": "Dictionary version"
+                },
+                "level": {
+                    "type": "string",
+                    "enum": [
+                        "PT",
+                        "LLT",
+                        "HLT",
+                        "HLGT",
+                        "SOC"
+                    ],
+                    "description": "MedDRA coding level"
+                },
+                "autoCode": {
+                    "type": "boolean",
+                    "description": "Enable automatic coding"
+                },
+                "codeRequired": {
+                    "type": "boolean",
+                    "description": "Coding is required"
+                },
+                "allowMultipleCodes": {
+                    "type": "boolean",
+                    "description": "Allow multiple codes"
+                },
+                "codingQuery": {
+                    "$ref": "#/definitions/CodingQuery"
+                }
+            }
+        },
+        "CodingQuery": {
+            "type": "object",
+            "properties": {
+                "autoGenerateQuery": {
+                    "type": "boolean",
+                    "description": "Auto-generate query for coding issues"
+                },
+                "queryThreshold": {
+                    "type": "string",
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                    ],
+                    "description": "Threshold for auto-query generation"
+                }
+            }
+        },
+        "DataQualityRules": {
+            "type": "object",
+            "description": "Data quality rules",
+            "properties": {
+                "rangeChecks": {
+                    "type": "array",
+                    "description": "Range validation checks",
+                    "items": {
+                        "$ref": "#/definitions/RangeCheck"
+                    }
+                },
+                "consistencyRules": {
+                    "type": "array",
+                    "description": "Data consistency rules",
+                    "items": {
+                        "$ref": "#/definitions/ConsistencyRule"
+                    }
+                },
+                "crossFieldValidation": {
+                    "type": "array",
+                    "description": "Cross-field validation rules",
+                    "items": {
+                        "$ref": "#/definitions/CrossFieldValidation"
+                    }
+                },
+                "duplicateCheck": {
+                    "$ref": "#/definitions/DuplicateCheck"
+                }
+            }
+        },
+        "RangeCheck": {
+            "type": "object",
+            "required": [
+                "checkId",
+                "type",
+                "action"
+            ],
+            "properties": {
+                "checkId": {
+                    "type": "string",
+                    "description": "Unique check identifier"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "normal",
+                        "expected",
+                        "possible",
+                        "critical"
+                    ],
+                    "description": "Range check type"
+                },
+                "min": {
+                    "type": "number",
+                    "description": "Minimum value"
+                },
+                "max": {
+                    "type": "number",
+                    "description": "Maximum value"
+                },
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "warning",
+                        "error",
+                        "query",
+                        "info"
+                    ],
+                    "description": "Action to take"
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Message to display"
+                }
+            }
+        },
+        "ConsistencyRule": {
+            "type": "object",
+            "required": [
+                "ruleId",
+                "type",
+                "expression"
+            ],
+            "properties": {
+                "ruleId": {
+                    "type": "string",
+                    "description": "Unique rule identifier"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "temporal",
+                        "logical",
+                        "anatomical"
+                    ],
+                    "description": "Consistency rule type"
+                },
+                "relatedFields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Related field IDs"
+                },
+                "expression": {
+                    "type": "string",
+                    "description": "Rule expression"
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Error message"
+                }
+            }
+        },
+        "CrossFieldValidation": {
+            "type": "object",
+            "required": [
+                "ruleId",
+                "relatedFields",
+                "expression"
+            ],
+            "properties": {
+                "ruleId": {
+                    "type": "string",
+                    "description": "Unique rule identifier"
+                },
+                "relatedFields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Related field IDs"
+                },
+                "expression": {
+                    "type": "string",
+                    "description": "Validation expression"
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Error message"
+                },
+                "severity": {
+                    "type": "string",
+                    "enum": [
+                        "error",
+                        "warning",
+                        "info"
+                    ],
+                    "default": "error",
+                    "description": "Severity level"
+                }
+            }
+        },
+        "DuplicateCheck": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable duplicate checking"
+                },
+                "scope": {
+                    "type": "string",
+                    "enum": [
+                        "visit",
+                        "subject",
+                        "study"
+                    ],
+                    "description": "Scope of duplicate check"
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Fields to check for duplicates"
+                }
+            }
+        },
+        "RegulatoryMetadata": {
+            "type": "object",
+            "description": "Regulatory compliance metadata",
+            "properties": {
+                "fdaRequired": {
+                    "type": "boolean",
+                    "description": "Required by FDA"
+                },
+                "emaRequired": {
+                    "type": "boolean",
+                    "description": "Required by EMA"
+                },
+                "cfr21Part11": {
+                    "type": "boolean",
+                    "description": "Subject to 21 CFR Part 11"
+                },
+                "gcpRequired": {
+                    "type": "boolean",
+                    "description": "Required by GCP"
+                },
+                "hipaaProtected": {
+                    "type": "boolean",
+                    "description": "HIPAA protected information"
+                },
+                "phiCategory": {
+                    "type": "string",
+                    "enum": [
+                        "identifier",
+                        "demographic",
+                        "dates",
+                        "contact",
+                        "financial",
+                        "health"
+                    ],
+                    "description": "PHI category"
+                },
+                "deidentificationRequired": {
+                    "type": "boolean",
+                    "description": "Requires de-identification"
+                },
+                "retentionYears": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Data retention period in years"
+                },
+                "archivingRequired": {
+                    "type": "boolean",
+                    "description": "Requires archiving"
+                }
+            }
+        },
+        "AuditConfig": {
+            "type": "object",
+            "description": "Audit trail configuration",
+            "properties": {
+                "level": {
+                    "type": "string",
+                    "enum": [
+                        "NONE",
+                        "BASIC",
+                        "FULL"
+                    ],
+                    "default": "BASIC",
+                    "description": "Audit trail level"
+                },
+                "electronicSignatureRequired": {
+                    "type": "boolean",
+                    "description": "Requires electronic signature"
+                },
+                "reasonForChangeRequired": {
+                    "type": "boolean",
+                    "description": "Requires reason for change"
+                },
+                "reasonForChangeOptions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Predefined reason options"
+                },
+                "trackVersionHistory": {
+                    "type": "boolean",
+                    "description": "Track version history"
+                },
+                "changeNotification": {
+                    "$ref": "#/definitions/ChangeNotification"
+                }
+            }
+        },
+        "ChangeNotification": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable change notifications"
+                },
+                "recipients": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Notification recipients (roles)"
+                }
+            }
+        },
+        "DataEntryConfig": {
+            "type": "object",
+            "description": "Data entry configuration",
+            "properties": {
+                "isDerivedField": {
+                    "type": "boolean",
+                    "description": "Field is derived/calculated"
+                },
+                "derivationFormula": {
+                    "type": "string",
+                    "description": "Derivation formula"
+                },
+                "derivationDependencies": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Fields this derivation depends on"
+                },
+                "isQueryEnabled": {
+                    "type": "boolean",
+                    "description": "Query management enabled"
+                },
+                "isEditableAfterLock": {
+                    "type": "boolean",
+                    "description": "Editable after form lock"
+                },
+                "isEditableAfterFreeze": {
+                    "type": "boolean",
+                    "description": "Editable after database freeze"
+                },
+                "requiresDoubleDataEntry": {
+                    "type": "boolean",
+                    "description": "Requires double data entry"
+                },
+                "requiresSourceDataVerification": {
+                    "type": "boolean",
+                    "description": "Requires SDV"
+                },
+                "allowNA": {
+                    "type": "boolean",
+                    "description": "Allow 'N/A' response"
+                },
+                "allowNotDone": {
+                    "type": "boolean",
+                    "description": "Allow 'Not Done' response"
+                },
+                "allowNotAsked": {
+                    "type": "boolean",
+                    "description": "Allow 'Not Asked' response"
+                },
+                "allowUnknown": {
+                    "type": "boolean",
+                    "description": "Allow 'Unknown' response"
+                }
+            }
+        },
+        "ExportConfig": {
+            "type": "object",
+            "description": "Export configuration",
+            "properties": {
+                "includeInExport": {
+                    "type": "boolean",
+                    "description": "Include in data export"
+                },
+                "exportFormat": {
+                    "type": "string",
+                    "enum": [
+                        "original",
+                        "formatted",
+                        "coded",
+                        "transformed"
+                    ],
+                    "description": "Export format"
+                },
+                "exportVariable": {
+                    "type": "string",
+                    "description": "Variable name in export"
+                },
+                "exportTransformation": {
+                    "type": "string",
+                    "description": "Transformation to apply on export"
+                },
+                "includeInDataset": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Datasets to include in"
+                },
+                "exportMapping": {
+                    "type": "object",
+                    "description": "Export mappings by dataset type",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/DatasetMapping"
+                    }
+                }
+            }
+        },
+        "DatasetMapping": {
+            "type": "object",
+            "properties": {
+                "domain": {
+                    "type": "string",
+                    "description": "Target domain"
+                },
+                "dataset": {
+                    "type": "string",
+                    "description": "Target dataset"
+                },
+                "variable": {
+                    "type": "string",
+                    "description": "Target variable name"
+                }
+            }
+        },
+        "QueryConfig": {
+            "type": "object",
+            "description": "Query management configuration",
+            "properties": {
+                "autoQueryEnabled": {
+                    "type": "boolean",
+                    "description": "Enable automatic query generation"
+                },
+                "autoQueryRules": {
+                    "type": "array",
+                    "description": "Auto-query rules",
+                    "items": {
+                        "$ref": "#/definitions/AutoQueryRule"
+                    }
+                },
+                "manualQueryEnabled": {
+                    "type": "boolean",
+                    "description": "Enable manual queries"
+                },
+                "queryWorkflow": {
+                    "$ref": "#/definitions/QueryWorkflow"
+                }
+            }
+        },
+        "AutoQueryRule": {
+            "type": "object",
+            "required": [
+                "ruleId",
+                "condition",
+                "queryText"
+            ],
+            "properties": {
+                "ruleId": {
+                    "type": "string",
+                    "description": "Unique rule identifier"
+                },
+                "condition": {
+                    "type": "string",
+                    "description": "Condition for query generation"
+                },
+                "queryText": {
+                    "type": "string",
+                    "description": "Query text template"
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "high",
+                        "medium",
+                        "low"
+                    ],
+                    "description": "Query priority"
+                }
+            }
+        },
+        "QueryWorkflow": {
+            "type": "object",
+            "properties": {
+                "requiresResponse": {
+                    "type": "boolean",
+                    "description": "Response required"
+                },
+                "allowClarification": {
+                    "type": "boolean",
+                    "description": "Allow clarification requests"
+                },
+                "requiresClosureApproval": {
+                    "type": "boolean",
+                    "description": "Requires approval to close"
+                }
+            }
+        }
+    }
+}
