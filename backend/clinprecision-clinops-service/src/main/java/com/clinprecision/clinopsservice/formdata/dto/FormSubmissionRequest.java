@@ -114,6 +114,15 @@ public class FormSubmissionRequest {
     private String relatedRecordId;
 
     /**
+     * Field completion tracking
+     * Sent from frontend to track progress
+     */
+    private Integer totalFields;
+    private Integer completedFields;
+    private Integer requiredFields;
+    private Integer completedRequiredFields;
+
+    /**
      * Validation helper: Check if this is a screening form
      */
     public boolean isScreeningForm() {

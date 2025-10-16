@@ -514,8 +514,8 @@ const FormDesigner = ({
                                     type="button"
                                     onClick={() => setDesignerMode('design')}
                                     className={`px-3 py-2 text-sm rounded-l-md ${designerMode === 'design'
-                                            ? 'bg-white text-blue-600 shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-900'
+                                        ? 'bg-white text-blue-600 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900'
                                         }`}
                                 >
                                     <Edit3 className="h-4 w-4 mr-1 inline" />
@@ -526,8 +526,8 @@ const FormDesigner = ({
                                         type="button"
                                         onClick={() => setDesignerMode('preview')}
                                         className={`px-3 py-2 text-sm ${designerMode === 'preview'
-                                                ? 'bg-white text-blue-600 shadow-sm'
-                                                : 'text-gray-600 hover:text-gray-900'
+                                            ? 'bg-white text-blue-600 shadow-sm'
+                                            : 'text-gray-600 hover:text-gray-900'
                                             }`}
                                     >
                                         <Eye className="h-4 w-4 mr-1 inline" />
@@ -538,8 +538,8 @@ const FormDesigner = ({
                                     type="button"
                                     onClick={() => setDesignerMode('properties')}
                                     className={`px-3 py-2 text-sm rounded-r-md ${designerMode === 'properties'
-                                            ? 'bg-white text-blue-600 shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-900'
+                                        ? 'bg-white text-blue-600 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900'
                                         }`}
                                 >
                                     <Settings className="h-4 w-4 mr-1 inline" />
@@ -704,9 +704,37 @@ const FormDesigner = ({
                                     <FieldPropertiesEditor
                                         field={findFieldById(selectedField)}
                                         context={context}
-                                        onUpdateField={updateField}
-                                        validationRules={validationRules}
-                                        readOnly={readOnly}
+                                        onSave={(updatedField) => {
+                                            updateField(updatedField.id, updatedField);
+                                            setSelectedField(null);
+                                        }}
+                                        onCancel={() => setSelectedField(null)}
+                                        onDelete={(fieldId) => {
+                                            deleteField(fieldId);
+                                            setSelectedField(null);
+                                        }}
+                                        onDuplicate={(field) => {
+                                            duplicateField(field.id);
+                                        }}
+                                        availableFieldTypes={customFieldTypes.length > 0 ? customFieldTypes : [
+                                            { value: 'text', label: 'Text Input' },
+                                            { value: 'textarea', label: 'Text Area' },
+                                            { value: 'number', label: 'Number' },
+                                            { value: 'email', label: 'Email' },
+                                            { value: 'tel', label: 'Phone' },
+                                            { value: 'url', label: 'URL' },
+                                            { value: 'date', label: 'Date' },
+                                            { value: 'time', label: 'Time' },
+                                            { value: 'datetime', label: 'Date & Time' },
+                                            { value: 'select', label: 'Dropdown' },
+                                            { value: 'multiselect', label: 'Multi-Select' },
+                                            { value: 'radio', label: 'Radio Buttons' },
+                                            { value: 'checkbox-group', label: 'Checkboxes' },
+                                            { value: 'checkbox', label: 'Single Checkbox' },
+                                            { value: 'file', label: 'File Upload' },
+                                            { value: 'range', label: 'Range Slider' }
+                                        ]}
+                                        customValidators={validationRules}
                                     />
                                 ) : selectedSection ? (
                                     <SectionEditor

@@ -102,6 +102,15 @@ public class SubmitFormDataCommand extends BaseCommand {
     private final String relatedRecordId;
     
     /**
+     * Field completion tracking
+     * Helps monitor form completion progress
+     */
+    private final Integer totalFields;
+    private final Integer completedFields;
+    private final Integer requiredFields;
+    private final Integer completedRequiredFields;
+    
+    /**
      * Version number for optimistic locking
      * Prevents concurrent edit conflicts
      */

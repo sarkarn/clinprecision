@@ -137,6 +137,10 @@ public class FormDataAggregate {
             .relatedRecordId(command.getRelatedRecordId())
             .version(command.getVersion())
             .formVersion(null) // Will be populated by service layer
+            .totalFields(command.getTotalFields())
+            .completedFields(command.getCompletedFields())
+            .requiredFields(command.getRequiredFields())
+            .completedRequiredFields(command.getCompletedRequiredFields())
             .build();
         
         AggregateLifecycle.apply(event);

@@ -24,7 +24,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/admin/codelists")
-@CrossOrigin(origins = "*", maxAge = 3600)
+// CORS is handled by API Gateway - do not add @CrossOrigin here
 public class CodeListController {
     
     private static final Logger logger = LoggerFactory.getLogger(CodeListController.class);

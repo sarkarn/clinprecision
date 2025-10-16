@@ -119,6 +119,14 @@ public class FormDataDto {
     private String relatedRecordId;
 
     /**
+     * Field completion tracking
+     */
+    private Integer totalFields;
+    private Integer completedFields;
+    private Integer requiredFields;
+    private Integer completedRequiredFields;
+
+    /**
      * Helper methods for frontend
      */
     public boolean isScreeningForm() {

@@ -4,6 +4,7 @@ import { Plus, Trash2, Settings, Table, List, ChevronDown, ChevronUp, Eye, Edit3
 import FormService from '../../../services/FormService';
 import StudyFormService from '../../../services/StudyFormService';
 import FormVersionService from '../../../services/FormVersionService';
+import ApiService from '../../../services/ApiService';
 import { Alert } from '../../modules/trialdesign/components/UIComponents';
 
 /**
@@ -62,8 +63,52 @@ const CRFBuilderIntegration = () => {
     const [loadingTemplates, setLoadingTemplates] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
 
+    // Code list categories for dropdown fields
+    const [codeListCategories, setCodeListCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(false);
+
+    // Code list options cache for preview mode
+    const [codeListOptions, setCodeListOptions] = useState({});
+
     // CRF data would be loaded from or passed to the CRF Builder component
     const [crfData, setCrfData] = useState(null);
+
+    // Fetch available code list categories on mount
+    useEffect(() => {
+        const fetchCodeListCategories = async () => {
+            try {
+                setLoadingCategories(true);
+                const response = await ApiService.get('/clinops-ws/api/admin/codelists/categories');
+                console.log('📦 Raw response from categories API:', response);
+
+                // ApiService returns axios response, so data is in response.data
+                const categories = response?.data || response;
+
+                if (categories && Array.isArray(categories)) {
+                    setCodeListCategories(categories);
+                    console.log('✅ Loaded code list categories:', categories);
+                } else {
+                    console.warn('⚠️ Invalid response format for code list categories:', categories);
+                    // Fallback to common categories
+                    setCodeListCategories([
+                        'COUNTRY', 'SEX', 'RACE', 'ETHNIC', 'VISIT_TYPE',
+                        'SITE_STATUS', 'STUDY_PHASE', 'STUDY_STATUS'
+                    ]);
+                }
+            } catch (error) {
+                console.error('❌ Error fetching code list categories:', error);
+                // Fallback to common categories if API fails
+                setCodeListCategories([
+                    'COUNTRY', 'SEX', 'RACE', 'ETHNIC', 'VISIT_TYPE',
+                    'SITE_STATUS', 'STUDY_PHASE', 'STUDY_STATUS'
+                ]);
+            } finally {
+                setLoadingCategories(false);
+            }
+        };
+
+        fetchCodeListCategories();
+    }, []);
 
     useEffect(() => {
         const loadFormData = async () => {
@@ -739,7 +784,47 @@ const CRFBuilderIntegration = () => {
 
     // Toggle preview mode
     const togglePreviewMode = () => {
-        setPreviewMode(!previewMode);
+        const newPreviewMode = !previewMode;
+        setPreviewMode(newPreviewMode);
+
+        // Load code list options when entering preview mode
+        if (newPreviewMode) {
+            loadCodeListOptionsForPreview();
+        }
+    };
+
+    // Load all code list options needed for preview
+    const loadCodeListOptionsForPreview = async () => {
+        const optionsCache = {};
+        const categoriesToLoad = new Set();
+
+        // Find all fields that use code lists
+        crfData?.sections?.forEach(section => {
+            section.fields?.forEach(field => {
+                if (field.metadata?.codeListCategory) {
+                    categoriesToLoad.add(field.metadata.codeListCategory);
+                }
+            });
+        });
+
+        // Load options for each category
+        for (const category of categoriesToLoad) {
+            try {
+                const response = await ApiService.get(`/clinops-ws/api/admin/codelists/simple/${category}`);
+                const options = response?.data || response;
+
+                if (options && Array.isArray(options)) {
+                    // Transform to simple array of strings for compatibility
+                    optionsCache[category] = options.map(opt => opt.name || opt.label || opt.code || opt.value);
+                    console.log(`✅ Loaded ${optionsCache[category].length} options for ${category}`);
+                }
+            } catch (error) {
+                console.error(`❌ Error loading options for ${category}:`, error);
+                optionsCache[category] = [];
+            }
+        }
+
+        setCodeListOptions(optionsCache);
     };
 
     // Handle preview form data changes
@@ -944,6 +1029,11 @@ const CRFBuilderIntegration = () => {
                 );
 
             case 'select':
+                // Check if using code list or manual options
+                const selectOptions = field.metadata?.codeListCategory
+                    ? codeListOptions[field.metadata.codeListCategory] || []
+                    : field.metadata?.options || [];
+
                 return (
                     <select
                         value={value || ''}
@@ -951,14 +1041,23 @@ const CRFBuilderIntegration = () => {
                         className={`${fieldClasses} ${disabledClasses}`}
                         disabled={disabled || field.metadata?.isReadOnly}
                     >
-                        <option value="">-- Select an option --</option>
-                        {field.metadata?.options?.map((option, index) => (
+                        <option value="">
+                            {field.metadata?.codeListCategory && selectOptions.length === 0
+                                ? `Loading ${field.metadata.codeListCategory}...`
+                                : '-- Select an option --'}
+                        </option>
+                        {selectOptions.map((option, index) => (
                             <option key={index} value={option}>{option}</option>
                         ))}
                     </select>
                 );
 
             case 'multiselect':
+                // Check if using code list or manual options
+                const multiselectOptions = field.metadata?.codeListCategory
+                    ? codeListOptions[field.metadata.codeListCategory] || []
+                    : field.metadata?.options || [];
+
                 return (
                     <select
                         multiple
@@ -969,18 +1068,23 @@ const CRFBuilderIntegration = () => {
                         }}
                         className={`${fieldClasses} ${disabledClasses}`}
                         disabled={disabled || field.metadata?.isReadOnly}
-                        size={Math.min(field.metadata?.options?.length || 3, 5)}
+                        size={Math.min(multiselectOptions.length || 3, 5)}
                     >
-                        {field.metadata?.options?.map((option, index) => (
+                        {multiselectOptions.map((option, index) => (
                             <option key={index} value={option}>{option}</option>
                         ))}
                     </select>
                 );
 
             case 'radio':
+                // Check if using code list or manual options
+                const radioOptions = field.metadata?.codeListCategory
+                    ? codeListOptions[field.metadata.codeListCategory] || []
+                    : field.metadata?.options || [];
+
                 return (
                     <div className="space-y-2">
-                        {field.metadata?.options?.map((option, index) => (
+                        {radioOptions.map((option, index) => (
                             <label key={index} className="flex items-center">
                                 <input
                                     type="radio"
@@ -998,11 +1102,16 @@ const CRFBuilderIntegration = () => {
                 );
 
             case 'checkbox':
-                if (field.metadata?.options?.length > 0) {
+                // Check if using code list or manual options
+                const checkboxOptions = field.metadata?.codeListCategory
+                    ? codeListOptions[field.metadata.codeListCategory] || []
+                    : field.metadata?.options || [];
+
+                if (checkboxOptions.length > 0) {
                     // Multiple checkboxes
                     return (
                         <div className="space-y-2">
-                            {field.metadata.options.map((option, index) => (
+                            {checkboxOptions.map((option, index) => (
                                 <label key={index} className="flex items-center">
                                     <input
                                         type="checkbox"
@@ -1875,20 +1984,126 @@ const CRFBuilderIntegration = () => {
 
                                                                 {/* Options for select/radio/checkbox fields */}
                                                                 {(field.type === 'select' || field.type === 'multiselect' || field.type === 'radio' || field.type === 'checkbox') && (
-                                                                    <div className="col-span-2">
-                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Options (one per line)</label>
-                                                                        <textarea
-                                                                            value={(field.metadata?.options || []).join('\n')}
-                                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, {
-                                                                                metadata: {
-                                                                                    ...field.metadata,
-                                                                                    options: e.target.value.split('\n').filter(option => option.trim())
-                                                                                }
-                                                                            })}
-                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                                            rows="4"
-                                                                            placeholder="Option 1&#10;Option 2&#10;Option 3"
-                                                                        />
+                                                                    <div className="col-span-2 space-y-3">
+                                                                        {/* Option Source Toggle */}
+                                                                        <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-md">
+                                                                            <label className="flex items-center cursor-pointer">
+                                                                                <input
+                                                                                    type="radio"
+                                                                                    name={`optionSource_${field.id}`}
+                                                                                    value="manual"
+                                                                                    checked={!field.metadata?.codeListCategory && field.metadata?.codeListCategory !== ''}
+                                                                                    onChange={() => updateField(sectionIndex, fieldIndex, {
+                                                                                        metadata: {
+                                                                                            ...field.metadata,
+                                                                                            codeListCategory: undefined
+                                                                                        }
+                                                                                    })}
+                                                                                    className="mr-2"
+                                                                                />
+                                                                                <span className="text-sm font-medium text-gray-700">Manual Entry</span>
+                                                                            </label>
+                                                                            <label className="flex items-center cursor-pointer">
+                                                                                <input
+                                                                                    type="radio"
+                                                                                    name={`optionSource_${field.id}`}
+                                                                                    value="codelist"
+                                                                                    checked={field.metadata?.codeListCategory !== undefined}
+                                                                                    onChange={() => updateField(sectionIndex, fieldIndex, {
+                                                                                        metadata: {
+                                                                                            ...field.metadata,
+                                                                                            codeListCategory: ''
+                                                                                        }
+                                                                                    })}
+                                                                                    className="mr-2"
+                                                                                />
+                                                                                <span className="text-sm font-medium text-gray-700">Code List (Database)</span>
+                                                                            </label>
+                                                                        </div>
+
+                                                                        {/* Manual Options Entry */}
+                                                                        {field.metadata?.codeListCategory === undefined && (
+                                                                            <div>
+                                                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                                    Options (one per line)
+                                                                                </label>
+                                                                                <textarea
+                                                                                    defaultValue={(field.metadata?.options || []).join('\n')}
+                                                                                    onBlur={(e) => {
+                                                                                        // Parse options when user finishes editing (blur event)
+                                                                                        const rawValue = e.target.value;
+                                                                                        const newOptions = rawValue.split('\n').map(line => line.trim()).filter(line => line !== '');
+                                                                                        console.log('📝 Manual options saved on blur:', {
+                                                                                            rawInput: rawValue,
+                                                                                            parsedOptions: newOptions,
+                                                                                            optionCount: newOptions.length
+                                                                                        });
+                                                                                        updateField(sectionIndex, fieldIndex, {
+                                                                                            metadata: {
+                                                                                                ...field.metadata,
+                                                                                                options: newOptions
+                                                                                            }
+                                                                                        });
+                                                                                    }}
+                                                                                    onKeyDown={(e) => {
+                                                                                        // Prevent Enter from triggering any parent handlers
+                                                                                        if (e.key === 'Enter') {
+                                                                                            e.stopPropagation();
+                                                                                        }
+                                                                                    }}
+                                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                                                                                    rows="5"
+                                                                                    placeholder="Option 1&#10;Option 2&#10;Option 3"
+                                                                                    spellCheck="false"
+                                                                                />
+                                                                                <p className="mt-1 text-xs text-gray-500">
+                                                                                    Press <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Enter</kbd> to add each option on a new line. Options are saved when you click outside the field.
+                                                                                </p>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Code List Selection */}
+                                                                        {field.metadata?.codeListCategory !== undefined && (
+                                                                            <div>
+                                                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                                    Code List Category *
+                                                                                </label>
+                                                                                <select
+                                                                                    value={field.metadata?.codeListCategory || ''}
+                                                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                        metadata: {
+                                                                                            ...field.metadata,
+                                                                                            codeListCategory: e.target.value,
+                                                                                            options: [] // Clear manual options when using code list
+                                                                                        }
+                                                                                    })}
+                                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                                    disabled={loadingCategories}
+                                                                                >
+                                                                                    <option value="">
+                                                                                        {loadingCategories ? 'Loading categories...' : 'Select a code list category'}
+                                                                                    </option>
+                                                                                    {codeListCategories.map((category) => (
+                                                                                        <option key={category} value={category}>
+                                                                                            {category}
+                                                                                        </option>
+                                                                                    ))}
+                                                                                </select>
+                                                                                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                                                                    <p className="text-xs text-blue-800 mb-2">
+                                                                                        <strong>ℹ️ Dynamic Options:</strong> Options will be loaded from the database automatically.
+                                                                                    </p>
+                                                                                    <p className="text-xs text-blue-700">
+                                                                                        API: <code className="bg-blue-100 px-1 rounded">GET /api/admin/codelists/simple/{'{category}'}</code>
+                                                                                    </p>
+                                                                                    {field.metadata?.codeListCategory && (
+                                                                                        <p className="text-xs text-green-700 mt-2">
+                                                                                            ✅ Selected: <strong>{field.metadata.codeListCategory}</strong>
+                                                                                        </p>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 )}
                                                             </div>

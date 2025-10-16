@@ -61,9 +61,9 @@ public class VisitFormDto {
     private LocalDateTime lastUpdated;
     
     /**
-     * User who last updated the form
+     * User ID who last updated the form
      */
-    private String updatedBy;
+    private Long updatedBy;
     
     /**
      * Instructions for completing this form at this visit
