@@ -28,7 +28,17 @@ const DEFAULT_CACHE_DURATION = 3600;
  * @returns {Promise<Array>} Array of options {value, label, description}
  */
 export const loadFieldOptions = async (field, context = {}) => {
-  const optionSource = field.metadata?.uiConfig?.optionSource;
+  let optionSource = field.metadata?.uiConfig?.optionSource;
+  
+  // Check for simplified code list category format (from form designer)
+  if (!optionSource && field.metadata?.codeListCategory) {
+    optionSource = {
+      type: 'CODE_LIST',
+      category: field.metadata.codeListCategory,
+      cacheable: true,
+      cacheDuration: DEFAULT_CACHE_DURATION
+    };
+  }
   
   // If no option source specified, use static options (backward compatible)
   if (!optionSource) {

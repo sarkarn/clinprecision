@@ -1875,20 +1875,100 @@ const CRFBuilderIntegration = () => {
 
                                                                 {/* Options for select/radio/checkbox fields */}
                                                                 {(field.type === 'select' || field.type === 'multiselect' || field.type === 'radio' || field.type === 'checkbox') && (
-                                                                    <div className="col-span-2">
-                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Options (one per line)</label>
-                                                                        <textarea
-                                                                            value={(field.metadata?.options || []).join('\n')}
-                                                                            onChange={(e) => updateField(sectionIndex, fieldIndex, {
-                                                                                metadata: {
-                                                                                    ...field.metadata,
-                                                                                    options: e.target.value.split('\n').filter(option => option.trim())
-                                                                                }
-                                                                            })}
-                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                                            rows="4"
-                                                                            placeholder="Option 1&#10;Option 2&#10;Option 3"
-                                                                        />
+                                                                    <div className="col-span-2 space-y-3">
+                                                                        {/* Option Source Toggle */}
+                                                                        <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-md">
+                                                                            <label className="flex items-center cursor-pointer">
+                                                                                <input
+                                                                                    type="radio"
+                                                                                    name={`optionSource_${field.id}`}
+                                                                                    value="manual"
+                                                                                    checked={!field.metadata?.codeListCategory}
+                                                                                    onChange={() => updateField(sectionIndex, fieldIndex, {
+                                                                                        metadata: {
+                                                                                            ...field.metadata,
+                                                                                            codeListCategory: null
+                                                                                        }
+                                                                                    })}
+                                                                                    className="mr-2"
+                                                                                />
+                                                                                <span className="text-sm font-medium text-gray-700">Manual Entry</span>
+                                                                            </label>
+                                                                            <label className="flex items-center cursor-pointer">
+                                                                                <input
+                                                                                    type="radio"
+                                                                                    name={`optionSource_${field.id}`}
+                                                                                    value="codelist"
+                                                                                    checked={!!field.metadata?.codeListCategory}
+                                                                                    onChange={() => updateField(sectionIndex, fieldIndex, {
+                                                                                        metadata: {
+                                                                                            ...field.metadata,
+                                                                                            codeListCategory: ''
+                                                                                        }
+                                                                                    })}
+                                                                                    className="mr-2"
+                                                                                />
+                                                                                <span className="text-sm font-medium text-gray-700">Code List (Database)</span>
+                                                                            </label>
+                                                                        </div>
+
+                                                                        {/* Manual Options Entry */}
+                                                                        {!field.metadata?.codeListCategory && (
+                                                                            <div>
+                                                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                                    Options (one per line)
+                                                                                </label>
+                                                                                <textarea
+                                                                                    value={(field.metadata?.options || []).join('\n')}
+                                                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                        metadata: {
+                                                                                            ...field.metadata,
+                                                                                            options: e.target.value.split('\n').filter(option => option.trim())
+                                                                                        }
+                                                                                    })}
+                                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                                    rows="4"
+                                                                                    placeholder="Option 1&#10;Option 2&#10;Option 3"
+                                                                                />
+                                                                                <p className="mt-1 text-xs text-gray-500">
+                                                                                    Enter one option per line. These will be stored in the form definition.
+                                                                                </p>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Code List Selection */}
+                                                                        {field.metadata?.codeListCategory !== undefined && field.metadata?.codeListCategory !== null && (
+                                                                            <div>
+                                                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                                    Code List Category
+                                                                                </label>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={field.metadata?.codeListCategory || ''}
+                                                                                    onChange={(e) => updateField(sectionIndex, fieldIndex, {
+                                                                                        metadata: {
+                                                                                            ...field.metadata,
+                                                                                            codeListCategory: e.target.value,
+                                                                                            options: [] // Clear manual options when using code list
+                                                                                        }
+                                                                                    })}
+                                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                                    placeholder="e.g., COUNTRY, SEX, RACE, ETHNIC"
+                                                                                />
+                                                                                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                                                                    <p className="text-xs text-blue-800 mb-2">
+                                                                                        <strong>ℹ️ Code List Category:</strong> Enter the category name from your database.
+                                                                                    </p>
+                                                                                    <p className="text-xs text-blue-700">
+                                                                                        Options will be loaded dynamically from <code className="bg-blue-100 px-1 rounded">code_list</code> table
+                                                                                        using API: <code className="bg-blue-100 px-1 rounded">GET /api/admin/codelists/simple/{'{category}'}</code>
+                                                                                    </p>
+                                                                                    <p className="text-xs text-blue-700 mt-2">
+                                                                                        <strong>Common categories:</strong> COUNTRY, SEX, RACE, ETHNIC, VISIT_TYPE, SITE_STATUS
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 )}
                                                             </div>
