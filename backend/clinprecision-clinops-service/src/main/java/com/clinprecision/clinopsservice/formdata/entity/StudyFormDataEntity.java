@@ -103,6 +103,25 @@ public class StudyFormDataEntity {
     private Long siteId;
 
     /**
+     * Study database build reference
+     * Foreign key to study_database_builds table
+     * Tracks which protocol/form definition version was used for this submission
+     * 
+     * CRITICAL for data integrity and compliance:
+     * - Links form data to specific protocol version
+     * - Enables correct form structure retrieval for display/validation
+     * - Required for historical data reconstruction
+     * - Supports protocol amendments without breaking existing data
+     * 
+     * Example scenarios:
+     * - Build 1: Demographics has 10 fields (age 18-65)
+     * - Build 2: Demographics has 12 fields (age 18-85)
+     * - This field tracks which version patient filled out
+     */
+    @Column(name = "build_id")
+    private Long buildId;
+
+    /**
      * Form status
      * - DRAFT: Working copy, not official record
      * - SUBMITTED: Official submission, part of regulatory record

@@ -71,6 +71,9 @@ public class VisitFormEntity {
     @Column(name = "instructions", columnDefinition = "TEXT")
     private String instructions; // Specific instructions for this form in this visit
     
+    @Column(name = "build_id")
+    private Long buildId; // FK to study_database_builds - tracks which build version this belongs to
+    
     // Soft delete fields
     @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     @Builder.Default

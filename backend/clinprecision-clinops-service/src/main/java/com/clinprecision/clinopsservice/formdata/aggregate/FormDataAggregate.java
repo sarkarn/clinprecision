@@ -79,6 +79,7 @@ public class FormDataAggregate {
     private Long subjectId;
     private Long visitId;
     private Long siteId;
+    private Long buildId;  // ✅ BUILD ID - Protocol version tracking
     private Map<String, Object> formData;
     private String status; // DRAFT, SUBMITTED, LOCKED
     private Long submittedBy;
@@ -112,9 +113,9 @@ public class FormDataAggregate {
      */
     @CommandHandler
     public FormDataAggregate(SubmitFormDataCommand command) {
-        logger.info("Handling SubmitFormDataCommand: formDataId={}, studyId={}, formId={}, subjectId={}, status={}", 
+        logger.info("Handling SubmitFormDataCommand: formDataId={}, studyId={}, formId={}, subjectId={}, buildId={}, status={}", 
             command.getFormDataId(), command.getStudyId(), command.getFormId(), 
-            command.getSubjectId(), command.getStatus());
+            command.getSubjectId(), command.getBuildId(), command.getStatus());
         
         // Validate command
         command.validate();
@@ -130,6 +131,7 @@ public class FormDataAggregate {
             .subjectId(command.getSubjectId())
             .visitId(command.getVisitId())
             .siteId(command.getSiteId())
+            .buildId(command.getBuildId())  // ✅ SET BUILD ID IN EVENT
             .formData(command.getFormData())
             .status(command.getStatus())
             .submittedBy(command.getSubmittedBy())
@@ -163,7 +165,8 @@ public class FormDataAggregate {
      */
     @EventSourcingHandler
     public void on(FormDataSubmittedEvent event) {
-        logger.debug("Applying FormDataSubmittedEvent: formDataId={}", event.getFormDataId());
+        logger.debug("Applying FormDataSubmittedEvent: formDataId={}, buildId={}", 
+            event.getFormDataId(), event.getBuildId());
         
         this.formDataId = event.getFormDataId();
         this.studyId = event.getStudyId();
@@ -171,6 +174,7 @@ public class FormDataAggregate {
         this.subjectId = event.getSubjectId();
         this.visitId = event.getVisitId();
         this.siteId = event.getSiteId();
+        this.buildId = event.getBuildId();  // ✅ UPDATE AGGREGATE STATE
         this.formData = event.getFormData();
         this.status = event.getStatus();
         this.submittedBy = event.getSubmittedBy();
@@ -178,8 +182,8 @@ public class FormDataAggregate {
         this.version = event.getVersion();
         this.relatedRecordId = event.getRelatedRecordId();
         
-        logger.debug("FormDataAggregate state updated: status={}, fieldCount={}", 
-            this.status, this.formData != null ? this.formData.size() : 0);
+        logger.debug("FormDataAggregate state updated: status={}, buildId={}, fieldCount={}", 
+            this.status, this.buildId, this.formData != null ? this.formData.size() : 0);
     }
     
     /**

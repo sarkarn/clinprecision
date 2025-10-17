@@ -68,6 +68,18 @@ public class FormDataSubmittedEvent {
     private final Long siteId;
     
     /**
+     * Build ID - references study_database_builds table
+     * Tracks which protocol/form definition version was used
+     * 
+     * CRITICAL for:
+     * - Displaying form with correct structure
+     * - Validating against correct rules
+     * - Historical data reconstruction
+     * - Protocol amendment support
+     */
+    private final Long buildId;
+    
+    /**
      * Complete form data as JSON structure
      * Preserves exact state at submission time
      * 

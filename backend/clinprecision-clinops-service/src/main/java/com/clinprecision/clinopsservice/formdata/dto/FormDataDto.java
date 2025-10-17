@@ -81,6 +81,13 @@ public class FormDataDto {
     private Long siteId;
 
     /**
+     * Build reference
+     * Tracks which protocol/form definition version was used
+     * Critical for displaying form with correct structure
+     */
+    private Long buildId;
+
+    /**
      * Complete form data as JSON
      * All field values preserved as submitted
      */

@@ -78,6 +78,18 @@ public class FormSubmissionRequest {
     private Long siteId;
 
     /**
+     * Build ID - references study_database_builds table
+     * Tracks which protocol/form definition version to use
+     * 
+     * OPTIONAL in request - will be auto-populated by service:
+     * - From visit instance (if visitId provided)
+     * - From active study build (if no visit)
+     * 
+     * Frontend can include this for validation/debugging
+     */
+    private Long buildId;
+
+    /**
      * Complete form data as key-value map
      * Keys are field names from form definition
      * Values can be any JSON-serializable type

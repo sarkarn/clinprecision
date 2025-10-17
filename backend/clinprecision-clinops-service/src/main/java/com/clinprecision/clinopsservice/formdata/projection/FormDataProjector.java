@@ -93,9 +93,9 @@ public class FormDataProjector {
     @EventHandler
     @Transactional
     public void on(FormDataSubmittedEvent event) {
-        log.info("Projecting FormDataSubmittedEvent: formDataId={}, studyId={}, formId={}, subjectId={}, status={}", 
+        log.info("Projecting FormDataSubmittedEvent: formDataId={}, studyId={}, formId={}, subjectId={}, buildId={}, status={}", 
             event.getFormDataId(), event.getStudyId(), event.getFormId(), 
-            event.getSubjectId(), event.getStatus());
+            event.getSubjectId(), event.getBuildId(), event.getStatus());
         
         try {
             // Step 1: Check idempotency - has this event already been processed?
@@ -116,6 +116,7 @@ public class FormDataProjector {
                 .subjectId(event.getSubjectId())
                 .visitId(event.getVisitId())
                 .siteId(event.getSiteId())
+                .buildId(event.getBuildId())  // ✅ SET BUILD ID
                 .formData(event.getFormData())
                 .status(event.getStatus())
                 .version(event.getVersion())
@@ -134,14 +135,15 @@ public class FormDataProjector {
             // Step 3: Save to study_form_data table
             StudyFormDataEntity savedEntity = formDataRepository.save(formDataEntity);
             
-            log.info("Form data record created: id={}, formDataId={}, studyId={}, formId={}, subjectId={}, fieldCount={}", 
+            log.info("Form data record created: id={}, formDataId={}, studyId={}, formId={}, subjectId={}, buildId={}, fieldCount={}", 
                 savedEntity.getId(), event.getFormDataId(), event.getStudyId(), 
-                event.getFormId(), event.getSubjectId(), event.getFieldCount());
+                event.getFormId(), event.getSubjectId(), event.getBuildId(), event.getFieldCount());
             
             // Step 4: Create audit record
             createAuditRecord(event, savedEntity.getId());
             
-            log.info("FormDataSubmittedEvent projection completed successfully: record id={}", savedEntity.getId());
+            log.info("FormDataSubmittedEvent projection completed successfully: record id={}, buildId={}", 
+                savedEntity.getId(), event.getBuildId());
             
         } catch (Exception e) {
             log.error("Error projecting FormDataSubmittedEvent: formDataId={}, error={}", 
@@ -163,6 +165,7 @@ public class FormDataProjector {
      * Audit Record Contents:
      * - studyId: Study context
      * - recordId: Reference to study_form_data record
+     * - buildId: Protocol version active at submission
      * - action: INSERT (new submission)
      * - oldData: NULL (no previous data)
      * - newData: Complete form data as JSON
@@ -179,6 +182,7 @@ public class FormDataProjector {
                 .studyId(event.getStudyId())
                 .recordId(recordId)
                 .aggregateUuid(event.getFormDataId().toString())
+                .buildId(event.getBuildId())  // ✅ SET BUILD ID (FDA compliance)
                 .action("INSERT") // New form submission
                 .oldData(null) // No previous data for new submission
                 .newData(event.getFormData()) // Complete form data
@@ -191,8 +195,8 @@ public class FormDataProjector {
             
             StudyFormDataAuditEntity savedAudit = auditRepository.save(auditEntity);
             
-            log.info("Audit record created: auditId={}, recordId={}, action=INSERT, fieldCount={}", 
-                savedAudit.getAuditId(), recordId, event.getFieldCount());
+            log.info("Audit record created: auditId={}, recordId={}, buildId={}, action=INSERT, fieldCount={}", 
+                savedAudit.getAuditId(), recordId, event.getBuildId(), event.getFieldCount());
             
         } catch (Exception e) {
             log.error("Error creating audit record: recordId={}, error={}", recordId, e.getMessage(), e);
