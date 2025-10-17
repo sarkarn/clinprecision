@@ -1,5 +1,7 @@
 package com.clinprecision.clinopsservice.visit.projector;
 
+import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus;
+import com.clinprecision.clinopsservice.studydatabase.repository.StudyDatabaseBuildRepository;
 import com.clinprecision.clinopsservice.visit.domain.events.VisitCreatedEvent;
 import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
 import com.clinprecision.clinopsservice.visit.repository.StudyVisitInstanceRepository;
@@ -41,9 +43,12 @@ public class VisitProjector {
     private static final Logger logger = LoggerFactory.getLogger(VisitProjector.class);
     
     private final StudyVisitInstanceRepository studyVisitInstanceRepository;
+    private final StudyDatabaseBuildRepository studyDatabaseBuildRepository;
     
-    public VisitProjector(StudyVisitInstanceRepository studyVisitInstanceRepository) {
+    public VisitProjector(StudyVisitInstanceRepository studyVisitInstanceRepository,
+                         StudyDatabaseBuildRepository studyDatabaseBuildRepository) {
         this.studyVisitInstanceRepository = studyVisitInstanceRepository;
+        this.studyDatabaseBuildRepository = studyDatabaseBuildRepository;
     }
     
     /**
@@ -65,6 +70,15 @@ public class VisitProjector {
                 return;
             }
 
+            // CRITICAL FIX (Oct 17, 2025): Get active build_id for study
+            // This is required for visit forms to be associated with correct protocol version
+            Long buildId = getActiveBuildIdForStudy(event.getStudyId());
+            
+            if (buildId == null) {
+                logger.warn("No COMPLETED build found for study {}. Visit will be created without build_id. " +
+                           "Forms may not be available until study build completes.", event.getStudyId());
+            }
+
             // Create unscheduled visit instance from event
             StudyVisitInstanceEntity visit = StudyVisitInstanceEntity.builder()
                 .studyId(event.getStudyId())
@@ -73,6 +87,7 @@ public class VisitProjector {
                 .siteId(event.getSiteId())
                 .visitDate(event.getVisitDate())
                 .visitStatus(event.getStatus())
+                .buildId(buildId) // ← CRITICAL FIX: Set build_id for protocol version tracking
                 .aggregateUuid(event.getVisitId().toString()) // Store event UUID
                 .notes(event.getNotes())
                 .createdBy(event.getCreatedBy()) // User ID who created the visit
@@ -81,12 +96,32 @@ public class VisitProjector {
             // Save to read model
             studyVisitInstanceRepository.save(visit);
             
-            logger.info("Unscheduled visit instance created successfully: visitId={}, subjectId={}, visitType={}", 
-                       event.getVisitId(), event.getPatientId(), event.getVisitType());
+            logger.info("Unscheduled visit instance created successfully: visitId={}, subjectId={}, visitType={}, buildId={}", 
+                       event.getVisitId(), event.getPatientId(), event.getVisitType(), buildId);
             
         } catch (Exception e) {
             logger.error("Error projecting VisitCreatedEvent for visitId: {}", event.getVisitId(), e);
             throw new RuntimeException("Failed to project VisitCreatedEvent", e);
         }
+    }
+    
+    /**
+     * Get the active (most recent COMPLETED) build ID for a study
+     * This is used to associate visits with the correct protocol version
+     * 
+     * @param studyId Study ID
+     * @return Build ID (Long) of the most recent COMPLETED build, or null if no completed builds exist
+     */
+    private Long getActiveBuildIdForStudy(Long studyId) {
+        logger.debug("Fetching active build ID for study: {}", studyId);
+        
+        return studyDatabaseBuildRepository
+            .findTopByStudyIdAndBuildStatusOrderByBuildEndTimeDesc(studyId, StudyDatabaseBuildStatus.COMPLETED)
+            .map(build -> {
+                logger.info("Found active build for study {}: buildId={}, buildRequestId={}", 
+                           studyId, build.getId(), build.getBuildRequestId());
+                return build.getId();
+            })
+            .orElse(null);
     }
 }

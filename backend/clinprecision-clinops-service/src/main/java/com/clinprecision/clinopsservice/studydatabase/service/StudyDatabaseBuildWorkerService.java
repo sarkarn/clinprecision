@@ -3,9 +3,11 @@ package com.clinprecision.clinopsservice.studydatabase.service;
 import com.clinprecision.clinopsservice.entity.FormDefinitionEntity;
 import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
 import com.clinprecision.clinopsservice.entity.StudyArmEntity;
+import com.clinprecision.clinopsservice.entity.VisitFormEntity;
 import com.clinprecision.clinopsservice.repository.FormDefinitionRepository;
 import com.clinprecision.clinopsservice.repository.VisitDefinitionRepository;
 import com.clinprecision.clinopsservice.repository.StudyArmRepository;
+import com.clinprecision.clinopsservice.repository.VisitFormRepository;
 import com.clinprecision.clinopsservice.studydatabase.domain.commands.CompleteStudyDatabaseBuildCommand;
 import com.clinprecision.clinopsservice.studydatabase.domain.events.StudyDatabaseBuildStartedEvent;
 import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
@@ -64,6 +66,7 @@ public class StudyDatabaseBuildWorkerService {
     private final FormDefinitionRepository formDefinitionRepository;
     private final VisitDefinitionRepository visitDefinitionRepository;
     private final StudyArmRepository studyArmRepository;
+    private final VisitFormRepository visitFormRepository;
     private final CommandGateway commandGateway;
     private final JdbcTemplate jdbcTemplate;
     
@@ -341,7 +344,10 @@ public class StudyDatabaseBuildWorkerService {
 
     /**
      * Create form-visit mappings - Associates forms with visits
-     * Inserts into study_visit_form_mapping table
+     * Inserts into visit_forms table (FIXED: Oct 17, 2025 - Changed from study_visit_form_mapping)
+     * 
+     * CRITICAL: This method now uses the correct visit_forms table with build_id support
+     * for proper protocol versioning and query service compatibility.
      */
     private int createFormVisitMappings(Long studyId, UUID buildId, 
                                         List<FormDefinitionEntity> forms, 
@@ -351,33 +357,31 @@ public class StudyDatabaseBuildWorkerService {
         
         int mappingsCreated = 0;
         
-        String insertSql = 
-            "INSERT INTO study_visit_form_mapping " +
-            "(study_id, visit_id, form_id, is_required, sequence, created_by, created_at) " +
-            "VALUES (?, ?, ?, ?, ?, ?, NOW())";
-        
         try {
+            // Get the numeric build ID from UUID
+            Long buildIdLong = getBuildIdFromUuid(buildId);
+            
             // For each visit, associate all forms (in real implementation, use actual visit-form associations)
-            int sequence = 1;
+            int displayOrder = 1;
             for (VisitDefinitionEntity visit : visits) {
                 for (FormDefinitionEntity form : forms) {
-                    // Check if mapping already exists
-                    String checkSql = 
-                        "SELECT COUNT(*) FROM study_visit_form_mapping " +
-                        "WHERE study_id = ? AND visit_id = ? AND form_id = ?";
+                    // Check if mapping already exists for this build
+                    boolean exists = visitFormRepository.existsByVisitDefinitionIdAndFormDefinitionId(
+                            visit.getId(), form.getId());
                     
-                    Integer existingCount = jdbcTemplate.queryForObject(checkSql, Integer.class, 
-                                                                        studyId, visit.getId(), form.getId());
-                    
-                    if (existingCount == null || existingCount == 0) {
-                        jdbcTemplate.update(insertSql, 
-                            studyId, 
-                            visit.getId(), 
-                            form.getId(), 
-                            true,  // is_required (could be parsed from study design)
-                            sequence++, 
-                            1L);   // created_by (system user)
+                    if (!exists) {
+                        // Create VisitFormEntity with proper build_id
+                        VisitFormEntity visitForm = VisitFormEntity.builder()
+                                .visitDefinition(visit)
+                                .formDefinition(form)
+                                .buildId(buildIdLong)  // CRITICAL: Set build_id for versioning
+                                .isRequired(true)      // Could be parsed from study design
+                                .isConditional(false)
+                                .displayOrder(displayOrder++)
+                                .createdBy(1L)         // System user
+                                .build();
                         
+                        visitFormRepository.save(visitForm);
                         mappingsCreated++;
                         
                         // Track configuration in build config table
@@ -387,7 +391,8 @@ public class StudyDatabaseBuildWorkerService {
                 }
             }
             
-            log.info("Created {} form-visit mappings", mappingsCreated);
+            log.info("Created {} form-visit mappings in visit_forms table with build_id={}", 
+                     mappingsCreated, buildIdLong);
             
         } catch (Exception e) {
             log.error("Failed to create form-visit mappings: {}", e.getMessage(), e);
@@ -395,6 +400,17 @@ public class StudyDatabaseBuildWorkerService {
         }
         
         return mappingsCreated;
+    }
+    
+    /**
+     * Helper method to get numeric build ID from UUID
+     * Looks up the StudyDatabaseBuildEntity by UUID and returns its ID
+     */
+    private Long getBuildIdFromUuid(UUID buildUuid) {
+        return buildRepository.findByAggregateUuid(buildUuid.toString())
+                .map(StudyDatabaseBuildEntity::getId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Build not found for UUID: " + buildUuid));
     }
 
     /**

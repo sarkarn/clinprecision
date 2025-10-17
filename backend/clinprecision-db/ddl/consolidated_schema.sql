@@ -216,7 +216,8 @@ CREATE TABLE code_list_usage (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     category VARCHAR(100) NOT NULL,
     application_module VARCHAR(100) NOT NULL COMMENT 'Module/service name',
-    usage_type ENUM('DROPDOWN', 'VALIDATION', 'DISPLAY', 'FILTER') NOT NULL,
+    usage_type ENUM('DROPDOWN', 'MULTI_SELECT', 'CHECKBOX_GROUP', 'VALIDATION', 'DISPLAY', 'FILTER') NOT NULL 
+        COMMENT 'Type of UI control or usage pattern',
     field_name VARCHAR(100) COMMENT 'Field/property name where used',
     is_required BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -1598,26 +1599,6 @@ CREATE TABLE IF NOT EXISTS study_visit_instances_audit (
 -- 2. CONFIGURATION TABLES (Study-specific settings)
 -- ============================================================================
 
--- Study Visit Form Mapping - Associates forms with visits per study
-CREATE TABLE IF NOT EXISTS study_visit_form_mapping (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    study_id BIGINT NOT NULL,
-    visit_id BIGINT NOT NULL,
-    form_id BIGINT NOT NULL,
-    is_required BOOLEAN DEFAULT true,
-    sequence INT,                           -- Display order
-    conditional_logic JSON,                 -- Conditions for form visibility
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by BIGINT,
-    
-    UNIQUE KEY uk_study_visit_form (study_id, visit_id, form_id),
-    INDEX idx_study (study_id),
-    INDEX idx_visit (study_id, visit_id),
-    INDEX idx_form (study_id, form_id),
-    
-    CONSTRAINT fk_svfm_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Study Form Validation Rules - Field-level validation rules per study
 CREATE TABLE IF NOT EXISTS study_form_validation_rules (

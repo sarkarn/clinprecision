@@ -147,8 +147,8 @@ INSERT INTO code_lists (category, code, display_name, description, sort_order, i
 
 
 INSERT INTO code_lists (category, code, display_name, description, sort_order, is_active, system_code, created_by, metadata) VALUES
-('BOOLEAN_FLAG', 'DRAFT', 'Draft', 'Template is in draft state', 1, TRUE, TRUE, @system_user_id, JSON_OBJECT('can_edit', true, 'can_use', false)),
-('BOOLEAN_FLAG', 'ACTIVE', 'Active', 'Template is active and ready for use', 2, TRUE, TRUE, @system_user_id, JSON_OBJECT('can_edit', false, 'can_use', true));
+('BOOLEAN_FLAG', 'TRUE', 'True', 'True', 1, TRUE, TRUE, @system_user_id, JSON_OBJECT('can_edit', true, 'can_use', false)),
+('BOOLEAN_FLAG', 'FALSE', 'False', 'False', 2, TRUE, TRUE, @system_user_id, JSON_OBJECT('can_edit', false, 'can_use', true));
 
 
 -- ===================================================================
