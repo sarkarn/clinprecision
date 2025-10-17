@@ -138,6 +138,18 @@ public interface StudyDatabaseBuildRepository extends JpaRepository<StudyDatabas
      * Find builds that were cancelled
      */
     List<StudyDatabaseBuildEntity> findByCancelledByIsNotNullOrderByCancelledAtDesc();
+
+    /**
+     * Find the most recent COMPLETED build for a study (ACTIVE BUILD)
+     * This is used to determine which build version should be used for new patient enrollments
+     * 
+     * @param studyId Study database ID
+     * @param buildStatus Should be COMPLETED
+     * @return Most recent completed build, or empty if no completed builds exist
+     */
+    Optional<StudyDatabaseBuildEntity> findTopByStudyIdAndBuildStatusOrderByBuildEndTimeDesc(
+            Long studyId, 
+            StudyDatabaseBuildStatus buildStatus);
 }
 
 

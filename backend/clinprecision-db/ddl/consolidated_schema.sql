@@ -21,8 +21,8 @@ CREATE TABLE  domain_event_entry (
     aggregate_identifier VARCHAR(255) NOT NULL,
     sequence_number BIGINT NOT NULL,
     type VARCHAR(255),
-    meta_data BLOB,
-    payload BLOB NOT NULL,
+    meta_data LONGBLOB,
+    payload LONGBLOB NOT NULL,
     payload_revision VARCHAR(255),
     payload_type VARCHAR(255) NOT NULL,
     time_stamp VARCHAR(255) NOT NULL,
@@ -39,8 +39,8 @@ CREATE TABLE  snapshot_event_entry (
     sequence_number BIGINT NOT NULL,
     type VARCHAR(255) NOT NULL,
     event_identifier VARCHAR(255) NOT NULL UNIQUE,
-    meta_data BLOB,
-    payload BLOB NOT NULL,
+    meta_data LONGBLOB,
+    payload LONGBLOB NOT NULL,
     payload_revision VARCHAR(255),
     payload_type VARCHAR(255) NOT NULL,
     time_stamp VARCHAR(255) NOT NULL,
@@ -925,11 +925,55 @@ CREATE TABLE IF NOT EXISTS study_randomization_strategies (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Randomization strategies for study arms - normalized approach for zero technical debt';
 
+-- ============================================================================
+-- Database Build: Study Database Build
+-- Version: 001
+-- ============================================================================
 
+CREATE TABLE study_database_builds (
+  id bigint NOT NULL AUTO_INCREMENT,
+  aggregate_uuid varchar(255) DEFAULT NULL COMMENT 'Aggregate UUID from Axon Framework - links to event-sourced aggregate',
+  study_id bigint NOT NULL,
+  study_name varchar(500) DEFAULT NULL COMMENT 'Study name for display purposes',
+  study_protocol varchar(100) DEFAULT NULL COMMENT 'Study protocol identifier',
+  build_request_id varchar(100) NOT NULL,
+  build_status enum('IN_PROGRESS','COMPLETED','FAILED','CANCELLED') NOT NULL DEFAULT 'IN_PROGRESS' COMMENT 'Current build status - aligned with StudyDatabaseBuildAggregate',
+  build_start_time timestamp NULL DEFAULT NULL,
+  build_end_time timestamp NULL DEFAULT NULL,
+  requested_by bigint NOT NULL COMMENT 'User ID who requested the build',
+  build_configuration longtext COMMENT 'JSON configuration for the build',
+  validation_results longtext COMMENT 'JSON validation results',
+  validation_status varchar(50) DEFAULT NULL COMMENT 'Validation status (PASSED, FAILED, WARNING)',
+  validated_at timestamp NULL DEFAULT NULL COMMENT 'When validation was completed',
+  validated_by varchar(255) DEFAULT NULL COMMENT 'User ID who performed validation',
+  error_details longtext COMMENT 'Error details if build failed',
+  cancelled_by varchar(255) DEFAULT NULL COMMENT 'User ID who cancelled the build',
+  cancelled_at timestamp NULL DEFAULT NULL COMMENT 'When the build was cancelled',
+  cancellation_reason text COMMENT 'Reason for cancellation',
+  tables_created int DEFAULT '0' COMMENT 'Number of tables created',
+  indexes_created int DEFAULT '0' COMMENT 'Number of indexes created',
+  triggers_created int DEFAULT '0' COMMENT 'Number of triggers created',
+  forms_configured int DEFAULT '0' COMMENT 'Number of forms configured in form_definitions table',
+  validation_rules_created int DEFAULT '0' COMMENT 'Number of validation rules created',
+  created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY build_request_id (build_request_id),
+  UNIQUE KEY aggregate_uuid (aggregate_uuid),
+  KEY idx_study_db_builds_study (study_id),
+  KEY idx_study_db_builds_status (build_status),
+  KEY idx_study_db_builds_requested_by (requested_by),
+  KEY idx_study_db_builds_start_time (build_start_time),
+  KEY idx_study_db_builds_request_id (build_request_id),
+  KEY idx_study_db_builds_aggregate_uuid (aggregate_uuid),
+  CONSTRAINT study_database_builds_ibfk_1 FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE,
+  CONSTRAINT study_database_builds_ibfk_2 FOREIGN KEY (requested_by) REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Tracks database build processes for clinical studies';
 
 CREATE TABLE visit_definitions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID linking to StudyDesignAggregate in event store',
+	build_id BIGINT NULL COMMENT 'FK to study_database_builds - tracks which build version this visit definition belongs to',
     visit_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this visit entity from VisitDefinedEvent',
     study_id BIGINT NOT NULL,
     arm_id BIGINT,
@@ -951,13 +995,15 @@ CREATE TABLE visit_definitions (
     deleted_by VARCHAR(100) NULL COMMENT 'User who deleted this visit definition',
     deletion_reason TEXT NULL COMMENT 'Reason for deleting this visit definition',
     FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
-    FOREIGN KEY (arm_id) REFERENCES study_arms(id) ON DELETE SET NULL
+    FOREIGN KEY (arm_id) REFERENCES study_arms(id) ON DELETE SET NULL,
+	CONSTRAINT fk_visit_definition_build FOREIGN KEY (build_id) REFERENCES study_database_builds(id) ON DELETE RESTRICT
 );
 
 -- Form definitions
 CREATE TABLE form_definitions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID used by Axon Framework for FormAggregate (future)',
+	build_id BIGINT NULL COMMENT 'FK to study_database_builds - tracks which build version this form definition belongs to',
     form_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this form entity',
     study_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -980,7 +1026,8 @@ CREATE TABLE form_definitions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id),
-	CONSTRAINT fk_form_template FOREIGN KEY (template_id) REFERENCES form_templates(id) ON DELETE SET NULL
+	CONSTRAINT fk_form_template FOREIGN KEY (template_id) REFERENCES form_templates(id) ON DELETE SET NULL,
+	CONSTRAINT fk_form_definition_build FOREIGN KEY (build_id) REFERENCES study_database_builds(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE form_versions (
@@ -998,6 +1045,7 @@ CREATE TABLE form_versions (
 CREATE TABLE visit_forms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID linking to StudyDesignAggregate in event store',
+	build_id BIGINT NULL COMMENT 'FK to study_database_builds - tracks which build version this form assignment belongs to',
     assignment_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this form assignment from FormAssignedToVisitEvent',
     visit_uuid VARCHAR(255) NULL COMMENT 'UUID reference to VisitDefinition',
     form_uuid VARCHAR(255) NULL COMMENT 'UUID reference to FormDefinition',
@@ -1021,6 +1069,7 @@ CREATE TABLE visit_forms (
     FOREIGN KEY (form_definition_id) REFERENCES form_definitions(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id),
     FOREIGN KEY (updated_by) REFERENCES users(id),
+	CONSTRAINT fk_visit_form_build FOREIGN KEY (build_id) REFERENCES study_database_builds(id) ON DELETE RESTRICT,
     UNIQUE KEY (visit_definition_id, form_definition_id)
 );
 
@@ -1301,51 +1350,6 @@ CREATE TABLE IF NOT EXISTS patient_status_history (
     
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Tracks all patient status transitions with complete audit trail. Each status change generates one record capturing who, when, why, and what changed. Required for FDA 21 CFR Part 11 compliance and regulatory audits.Status flow: REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED/WITHDRAWN';
 
--- ============================================================================
--- Database Build: Study Database Build
--- Version: 001
--- ============================================================================
-
-CREATE TABLE study_database_builds (
-  id bigint NOT NULL AUTO_INCREMENT,
-  aggregate_uuid varchar(255) DEFAULT NULL COMMENT 'Aggregate UUID from Axon Framework - links to event-sourced aggregate',
-  study_id bigint NOT NULL,
-  study_name varchar(500) DEFAULT NULL COMMENT 'Study name for display purposes',
-  study_protocol varchar(100) DEFAULT NULL COMMENT 'Study protocol identifier',
-  build_request_id varchar(100) NOT NULL,
-  build_status enum('IN_PROGRESS','COMPLETED','FAILED','CANCELLED') NOT NULL DEFAULT 'IN_PROGRESS' COMMENT 'Current build status - aligned with StudyDatabaseBuildAggregate',
-  build_start_time timestamp NULL DEFAULT NULL,
-  build_end_time timestamp NULL DEFAULT NULL,
-  requested_by bigint NOT NULL COMMENT 'User ID who requested the build',
-  build_configuration longtext COMMENT 'JSON configuration for the build',
-  validation_results longtext COMMENT 'JSON validation results',
-  validation_status varchar(50) DEFAULT NULL COMMENT 'Validation status (PASSED, FAILED, WARNING)',
-  validated_at timestamp NULL DEFAULT NULL COMMENT 'When validation was completed',
-  validated_by varchar(255) DEFAULT NULL COMMENT 'User ID who performed validation',
-  error_details longtext COMMENT 'Error details if build failed',
-  cancelled_by varchar(255) DEFAULT NULL COMMENT 'User ID who cancelled the build',
-  cancelled_at timestamp NULL DEFAULT NULL COMMENT 'When the build was cancelled',
-  cancellation_reason text COMMENT 'Reason for cancellation',
-  tables_created int DEFAULT '0' COMMENT 'Number of tables created',
-  indexes_created int DEFAULT '0' COMMENT 'Number of indexes created',
-  triggers_created int DEFAULT '0' COMMENT 'Number of triggers created',
-  forms_configured int DEFAULT '0' COMMENT 'Number of forms configured in form_definitions table',
-  validation_rules_created int DEFAULT '0' COMMENT 'Number of validation rules created',
-  created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY build_request_id (build_request_id),
-  UNIQUE KEY aggregate_uuid (aggregate_uuid),
-  KEY idx_study_db_builds_study (study_id),
-  KEY idx_study_db_builds_status (build_status),
-  KEY idx_study_db_builds_requested_by (requested_by),
-  KEY idx_study_db_builds_start_time (build_start_time),
-  KEY idx_study_db_builds_request_id (build_request_id),
-  KEY idx_study_db_builds_aggregate_uuid (aggregate_uuid),
-  CONSTRAINT study_database_builds_ibfk_1 FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE,
-  CONSTRAINT study_database_builds_ibfk_2 FOREIGN KEY (requested_by) REFERENCES users (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Tracks database build processes for clinical studies';
-
 -- Study Validation Rules table
 -- Note: References form_definitions from consolidated schema instead of redundant study_form_definitions
 CREATE TABLE study_validation_rules (
@@ -1476,6 +1480,7 @@ CREATE TABLE study_build_notifications (
 CREATE TABLE IF NOT EXISTS study_form_data (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 	aggregate_uuid VARCHAR(36) NULL UNIQUE COMMENT 'UUID of the FormData aggregate (for event sourcing)',
+	build_id BIGINT NULL COMMENT 'FK to study_database_builds - tracks which form definition version was used for this submission',
     study_id BIGINT NOT NULL,
     form_id BIGINT NOT NULL,
     subject_id BIGINT,
@@ -1507,7 +1512,8 @@ CREATE TABLE IF NOT EXISTS study_form_data (
     INDEX idx_subject_visit (study_id, subject_id, visit_id),
 	INDEX idx_study_form_data_completion (completed_fields, total_fields, status),
     
-   CONSTRAINT fk_sfd_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
+   CONSTRAINT fk_sfd_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+   CONSTRAINT fk_study_form_data_build FOREIGN KEY (build_id) REFERENCES study_database_builds(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- PARTITION BY HASH(study_id) PARTITIONS 16;
 
@@ -1515,6 +1521,7 @@ CREATE TABLE IF NOT EXISTS study_form_data (
 CREATE TABLE IF NOT EXISTS study_form_data_audit (
     audit_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     study_id BIGINT NOT NULL,
+	build_id BIGINT NULL COMMENT 'FK to study_database_builds - tracks protocol version when change was made (FDA 21 CFR Part 11 compliance)',
     record_id BIGINT NOT NULL,              -- ID from study_form_data
 	aggregate_uuid VARCHAR(255),
     action VARCHAR(20) NOT NULL,            -- INSERT, UPDATE, DELETE, LOCK, UNLOCK
@@ -1531,7 +1538,8 @@ CREATE TABLE IF NOT EXISTS study_form_data_audit (
     INDEX idx_record (study_id, record_id),
     INDEX idx_changed_at (changed_at),
     INDEX idx_changed_by (changed_by),
-    INDEX idx_action (action)
+    INDEX idx_action (action),
+	CONSTRAINT fk_study_form_data_audit_build FOREIGN KEY (build_id) REFERENCES study_database_builds(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- PARTITION BY HASH(study_id) PARTITIONS 16;
 
@@ -1539,6 +1547,7 @@ CREATE TABLE IF NOT EXISTS study_form_data_audit (
 CREATE TABLE IF NOT EXISTS study_visit_instances (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 	aggregate_uuid VARCHAR(36) NULL COMMENT 'UUID for event sourcing - populated for unscheduled visits created via events',
+	build_id BIGINT NULL COMMENT 'FK to study_database_builds - tracks which build version was used for this patient',
     study_id BIGINT NOT NULL,
     visit_id BIGINT NOT NULL,               -- FK to visit_definitions
     subject_id BIGINT NOT NULL,             -- FK to study_subjects
@@ -1562,7 +1571,8 @@ CREATE TABLE IF NOT EXISTS study_visit_instances (
     INDEX idx_visit_date (study_id, visit_date),
     
    CONSTRAINT fk_svi_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
-   CONSTRAINT fk_svi_visit_definition FOREIGN KEY (visit_id) REFERENCES visit_definitions(id) ON DELETE CASCADE
+   CONSTRAINT fk_svi_visit_definition FOREIGN KEY (visit_id) REFERENCES visit_definitions(id) ON DELETE CASCADE,
+   CONSTRAINT fk_visit_instance_build FOREIGN KEY (build_id) REFERENCES study_database_builds(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- PARTITION BY HASH(study_id) PARTITIONS 16;
 
@@ -1629,25 +1639,6 @@ CREATE TABLE IF NOT EXISTS study_form_validation_rules (
     CONSTRAINT fk_sfvr_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Study Visit Schedules - Visit timing and window configuration
-CREATE TABLE IF NOT EXISTS study_visit_schedules (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    study_id BIGINT NOT NULL,
-    visit_id BIGINT NOT NULL,
-    day_number INT,                        -- Study day (relative to enrollment, Day 1 = enrollment)
-    window_before INT,                     -- Days before target date (early window)
-    window_after INT,                      -- Days after target date (late window)
-    is_critical BOOLEAN DEFAULT false,     -- Critical visit (must be on time)
-    visit_type VARCHAR(50),                -- SCHEDULED, UNSCHEDULED, EARLY_TERMINATION
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    INDEX idx_study (study_id),
-    INDEX idx_study_visit (study_id, visit_id),
-    INDEX idx_day (study_id, day_number),
-    
-    CONSTRAINT fk_svs_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Study Edit Checks - Data quality and consistency checks
 CREATE TABLE IF NOT EXISTS study_edit_checks (
@@ -1882,5 +1873,16 @@ CREATE INDEX idx_sfd_study_visit_form ON study_form_data(study_id, visit_id, for
 CREATE INDEX idx_study_form_data_aggregate_uuid ON study_form_data(aggregate_uuid);
 CREATE INDEX idx_study_form_data_related_record ON study_form_data(related_record_id);
 CREATE INDEX idx_aggregate_uuid ON study_visit_instances(aggregate_uuid);
+CREATE INDEX idx_visit_instances_build_id ON study_visit_instances(build_id);
+CREATE INDEX idx_visit_instances_study_build ON study_visit_instances(study_id, build_id);
+CREATE INDEX idx_visit_forms_build_id ON visit_forms(build_id);
+CREATE INDEX idx_visit_forms_visit_build ON visit_forms(visit_definition_id, build_id);
+CREATE INDEX idx_visit_definitions_build_id ON visit_definitions(build_id);
+CREATE INDEX idx_visit_definitions_study_build ON visit_definitions(study_id, build_id);
+CREATE INDEX idx_form_definitions_build_id ON form_definitions(build_id);
+CREATE INDEX idx_form_definitions_study_build ON form_definitions(study_id, build_id);
+CREATE INDEX idx_study_form_data_build_id ON study_form_data(build_id);
+CREATE INDEX idx_study_form_data_study_build ON study_form_data(study_id, build_id);
+CREATE INDEX idx_study_form_data_form_build ON study_form_data(form_id, build_id);
 
 

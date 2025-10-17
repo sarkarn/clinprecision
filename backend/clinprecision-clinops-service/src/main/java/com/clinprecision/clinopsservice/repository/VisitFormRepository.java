@@ -165,6 +165,42 @@ public interface VisitFormRepository extends JpaRepository<VisitFormEntity, Long
      */
     @Query("SELECT vf FROM VisitFormEntity vf WHERE vf.aggregateUuid = :aggregateUuid AND vf.visitUuid = :visitUuid AND vf.isRequired = true AND (vf.isDeleted = false OR vf.isDeleted IS NULL) ORDER BY vf.displayOrder")
     List<VisitFormEntity> findRequiredFormsByVisit(@Param("aggregateUuid") UUID aggregateUuid, @Param("visitUuid") UUID visitUuid);
+
+    // ========== Build-based queries (CRITICAL FIX - Oct 16, 2025) ==========
+    
+    /**
+     * Find forms for a visit filtered by build version (CRITICAL for protocol versioning)
+     * This ensures patients enrolled under different builds see the correct form configuration
+     * 
+     * @param visitDefinitionId Visit definition ID
+     * @param buildId Study database build ID
+     * @return Forms associated with this visit in this specific build version
+     */
+    List<VisitFormEntity> findByVisitDefinitionIdAndBuildIdOrderByDisplayOrderAsc(
+            Long visitDefinitionId, Long buildId);
+
+    /**
+     * Find required forms for a visit filtered by build version
+     */
+    List<VisitFormEntity> findByVisitDefinitionIdAndBuildIdAndIsRequiredTrueOrderByDisplayOrderAsc(
+            Long visitDefinitionId, Long buildId);
+
+    /**
+     * Find optional forms for a visit filtered by build version
+     */
+    List<VisitFormEntity> findByVisitDefinitionIdAndBuildIdAndIsRequiredFalseOrderByDisplayOrderAsc(
+            Long visitDefinitionId, Long buildId);
+
+    /**
+     * Find all form assignments for a specific build
+     * Useful for audit and build comparison
+     */
+    List<VisitFormEntity> findByBuildIdOrderByVisitDefinition_SequenceNumberAscDisplayOrderAsc(Long buildId);
+
+    /**
+     * Count form assignments in a build
+     */
+    long countByBuildId(Long buildId);
 }
 
 

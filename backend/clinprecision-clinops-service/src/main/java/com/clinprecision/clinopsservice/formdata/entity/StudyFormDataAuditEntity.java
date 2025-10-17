@@ -75,6 +75,30 @@ public class StudyFormDataAuditEntity {
     private String aggregateUuid;
 
     /**
+     * Study database build reference
+     * Foreign key to study_database_builds table
+     * Tracks which protocol version was ACTIVE when change was made
+     * 
+     * CRITICAL for FDA 21 CFR Part 11 compliance:
+     * - Audit trail must include protocol version context
+     * - Required to reconstruct data at any historical point
+     * - Proves which validation rules applied at time of change
+     * - Enables protocol deviation detection
+     * 
+     * Backfill strategy:
+     * - Primary: Copy from study_form_data.build_id (for UPDATE/DELETE)
+     * - Fallback: Get build active at changed_at timestamp (temporal query)
+     * 
+     * Example use case:
+     * - Patient data changed on 2025-03-15
+     * - Question during FDA inspection: "Which validation rules applied?"
+     * - Answer: Build 1 (age limit 18-65) or Build 2 (age limit 18-85)?
+     * - This field provides the answer
+     */
+    @Column(name = "build_id")
+    private Long buildId;
+
+    /**
      * Audit action type
      * - INSERT: New form submission
      * - UPDATE: Form modification

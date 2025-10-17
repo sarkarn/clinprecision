@@ -203,14 +203,16 @@ public class StudyDatabaseBuildWorkerService {
                  formsConfigured, mappingsCreated, validationRulesCreated, fieldMetadataCreated);
         
         // ============================================================
-        // PHASE 3: Create Visit Schedules, CDASH Mappings, and Medical Coding Config (40-60%)
+        // PHASE 3: Validate Visit Schedules (40-60%)
         // ============================================================
-        log.info("Phase 3: Setting up visit schedules, CDASH mappings, and medical coding configuration");
+        log.info("Phase 3: Validating visit schedules (already defined in visit_definitions during Study Design)");
         
         try {
-            // Create visit schedule configuration (timing windows)
+            // Validate visit schedule configuration (timing windows already in visit_definitions)
+            // NOTE: Visit schedules are NOT created here - they exist in visit_definitions table
+            //       from Study Design Phase (timepoint, window_before, window_after columns)
             schedulesCreated = createVisitSchedules(studyId, buildId, visits);
-            log.info("Created {} visit schedules", schedulesCreated);
+            log.info("Validated {} visit schedules", schedulesCreated);
             
             // Phase 6 REMOVED: CDASH/SDTM mappings now stored in form JSON (see PHASE_6_BACKEND_NECESSITY_ANALYSIS.md)
             // cdashMappingsCreated = 0; // No longer creating Phase 6 tables
@@ -224,10 +226,10 @@ public class StudyDatabaseBuildWorkerService {
             
         } catch (Exception e) {
             log.error("Phase 3 failed: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create visit schedules: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to validate visit schedules: " + e.getMessage(), e);
         }
         
-        log.info("Phase 3 complete: Created {} visit schedules, {} CDASH mappings, and {} coding configs", 
+        log.info("Phase 3 complete: Validated {} visit schedules, {} CDASH mappings, and {} coding configs", 
                  schedulesCreated, cdashMappingsCreated, codingConfigsCreated);
         
         // ============================================================
@@ -453,53 +455,48 @@ public class StudyDatabaseBuildWorkerService {
     }
 
     /**
-     * Create visit schedules - Configure visit timing and windows
-     * Inserts into study_visit_schedules table
+     * Validate visit schedules - Visit timing and windows already exist in visit_definitions
+     * 
+     * NOTE: Visit schedules (timepoint, window_before, window_after) are defined during
+     * Study Design Phase and stored in visit_definitions table. Build phase just validates them.
      */
     private int createVisitSchedules(Long studyId, UUID buildId, 
                                      List<VisitDefinitionEntity> visits) {
-        log.info("Creating visit schedules for {} visits", visits.size());
+        log.info("Validating visit schedules for {} visits", visits.size());
         
-        int schedulesCreated = 0;
-        
-        String insertSql = 
-            "INSERT INTO study_visit_schedules " +
-            "(study_id, visit_id, day_number, window_before, window_after, is_critical, visit_type, created_at) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+        int schedulesValidated = 0;
         
         try {
-            int dayNumber = 0; // Start from Day 0 (screening/enrollment)
-            
             for (VisitDefinitionEntity visit : visits) {
-                // TODO: Parse actual visit timing from visit definition
-                // For now, create sample schedules
+                // Validate that visit has required schedule information
+                if (visit.getTimepoint() == null) {
+                    log.warn("Visit {} has null timepoint, using 0", visit.getName());
+                }
                 
-                jdbcTemplate.update(insertSql,
-                    studyId,
-                    visit.getId(),
-                    dayNumber,
-                    3,      // window_before: 3 days early window
-                    7,      // window_after: 7 days late window
-                    dayNumber == 0,  // is_critical: enrollment is critical
-                    "SCHEDULED");
+                Integer timepoint = visit.getTimepoint() != null ? visit.getTimepoint() : 0;
+                Integer windowBefore = visit.getWindowBefore() != null ? visit.getWindowBefore() : 0;
+                Integer windowAfter = visit.getWindowAfter() != null ? visit.getWindowAfter() : 0;
                 
-                schedulesCreated++;
+                log.debug("Visit schedule validated: visitId={}, name={}, timepoint={}, window=(-{}/+{})",
+                         visit.getId(), visit.getName(), timepoint, windowBefore, windowAfter);
                 
-                // Track configuration
+                schedulesValidated++;
+                
+                // Track configuration (optional - just for build metrics)
                 trackBuildConfig(buildId, studyId, "VISIT_SCHEDULE", 
-                               String.format("Visit %d schedule (Day %d)", visit.getId(), dayNumber));
-                
-                dayNumber += 30; // 30-day intervals (default)
+                               String.format("Visit %d '%s' (Day %d, window -%d/+%d)", 
+                                           visit.getId(), visit.getName(), timepoint, 
+                                           windowBefore, windowAfter));
             }
             
-            log.info("Created {} visit schedules", schedulesCreated);
+            log.info("Validated {} visit schedules (already defined in visit_definitions)", schedulesValidated);
             
         } catch (Exception e) {
-            log.error("Failed to create visit schedules: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create visit schedules", e);
+            log.error("Failed to validate visit schedules: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to validate visit schedules", e);
         }
         
-        return schedulesCreated;
+        return schedulesValidated;
     }
 
     /**

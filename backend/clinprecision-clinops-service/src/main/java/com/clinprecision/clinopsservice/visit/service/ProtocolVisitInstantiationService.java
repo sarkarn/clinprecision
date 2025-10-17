@@ -4,6 +4,9 @@ import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
 import com.clinprecision.clinopsservice.repository.VisitDefinitionRepository;
 import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
 import com.clinprecision.clinopsservice.visit.repository.StudyVisitInstanceRepository;
+import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
+import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus;
+import com.clinprecision.clinopsservice.studydatabase.repository.StudyDatabaseBuildRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,7 @@ public class ProtocolVisitInstantiationService {
 
     private final VisitDefinitionRepository visitDefinitionRepository;
     private final StudyVisitInstanceRepository studyVisitInstanceRepository;
+    private final StudyDatabaseBuildRepository studyDatabaseBuildRepository;
 
     /**
      * Instantiate protocol visits for a patient
@@ -60,6 +64,20 @@ public class ProtocolVisitInstantiationService {
 
         log.info("Instantiating protocol visits for patient: patientId={}, studyId={}, armId={}, baseline={}",
                 patientId, studyId, armId, baselineDate);
+
+        // CRITICAL FIX: Get active study database build FIRST
+        StudyDatabaseBuildEntity activeBuild = getActiveStudyBuild(studyId);
+        
+        if (activeBuild == null) {
+            throw new IllegalStateException(
+                "No active study database build found for studyId: " + studyId + ". " +
+                "Study must have a COMPLETED database build before enrolling patients. " +
+                "Please build the study database first.");
+        }
+        
+        log.info("Using study build: id={}, version={}, status={}, completedAt={}", 
+                 activeBuild.getId(), activeBuild.getBuildRequestId(), 
+                 activeBuild.getBuildStatus(), activeBuild.getBuildEndTime());
 
         // 1. Check if visits already instantiated (idempotency check)
         if (hasProtocolVisitsInstantiated(patientId)) {
@@ -87,13 +105,14 @@ public class ProtocolVisitInstantiationService {
                         studyId,
                         siteId,
                         visitDef,
-                        baselineDate
+                        baselineDate,
+                        activeBuild.getId() // CRITICAL: Pass build ID
                 );
 
                 instances.add(studyVisitInstanceRepository.save(instance));
 
-                log.debug("Created visit instance: visitDefId={}, name={}, date={}",
-                        visitDef.getId(), visitDef.getName(), instance.getVisitDate());
+                log.debug("Created visit instance: visitDefId={}, name={}, date={}, buildId={}",
+                        visitDef.getId(), visitDef.getName(), instance.getVisitDate(), activeBuild.getId());
 
             } catch (Exception e) {
                 log.error("Error creating visit instance for visitDefId: {}, name: {}",
@@ -102,10 +121,28 @@ public class ProtocolVisitInstantiationService {
             }
         }
 
-        log.info("Successfully instantiated {} protocol visits for patientId: {}",
-                instances.size(), patientId);
+        log.info("Successfully instantiated {} protocol visits for patientId: {} using build {}",
+                instances.size(), patientId, activeBuild.getId());
 
         return instances;
+    }
+
+    /**
+     * Get active study database build (CRITICAL for data integrity)
+     * Returns the most recent COMPLETED build for the study
+     * 
+     * @param studyId Study database ID
+     * @return Active build entity, or null if no completed builds exist
+     */
+    private StudyDatabaseBuildEntity getActiveStudyBuild(Long studyId) {
+        log.debug("Looking for active build for studyId: {}", studyId);
+        
+        return studyDatabaseBuildRepository
+                .findTopByStudyIdAndBuildStatusOrderByBuildEndTimeDesc(
+                    studyId, 
+                    StudyDatabaseBuildStatus.COMPLETED
+                )
+                .orElse(null);
     }
 
     /**
@@ -139,13 +176,15 @@ public class ProtocolVisitInstantiationService {
 
     /**
      * Create a visit instance from a visit definition
+     * CRITICAL: Now includes buildId for proper protocol versioning
      */
     private StudyVisitInstanceEntity createVisitInstance(
             Long patientId,
             Long studyId,
             Long siteId,
             VisitDefinitionEntity visitDef,
-            LocalDate baselineDate) {
+            LocalDate baselineDate,
+            Long buildId) { // CRITICAL: Added buildId parameter
 
         // Calculate visit date from baseline + day offset
         LocalDate visitDate = calculateVisitDate(baselineDate, visitDef.getTimepoint());
@@ -161,6 +200,7 @@ public class ProtocolVisitInstantiationService {
                 .windowStatus(null) // Will be calculated by VisitComplianceService
                 .completionPercentage(0.0) // No forms completed yet
                 .aggregateUuid(null) // NULL for protocol visits (not event-sourced)
+                .buildId(buildId) // CRITICAL: Track which build version was used
                 .notes(null)
                 .createdBy(1L) // System user (TODO: get from security context)
                 .build();

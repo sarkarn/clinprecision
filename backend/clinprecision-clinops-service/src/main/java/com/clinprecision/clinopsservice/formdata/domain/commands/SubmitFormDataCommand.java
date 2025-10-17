@@ -63,6 +63,18 @@ public class SubmitFormDataCommand extends BaseCommand {
     private final Long siteId;
     
     /**
+     * Build ID - references study_database_builds table
+     * Tracks which protocol/form definition version was used
+     * 
+     * CRITICAL for data integrity:
+     * - Must be populated from visit instance (primary)
+     * - Or from active build at submission time (fallback)
+     * - Enables correct form structure retrieval
+     * - Supports protocol amendments
+     */
+    private final Long buildId;
+    
+    /**
      * Form data as JSON structure
      * Matches the form definition's field schema
      * Example:

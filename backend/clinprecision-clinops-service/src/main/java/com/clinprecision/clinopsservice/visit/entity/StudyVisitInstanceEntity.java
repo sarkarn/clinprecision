@@ -55,6 +55,9 @@ public class StudyVisitInstanceEntity {
     @Column(name = "aggregate_uuid", length = 36)
     private String aggregateUuid; // UUID for event sourcing (unscheduled visits)
 
+    @Column(name = "build_id")
+    private Long buildId; // FK to study_database_builds - tracks which build version was used
+
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 

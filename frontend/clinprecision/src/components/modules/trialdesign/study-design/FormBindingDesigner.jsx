@@ -62,6 +62,7 @@ const FormBindingDesigner = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [errors, setErrors] = useState([]);
+    const [successMessage, setSuccessMessage] = useState(null);
     const [isDirty, setIsDirty] = useState(false);
 
     // Load study data
@@ -175,6 +176,10 @@ const FormBindingDesigner = () => {
     // Save changes
     const handleSave = async () => {
         try {
+            // Clear previous messages
+            setErrors([]);
+            setSuccessMessage(null);
+
             // Validate data
             const validationErrors = validateBindingsData();
             if (validationErrors.length > 0) {
@@ -198,10 +203,19 @@ const FormBindingDesigner = () => {
             });
 
             setIsDirty(false);
-            setErrors([]);
+
+            // Show success message
+            setSuccessMessage(`Form bindings saved successfully! ${bindings.length} binding(s) configured.`);
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                setSuccessMessage(null);
+            }, 5000);
+
         } catch (error) {
             console.error('Error saving form bindings:', error);
             setErrors(['Failed to save form bindings']);
+            setSuccessMessage(null);
         }
     };
 
@@ -314,6 +328,29 @@ const FormBindingDesigner = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Fixed Position Success Toast */}
+            {successMessage && (
+                <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
+                    <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 min-w-[320px]">
+                        <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="flex-1">
+                            <p className="font-semibold">Success!</p>
+                            <p className="text-sm text-green-100">{successMessage}</p>
+                        </div>
+                        <button
+                            onClick={() => setSuccessMessage(null)}
+                            className="text-white hover:text-green-100 flex-shrink-0"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Errors */}
             {errors.length > 0 && (

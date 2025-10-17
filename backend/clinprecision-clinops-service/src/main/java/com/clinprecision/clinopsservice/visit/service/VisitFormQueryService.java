@@ -37,10 +37,12 @@ public class VisitFormQueryService {
     /**
      * Get all forms associated with a visit instance
      * 
+     * CRITICAL FIX (Oct 16, 2025): Now filters by build_id to ensure protocol version consistency
+     * 
      * Logic:
      * 1. Get visit instance by Long ID
-     * 2. Get visit_definition_id from the instance
-     * 3. Query visit_forms table for forms assigned to this visit definition
+     * 2. Get visit_definition_id AND build_id from the instance
+     * 3. Query visit_forms table for forms assigned to this visit definition IN THIS BUILD VERSION
      * 4. For each form, check completion status in form_data table (TODO: Phase 2)
      * 5. Return enriched DTOs with form metadata and completion status
      * 
@@ -55,8 +57,9 @@ public class VisitFormQueryService {
         StudyVisitInstanceEntity visitInstance = visitInstanceRepository.findById(visitInstanceId)
                 .orElseThrow(() -> new RuntimeException("Visit instance not found: " + visitInstanceId));
 
-        log.info("Found visit instance: visitId={}, subjectId={}, visit_definition_id={}", 
-                 visitInstance.getId(), visitInstance.getSubjectId(), visitInstance.getVisitId());
+        log.info("Found visit instance: visitId={}, subjectId={}, visit_definition_id={}, buildId={}", 
+                 visitInstance.getId(), visitInstance.getSubjectId(), visitInstance.getVisitId(), 
+                 visitInstance.getBuildId());
 
         // Step 2: Check if this is a protocol visit or unscheduled visit
         if (visitInstance.getVisitId() == null) {
@@ -65,12 +68,23 @@ public class VisitFormQueryService {
             return new ArrayList<>(); // Unscheduled visits don't have pre-defined forms
         }
 
-        // Step 3: Query visit_forms table for this visit definition
+        // CRITICAL: Extract build_id from visit instance
+        Long buildId = visitInstance.getBuildId();
+        if (buildId == null) {
+            log.error("CRITICAL DATA INTEGRITY ERROR: Visit instance {} has NULL build_id! " +
+                     "This should not happen for visits created after Oct 16, 2025. " +
+                     "Falling back to unfiltered query for legacy data.", visitInstanceId);
+            // Fallback for legacy data - use old query without build filtering
+            return getLegacyFormsForVisitInstance(visitInstance);
+        }
+
+        // Step 3: Query visit_forms table for this visit definition IN THIS BUILD VERSION
         Long visitDefinitionId = visitInstance.getVisitId();
         List<VisitFormEntity> visitForms = visitFormRepository
-                .findByVisitDefinitionIdOrderByDisplayOrderAsc(visitDefinitionId);
+                .findByVisitDefinitionIdAndBuildIdOrderByDisplayOrderAsc(visitDefinitionId, buildId);
 
-        log.info("Found {} form assignments for visit definition {}", visitForms.size(), visitDefinitionId);
+        log.info("Found {} form assignments for visit definition {} in build {}", 
+                 visitForms.size(), visitDefinitionId, buildId);
 
         // Step 4: Map to DTOs
         return visitForms.stream()
@@ -80,6 +94,7 @@ public class VisitFormQueryService {
 
     /**
      * Get only required forms for a visit instance
+     * CRITICAL FIX: Now filters by build_id
      */
     @Transactional(readOnly = true)
     public List<VisitFormDto> getRequiredFormsForVisitInstance(Long visitInstanceId) {
@@ -92,11 +107,19 @@ public class VisitFormQueryService {
             return new ArrayList<>();
         }
 
+        Long buildId = visitInstance.getBuildId();
+        if (buildId == null) {
+            log.error("Visit instance {} has NULL build_id. Using legacy fallback.", visitInstanceId);
+            return getLegacyRequiredFormsForVisitInstance(visitInstance);
+        }
+
         Long visitDefinitionId = visitInstance.getVisitId();
         List<VisitFormEntity> requiredForms = visitFormRepository
-                .findByVisitDefinitionIdAndIsRequiredTrueOrderByDisplayOrderAsc(visitDefinitionId);
+                .findByVisitDefinitionIdAndBuildIdAndIsRequiredTrueOrderByDisplayOrderAsc(
+                        visitDefinitionId, buildId);
 
-        log.info("Found {} required forms for visit definition {}", requiredForms.size(), visitDefinitionId);
+        log.info("Found {} required forms for visit definition {} in build {}", 
+                 requiredForms.size(), visitDefinitionId, buildId);
 
         return requiredForms.stream()
                 .map(vf -> mapToDto(vf, visitInstance))
@@ -105,6 +128,7 @@ public class VisitFormQueryService {
 
     /**
      * Get only optional forms for a visit instance
+     * CRITICAL FIX: Now filters by build_id
      */
     @Transactional(readOnly = true)
     public List<VisitFormDto> getOptionalFormsForVisitInstance(Long visitInstanceId) {
@@ -117,11 +141,19 @@ public class VisitFormQueryService {
             return new ArrayList<>();
         }
 
+        Long buildId = visitInstance.getBuildId();
+        if (buildId == null) {
+            log.error("Visit instance {} has NULL build_id. Using legacy fallback.", visitInstanceId);
+            return getLegacyOptionalFormsForVisitInstance(visitInstance);
+        }
+
         Long visitDefinitionId = visitInstance.getVisitId();
         List<VisitFormEntity> optionalForms = visitFormRepository
-                .findByVisitDefinitionIdAndIsRequiredFalseOrderByDisplayOrderAsc(visitDefinitionId);
+                .findByVisitDefinitionIdAndBuildIdAndIsRequiredFalseOrderByDisplayOrderAsc(
+                        visitDefinitionId, buildId);
 
-        log.info("Found {} optional forms for visit definition {}", optionalForms.size(), visitDefinitionId);
+        log.info("Found {} optional forms for visit definition {} in build {}", 
+                 optionalForms.size(), visitDefinitionId, buildId);
 
         return optionalForms.stream()
                 .map(vf -> mapToDto(vf, visitInstance))
@@ -263,5 +295,59 @@ public class VisitFormQueryService {
     public boolean isVisitComplete(Long visitInstanceId) {
         Double completionPercentage = calculateVisitCompletionPercentage(visitInstanceId);
         return completionPercentage >= 100.0;
+    }
+
+    // ========== Legacy Support Methods (for visits created before build tracking) ==========
+    
+    /**
+     * DEPRECATED: Legacy fallback for visits without build_id
+     * Used only for visits created before Oct 16, 2025 build tracking implementation
+     */
+    @Deprecated
+    private List<VisitFormDto> getLegacyFormsForVisitInstance(StudyVisitInstanceEntity visitInstance) {
+        Long visitDefinitionId = visitInstance.getVisitId();
+        log.warn("Using LEGACY unfiltered query for visit instance {} (no build tracking)", 
+                 visitInstance.getId());
+        
+        List<VisitFormEntity> visitForms = visitFormRepository
+                .findByVisitDefinitionIdOrderByDisplayOrderAsc(visitDefinitionId);
+        
+        return visitForms.stream()
+                .map(vf -> mapToDto(vf, visitInstance))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * DEPRECATED: Legacy fallback for required forms without build_id
+     */
+    @Deprecated
+    private List<VisitFormDto> getLegacyRequiredFormsForVisitInstance(StudyVisitInstanceEntity visitInstance) {
+        Long visitDefinitionId = visitInstance.getVisitId();
+        log.warn("Using LEGACY unfiltered query for required forms (visit instance {})", 
+                 visitInstance.getId());
+        
+        List<VisitFormEntity> requiredForms = visitFormRepository
+                .findByVisitDefinitionIdAndIsRequiredTrueOrderByDisplayOrderAsc(visitDefinitionId);
+        
+        return requiredForms.stream()
+                .map(vf -> mapToDto(vf, visitInstance))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * DEPRECATED: Legacy fallback for optional forms without build_id
+     */
+    @Deprecated
+    private List<VisitFormDto> getLegacyOptionalFormsForVisitInstance(StudyVisitInstanceEntity visitInstance) {
+        Long visitDefinitionId = visitInstance.getVisitId();
+        log.warn("Using LEGACY unfiltered query for optional forms (visit instance {})", 
+                 visitInstance.getId());
+        
+        List<VisitFormEntity> optionalForms = visitFormRepository
+                .findByVisitDefinitionIdAndIsRequiredFalseOrderByDisplayOrderAsc(visitDefinitionId);
+        
+        return optionalForms.stream()
+                .map(vf -> mapToDto(vf, visitInstance))
+                .collect(Collectors.toList());
     }
 }

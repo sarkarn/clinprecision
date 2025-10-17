@@ -6,6 +6,11 @@ import com.clinprecision.clinopsservice.formdata.dto.FormSubmissionResponse;
 import com.clinprecision.clinopsservice.formdata.dto.FormDataDto;
 import com.clinprecision.clinopsservice.formdata.entity.StudyFormDataEntity;
 import com.clinprecision.clinopsservice.formdata.repository.StudyFormDataRepository;
+import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.visit.repository.StudyVisitInstanceRepository;
+import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
+import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus;
+import com.clinprecision.clinopsservice.studydatabase.repository.StudyDatabaseBuildRepository;
 
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.stereotype.Service;
@@ -82,6 +87,8 @@ public class StudyFormDataService {
 
     private final CommandGateway commandGateway;
     private final StudyFormDataRepository formDataRepository;
+    private final StudyVisitInstanceRepository visitInstanceRepository;
+    private final StudyDatabaseBuildRepository buildRepository;
 
     /**
      * Submit form data
@@ -105,8 +112,9 @@ public class StudyFormDataService {
     // DO NOT ADD @Transactional - it prevents projection from seeing the committed event!
     // Axon handles transactions internally for command processing
     public FormSubmissionResponse submitFormData(FormSubmissionRequest request) {
-        log.info("Submitting form data: studyId={}, formId={}, subjectId={}, status={}", 
-            request.getStudyId(), request.getFormId(), request.getSubjectId(), request.getStatus());
+        log.info("Submitting form data: studyId={}, formId={}, subjectId={}, visitId={}, status={}", 
+            request.getStudyId(), request.getFormId(), request.getSubjectId(), 
+            request.getVisitId(), request.getStatus());
         
         try {
             // Step 1: Validate request
@@ -118,7 +126,12 @@ public class StudyFormDataService {
             // Step 3: Get current user ID (TODO: Extract from SecurityContext)
             Long currentUserId = getCurrentUserId();
             
-            // Step 4: Create command
+            // Step 4: CRITICAL - Determine build_id for this submission
+            Long buildId = determineBuildId(request);
+            log.info("Build ID determined for form submission: buildId={}, studyId={}, visitId={}", 
+                buildId, request.getStudyId(), request.getVisitId());
+            
+            // Step 5: Create command
             SubmitFormDataCommand command = SubmitFormDataCommand.builder()
                 .formDataId(formDataId)
                 .studyId(request.getStudyId())
@@ -126,6 +139,7 @@ public class StudyFormDataService {
                 .subjectId(request.getSubjectId())
                 .visitId(request.getVisitId())
                 .siteId(request.getSiteId())
+                .buildId(buildId)  // ✅ SET BUILD ID
                 .formData(request.getFormData())
                 .status(request.getStatus())
                 .submittedBy(currentUserId)
@@ -137,9 +151,9 @@ public class StudyFormDataService {
                 .version(1)
                 .build();
             
-            log.info("Sending SubmitFormDataCommand: formDataId={}", formDataId);
+            log.info("Sending SubmitFormDataCommand: formDataId={}, buildId={}", formDataId, buildId);
             
-            // Step 5: Send command and wait for completion (synchronous)
+            // Step 6: Send command and wait for completion (synchronous)
             commandGateway.sendAndWait(command);
             
             log.info("SubmitFormDataCommand completed successfully: formDataId={}", formDataId);
@@ -275,6 +289,73 @@ public class StudyFormDataService {
     }
 
     /**
+     * Determine build_id for form submission
+     * 
+     * Build ID Strategy (in priority order):
+     * 1. If visitId provided → Get build_id from visit instance (PREFERRED)
+     * 2. If buildId in request → Use provided build_id (EXPLICIT)
+     * 3. Fallback → Get active build for study (LAST RESORT)
+     * 
+     * Why this matters:
+     * - Patient enrolled in Build 1 (5 visits, Demographics v1)
+     * - Protocol amended → Build 2 (7 visits, Demographics v2)
+     * - Patient should continue with Build 1 forms
+     * - New patients get Build 2 forms
+     * 
+     * @param request Form submission request
+     * @return Build ID to use for this form
+     * @throws RuntimeException if no build found
+     */
+    private Long determineBuildId(FormSubmissionRequest request) {
+        Long studyId = request.getStudyId();
+        Long visitId = request.getVisitId();
+        
+        // Strategy 1: Get from visit instance (PREFERRED)
+        if (visitId != null) {
+            log.debug("Looking up build_id from visit instance: visitId={}", visitId);
+            Optional<StudyVisitInstanceEntity> visit = visitInstanceRepository.findById(visitId);
+            
+            if (visit.isPresent() && visit.get().getBuildId() != null) {
+                Long buildId = visit.get().getBuildId();
+                log.info("Build ID retrieved from visit instance: visitId={}, buildId={}", visitId, buildId);
+                return buildId;
+            } else if (visit.isPresent()) {
+                log.warn("Visit instance found but build_id is NULL: visitId={}. Falling back to active build.", visitId);
+            } else {
+                log.warn("Visit instance not found: visitId={}. Falling back to active build.", visitId);
+            }
+        }
+        
+        // Strategy 2: Use explicit build_id from request (if provided)
+        if (request.getBuildId() != null) {
+            log.info("Using explicit build_id from request: buildId={}", request.getBuildId());
+            return request.getBuildId();
+        }
+        
+        // Strategy 3: Get active build for study (FALLBACK)
+        log.debug("No visit or explicit build_id. Looking up active build for study: studyId={}", studyId);
+        Optional<StudyDatabaseBuildEntity> activeBuild = buildRepository
+                .findTopByStudyIdAndBuildStatusOrderByBuildEndTimeDesc(
+                        studyId, 
+                        StudyDatabaseBuildStatus.COMPLETED);
+        
+        if (activeBuild.isPresent()) {
+            Long buildId = activeBuild.get().getId();
+            log.info("Using active study build: studyId={}, buildId={}, status={}", 
+                studyId, buildId, activeBuild.get().getBuildStatus());
+            return buildId;
+        }
+        
+        // NO BUILD FOUND - This is a critical error
+        log.error("No build_id found for form submission: studyId={}, visitId={}, buildId from request={}", 
+            studyId, visitId, request.getBuildId());
+        throw new RuntimeException(
+            "Cannot submit form data: No active study build found for study " + studyId + 
+            ". Please ensure a study build is completed before submitting form data."
+        );
+    }
+
+    /**
      * Validate form submission request
      * 
      * Business rules:
@@ -320,6 +401,7 @@ public class StudyFormDataService {
             .subjectId(entity.getSubjectId())
             .visitId(entity.getVisitId())
             .siteId(entity.getSiteId())
+            .buildId(entity.getBuildId())  // ✅ INCLUDE BUILD ID IN RESPONSE
             .formData(entity.getFormData())
             .status(entity.getStatus())
             .version(entity.getVersion())
