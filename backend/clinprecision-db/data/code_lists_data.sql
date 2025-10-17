@@ -145,6 +145,12 @@ INSERT INTO code_lists (category, code, display_name, description, sort_order, i
 ('TEMPLATE_STATUS', 'INACTIVE', 'Inactive', 'Template is inactive', 3, TRUE, TRUE, @system_user_id, JSON_OBJECT('can_edit', false, 'can_use', false)),
 ('TEMPLATE_STATUS', 'ARCHIVED', 'Archived', 'Template is archived', 4, TRUE, TRUE, @system_user_id, JSON_OBJECT('can_edit', false, 'can_use', false));
 
+
+INSERT INTO code_lists (category, code, display_name, description, sort_order, is_active, system_code, created_by, metadata) VALUES
+('BOOLEAN_FLAG', 'DRAFT', 'Draft', 'Template is in draft state', 1, TRUE, TRUE, @system_user_id, JSON_OBJECT('can_edit', true, 'can_use', false)),
+('BOOLEAN_FLAG', 'ACTIVE', 'Active', 'Template is active and ready for use', 2, TRUE, TRUE, @system_user_id, JSON_OBJECT('can_edit', false, 'can_use', true));
+
+
 -- ===================================================================
 -- REGISTER CODE LIST USAGE FOR TRACKING
 -- ===================================================================
