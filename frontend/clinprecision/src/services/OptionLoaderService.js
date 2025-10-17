@@ -28,22 +28,39 @@ const DEFAULT_CACHE_DURATION = 3600;
  * @returns {Promise<Array>} Array of options {value, label, description}
  */
 export const loadFieldOptions = async (field, context = {}) => {
+  console.log(`🔍 [OptionLoader] loadFieldOptions called for field: ${field.id}`);
+  console.log(`🔍 [OptionLoader] Field metadata:`, field.metadata);
+  
   let optionSource = field.metadata?.uiConfig?.optionSource;
+  console.log(`🔍 [OptionLoader] optionSource from uiConfig:`, optionSource);
   
   // Check for simplified code list category format (from form designer)
   if (!optionSource && field.metadata?.codeListCategory) {
+    console.log(`🔍 [OptionLoader] Found codeListCategory: ${field.metadata.codeListCategory}`);
     optionSource = {
       type: 'CODE_LIST',
       category: field.metadata.codeListCategory,
       cacheable: true,
       cacheDuration: DEFAULT_CACHE_DURATION
     };
+    console.log(`🔍 [OptionLoader] Created optionSource:`, optionSource);
   }
   
   // If no option source specified, use static options (backward compatible)
   if (!optionSource) {
-    return formatStaticOptions(field.metadata?.uiConfig?.options || field.metadata?.options || []);
+    console.log(`⚠️ [OptionLoader] No optionSource found for field ${field.id}, using static options`);
+    // Check multiple locations for backward compatibility:
+    // 1. field.metadata.uiConfig.options (new format)
+    // 2. field.metadata.options (alternative new format)
+    // 3. field.options (old format - for existing forms)
+    const optionsArray = field.metadata?.uiConfig?.options || field.metadata?.options || field.options || [];
+    console.log(`🔍 [OptionLoader] Found options array (length: ${optionsArray.length}):`, optionsArray);
+    const staticOptions = formatStaticOptions(optionsArray);
+    console.log(`🔍 [OptionLoader] Formatted static options:`, staticOptions);
+    return staticOptions;
   }
+  
+  console.log(`🔍 [OptionLoader] Final optionSource:`, optionSource);
   
   // Check if options should be cached
   const cacheable = optionSource.cacheable !== false; // Default: true
@@ -135,27 +152,42 @@ const loadCodeListOptions = async (optionSource) => {
   const { category } = optionSource;
   
   if (!category) {
+    console.error('❌ [OptionLoader] Code list category is required but not provided!');
     throw new Error('Code list category is required');
   }
   
-  console.log(`[OptionLoader] Loading code list: ${category}`);
+  console.log(`📡 [OptionLoader] Loading code list: ${category}`);
+  const apiUrl = `/clinops-ws/api/admin/codelists/simple/${category}`;
+  console.log(`📡 [OptionLoader] API URL: ${apiUrl}`);
   
   try {
     // Use the existing code list API
-    const response = await ApiService.get(`/clinops-ws/api/admin/codelists/simple/${category}`);
+    const response = await ApiService.get(apiUrl);
+    
+    console.log(`✅ [OptionLoader] API Response status: ${response.status}`);
+    console.log(`✅ [OptionLoader] API Response data:`, response.data);
+    console.log(`✅ [OptionLoader] First item in response:`, response.data[0]);
+    console.log(`✅ [OptionLoader] First item keys:`, Object.keys(response.data[0] || {}));
     
     if (!response.data || !Array.isArray(response.data)) {
-      console.warn(`[OptionLoader] Invalid code list response for ${category}`);
+      console.warn(`⚠️ [OptionLoader] Invalid code list response for ${category}`);
       return [];
     }
     
     // Format response to standard option format
-    return response.data.map(item => ({
-      value: item.code || item.value,
-      label: item.name || item.label,
-      description: item.description || '',
-      order: item.displayOrder || item.order
-    }));
+    const formattedOptions = response.data.map(item => {
+      const formatted = {
+        value: item.code || item.value || item.id,
+        label: item.displayName || item.name || item.label || item.value || item.code,
+        description: item.description || '',
+        order: item.displayOrder || item.order
+      };
+      console.log(`🔧 [OptionLoader] Formatting item:`, { original: item, formatted });
+      return formatted;
+    });
+    
+    console.log(`✅ [OptionLoader] Formatted ${formattedOptions.length} options:`, formattedOptions);
+    return formattedOptions;
     
   } catch (error) {
     console.error(`[OptionLoader] Error loading code list ${category}:`, error);
