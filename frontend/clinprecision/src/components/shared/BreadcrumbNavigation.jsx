@@ -19,18 +19,51 @@ const BreadcrumbNavigation = () => {
         'system-monitoring': 'System Monitoring'
     };
 
-    const breadcrumbs = pathSegments.map((segment, index) => {
-        const path = '/' + pathSegments.slice(0, index + 1).join('/');
-        const name = moduleNames[segment] || segment.split('-').map(word =>
+    // Build breadcrumbs with smart segment handling
+    const breadcrumbs = [];
+    let currentPath = '';
+
+    for (let index = 0; index < pathSegments.length; index++) {
+        const segment = pathSegments[index];
+        const prevSegment = index > 0 ? pathSegments[index - 1] : null;
+        const nextSegment = index < pathSegments.length - 1 ? pathSegments[index + 1] : null;
+
+        // Build path incrementally
+        currentPath += '/' + segment;
+
+        // Skip numeric IDs and certain segments for display, but keep them in the path
+        const isNumeric = /^\d+$/.test(segment);
+        const shouldSkipDisplay = isNumeric || segment === 'entry' || segment === 'view';
+
+        if (shouldSkipDisplay) {
+            continue;
+        }
+
+        // Get display name
+        let name = moduleNames[segment] || segment.split('-').map(word =>
             word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' ');
 
-        return {
+        // Special handling for "visits" - should link back to subject details page
+        // because there's no standalone visits list route
+        let linkPath = currentPath;
+        if (segment === 'visits') {
+            // Remove /visits from the path to go back to subject details
+            // e.g., /datacapture-management/subjects/4/visits -> /datacapture-management/subjects/4
+            linkPath = currentPath.substring(0, currentPath.lastIndexOf('/visits'));
+        }
+
+        breadcrumbs.push({
             name,
-            path,
-            isLast: index === pathSegments.length - 1
-        };
-    });
+            path: linkPath,
+            isLast: false // We'll set this properly at the end
+        });
+    }
+
+    // Ensure the last visible breadcrumb is marked as last
+    if (breadcrumbs.length > 0) {
+        breadcrumbs[breadcrumbs.length - 1].isLast = true;
+    }
 
     if (pathSegments.length === 0) {
         return null; // Don't show breadcrumbs on home page

@@ -1,6 +1,6 @@
 // SubjectList.jsx - Enhanced for Clinical Trial Standards
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { getStudies } from '../../../services/StudyService';
 import { getSubjectsByStudy } from '../../../services/SubjectService';
 import ApiService from '../../../services/ApiService';
@@ -20,6 +20,11 @@ export default function SubjectList() {
     const [showVisitModal, setShowVisitModal] = useState(false);
     const [visitType, setVisitType] = useState(null);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Detect which module we're in based on the current path
+    const isSubjectManagementModule = location.pathname.startsWith('/subject-management');
+    const basePath = isSubjectManagementModule ? '/subject-management' : '/datacapture-management';
 
     useEffect(() => {
         const fetchStudies = async () => {
@@ -91,7 +96,7 @@ export default function SubjectList() {
 
     const handleEditSubject = (subjectId) => {
         // Navigate to subject edit page
-        navigate(`/datacapture-management/subjects/${subjectId}/edit`);
+        navigate(`${basePath}/subjects/${subjectId}/edit`);
     };
 
     const handleWithdrawSubject = (subject) => {
@@ -307,7 +312,7 @@ export default function SubjectList() {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex flex-col">
                                                 <Link
-                                                    to={`/datacapture-management/subjects/${subject.id}`}
+                                                    to={`${basePath}/subjects/${subject.id}`}
                                                     className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
                                                 >
                                                     {subject.subjectId}
@@ -348,7 +353,7 @@ export default function SubjectList() {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div className="flex space-x-3 items-center">
                                                 <Link
-                                                    to={`/datacapture-management/subjects/${subject.id}`}
+                                                    to={`${basePath}/subjects/${subject.id}`}
                                                     className="text-indigo-600 hover:text-indigo-900 flex items-center"
                                                     title="View subject details"
                                                 >
@@ -438,7 +443,7 @@ export default function SubjectList() {
                                         <tr key={patient.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap font-medium">
                                                 <Link
-                                                    to={`/datacapture-management/subjects/${patient.id}`}
+                                                    to={`${basePath}/subjects/${patient.id}`}
                                                     className="text-blue-600 hover:text-blue-800 hover:underline"
                                                 >
                                                     {patient.screeningNumber || 'N/A'}
@@ -446,7 +451,7 @@ export default function SubjectList() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                 <Link
-                                                    to={`/datacapture-management/subjects/${patient.id}`}
+                                                    to={`${basePath}/subjects/${patient.id}`}
                                                     className="text-gray-700 hover:text-blue-600 hover:underline"
                                                 >
                                                     {patient.patientNumber}
