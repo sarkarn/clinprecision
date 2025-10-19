@@ -6,13 +6,13 @@ const API_PATH = '/clinops-ws/api/v1/patients'; // Uses existing PatientEnrollme
 const USE_MOCK_DATA = false; // Set to false to use real backend
 
 // Mock data store (for fallback if backend is unavailable)
+// NOTE: Arm fields removed for EDC blinding compliance
+// See: EDC_BLINDING_ARCHITECTURE_DECISION.md
 let subjects = [
   {
     id: '1',
     subjectId: 'SUBJ-001',
     studyId: '1',
-    armId: '1-1',
-    armName: 'Treatment Arm',
     enrollmentDate: '2024-04-15',
     status: 'Active',
     visits: [
@@ -38,8 +38,6 @@ let subjects = [
     id: '2',
     subjectId: 'SUBJ-002',
     studyId: '1',
-    armId: '1-2',
-    armName: 'Placebo Arm',
     enrollmentDate: '2024-04-16',
     status: 'Active',
     visits: [
@@ -104,8 +102,8 @@ export const getSubjectsByStudy = async (studyId) => {
         subjectId: patient.screeningNumber || patient.patientNumber || `SUBJ-${patient.id}`,
         patientNumber: patient.patientNumber, // Keep auto-generated number separate
         studyId: patient.studyId?.toString() || null,
-        armId: patient.treatmentArm || null,
-        armName: patient.treatmentArmName || 'Not Assigned',
+        // NOTE: Arm fields removed for EDC blinding compliance
+        // See: EDC_BLINDING_ARCHITECTURE_DECISION.md
         enrollmentDate: patient.enrollmentDate || patient.createdAt?.split('T')[0],
         status: mapPatientStatusToSubjectStatus(patient.status || 'Active'),
         firstName: patient.firstName,
@@ -161,18 +159,23 @@ export const getSubjectById = async (subjectId) => {
         patientNumber: patient.patientNumber, // Keep auto-generated number separate
         studyId: patient.studyId?.toString(),
         studyName: patient.studyName,
-        armId: patient.treatmentArm,
-        armName: patient.treatmentArmName || 'Not Assigned',
+        // NOTE: Arm fields removed for EDC blinding compliance
+        // See: EDC_BLINDING_ARCHITECTURE_DECISION.md
         enrollmentDate: patient.enrollmentDate || patient.createdAt?.split('T')[0],
         status: mapPatientStatusToSubjectStatus(patient.status || 'Active'),
         firstName: patient.firstName,
+        middleName: patient.middleName,
         lastName: patient.lastName,
         email: patient.email,
-        phone: patient.phone,
+        phone: patient.phoneNumber,
+        phoneNumber: patient.phoneNumber,
+        dateOfBirth: patient.dateOfBirth,
+        gender: patient.gender,
         aggregateUuid: patient.aggregateUuid,
+        siteId: patient.siteId,
         visits: [], // Will be populated separately if needed
         createdAt: patient.createdAt,
-        lastModifiedAt: patient.lastModifiedAt
+        lastModifiedAt: patient.updatedAt
       };
       
       console.log('Transformed subject details:', transformedSubject);
@@ -265,8 +268,9 @@ export const enrollSubject = async (subjectData) => {
       id: patientId.toString(),
       subjectId: subjectData.subjectId,
       studyId: subjectData.studyId?.toString(),
-      armId: subjectData.armId?.toString() || null,
-      armName: 'Treatment Arm', // Optional: resolve by armId from StudyDesignService
+      // NOTE: Arm fields removed for EDC blinding compliance
+      // See: EDC_BLINDING_ARCHITECTURE_DECISION.md
+      // Randomization handled by external IWRS/RTSM system
       siteId: subjectData.siteId?.toString(),
       enrollmentDate: subjectData.enrollmentDate,
       status: 'Enrolled',
@@ -353,8 +357,8 @@ export const searchSubjects = async (searchTerm) => {
         subjectId: patient.screeningNumber || patient.patientNumber || `SUBJ-${patient.id}`,
         patientNumber: patient.patientNumber, // Keep auto-generated number separate
         studyId: patient.studyId?.toString(),
-        armId: patient.treatmentArm?.toString(),
-        armName: patient.treatmentArmName || 'Not Assigned',
+        // NOTE: Arm fields removed for EDC blinding compliance
+        // See: EDC_BLINDING_ARCHITECTURE_DECISION.md
         enrollmentDate: patient.enrollmentDate || patient.createdAt?.split('T')[0],
         status: mapPatientStatusToSubjectStatus(patient.status || 'Active'),
         firstName: patient.firstName,

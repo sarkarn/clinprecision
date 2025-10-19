@@ -79,6 +79,17 @@ public class VisitDefinitionEntity {
     @Column(name = "sequence_number")
     private Integer sequenceNumber;
     
+    // Unscheduled visit fields (Option 1 implementation)
+    @Column(name = "is_unscheduled", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Builder.Default
+    private Boolean isUnscheduled = false;
+    
+    @Column(name = "visit_code", length = 50)
+    private String visitCode; // e.g., EARLY_TERM, AE_VISIT (for unscheduled visits)
+    
+    @Column(name = "visit_order")
+    private Integer visitOrder; // Sort order (9000+ for unscheduled visits)
+    
     // Soft delete fields
     @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     @Builder.Default

@@ -73,6 +73,11 @@ public class PatientEnrollmentEntity {
     @Column(name = "enrolled_by", nullable = false)
     private String enrolledBy;
 
+    // ==================== Timestamps ====================
+    // NOTE: Treatment arm assignment removed for EDC blinding compliance
+    // See: EDC_BLINDING_ARCHITECTURE_DECISION.md
+    // Randomization and arm assignment handled by external IWRS/RTSM system
+    
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

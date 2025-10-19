@@ -1,10 +1,12 @@
 package com.clinprecision.clinopsservice.patientenrollment.controller;
 
 import com.clinprecision.clinopsservice.patientenrollment.dto.RegisterPatientDto;
+import com.clinprecision.clinopsservice.patientenrollment.dto.UpdatePatientDemographicsDto;
 import com.clinprecision.clinopsservice.patientenrollment.dto.EnrollPatientDto;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentEntity;
 import com.clinprecision.clinopsservice.patientenrollment.dto.PatientDto;
+import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentEntity;
 import com.clinprecision.clinopsservice.patientenrollment.service.PatientEnrollmentService;
+import com.clinprecision.common.entity.SiteStudyEntity;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -117,6 +119,41 @@ public class PatientEnrollmentController {
         } catch (Exception e) {
             log.error("Error retrieving patient {}: {}", patientId, e.getMessage(), e);
             throw new RuntimeException("Failed to retrieve patient", e);
+        }
+    }
+    
+    /**
+     * Update patient demographics
+     * 
+     * @param patientId Database ID of the patient to update
+     * @param updateDto Demographics update data
+     * @return Updated patient details
+     */
+    @PutMapping("/{patientId}")
+    public ResponseEntity<PatientDto> updatePatientDemographics(
+            @PathVariable Long patientId,
+            @Valid @RequestBody UpdatePatientDemographicsDto updateDto) {
+        
+        log.info("API Request: Update patient demographics for ID {}", patientId);
+        
+        try {
+            // TODO: Get actual user from security context
+            String currentUser = "system"; // Placeholder
+            
+            PatientDto result = patientEnrollmentService.updatePatientDemographics(patientId, updateDto, currentUser);
+            
+            log.info("API Response: Patient {} demographics updated successfully", result.getId());
+            return ResponseEntity.ok(result);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid patient update request: {}", e.getMessage());
+            throw e;
+        } catch (RuntimeException e) {
+            log.warn("Patient not found: {}", patientId);
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            log.error("Error updating patient {}: {}", patientId, e.getMessage(), e);
+            throw new RuntimeException("Failed to update patient", e);
         }
     }
 
@@ -267,6 +304,27 @@ public class PatientEnrollmentController {
         } catch (Exception e) {
             log.error("Test enrollment failed: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body("Test enrollment failed: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Get site-study associations for a specific study
+     * Returns all sites that are associated with the specified study
+     * 
+     * @param studyId Study ID
+     * @return List of site-study associations
+     */
+    @GetMapping("/site-studies/study/{studyId}")
+    public ResponseEntity<List<SiteStudyEntity>> getSiteStudiesByStudy(@PathVariable Long studyId) {
+        log.info("API Request: Get site studies for study ID {}", studyId);
+        
+        try {
+            List<SiteStudyEntity> results = patientEnrollmentService.getSiteStudiesByStudy(studyId);
+            log.info("API Response: Found {} site studies for study {}", results.size(), studyId);
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            log.error("Error retrieving site studies for study {}: {}", studyId, e.getMessage(), e);
+            throw new RuntimeException("Failed to retrieve site studies", e);
         }
     }
 }

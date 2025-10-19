@@ -83,9 +83,10 @@ public class PatientEnrolledEvent {
     private final String createdBy;
     
     /**
-     * Optional: Treatment arm assignment (if randomization happened during enrollment)
+     * NOTE: Treatment arm field removed for EDC blinding compliance
+     * See: EDC_BLINDING_ARCHITECTURE_DECISION.md
+     * Randomization handled by external IWRS/RTSM system, not during enrollment
      */
-    private final String treatmentArm;
     
     /**
      * Optional: Eligibility confirmation flag

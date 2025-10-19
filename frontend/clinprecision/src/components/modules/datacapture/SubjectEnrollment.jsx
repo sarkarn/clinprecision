@@ -1,20 +1,20 @@
 // SubjectEnrollment.jsx
+// EDC Blinding Compliance: Treatment arm selection removed from enrollment
+// Randomization is handled by external IWRS/RTSM system, not during patient registration
+// See: EDC_BLINDING_ARCHITECTURE_DECISION.md
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStudies } from '../../../services/StudyService';
 import { enrollSubject } from '../../../services/SubjectService';
-import StudyDesignService from '../../../services/StudyDesignService';
 import { SiteService } from '../../../services/SiteService';
 
 export default function SubjectEnrollment() {
     const [studies, setStudies] = useState([]);
     const [selectedStudy, setSelectedStudy] = useState('');
-    const [studyArms, setStudyArms] = useState([]);
     const [studySites, setStudySites] = useState([]);
     const [formData, setFormData] = useState({
         subjectId: '',
         studyId: '',
-        armId: '',
         siteId: '',
         enrollmentDate: new Date().toISOString().split('T')[0],
         status: 'Active',
@@ -58,18 +58,18 @@ export default function SubjectEnrollment() {
 
     useEffect(() => {
         if (!selectedStudy) {
-            setStudyArms([]);
             setStudySites([]);
-            setFormData(prev => ({ ...prev, studyId: '', armId: '', siteId: '' }));
+            setFormData(prev => ({ ...prev, studyId: '', siteId: '' }));
             return;
         }
 
         const fetchStudyDependentData = async () => {
             try {
                 setError(null);
-                // Fetch arms via StudyDesignService (gateway-prefixed)
-                const arms = await StudyDesignService.getStudyArms(selectedStudy);
-                setStudyArms(Array.isArray(arms) ? arms : []);
+
+                // NOTE: Arm fields removed for EDC blinding compliance
+                // Treatment arm assignment is handled by external IWRS/RTSM system, not during enrollment
+                // See: EDC_BLINDING_ARCHITECTURE_DECISION.md
 
                 // Fetch site-study associations and populate dropdown
                 const associations = await SiteService.getSiteAssociationsForStudy(selectedStudy);
@@ -122,12 +122,11 @@ export default function SubjectEnrollment() {
                 setFormData(prev => ({
                     ...prev,
                     studyId: selectedStudy,
-                    armId: (Array.isArray(arms) && arms.length > 0) ? (arms[0].id?.toString() || arms[0].id) : '',
                     siteId: (sitesOptions.length > 0) ? sitesOptions[0].siteId : ''
                 }));
             } catch (error) {
                 console.error('Error fetching study dependent data:', error);
-                setError('Failed to load study details (arms/sites).');
+                setError('Failed to load study details (sites).');
             }
         };
 
@@ -151,8 +150,18 @@ export default function SubjectEnrollment() {
 
         try {
             // Validate form
-            if (!formData.subjectId || !formData.studyId || !formData.armId || !formData.siteId || !formData.firstName || !formData.lastName) {
+            // NOTE: armId removed for EDC blinding compliance - randomization handled by external IWRS/RTSM
+            if (!formData.subjectId || !formData.studyId || !formData.siteId || !formData.firstName || !formData.lastName) {
                 throw new Error('Please fill all required fields.');
+            }
+
+            // Validate name lengths (match backend validation)
+            if (formData.firstName.trim().length < 2) {
+                throw new Error('First name must be at least 2 characters long.');
+            }
+
+            if (formData.lastName.trim().length < 2) {
+                throw new Error('Last name must be at least 2 characters long.');
             }
 
             // Validate email format if provided
@@ -210,6 +219,8 @@ export default function SubjectEnrollment() {
                             className="border border-gray-300 rounded-md w-full px-3 py-2"
                             placeholder="Enter first name"
                             required
+                            minLength={2}
+                            title="First name must be at least 2 characters long"
                         />
                     </div>
 
@@ -225,6 +236,8 @@ export default function SubjectEnrollment() {
                             className="border border-gray-300 rounded-md w-full px-3 py-2"
                             placeholder="Enter last name"
                             required
+                            minLength={2}
+                            title="Last name must be at least 2 characters long"
                         />
                     </div>
 
@@ -284,25 +297,6 @@ export default function SubjectEnrollment() {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Study Arm*
-                        </label>
-                        <select
-                            name="armId"
-                            value={formData.armId}
-                            onChange={handleChange}
-                            className="border border-gray-300 rounded-md w-full px-3 py-2"
-                            required
-                            disabled={studyArms.length === 0}
-                        >
-                            <option value="">Select an arm</option>
-                            {studyArms.map(arm => (
-                                <option key={arm.id} value={arm.id}>{arm.name || arm.title || `Arm ${arm.id}`}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Study Site*
                         </label>
                         <select
@@ -337,6 +331,25 @@ export default function SubjectEnrollment() {
                             className="border border-gray-300 rounded-md w-full px-3 py-2"
                             required
                         />
+                    </div>
+                </div>
+
+                {/* EDC Blinding Compliance Information */}
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+                    <div className="flex items-start">
+                        <svg className="w-5 h-5 text-blue-600 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <div>
+                            <h4 className="text-sm font-semibold text-blue-900 mb-1">Treatment Assignment Process</h4>
+                            <p className="text-sm text-blue-800 mb-2">
+                                This EDC system maintains study blinding by NOT assigning treatment arms during enrollment.
+                            </p>
+                            <p className="text-xs text-blue-700">
+                                <strong>Next Steps After Enrollment:</strong> Contact the IWRS/RTSM system to randomize the patient
+                                and receive treatment assignment. The EDC system will remain blinded to maintain study integrity.
+                            </p>
+                        </div>
                     </div>
                 </div>
 

@@ -7,6 +7,7 @@ USE clinprecisiondb;
 @clinical_code_lists_data.sql
 @data_admin_setup.sql
 @study_lookup_data.sql
+@config_unscheduled_visits.sql
 @data_form_templates_setup.sql
 @data_study_setup.sql
 

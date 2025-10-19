@@ -301,7 +301,6 @@ export default function SubjectList() {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Number</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollment Date</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Treatment Arm</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -343,9 +342,6 @@ export default function SubjectList() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {subject.enrollmentDate ? new Date(subject.enrollmentDate).toLocaleDateString() : 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {subject.armName || 'Not Assigned'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {subject.siteId ? `Site ${subject.siteId}` : 'N/A'}
@@ -483,6 +479,18 @@ export default function SubjectList() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex space-x-3 items-center">
+                                                    <Link
+                                                        to={`${basePath}/subjects/${patient.id}`}
+                                                        className="text-indigo-600 hover:text-indigo-900 flex items-center"
+                                                        title="View patient details"
+                                                    >
+                                                        <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                        View
+                                                    </Link>
+
                                                     <button
                                                         onClick={() => {
                                                             setSelectedPatient(patient);
@@ -495,7 +503,37 @@ export default function SubjectList() {
                                                         <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                                         </svg>
-                                                        Change Status
+                                                        Status
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => handleEditSubject(patient.id)}
+                                                        className="text-gray-600 hover:text-gray-900 flex items-center"
+                                                        title="Edit patient details"
+                                                    >
+                                                        <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                        </svg>
+                                                        Edit
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => handleWithdrawSubject(patient)}
+                                                        className={`flex items-center ${patient.status === 'WITHDRAWN'
+                                                            ? 'text-gray-400 cursor-not-allowed'
+                                                            : 'text-red-600 hover:text-red-900'
+                                                            }`}
+                                                        disabled={patient.status === 'WITHDRAWN'}
+                                                        title={
+                                                            patient.status === 'WITHDRAWN'
+                                                                ? 'Patient already withdrawn'
+                                                                : 'Withdraw patient from study'
+                                                        }
+                                                    >
+                                                        <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                        Withdraw
                                                     </button>
                                                 </div>
                                             </td>

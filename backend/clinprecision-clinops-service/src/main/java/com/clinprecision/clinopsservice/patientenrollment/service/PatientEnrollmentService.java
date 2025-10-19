@@ -2,8 +2,10 @@ package com.clinprecision.clinopsservice.patientenrollment.service;
 
 import com.clinprecision.clinopsservice.patientenrollment.domain.commands.RegisterPatientCommand;
 import com.clinprecision.clinopsservice.patientenrollment.domain.commands.EnrollPatientCommand;
+import com.clinprecision.clinopsservice.patientenrollment.domain.commands.UpdatePatientDemographicsCommand;
 import com.clinprecision.clinopsservice.patientenrollment.dto.EnrollPatientDto;
 import com.clinprecision.clinopsservice.patientenrollment.dto.RegisterPatientDto;
+import com.clinprecision.clinopsservice.patientenrollment.dto.UpdatePatientDemographicsDto;
 import com.clinprecision.clinopsservice.patientenrollment.dto.PatientDto;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEntity;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentEntity;
@@ -198,6 +200,66 @@ public class PatientEnrollmentService {
                 .filter(dto -> dto != null)
                 .collect(Collectors.toList());
     }
+    
+    /**
+     * Update patient demographics
+     * 
+     * @param patientId Database ID of the patient to update
+     * @param updateDto Demographics update data
+     * @param updatedBy User performing the update
+     * @return Updated patient DTO
+     */
+    public PatientDto updatePatientDemographics(Long patientId, UpdatePatientDemographicsDto updateDto, String updatedBy) {
+        log.info("Updating patient demographics: patientId={}, updatedBy={}", patientId, updatedBy);
+        
+        try {
+            // Find patient entity
+            PatientEntity patient = patientRepository.findById(patientId)
+                    .orElseThrow(() -> new IllegalArgumentException("Patient not found: " + patientId));
+            
+            UUID patientUuid = UUID.fromString(patient.getAggregateUuid());
+            
+            // Create and send Axon command
+            UpdatePatientDemographicsCommand command = UpdatePatientDemographicsCommand.builder()
+                    .patientId(patientUuid)
+                    .firstName(updateDto.getFirstName())
+                    .middleName(updateDto.getMiddleName())
+                    .lastName(updateDto.getLastName())
+                    .dateOfBirth(updateDto.getDateOfBirth())
+                    .gender(updateDto.getGender())
+                    .phoneNumber(updateDto.getPhoneNumber())
+                    .email(updateDto.getEmail())
+                    .updatedBy(updatedBy)
+                    .build();
+            
+            log.info("Sending UpdatePatientDemographicsCommand to Axon for UUID: {}", patientUuid);
+            
+            // Send command and wait for completion
+            CompletableFuture<Void> future = commandGateway.send(command);
+            future.get(); // Wait for event to be processed
+            
+            log.info("UpdatePatientDemographicsCommand completed successfully for UUID: {}", patientUuid);
+            
+            // Wait a moment for projection to update
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            
+            // Fetch and return updated patient
+            patient = patientRepository.findById(patientId)
+                    .orElseThrow(() -> new RuntimeException("Patient not found after update: " + patientId));
+            
+            PatientDto result = mapToDtoWithEnrollment(patient);
+            log.info("Patient demographics updated successfully: ID={}, UUID={}", result.getId(), result.getAggregateUuid());
+            return result;
+            
+        } catch (Exception e) {
+            log.error("Error updating patient demographics: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to update patient demographics: " + e.getMessage(), e);
+        }
+    }
 
     /**
      * Get all patients (simple version without enrollment data)
@@ -306,9 +368,10 @@ public class PatientEnrollmentService {
                 });
             }
             
-            // TODO: Lookup treatment arm name when arm_id field is added to patient_enrollments table
-            // Randomization to treatment arms is typically done after enrollment
-            // For now, leave treatmentArm and treatmentArmName as null
+            // NOTE: Treatment arm lookup REMOVED for EDC blinding compliance
+            // See: EDC_BLINDING_ARCHITECTURE_DECISION.md
+            // EDC systems should NOT expose patient-to-arm assignments
+            // Randomization handled by external IWRS/RTSM system
             
             // TODO: Add site name lookup when SiteRepository is available
         }
@@ -632,6 +695,17 @@ public class PatientEnrollmentService {
             log.error("Test enrollment failed: {}", e.getMessage(), e);
             return "Test enrollment failed: " + e.getMessage();
         }
+    }
+    
+    /**
+     * Get site studies (site-study associations) for a specific study
+     * 
+     * @param studyId Study ID
+     * @return List of site-study associations for the study
+     */
+    public List<SiteStudyEntity> getSiteStudiesByStudy(Long studyId) {
+        log.info("Fetching site studies for study: {}", studyId);
+        return siteStudyRepository.findByStudyId(studyId);
     }
 }
 
