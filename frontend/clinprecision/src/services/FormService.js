@@ -1,7 +1,12 @@
 import ApiService from './ApiService';
 
-const API_PATH = '/clinops-ws/api/form-templates'; // Global form library/templates (moved to Clinical Operations Service)
-const FORM_DEFINITIONS_PATH = '/clinops-ws/api/form-definitions'; // Study-specific forms (clinops-ws)
+// NEW DDD-aligned URLs (Module 1.3 Phase 2)
+const API_PATH = '/clinops-ws/api/v1/study-design/form-templates'; // Global form library/templates
+const FORM_DEFINITIONS_PATH = '/clinops-ws/api/v1/study-design/form-definitions'; // Study-specific forms
+
+// OLD URLs (deprecated - sunset: April 19, 2026)
+// const API_PATH = '/clinops-ws/api/form-templates';
+// const FORM_DEFINITIONS_PATH = '/clinops-ws/api/form-definitions';
 
 /**
  * Service for handling Form operations

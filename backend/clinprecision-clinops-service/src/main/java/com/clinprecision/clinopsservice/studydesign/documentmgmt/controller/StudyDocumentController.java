@@ -1,6 +1,7 @@
 package com.clinprecision.clinopsservice.studydesign.documentmgmt.controller;
 
 
+import com.clinprecision.clinopsservice.studydesign.design.api.StudyDesignApiConstants;
 import com.clinprecision.clinopsservice.studydesign.documentmgmt.dto.*;
 import com.clinprecision.clinopsservice.studydesign.documentmgmt.service.StudyDocumentCommandService;
 import com.clinprecision.clinopsservice.studydesign.documentmgmt.service.StudyDocumentQueryService;
@@ -19,20 +20,40 @@ import java.util.UUID;
 /**
  * REST API Controller for Study Document Management (DDD/CQRS Implementation)
  * 
- * Follows established ClinPrecision patterns:
- * - Uses UUID-based routing for DDD aggregates
- * - Separates command and query operations (CQRS)
- * - Returns standardized response formats
- * - Implements proper error handling
+ * <p>Follows established ClinPrecision patterns:</p>
+ * <ul>
+ *   <li>Uses UUID-based routing for DDD aggregates</li>
+ *   <li>Separates command and query operations (CQRS)</li>
+ *   <li>Returns standardized response formats</li>
+ *   <li>Implements proper error handling</li>
+ * </ul>
  * 
- * API Design:
- * - Command operations: POST, PUT, DELETE (write)
- * - Query operations: GET (read)
- * - UUID-based document identification
- * - Study-scoped document queries
+ * <p><b>URL Migration (October 2025 - April 2026):</b></p>
+ * <ul>
+ *   <li>NEW (Primary): {@code /api/v1/study-design/documents/*} - DDD-aligned, domain-focused paths</li>
+ *   <li>OLD (Deprecated): {@code /api/v1/documents/*} - Legacy paths</li>
+ * </ul>
+ * 
+ * <p><b>API Design:</b></p>
+ * <ul>
+ *   <li>Command operations: POST, PUT, DELETE (write)</li>
+ *   <li>Query operations: GET (read)</li>
+ *   <li>UUID-based document identification</li>
+ *   <li>Study-scoped document queries</li>
+ * </ul>
+ * 
+ * <p><b>Deprecation Timeline:</b> October 19, 2025 - April 19, 2026 (6 months)</p>
+ * 
+ * @see StudyDesignApiConstants
+ * @author DDD Migration Team
+ * @version 2.0
+ * @since V004 Migration - Module 1.4 (October 2025)
  */
 @RestController
-@RequestMapping("/api/v1/documents")
+@RequestMapping({
+    StudyDesignApiConstants.DOCUMENTS_PATH,        // NEW: /api/v1/study-design/documents
+    StudyDesignApiConstants.LEGACY_DOCUMENTS       // OLD: /api/v1/documents (deprecated)
+})
 @RequiredArgsConstructor
 @Slf4j
 public class StudyDocumentController {

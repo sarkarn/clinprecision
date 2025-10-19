@@ -1,9 +1,13 @@
 package com.clinprecision.clinopsservice.studydesign.design.controller;
 
+import com.clinprecision.clinopsservice.common.util.DeprecationHeaderUtil;
 import com.clinprecision.clinopsservice.studydesign.build.entity.VisitFormEntity;
 import com.clinprecision.clinopsservice.studydesign.build.repository.VisitFormRepository;
+import com.clinprecision.clinopsservice.studydesign.design.api.StudyDesignApiConstants;
 import com.clinprecision.clinopsservice.studydesign.design.dto.UpdateFormAssignmentRequest;
 import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignCommandService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -16,28 +20,43 @@ import java.util.UUID;
 /**
  * Form Binding Command Controller - Bridge Pattern
  * 
- * REST API for form binding write operations (command side).
- * Temporary bridge implementation until DDD commands are implemented.
+ * <p>REST API for form binding write operations (command side).
+ * Temporary bridge implementation until DDD commands are fully implemented.</p>
  * 
- * Base Path: /api/form-bindings
+ * <p><b>URL Migration (October 2025 - April 2026):</b></p>
+ * <ul>
+ *   <li>NEW (Primary): {@code /api/v1/study-design/form-bindings/*} - DDD-aligned, domain-focused paths</li>
+ *   <li>OLD (Deprecated): {@code /api/form-bindings/*} - Legacy bridge paths</li>
+ * </ul>
  * 
- * Command Endpoints:
- * - PUT    /api/form-bindings/{bindingId}      - Update form binding
- * - DELETE /api/form-bindings/{bindingId}      - Remove form binding
+ * <p><b>Command Endpoints:</b></p>
+ * <ul>
+ *   <li>PUT /api/form-bindings/{bindingId} - Update form binding</li>
+ *   <li>DELETE /api/form-bindings/{bindingId} - Remove form binding</li>
+ * </ul>
  * 
- * NOTE: POST endpoint is in StudyCommandController as POST /api/studies/{studyId}/visits/{visitId}/forms/{formId}
+ * <p><b>NOTE:</b> POST endpoint is in StudyCommandController as POST /api/studies/{studyId}/visits/{visitId}/forms/{formId}</p>
  * 
- * Architecture:
- * - Bridge pattern for legacy compatibility
- * - Returns mock responses until DDD implementation is complete
- * - TODO: Implement UpdateFormAssignmentCommand and RemoveFormAssignmentCommand
+ * <p><b>Architecture:</b></p>
+ * <ul>
+ *   <li>Bridge pattern for legacy compatibility</li>
+ *   <li>Returns mock responses until DDD implementation is complete</li>
+ *   <li>TODO: Implement UpdateFormAssignmentCommand and RemoveFormAssignmentCommand</li>
+ * </ul>
  * 
+ * <p><b>Deprecation Timeline:</b> October 19, 2025 - April 19, 2026 (6 months)</p>
+ * 
+ * @see StudyDesignApiConstants
+ * @see DeprecationHeaderUtil
  * @author DDD Migration Team
  * @version 1.0
- * @since V004 Migration - Form Binding Phase
+ * @since V004 Migration - Form Binding Phase - Module 1.3 Phase 1 (October 2025)
  */
 @RestController
-@RequestMapping("/api/form-bindings")
+@RequestMapping({
+    StudyDesignApiConstants.FORM_BINDINGS_PATH,        // NEW: /api/v1/study-design/form-bindings
+    StudyDesignApiConstants.LEGACY_FORM_BINDINGS       // OLD: /api/form-bindings (deprecated)
+})
 @RequiredArgsConstructor
 @Validated
 @Slf4j
@@ -49,23 +68,38 @@ public class FormBindingCommandController {
     /**
      * Update form binding (modify form-to-visit assignment)
      * 
-     * Bridge endpoint: Frontend calls PUT /api/form-bindings/{bindingId}
-     * Backend DDD: UpdateFormAssignmentCommand
+     * <p><b>Endpoints (Bridge Pattern):</b></p>
+     * <ul>
+     *   <li>NEW: {@code PUT /api/v1/study-design/form-bindings/{bindingId}}</li>
+     *   <li>OLD: {@code PUT /api/form-bindings/{bindingId}} (deprecated)</li>
+     * </ul>
      * 
-     * Command: UpdateFormAssignmentCommand
-     * Event: FormAssignmentUpdatedEvent
+     * <p><b>Command:</b> UpdateFormAssignmentCommand</p>
+     * <p><b>Event:</b> FormAssignmentUpdatedEvent</p>
      * 
      * @param bindingId Form binding ID (assignment UUID)
      * @param updates Form binding updates
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
      * @return 200 OK with updated binding data
      */
     @PutMapping("/{bindingId}")
     public ResponseEntity<Map<String, Object>> updateFormBinding(
             @PathVariable String bindingId,
-            @RequestBody Map<String, Object> updates) {
+            @RequestBody Map<String, Object> updates,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         
         log.info("REST: Updating form binding: {}", bindingId);
         log.debug("REST: Update data: {}", updates);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.FORM_BINDINGS_PATH + "/{bindingId}",
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         try {
             UUID assignmentUuid = UUID.fromString(bindingId);
@@ -121,19 +155,35 @@ public class FormBindingCommandController {
     /**
      * Remove form binding (unassign form from visit)
      * 
-     * Bridge endpoint: Frontend calls DELETE /api/form-bindings/{bindingId}
-     * Backend DDD: RemoveFormAssignmentCommand
+     * <p><b>Endpoints (Bridge Pattern):</b></p>
+     * <ul>
+     *   <li>NEW: {@code DELETE /api/v1/study-design/form-bindings/{bindingId}}</li>
+     *   <li>OLD: {@code DELETE /api/form-bindings/{bindingId}} (deprecated)</li>
+     * </ul>
      * 
-     * Command: RemoveFormAssignmentCommand
-     * Event: FormAssignmentRemovedEvent
+     * <p><b>Command:</b> RemoveFormAssignmentCommand</p>
+     * <p><b>Event:</b> FormAssignmentRemovedEvent</p>
      * 
      * @param bindingId Form binding ID (assignment UUID)
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
      * @return 204 No Content
      */
     @DeleteMapping("/{bindingId}")
-    public ResponseEntity<Void> removeFormBinding(@PathVariable String bindingId) {
+    public ResponseEntity<Void> removeFormBinding(
+            @PathVariable String bindingId,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         
         log.info("REST: Removing form binding: {}", bindingId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.FORM_BINDINGS_PATH + "/{bindingId}",
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         try {
             UUID assignmentUuid = UUID.fromString(bindingId);

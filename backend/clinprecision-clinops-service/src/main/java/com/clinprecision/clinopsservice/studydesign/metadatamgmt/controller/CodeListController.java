@@ -1,5 +1,6 @@
 package com.clinprecision.clinopsservice.studydesign.metadatamgmt.controller;
 
+import com.clinprecision.clinopsservice.studydesign.design.api.StudyDesignApiConstants;
 import com.clinprecision.clinopsservice.studydesign.metadatamgmt.service.CodeListService;
 import com.clinprecision.clinopsservice.studydesign.metadatamgmt.dto.CodeListDto;
 import com.clinprecision.clinopsservice.studydesign.metadatamgmt.dto.CreateCodeListRequest;
@@ -19,12 +20,31 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * REST Controller for Code List management
- * Provides endpoints for both admin UI and other microservices
+ * REST Controller for Code List Management (Metadata)
+ * 
+ * <p>Provides endpoints for both admin UI and other microservices to manage
+ * standardized code lists and metadata used throughout the study design process.</p>
+ * 
+ * <p><b>URL Migration (October 2025 - April 2026):</b></p>
+ * <ul>
+ *   <li>NEW (Primary): {@code /api/v1/study-design/metadata/codelists/*} - DDD-aligned metadata paths</li>
+ *   <li>OLD (Deprecated): {@code /api/admin/codelists/*} - Legacy admin paths</li>
+ * </ul>
+ * 
+ * <p><b>Note:</b> CORS is handled by API Gateway - do not add @CrossOrigin here</p>
+ * 
+ * <p><b>Deprecation Timeline:</b> October 19, 2025 - April 19, 2026 (6 months)</p>
+ * 
+ * @see StudyDesignApiConstants
+ * @author DDD Migration Team
+ * @version 2.0
+ * @since V004 Migration - Module 1.5 (October 2025)
  */
 @RestController
-@RequestMapping("/api/admin/codelists")
-// CORS is handled by API Gateway - do not add @CrossOrigin here
+@RequestMapping({
+    StudyDesignApiConstants.METADATA_CODELISTS_PATH,        // NEW: /api/v1/study-design/metadata/codelists
+    StudyDesignApiConstants.LEGACY_ADMIN_CODELISTS          // OLD: /api/admin/codelists (deprecated)
+})
 public class CodeListController {
     
     private static final Logger logger = LoggerFactory.getLogger(CodeListController.class);

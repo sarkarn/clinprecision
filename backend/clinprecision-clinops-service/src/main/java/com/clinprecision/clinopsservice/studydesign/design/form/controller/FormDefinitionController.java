@@ -2,6 +2,7 @@ package com.clinprecision.clinopsservice.studydesign.design.form.controller;
 
 
 
+import com.clinprecision.clinopsservice.studydesign.design.api.StudyDesignApiConstants;
 import com.clinprecision.clinopsservice.studydesign.design.form.service.FormDefinitionService;
 import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormDefinitionCreateRequestDto;
 import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormDefinitionDto;
@@ -18,10 +19,25 @@ import java.util.List;
 
 /**
  * REST Controller for Form Definition operations
- * Provides endpoints for form definition management with updated schema support
+ * 
+ * Provides endpoints for form definition management with updated schema support.
+ * Supports dual URL structure for backward compatibility during DDD migration.
+ * 
+ * <p><b>URL Migration:</b></p>
+ * <ul>
+ *   <li>NEW: {@code /api/v1/study-design/form-definitions/*} (DDD-aligned)</li>
+ *   <li>OLD: {@code /api/form-definitions/*} (deprecated, sunset: April 19, 2026)</li>
+ * </ul>
+ * 
+ * @author DDD Migration Team
+ * @version 2.0
+ * @since October 2025 - Module 1.3 Phase 2
  */
 @RestController
-@RequestMapping("/api/form-definitions")
+@RequestMapping({
+    StudyDesignApiConstants.FORM_DEFINITIONS_PATH,        // NEW: /api/v1/study-design/form-definitions
+    StudyDesignApiConstants.LEGACY_FORM_DEFINITIONS       // OLD: /api/form-definitions (deprecated)
+})
 public class FormDefinitionController {
     
     private static final Logger logger = LoggerFactory.getLogger(FormDefinitionController.class);
@@ -35,7 +51,8 @@ public class FormDefinitionController {
     
     /**
      * Create a new form definition
-     * POST /api/form-definitions
+     * POST /api/v1/study-design/form-definitions (NEW)
+     * POST /api/form-definitions (OLD - deprecated)
      */
     @PostMapping
     public ResponseEntity<FormDefinitionDto> createFormDefinition(@Valid @RequestBody FormDefinitionCreateRequestDto requestDto) {

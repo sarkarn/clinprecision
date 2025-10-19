@@ -1,5 +1,6 @@
 package com.clinprecision.clinopsservice.studydesign.studymgmt.controller;
 
+import com.clinprecision.clinopsservice.common.util.DeprecationHeaderUtil;
 import com.clinprecision.clinopsservice.studydesign.build.entity.VisitFormEntity;
 import com.clinprecision.clinopsservice.studydesign.build.repository.VisitFormRepository;
 import com.clinprecision.clinopsservice.studydesign.design.arm.dto.StudyArmRequestDto;
@@ -7,6 +8,7 @@ import com.clinprecision.clinopsservice.studydesign.design.dto.AssignFormToVisit
 import com.clinprecision.clinopsservice.studydesign.design.dto.DesignProgressResponseDto;
 import com.clinprecision.clinopsservice.studydesign.design.dto.DesignProgressUpdateRequestDto;
 import com.clinprecision.clinopsservice.studydesign.design.service.DesignProgressService;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.api.StudyApiConstants;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.*;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyCommandService;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyQueryService;
@@ -22,6 +24,8 @@ import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.Study
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyResponseDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.exception.StudyStatusTransitionException;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,32 +44,58 @@ import java.util.UUID;
  * REST API for study write operations (command side).
  * Following CQRS pattern: Commands modify state and return identifiers or status.
  * 
- * Base Path: /api/studies
+ * <p><b>⚠️ URL MIGRATION IN PROGRESS</b></p>
+ * <p>This controller supports both old and new URL patterns during the migration period.
+ * Old URLs are deprecated and will be removed on April 19, 2026.</p>
  * 
- * Command Endpoints:
- * - POST   /api/studies                        - Create study
- * - PUT    /api/studies/{uuid}                 - Update study
- * - POST   /api/studies/{uuid}/details         - Update study details
- * - PATCH  /api/studies/{uuid}/publish         - Publish study (set ACTIVE)
- * - PATCH  /api/studies/{uuid}/status          - Change study status
- * - POST   /api/studies/{uuid}/suspend         - Suspend study
- * - POST   /api/studies/{uuid}/resume          - Resume study
- * - POST   /api/studies/{uuid}/complete        - Complete study
- * - POST   /api/studies/{uuid}/terminate       - Terminate study
- * - POST   /api/studies/{uuid}/withdraw        - Withdraw study
+ * <p><b>Old URLs (DEPRECATED):</b></p>
+ * <ul>
+ *   <li>POST   /api/studies - Create study</li>
+ *   <li>PUT    /api/studies/{uuid} - Update study</li>
+ *   <li>POST   /api/studies/{uuid}/details - Update study details</li>
+ *   <li>PATCH  /api/studies/{uuid}/publish - Publish study</li>
+ *   <li>PATCH  /api/studies/{uuid}/status - Change study status</li>
+ *   <li>POST   /api/studies/{uuid}/suspend - Suspend study</li>
+ *   <li>POST   /api/studies/{uuid}/resume - Resume study</li>
+ *   <li>POST   /api/studies/{uuid}/complete - Complete study</li>
+ *   <li>POST   /api/studies/{uuid}/terminate - Terminate study</li>
+ *   <li>POST   /api/studies/{uuid}/withdraw - Withdraw study</li>
+ * </ul>
  * 
- * Architecture:
- * - Receives DTOs from frontend
- * - Delegates to StudyCommandService
- * - Returns UUIDs or status codes
- * - No direct database access
+ * <p><b>New URLs (RECOMMENDED):</b></p>
+ * <ul>
+ *   <li>POST   /api/v1/study-design/studies - Create study</li>
+ *   <li>PUT    /api/v1/study-design/studies/{uuid} - Update study</li>
+ *   <li>POST   /api/v1/study-design/studies/{uuid}/details - Update study details</li>
+ *   <li>PATCH  /api/v1/study-design/studies/{uuid}/publish - Publish study</li>
+ *   <li>PATCH  /api/v1/study-design/studies/{uuid}/status - Change study status</li>
+ *   <li>POST   /api/v1/study-design/studies/{uuid}/lifecycle/suspend - Suspend study</li>
+ *   <li>POST   /api/v1/study-design/studies/{uuid}/lifecycle/resume - Resume study</li>
+ *   <li>POST   /api/v1/study-design/studies/{uuid}/lifecycle/complete - Complete study</li>
+ *   <li>POST   /api/v1/study-design/studies/{uuid}/lifecycle/terminate - Terminate study</li>
+ *   <li>POST   /api/v1/study-design/studies/{uuid}/lifecycle/withdraw - Withdraw study</li>
+ * </ul>
+ * 
+ * <p><b>Migration Timeline:</b></p>
+ * <ul>
+ *   <li>Phase 1 (Oct 2025 - Apr 2026): Both URLs work, old URLs include deprecation headers</li>
+ *   <li>Phase 2 (Apr 2026 - Oct 2026): Sunset warnings, old URLs still work</li>
+ *   <li>Phase 3 (Oct 2026+): Old URLs removed</li>
+ * </ul>
+ * 
+ * <p><b>Architecture:</b></p>
+ * <ul>
+ *   <li>Receives DTOs from frontend</li>
+ *   <li>Delegates to StudyCommandService</li>
+ *   <li>Returns UUIDs or status codes</li>
+ *   <li>No direct database access</li>
+ * </ul>
  * 
  * @author DDD Migration Team
- * @version 1.0
+ * @version 1.0 (URL Refactoring - October 2025)
  * @since V004 Migration
  */
 @RestController
-@RequestMapping("/api/studies")
 @RequiredArgsConstructor
 @Validated
 @Slf4j
@@ -82,14 +112,36 @@ public class StudyCommandController {
     /**
      * Create a new study
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies</li>
+     * </ul>
+     * 
      * Command: CreateStudyCommand
      * Event: StudyCreatedEvent
      * 
      * @param request Study creation request with name, description, phase, etc.
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 201 Created with study aggregate UUID
      */
-    @PostMapping
-    public ResponseEntity<Map<String, UUID>> createStudy(@Valid @RequestBody StudyCreateRequestDto request) {
+    @PostMapping(value = {
+        StudyApiConstants.CreateStudy.OLD,
+        StudyApiConstants.CreateStudy.NEW
+    })
+    public ResponseEntity<Map<String, UUID>> createStudy(
+            @Valid @RequestBody StudyCreateRequestDto request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.CreateStudy.OLD,
+            StudyApiConstants.CreateStudy.NEW
+        );
+        
         log.info("REST: Creating study: {}", request.getName());
         
         UUID studyUuid = studyCommandService.createStudy(request);
@@ -103,17 +155,37 @@ public class StudyCommandController {
     /**
      * Update an existing study
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): PUT /api/studies/{uuid}</li>
+     *   <li>New (recommended): PUT /api/v1/study-design/studies/{uuid}</li>
+     * </ul>
+     * 
      * Command: UpdateStudyCommand
      * Event: StudyUpdatedEvent
      * 
      * @param uuid Study aggregate UUID
      * @param request Study update request (partial update)
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK
      */
-    @PutMapping("/{uuid}")
+    @PutMapping(value = {
+        StudyApiConstants.UpdateStudy.OLD,
+        StudyApiConstants.UpdateStudy.NEW
+    })
     public ResponseEntity<Void> updateStudy(
             @PathVariable UUID uuid,
-            @Valid @RequestBody StudyUpdateRequestDto request) {
+            @Valid @RequestBody StudyUpdateRequestDto request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         log.info("REST: Updating study: {}", uuid);
         
@@ -126,17 +198,37 @@ public class StudyCommandController {
     /**
      * Update study details (specific endpoint for StudyEditPage.jsx)
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{uuid}/details</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{uuid}/details</li>
+     * </ul>
+     * 
      * Command: UpdateStudyCommand
      * Event: StudyUpdatedEvent
      * 
      * @param uuid Study aggregate UUID
      * @param request Study update request
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK
      */
-    @PostMapping("/{uuid}/details")
+    @PostMapping(value = {
+        StudyApiConstants.UpdateStudyDetails.OLD,
+        StudyApiConstants.UpdateStudyDetails.NEW
+    })
     public ResponseEntity<Void> updateStudyDetails(
             @PathVariable UUID uuid,
-            @Valid @RequestBody StudyUpdateRequestDto request) {
+            @Valid @RequestBody StudyUpdateRequestDto request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         log.info("REST: Updating study details: {}", uuid);
         
@@ -150,6 +242,12 @@ public class StudyCommandController {
      * Publish a study (set status to ACTIVE).
      * Supports both Long ID and UUID for gradual migration.
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): PATCH /api/studies/{studyId}/publish</li>
+     *   <li>New (recommended): PATCH /api/v1/study-design/studies/{studyId}/publish</li>
+     * </ul>
+     * 
      * Publishing a study means activating it (APPROVED → ACTIVE transition).
      * This makes the study available for data capture and participant enrollment.
      * 
@@ -157,10 +255,26 @@ public class StudyCommandController {
      * Event: StudyStatusChangedEvent
      * 
      * @param studyId Study ID (Long or UUID string)
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK
      */
-    @PatchMapping("/{studyId}/publish")
-    public ResponseEntity<Void> publishStudy(@PathVariable String studyId) {
+    @PatchMapping(value = {
+        StudyApiConstants.PublishStudy.OLD,
+        StudyApiConstants.PublishStudy.NEW
+    })
+    public ResponseEntity<Void> publishStudy(
+            @PathVariable String studyId,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
         // Bridge pattern: Resolve Study aggregate UUID (not StudyDesign UUID!)
         UUID studyAggregateUuid;
         try {
@@ -194,17 +308,37 @@ public class StudyCommandController {
     /**
      * Change study status (generic status change)
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): PATCH /api/studies/{studyId}/status</li>
+     *   <li>New (recommended): PATCH /api/v1/study-design/studies/{studyId}/status</li>
+     * </ul>
+     * 
      * Command: Various status commands
      * Event: Various status events
      * 
-     * @param uuid Study aggregate UUID
+     * @param studyId Study aggregate UUID or legacy ID
      * @param request Map containing "newStatus" field
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK
      */
-    @PatchMapping("/{studyId}/status")
+    @PatchMapping(value = {
+        StudyApiConstants.UpdateStudyStatus.OLD,
+        StudyApiConstants.UpdateStudyStatus.NEW
+    })
     public ResponseEntity<Void> changeStudyStatus(
             @PathVariable String studyId,
-            @RequestBody Map<String, String> request) {
+            @RequestBody Map<String, String> request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         String newStatus = request.get("newStatus");
         if (newStatus == null || newStatus.trim().isEmpty()) {
@@ -305,17 +439,37 @@ public class StudyCommandController {
     /**
      * Suspend study
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{uuid}/suspend</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{uuid}/lifecycle/suspend</li>
+     * </ul>
+     * 
      * Command: SuspendStudyCommand
      * Event: StudySuspendedEvent
      * 
      * @param uuid Study aggregate UUID
      * @param request Suspension request with reason
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK
      */
-    @PostMapping("/{uuid}/suspend")
+    @PostMapping(value = {
+        StudyApiConstants.SuspendStudy.OLD,
+        StudyApiConstants.SuspendStudy.NEW
+    })
     public ResponseEntity<Void> suspendStudy(
             @PathVariable UUID uuid,
-            @Valid @RequestBody SuspendStudyRequestDto request) {
+            @Valid @RequestBody SuspendStudyRequestDto request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         log.info("REST: Suspending study: {} - Reason: {}", uuid, request.getReason());
         
@@ -328,14 +482,36 @@ public class StudyCommandController {
     /**
      * Resume study (from suspended state)
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{uuid}/resume</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{uuid}/lifecycle/resume</li>
+     * </ul>
+     * 
      * Command: ActivateStudyCommand
      * Event: StudyActivatedEvent
      * 
      * @param uuid Study aggregate UUID
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK
      */
-    @PostMapping("/{uuid}/resume")
-    public ResponseEntity<Void> resumeStudy(@PathVariable UUID uuid) {
+    @PostMapping(value = {
+        StudyApiConstants.ResumeStudy.OLD,
+        StudyApiConstants.ResumeStudy.NEW
+    })
+    public ResponseEntity<Void> resumeStudy(
+            @PathVariable UUID uuid,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
         log.info("REST: Resuming study: {}", uuid);
         
         // TODO: Implement resumeStudy method in StudyCommandService
@@ -347,14 +523,36 @@ public class StudyCommandController {
     /**
      * Complete study
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{uuid}/complete</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{uuid}/lifecycle/complete</li>
+     * </ul>
+     * 
      * Command: CompleteStudyCommand
      * Event: StudyCompletedEvent
      * 
      * @param uuid Study aggregate UUID
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK
      */
-    @PostMapping("/{uuid}/complete")
-    public ResponseEntity<Void> completeStudy(@PathVariable UUID uuid) {
+    @PostMapping(value = {
+        StudyApiConstants.CompleteStudy.OLD,
+        StudyApiConstants.CompleteStudy.NEW
+    })
+    public ResponseEntity<Void> completeStudy(
+            @PathVariable UUID uuid,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
         log.info("REST: Completing study: {}", uuid);
         
         studyCommandService.completeStudy(uuid);
@@ -366,17 +564,37 @@ public class StudyCommandController {
     /**
      * Terminate study
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{uuid}/terminate</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{uuid}/lifecycle/terminate</li>
+     * </ul>
+     * 
      * Command: TerminateStudyCommand
      * Event: StudyTerminatedEvent
      * 
      * @param uuid Study aggregate UUID
      * @param request Termination request with reason
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK
      */
-    @PostMapping("/{uuid}/terminate")
+    @PostMapping(value = {
+        StudyApiConstants.TerminateStudy.OLD,
+        StudyApiConstants.TerminateStudy.NEW
+    })
     public ResponseEntity<Void> terminateStudy(
             @PathVariable UUID uuid,
-            @Valid @RequestBody TerminateStudyRequestDto request) {
+            @Valid @RequestBody TerminateStudyRequestDto request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         log.info("REST: Terminating study: {} - Reason: {}", uuid, request.getReason());
         
@@ -389,17 +607,37 @@ public class StudyCommandController {
     /**
      * Withdraw study
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{uuid}/withdraw</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{uuid}/lifecycle/withdraw</li>
+     * </ul>
+     * 
      * Command: WithdrawStudyCommand
      * Event: StudyWithdrawnEvent
      * 
      * @param uuid Study aggregate UUID
      * @param request Withdrawal request with reason
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK
      */
-    @PostMapping("/{uuid}/withdraw")
+    @PostMapping(value = {
+        StudyApiConstants.WithdrawStudy.OLD,
+        StudyApiConstants.WithdrawStudy.NEW
+    })
     public ResponseEntity<Void> withdrawStudy(
             @PathVariable UUID uuid,
-            @Valid @RequestBody WithdrawStudyRequestDto request) {
+            @Valid @RequestBody WithdrawStudyRequestDto request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         log.info("REST: Withdrawing study: {} - Reason: {}", uuid, request.getReason());
         
@@ -412,17 +650,39 @@ public class StudyCommandController {
     /**
      * Initialize design progress for a study (supports UUID or legacy ID)
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{id}/design-progress/initialize</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{id}/design-progress</li>
+     * </ul>
+     * 
      * Command: InitializeDesignProgressCommand (TODO)
      * Event: DesignProgressInitializedEvent (TODO)
      * 
      * @param id Study identifier (UUID or numeric ID)
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 201 Created
      * 
      * NOTE: This method is temporarily returning success without implementation
      * to prevent frontend errors. Actual implementation pending.
      */
-    @PostMapping("/{id}/design-progress/initialize")
-    public ResponseEntity<Void> initializeDesignProgress(@PathVariable String id) {
+    @PostMapping(value = {
+        StudyApiConstants.InitializeDesignProgress.OLD,
+        StudyApiConstants.InitializeDesignProgress.NEW
+    })
+    public ResponseEntity<Void> initializeDesignProgress(
+            @PathVariable String id,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
         log.info("REST: Initializing design progress for study: {}", id);
         
         // Support both UUID and legacy numeric ID
@@ -454,18 +714,38 @@ public class StudyCommandController {
     /**
      * Update design progress for a study (supports UUID or legacy ID)
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): PUT /api/studies/{id}/design-progress</li>
+     *   <li>New (recommended): PUT /api/v1/study-design/studies/{id}/design-progress</li>
+     * </ul>
+     * 
      * Bridge endpoint: Frontend calls PUT /studies/{id}/design-progress
      * 
      * Command: UpdateDesignProgressCommand (TODO - future DDD implementation)
      * 
      * @param id Study identifier (UUID or numeric ID)
      * @param updateRequest Design progress update data
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with updated design progress
      */
-    @PutMapping("/{id}/design-progress")
+    @PutMapping(value = {
+        StudyApiConstants.UpdateDesignProgress.OLD,
+        StudyApiConstants.UpdateDesignProgress.NEW
+    })
     public ResponseEntity<DesignProgressResponseDto> updateDesignProgress(
             @PathVariable String id,
-            @Valid @RequestBody DesignProgressUpdateRequestDto updateRequest) {
+            @Valid @RequestBody DesignProgressUpdateRequestDto updateRequest,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         log.info("REST: Updating design progress for study: {}", id);
         log.debug("REST: Progress update data: {}", updateRequest);

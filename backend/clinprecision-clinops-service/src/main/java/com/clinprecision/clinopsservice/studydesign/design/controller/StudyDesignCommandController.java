@@ -1,5 +1,7 @@
 package com.clinprecision.clinopsservice.studydesign.design.controller;
 
+import com.clinprecision.clinopsservice.common.util.DeprecationHeaderUtil;
+import com.clinprecision.clinopsservice.studydesign.design.api.StudyDesignApiConstants;
 import com.clinprecision.clinopsservice.studydesign.design.arm.dto.AddStudyArmRequest;
 import com.clinprecision.clinopsservice.studydesign.design.arm.dto.UpdateStudyArmRequest;
 import com.clinprecision.clinopsservice.studydesign.design.dto.*;
@@ -9,6 +11,8 @@ import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignAu
 import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.DefineVisitDefinitionRequest;
 import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.UpdateVisitDefinitionRequest;
 import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.VisitDefinitionResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -22,10 +26,32 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * REST Controller for StudyDesign write operations (commands)
- * Handles all mutations to the study design aggregate
+ * Handles all mutations to the study design aggregate (arms, visits, form assignments, design progress)
+ * 
+ * <p><b>URL Migration (DDD Alignment):</b></p>
+ * <ul>
+ *   <li>OLD: {@code /api/clinops/study-design/*}</li>
+ *   <li>NEW: {@code /api/v1/study-design/designs/*}</li>
+ * </ul>
+ * 
+ * <p><b>Deprecation Timeline:</b></p>
+ * <ul>
+ *   <li>Deprecated: October 19, 2025</li>
+ *   <li>Sunset Date: April 19, 2026</li>
+ *   <li>Removal: After April 19, 2026</li>
+ * </ul>
+ * 
+ * <p><b>Bridge Endpoints:</b> Support auto-initialization pattern via {@code /studies/{studyId}/*}</p>
+ * 
+ * @see StudyDesignApiConstants
+ * @see DeprecationHeaderUtil
+ * @since October 2025 - Module 1.3 Study Design Management
  */
 @RestController
-@RequestMapping("/api/clinops/study-design")
+@RequestMapping({
+    StudyDesignApiConstants.DESIGNS_PATH,                  // NEW: /api/v1/study-design/designs
+    StudyDesignApiConstants.LEGACY_CLINOPS_STUDY_DESIGN    // OLD: /api/clinops/study-design (deprecated)
+})
 @RequiredArgsConstructor
 @Slf4j
 public class StudyDesignCommandController {
@@ -36,12 +62,33 @@ public class StudyDesignCommandController {
 
     /**
      * Initialize a new study design
-     * POST /api/clinops/study-design
+     * 
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code POST /api/v1/study-design/designs}</li>
+     *   <li>OLD: {@code POST /api/clinops/study-design} (deprecated)</li>
+     * </ul>
+     * 
+     * @param request Initialization request with study aggregate UUID
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with created study design ID
      */
     @PostMapping
     public CompletableFuture<ResponseEntity<Map<String, UUID>>> initializeStudyDesign(
-            @RequestBody InitializeStudyDesignRequest request) {
+            @RequestBody InitializeStudyDesignRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Initialize study design for study: {}", request.getStudyAggregateUuid());
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return commandService.initializeStudyDesign(request)
             .thenApply(studyDesignId -> ResponseEntity
@@ -57,13 +104,35 @@ public class StudyDesignCommandController {
 
     /**
      * Add a study arm
-     * POST /api/clinops/study-design/{studyDesignId}/arms
+     * 
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code POST /api/v1/study-design/designs/{studyDesignId}/arms}</li>
+     *   <li>OLD: {@code POST /api/clinops/study-design/{studyDesignId}/arms} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyDesignId Study design aggregate UUID
+     * @param request Add arm request
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with 201 Created
      */
     @PostMapping("/{studyDesignId}/arms")
     public CompletableFuture<ResponseEntity<Void>> addStudyArm(
             @PathVariable UUID studyDesignId,
-            @RequestBody AddStudyArmRequest request) {
+            @RequestBody AddStudyArmRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Add study arm '{}' to design: {}", request.getName(), studyDesignId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH + StudyDesignApiConstants.ARMS,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return commandService.addStudyArm(studyDesignId, request)
             .thenApply(result -> ResponseEntity.status(HttpStatus.CREATED).<Void>build())
@@ -75,14 +144,37 @@ public class StudyDesignCommandController {
 
     /**
      * Update a study arm
-     * PUT /api/clinops/study-design/{studyDesignId}/arms/{armId}
+     * 
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code PUT /api/v1/study-design/designs/{studyDesignId}/arms/{armId}}</li>
+     *   <li>OLD: {@code PUT /api/clinops/study-design/{studyDesignId}/arms/{armId}} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyDesignId Study design aggregate UUID
+     * @param armId Arm UUID
+     * @param request Update arm request
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with 200 OK
      */
     @PutMapping("/{studyDesignId}/arms/{armId}")
     public CompletableFuture<ResponseEntity<Void>> updateStudyArm(
             @PathVariable UUID studyDesignId,
             @PathVariable UUID armId,
-            @RequestBody UpdateStudyArmRequest request) {
+            @RequestBody UpdateStudyArmRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Update study arm {} in design: {}", armId, studyDesignId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH + StudyDesignApiConstants.ARM_BY_ID,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return commandService.updateStudyArm(studyDesignId, armId, request)
             .thenApply(result -> ResponseEntity.ok().<Void>build())
@@ -94,15 +186,39 @@ public class StudyDesignCommandController {
 
     /**
      * Remove a study arm
-     * DELETE /api/clinops/study-design/{studyDesignId}/arms/{armId}
+     * 
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code DELETE /api/v1/study-design/designs/{studyDesignId}/arms/{armId}}</li>
+     *   <li>OLD: {@code DELETE /api/clinops/study-design/{studyDesignId}/arms/{armId}} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyDesignId Study design aggregate UUID
+     * @param armId Arm UUID
+     * @param reason Reason for removal
+     * @param removedBy User ID who removed the arm
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with 204 No Content
      */
     @DeleteMapping("/{studyDesignId}/arms/{armId}")
     public CompletableFuture<ResponseEntity<Void>> removeStudyArm(
             @PathVariable UUID studyDesignId,
             @PathVariable UUID armId,
             @RequestParam String reason,
-            @RequestParam Long removedBy) {
+            @RequestParam Long removedBy,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Remove study arm {} from design: {}", armId, studyDesignId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH + StudyDesignApiConstants.ARM_BY_ID,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return commandService.removeStudyArm(studyDesignId, armId, reason, removedBy)
             .thenApply(result -> ResponseEntity.noContent().<Void>build())
@@ -116,13 +232,35 @@ public class StudyDesignCommandController {
 
     /**
      * Define a visit
-     * POST /api/clinops/study-design/{studyDesignId}/visits
+     * 
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code POST /api/v1/study-design/designs/{studyDesignId}/visits}</li>
+     *   <li>OLD: {@code POST /api/clinops/study-design/{studyDesignId}/visits} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyDesignId Study design aggregate UUID
+     * @param request Define visit request
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with 201 Created
      */
     @PostMapping("/{studyDesignId}/visits")
     public CompletableFuture<ResponseEntity<Void>> defineVisit(
             @PathVariable UUID studyDesignId,
-            @RequestBody DefineVisitDefinitionRequest request) {
+            @RequestBody DefineVisitDefinitionRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Define visit '{}' in design: {}", request.getName(), studyDesignId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH + StudyDesignApiConstants.VISITS,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return commandService.defineVisit(studyDesignId, request)
             .thenApply(result -> ResponseEntity.status(HttpStatus.CREATED).<Void>build())
@@ -136,15 +274,34 @@ public class StudyDesignCommandController {
      * Auto-initialize and define visit (Bridge Pattern)
      * Accepts study ID (legacy or UUID) and automatically ensures StudyDesignAggregate exists
      * 
+     * <p><b>Endpoints (Bridge Pattern):</b></p>
+     * <ul>
+     *   <li>NEW: {@code POST /api/v1/study-design/studies/{studyId}/visits}</li>
+     *   <li>OLD: {@code POST /api/clinops/study-design/studies/{studyId}/visits} (deprecated)</li>
+     * </ul>
+     * 
      * @param studyId Study identifier (legacy ID or UUID)
      * @param request Visit definition request
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
      * @return 201 Created with visit UUID
      */
     @PostMapping("/studies/{studyId}/visits")
     public CompletableFuture<ResponseEntity<Map<String, UUID>>> defineVisitForStudy(
             @PathVariable String studyId,
-            @RequestBody DefineVisitDefinitionRequest request) {
+            @RequestBody DefineVisitDefinitionRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Auto-define visit '{}' for study: {}", request.getName(), studyId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.STUDIES_PATH + "/studies/{studyId}/visits",
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return autoInitService.ensureStudyDesignExists(studyId)
             .thenCompose(studyDesignId -> {
@@ -163,12 +320,33 @@ public class StudyDesignCommandController {
 
     /**
      * Get all visits for a study with auto-initialization (Bridge endpoint)
-     * GET /api/clinops/study-design/studies/{studyId}/visits
+     * 
+     * <p><b>Endpoints (Bridge Pattern):</b></p>
+     * <ul>
+     *   <li>NEW: {@code GET /api/v1/study-design/studies/{studyId}/visits}</li>
+     *   <li>OLD: {@code GET /api/clinops/study-design/studies/{studyId}/visits} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyId Study identifier (legacy ID or UUID)
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with visit list
      */
     @GetMapping("/studies/{studyId}/visits")
     public CompletableFuture<ResponseEntity<List<VisitDefinitionResponse>>> getVisitsForStudy(
-            @PathVariable String studyId) {
+            @PathVariable String studyId,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Auto-get visits for study: {}", studyId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.STUDIES_PATH + "/studies/{studyId}/visits",
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return autoInitService.ensureStudyDesignExists(studyId)
             .thenCompose(studyDesignId -> {
@@ -187,15 +365,34 @@ public class StudyDesignCommandController {
      * Auto-initialize and add study arm (Bridge Pattern)
      * Accepts study ID (legacy or UUID) and automatically ensures StudyDesignAggregate exists
      * 
+     * <p><b>Endpoints (Bridge Pattern):</b></p>
+     * <ul>
+     *   <li>NEW: {@code POST /api/v1/study-design/studies/{studyId}/arms}</li>
+     *   <li>OLD: {@code POST /api/clinops/study-design/studies/{studyId}/arms} (deprecated)</li>
+     * </ul>
+     * 
      * @param studyId Study identifier (legacy ID or UUID)
      * @param request Arm definition request
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
      * @return 201 Created with arm UUID
      */
     @PostMapping("/studies/{studyId}/arms")
     public CompletableFuture<ResponseEntity<Map<String, UUID>>> addArmForStudy(
             @PathVariable String studyId,
-            @RequestBody AddStudyArmRequest request) {
+            @RequestBody AddStudyArmRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Auto-add arm '{}' for study: {}", request.getName(), studyId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.STUDIES_PATH + "/studies/{studyId}/arms",
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return autoInitService.ensureStudyDesignExists(studyId)
             .thenCompose(studyDesignId -> {
@@ -214,14 +411,37 @@ public class StudyDesignCommandController {
 
     /**
      * Update a visit with auto-initialization (Bridge endpoint)
-     * PUT /api/clinops/study-design/studies/{studyId}/visits/{visitId}
+     * 
+     * <p><b>Endpoints (Bridge Pattern):</b></p>
+     * <ul>
+     *   <li>NEW: {@code PUT /api/v1/study-design/studies/{studyId}/visits/{visitId}}</li>
+     *   <li>OLD: {@code PUT /api/clinops/study-design/studies/{studyId}/visits/{visitId}} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyId Study identifier (legacy ID or UUID)
+     * @param visitId Visit UUID
+     * @param request Update visit request
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with 200 OK
      */
     @PutMapping("/studies/{studyId}/visits/{visitId}")
     public CompletableFuture<ResponseEntity<Void>> updateVisitForStudy(
             @PathVariable String studyId,
             @PathVariable UUID visitId,
-            @RequestBody UpdateVisitDefinitionRequest request) {
+            @RequestBody UpdateVisitDefinitionRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Auto-update visit {} for study: {}", visitId, studyId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.STUDIES_PATH + "/studies/{studyId}/visits/{visitId}",
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return autoInitService.ensureStudyDesignExists(studyId)
             .thenCompose(studyDesignId -> {
@@ -237,13 +457,35 @@ public class StudyDesignCommandController {
 
     /**
      * Delete a visit with auto-initialization (Bridge endpoint)
-     * DELETE /api/clinops/study-design/studies/{studyId}/visits/{visitId}
+     * 
+     * <p><b>Endpoints (Bridge Pattern):</b></p>
+     * <ul>
+     *   <li>NEW: {@code DELETE /api/v1/study-design/studies/{studyId}/visits/{visitId}}</li>
+     *   <li>OLD: {@code DELETE /api/clinops/study-design/studies/{studyId}/visits/{visitId}} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyId Study identifier (legacy ID or UUID)
+     * @param visitId Visit UUID
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with 200 OK
      */
     @DeleteMapping("/studies/{studyId}/visits/{visitId}")
     public CompletableFuture<ResponseEntity<Void>> removeVisitForStudy(
             @PathVariable String studyId,
-            @PathVariable UUID visitId) {
+            @PathVariable UUID visitId,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Auto-remove visit {} for study: {}", visitId, studyId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.STUDIES_PATH + "/studies/{studyId}/visits/{visitId}",
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return autoInitService.ensureStudyDesignExists(studyId)
             .thenCompose(studyDesignId -> {
@@ -259,14 +501,37 @@ public class StudyDesignCommandController {
 
     /**
      * Update a visit
-     * PUT /api/clinops/study-design/{studyDesignId}/visits/{visitId}
+     * 
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code PUT /api/v1/study-design/designs/{studyDesignId}/visits/{visitId}}</li>
+     *   <li>OLD: {@code PUT /api/clinops/study-design/{studyDesignId}/visits/{visitId}} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyDesignId Study design aggregate UUID
+     * @param visitId Visit UUID
+     * @param request Update visit request
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with 200 OK
      */
     @PutMapping("/{studyDesignId}/visits/{visitId}")
     public CompletableFuture<ResponseEntity<Void>> updateVisit(
             @PathVariable UUID studyDesignId,
             @PathVariable UUID visitId,
-            @RequestBody UpdateVisitDefinitionRequest request) {
+            @RequestBody UpdateVisitDefinitionRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Update visit {} in design: {}", visitId, studyDesignId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH + StudyDesignApiConstants.VISIT_BY_ID,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return commandService.updateVisit(studyDesignId, visitId, request)
             .thenApply(result -> ResponseEntity.ok().<Void>build())
@@ -278,15 +543,39 @@ public class StudyDesignCommandController {
 
     /**
      * Remove a visit
-     * DELETE /api/clinops/study-design/{studyDesignId}/visits/{visitId}
+     * 
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code DELETE /api/v1/study-design/designs/{studyDesignId}/visits/{visitId}}</li>
+     *   <li>OLD: {@code DELETE /api/clinops/study-design/{studyDesignId}/visits/{visitId}} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyDesignId Study design aggregate UUID
+     * @param visitId Visit UUID
+     * @param reason Reason for removal
+     * @param removedBy User ID who removed the visit
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with 204 No Content
      */
     @DeleteMapping("/{studyDesignId}/visits/{visitId}")
     public CompletableFuture<ResponseEntity<Void>> removeVisit(
             @PathVariable UUID studyDesignId,
             @PathVariable UUID visitId,
             @RequestParam String reason,
-            @RequestParam Long removedBy) {
+            @RequestParam Long removedBy,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Remove visit {} from design: {}", visitId, studyDesignId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH + StudyDesignApiConstants.VISIT_BY_ID,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return commandService.removeVisit(studyDesignId, visitId, reason, removedBy)
             .thenApply(result -> ResponseEntity.noContent().<Void>build())
@@ -300,14 +589,36 @@ public class StudyDesignCommandController {
 
     /**
      * Assign a form to a visit
-     * POST /api/clinops/study-design/{studyDesignId}/form-assignments
+     * 
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code POST /api/v1/study-design/designs/{studyDesignId}/form-assignments}</li>
+     *   <li>OLD: {@code POST /api/clinops/study-design/{studyDesignId}/form-assignments} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyDesignId Study design aggregate UUID
+     * @param request Assign form to visit request
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with 201 Created
      */
     @PostMapping("/{studyDesignId}/form-assignments")
     public CompletableFuture<ResponseEntity<Void>> assignFormToVisit(
             @PathVariable UUID studyDesignId,
-            @RequestBody AssignFormToVisitRequest request) {
+            @RequestBody AssignFormToVisitRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Assign form {} to visit {} in design: {}", 
             request.getFormId(), request.getVisitId(), studyDesignId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH + StudyDesignApiConstants.FORM_ASSIGNMENTS,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return commandService.assignFormToVisit(studyDesignId, request)
             .thenApply(result -> ResponseEntity.status(HttpStatus.CREATED).<Void>build())
@@ -319,14 +630,37 @@ public class StudyDesignCommandController {
 
     /**
      * Update a form assignment
-     * PUT /api/clinops/study-design/{studyDesignId}/form-assignments/{assignmentId}
+     * 
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code PUT /api/v1/study-design/designs/{studyDesignId}/form-assignments/{assignmentId}}</li>
+     *   <li>OLD: {@code PUT /api/clinops/study-design/{studyDesignId}/form-assignments/{assignmentId}} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyDesignId Study design aggregate UUID
+     * @param assignmentId Assignment UUID
+     * @param request Update form assignment request
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with 200 OK
      */
     @PutMapping("/{studyDesignId}/form-assignments/{assignmentId}")
     public CompletableFuture<ResponseEntity<Void>> updateFormAssignment(
             @PathVariable UUID studyDesignId,
             @PathVariable UUID assignmentId,
-            @RequestBody UpdateFormAssignmentRequest request) {
+            @RequestBody UpdateFormAssignmentRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Update form assignment {} in design: {}", assignmentId, studyDesignId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH + StudyDesignApiConstants.FORM_ASSIGNMENT_BY_ID,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return commandService.updateFormAssignment(studyDesignId, assignmentId, request)
             .thenApply(result -> ResponseEntity.ok().<Void>build())
@@ -338,15 +672,39 @@ public class StudyDesignCommandController {
 
     /**
      * Remove a form assignment
-     * DELETE /api/clinops/study-design/{studyDesignId}/form-assignments/{assignmentId}
+     * 
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code DELETE /api/v1/study-design/designs/{studyDesignId}/form-assignments/{assignmentId}}</li>
+     *   <li>OLD: {@code DELETE /api/clinops/study-design/{studyDesignId}/form-assignments/{assignmentId}} (deprecated)</li>
+     * </ul>
+     * 
+     * @param studyDesignId Study design aggregate UUID
+     * @param assignmentId Assignment UUID
+     * @param reason Reason for removal
+     * @param removedBy User ID who removed the assignment
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
+     * @return CompletableFuture with 204 No Content
      */
     @DeleteMapping("/{studyDesignId}/form-assignments/{assignmentId}")
     public CompletableFuture<ResponseEntity<Void>> removeFormAssignment(
             @PathVariable UUID studyDesignId,
             @PathVariable UUID assignmentId,
             @RequestParam String reason,
-            @RequestParam Long removedBy) {
+            @RequestParam Long removedBy,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Remove form assignment {} from design: {}", assignmentId, studyDesignId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH + StudyDesignApiConstants.FORM_ASSIGNMENT_BY_ID,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         return commandService.removeFormAssignment(studyDesignId, assignmentId, reason, removedBy)
             .thenApply(result -> ResponseEntity.noContent().<Void>build())
@@ -361,15 +719,35 @@ public class StudyDesignCommandController {
     /**
      * Initialize design progress for a study
      * 
-     * Command: InitializeDesignProgressCommand
-     * Event: DesignProgressInitializedEvent
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code POST /api/v1/study-design/designs/{studyDesignId}/design-progress/initialize}</li>
+     *   <li>OLD: {@code POST /api/clinops/study-design/{studyDesignId}/design-progress/initialize} (deprecated)</li>
+     * </ul>
+     * 
+     * <p><b>Command:</b> InitializeDesignProgressCommand</p>
+     * <p><b>Event:</b> DesignProgressInitializedEvent</p>
      * 
      * @param studyDesignId Study design aggregate UUID
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
      * @return 201 Created
      */
     @PostMapping("/{studyDesignId}/design-progress/initialize")
-    public CompletableFuture<ResponseEntity<Void>> initializeDesignProgress(@PathVariable UUID studyDesignId) {
+    public CompletableFuture<ResponseEntity<Void>> initializeDesignProgress(
+            @PathVariable UUID studyDesignId,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Initializing design progress for study design: {}", studyDesignId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH + StudyDesignApiConstants.DESIGN_PROGRESS_INIT,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         // TODO: Implement design progress initialization command
         // return commandService.initializeDesignProgress(studyDesignId)
@@ -386,19 +764,37 @@ public class StudyDesignCommandController {
     /**
      * Update design progress for a study
      * 
-     * Command: UpdateDesignProgressCommand
-     * Event: DesignProgressUpdatedEvent
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>NEW: {@code PUT /api/v1/study-design/designs/{studyDesignId}/design-progress}</li>
+     *   <li>OLD: {@code PUT /api/clinops/study-design/{studyDesignId}/design-progress} (deprecated)</li>
+     * </ul>
+     * 
+     * <p><b>Command:</b> UpdateDesignProgressCommand</p>
+     * <p><b>Event:</b> DesignProgressUpdatedEvent</p>
      * 
      * @param studyDesignId Study design aggregate UUID
      * @param request Design progress update request
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
      * @return 200 OK
      */
     @PutMapping("/{studyDesignId}/design-progress")
     public CompletableFuture<ResponseEntity<Void>> updateDesignProgress(
             @PathVariable UUID studyDesignId,
-            @RequestBody Map<String, Object> request) {
+            @RequestBody Map<String, Object> request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         
         log.info("REST: Updating design progress for study design: {}", studyDesignId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.DESIGNS_PATH + StudyDesignApiConstants.DESIGN_PROGRESS,
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         // TODO: Implement design progress update command
         // return commandService.updateDesignProgress(studyDesignId, request)

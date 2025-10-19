@@ -1,5 +1,6 @@
 package com.clinprecision.clinopsservice.studyoperation.visit.controller;
 
+import com.clinprecision.clinopsservice.studyoperation.visit.api.StudyOperationsApiConstants;
 import com.clinprecision.clinopsservice.studyoperation.visit.dto.UnscheduledVisitConfigDto;
 import com.clinprecision.clinopsservice.studyoperation.visit.entity.UnscheduledVisitConfigEntity;
 import com.clinprecision.clinopsservice.studyoperation.visit.repository.UnscheduledVisitConfigRepository;
@@ -16,14 +17,25 @@ import java.util.stream.Collectors;
 /**
  * REST Controller for managing unscheduled visit configurations.
  * 
- * Provides CRUD operations for system-wide unscheduled visit types that are
- * automatically created during study builds.
+ * <p>Provides CRUD operations for system-wide unscheduled visit types that are
+ * automatically created during study builds.</p>
  * 
- * SECURITY: Should be restricted to system administrators
- * USE CASE: Configure available unscheduled visit types (Discontinuation, AE, Safety, etc.)
+ * <p><b>Migration Status:</b> Dual URL support (Oct 2025)</p>
+ * <ul>
+ *   <li><b>NEW:</b> /api/v1/study-operations/visit-config/unscheduled/*</li>
+ *   <li><b>OLD:</b> /api/clinops/unscheduled-visit-config/* (deprecated, will sunset in 6 months)</li>
+ * </ul>
+ * 
+ * <p><b>SECURITY:</b> Should be restricted to system administrators</p>
+ * <p><b>USE CASE:</b> Configure available unscheduled visit types (Discontinuation, AE, Safety, etc.)</p>
+ * 
+ * @since 1.0
  */
 @RestController
-@RequestMapping("/api/clinops/unscheduled-visit-config")
+@RequestMapping({
+    StudyOperationsApiConstants.VISIT_CONFIG_UNSCHEDULED_PATH,        // NEW: /api/v1/study-operations/visit-config/unscheduled
+    StudyOperationsApiConstants.LEGACY_CLINOPS_UNSCHEDULED_VISIT_CONFIG  // OLD: /api/clinops/unscheduled-visit-config (deprecated)
+})
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")
@@ -34,7 +46,11 @@ public class UnscheduledVisitConfigController {
     /**
      * Get all unscheduled visit configurations (enabled and disabled)
      * 
-     * GET /api/clinops/unscheduled-visit-config
+     * <p><b>Endpoints:</b></p>
+     * <ul>
+     *   <li>GET /api/v1/study-operations/visit-config/unscheduled (new)</li>
+     *   <li>GET /api/clinops/unscheduled-visit-config (deprecated)</li>
+     * </ul>
      */
     @GetMapping
     public ResponseEntity<List<UnscheduledVisitConfigDto>> getAllConfigurations() {

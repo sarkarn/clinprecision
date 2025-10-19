@@ -1,7 +1,14 @@
 import ApiService from './ApiService';
 
-const API_PATH = '/clinops-ws/api/studies';
-const LOOKUP_API_PATH = '/clinops-ws/api/studies/lookup';
+// New DDD-aligned API paths (October 2025 - URL Refactoring)
+const API_BASE = '/clinops-ws/api/v1/study-design';
+const API_PATH = `${API_BASE}/studies`;
+const METADATA_API_PATH = `${API_BASE}/metadata`;
+const ANALYTICS_API_PATH = `${API_BASE}/analytics`;
+
+// Legacy paths (deprecated - kept for reference only)
+// const LEGACY_API_PATH = '/clinops-ws/api/studies';
+// const LEGACY_LOOKUP_PATH = '/clinops-ws/api/studies/lookup';
 
 // Mock data for testing when backend is not available
 const MOCK_STUDIES = [
@@ -269,7 +276,8 @@ export const getStudyById = async (studyId) => {
 export const getStudyOverview = async (studyId) => {
   try {
     console.log('Fetching study overview for ID:', studyId);
-    const response = await ApiService.get(`${API_PATH}/${studyId}/overview`);
+    // Updated to new URL: /api/v1/study-design/studies/{id}/summary (was /overview)
+    const response = await ApiService.get(`${API_PATH}/${studyId}/summary`);
     
     if (response?.data) {
       console.log('Study overview data received:', response.data);
@@ -465,8 +473,9 @@ export const deleteStudy = async (studyId) => {
  */
 export const getStudyStatuses = async () => {
   try {
-    console.log('Fetching study statuses from:', `${LOOKUP_API_PATH}/statuses`);
-    const response = await ApiService.get(`${LOOKUP_API_PATH}/statuses`);
+    // Updated to new URL: /api/v1/study-design/metadata/study-statuses
+    console.log('Fetching study statuses from:', `${METADATA_API_PATH}/study-statuses`);
+    const response = await ApiService.get(`${METADATA_API_PATH}/study-statuses`);
     
     if (response?.data && Array.isArray(response.data)) {
       console.log('Found', response.data.length, 'study statuses');
@@ -511,8 +520,9 @@ export const getStudyStatuses = async () => {
  */
 export const getRegulatoryStatuses = async () => {
   try {
-    console.log('Fetching regulatory statuses from:', `${LOOKUP_API_PATH}/regulatory-statuses`);
-    const response = await ApiService.get(`${LOOKUP_API_PATH}/regulatory-statuses`);
+    // Updated to new URL: /api/v1/study-design/metadata/regulatory-statuses
+    console.log('Fetching regulatory statuses from:', `${METADATA_API_PATH}/regulatory-statuses`);
+    const response = await ApiService.get(`${METADATA_API_PATH}/regulatory-statuses`);
     
     if (response?.data && Array.isArray(response.data)) {
       console.log('Found', response.data.length, 'regulatory statuses');
@@ -558,8 +568,9 @@ export const getRegulatoryStatuses = async () => {
  */
 export const getStudyPhases = async () => {
   try {
-    console.log('Fetching study phases from:', `${LOOKUP_API_PATH}/phases`);
-    const response = await ApiService.get(`${LOOKUP_API_PATH}/phases`);
+    // Updated to new URL: /api/v1/study-design/metadata/study-phases
+    console.log('Fetching study phases from:', `${METADATA_API_PATH}/study-phases`);
+    const response = await ApiService.get(`${METADATA_API_PATH}/study-phases`);
     
     if (response?.data && Array.isArray(response.data)) {
       console.log('Found', response.data.length, 'study phases');
@@ -716,8 +727,9 @@ export const debugBackendConnection = async () => {
  */
 export const getDashboardMetrics = async () => {
   try {
-    console.log('Fetching dashboard metrics from:', `${API_PATH}/dashboard/metrics`);
-    const response = await ApiService.get(`${API_PATH}/dashboard/metrics`);
+    // Updated to new URL: /api/v1/study-design/analytics/dashboard-metrics
+    console.log('Fetching dashboard metrics from:', `${ANALYTICS_API_PATH}/dashboard-metrics`);
+    const response = await ApiService.get(`${ANALYTICS_API_PATH}/dashboard-metrics`);
     
     if (response?.data) {
       console.log('Dashboard metrics received:', response.data);

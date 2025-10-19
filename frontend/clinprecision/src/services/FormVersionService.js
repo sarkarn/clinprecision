@@ -1,6 +1,10 @@
 import ApiService from './ApiService';
 
-const API_PATH = '/clinops-ws/api/form-templates'; // Updated to use correct backend endpoint (clinops-ws)
+// NEW DDD-aligned URL (Module 1.3 Phase 2)
+const API_PATH = '/clinops-ws/api/v1/study-design/form-templates';
+
+// OLD URL (deprecated - sunset: April 19, 2026)
+// const API_PATH = '/clinops-ws/api/form-templates';
 
 /**
  * Service for handling Form Version operations

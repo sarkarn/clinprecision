@@ -1,5 +1,7 @@
 package com.clinprecision.clinopsservice.studydesign.studymgmt.controller;
 
+import com.clinprecision.clinopsservice.common.util.DeprecationHeaderUtil;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.api.StudyApiConstants;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.RegulatoryStatusDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.StudyDashboardMetricsDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.StudyPhaseDto;
@@ -16,6 +18,8 @@ import com.clinprecision.clinopsservice.studydesign.protocolmgmt.service.Protoco
 import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignAutoInitializationService;
 import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignQueryService;
 import com.clinprecision.clinopsservice.studydesign.design.dto.FormAssignmentResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -32,32 +36,60 @@ import java.util.UUID;
  * REST API for study read operations (query side).
  * Following CQRS pattern: Queries read from read model for performance.
  * 
- * Base Path: /api/studies
+ * <p><b>⚠️ URL MIGRATION IN PROGRESS</b></p>
+ * <p>This controller supports both old and new URL patterns during the migration period.
+ * Old URLs are deprecated and will be removed on April 19, 2026.</p>
  * 
- * Query Endpoints:
- * - GET /api/studies                           - List all studies
- * - GET /api/studies/{uuid}                    - Get study by UUID
- * - GET /api/studies/{uuid}/overview           - Get study overview
- * - GET /api/studies/search                    - Search studies with filters
- * - GET /api/studies/lookup/statuses           - Get all study statuses
- * - GET /api/studies/lookup/regulatory-statuses - Get all regulatory statuses
- * - GET /api/studies/lookup/phases             - Get all study phases
- * - GET /api/studies/dashboard/metrics         - Get dashboard metrics
- * - GET /api/studies/{uuid}/design-progress    - Get design progress
- * - GET /api/studies/{uuid}/status/transitions - Get valid status transitions
+ * <p><b>Old URLs (DEPRECATED):</b></p>
+ * <ul>
+ *   <li>GET /api/studies - List all studies</li>
+ *   <li>GET /api/studies/{id} - Get study by ID</li>
+ *   <li>GET /api/studies/{id}/overview - Get study overview</li>
+ *   <li>GET /api/studies/{id}/arms - Get study arms</li>
+ *   <li>GET /api/studies/search - Search studies</li>
+ *   <li>GET /api/studies/lookup/statuses - Get study statuses</li>
+ *   <li>GET /api/studies/lookup/regulatory-statuses - Get regulatory statuses</li>
+ *   <li>GET /api/studies/lookup/phases - Get study phases</li>
+ *   <li>GET /api/studies/dashboard/metrics - Get dashboard metrics</li>
+ *   <li>GET /api/studies/{id}/design-progress - Get design progress</li>
+ *   <li>GET /api/studies/{legacyId}/uuid - Get study UUID</li>
+ * </ul>
  * 
- * Architecture:
- * - Queries read from projection (StudyEntity)
- * - Delegates to StudyQueryService
- * - Returns DTOs to frontend
- * - Read-only operations, eventually consistent
+ * <p><b>New URLs (RECOMMENDED):</b></p>
+ * <ul>
+ *   <li>GET /api/v1/study-design/studies - List all studies</li>
+ *   <li>GET /api/v1/study-design/studies/{id} - Get study by ID</li>
+ *   <li>GET /api/v1/study-design/studies/{id}/summary - Get study overview</li>
+ *   <li>GET /api/v1/study-design/studies/{id}/arms - Get study arms</li>
+ *   <li>GET /api/v1/study-design/studies?q={query} - Search studies</li>
+ *   <li>GET /api/v1/study-design/metadata/study-statuses - Get study statuses</li>
+ *   <li>GET /api/v1/study-design/metadata/regulatory-statuses - Get regulatory statuses</li>
+ *   <li>GET /api/v1/study-design/metadata/study-phases - Get study phases</li>
+ *   <li>GET /api/v1/study-design/analytics/dashboard-metrics - Get dashboard metrics</li>
+ *   <li>GET /api/v1/study-design/studies/{id}/design-progress - Get design progress</li>
+ *   <li>GET /api/v1/study-design/studies/{legacyId}/uuid - Get study UUID</li>
+ * </ul>
+ * 
+ * <p><b>Migration Timeline:</b></p>
+ * <ul>
+ *   <li>Phase 1 (Oct 2025 - Apr 2026): Both URLs work, old URLs include deprecation headers</li>
+ *   <li>Phase 2 (Apr 2026 - Oct 2026): Sunset warnings, old URLs still work</li>
+ *   <li>Phase 3 (Oct 2026+): Old URLs removed</li>
+ * </ul>
+ * 
+ * <p><b>Architecture:</b></p>
+ * <ul>
+ *   <li>Queries read from projection (StudyEntity)</li>
+ *   <li>Delegates to StudyQueryService</li>
+ *   <li>Returns DTOs to frontend</li>
+ *   <li>Read-only operations, eventually consistent</li>
+ * </ul>
  * 
  * @author DDD Migration Team
- * @version 1.0
+ * @version 1.0 (URL Refactoring - October 2025)
  * @since V004 Migration
  */
 @RestController
-@RequestMapping("/api/studies")
 @RequiredArgsConstructor
 @Validated
 @Slf4j
@@ -72,18 +104,38 @@ public class StudyQueryController {
     /**
      * Get all studies with optional filters
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies</li>
+     *   <li>New (recommended): GET /api/v1/study-design/studies</li>
+     * </ul>
+     * 
      * Query: Find all studies in read model
      * 
      * @param status Filter by study status (optional)
      * @param phase Filter by study phase (optional)
      * @param sponsor Filter by sponsor organization (optional)
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with list of studies
      */
-    @GetMapping
+    @GetMapping(value = {
+        StudyApiConstants.ListStudies.OLD,
+        StudyApiConstants.ListStudies.NEW
+    })
     public ResponseEntity<List<StudyListResponseDto>> getAllStudies(
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "phase", required = false) String phase,
-            @RequestParam(value = "sponsor", required = false) String sponsor) {
+            @RequestParam(value = "sponsor", required = false) String sponsor,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         log.info("REST: Fetching all studies with filters - status: {}, phase: {}, sponsor: {}", 
                  status, phase, sponsor);
@@ -99,6 +151,12 @@ public class StudyQueryController {
     /**
      * Get study by UUID or legacy database ID (Bridge Pattern)
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/{id}</li>
+     *   <li>New (recommended): GET /api/v1/study-design/studies/{id}</li>
+     * </ul>
+     * 
      * This endpoint intelligently accepts either:
      * - UUID format: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
      * - Legacy numeric ID: "1", "123"
@@ -106,11 +164,27 @@ public class StudyQueryController {
      * Query: Find study by UUID or ID in read model
      * 
      * @param id Study identifier (UUID or numeric ID)
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with study details
      * @throws StudyNotFoundException if study not found
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<StudyResponseDto> getStudyByUuidOrId(@PathVariable String id) {
+    @GetMapping(value = {
+        StudyApiConstants.GetStudyById.OLD,
+        StudyApiConstants.GetStudyById.NEW
+    })
+    public ResponseEntity<StudyResponseDto> getStudyByUuidOrId(
+            @PathVariable String id,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
         log.info("REST: Fetching study by identifier: {}", id);
         
         StudyResponseDto study;
@@ -141,11 +215,33 @@ public class StudyQueryController {
      * Get study UUID by legacy ID
      * Helper endpoint for DDD migration and debugging
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/{legacyId}/uuid</li>
+     *   <li>New (recommended): GET /api/v1/study-design/studies/{legacyId}/uuid</li>
+     * </ul>
+     * 
      * @param legacyId Legacy database ID
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with study UUID
      */
-    @GetMapping("/{legacyId}/uuid")
-    public ResponseEntity<Map<String, Object>> getStudyUuid(@PathVariable Long legacyId) {
+    @GetMapping(value = {
+        StudyApiConstants.GetStudyUuidByLegacyId.OLD,
+        StudyApiConstants.GetStudyUuidByLegacyId.NEW
+    })
+    public ResponseEntity<Map<String, Object>> getStudyUuid(
+            @PathVariable Long legacyId,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
         log.info("REST: Getting UUID for legacy study ID: {}", legacyId);
         
         try {
@@ -165,13 +261,35 @@ public class StudyQueryController {
     /**
      * Get study overview data for dashboard (supports UUID or legacy ID)
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/{id}/overview</li>
+     *   <li>New (recommended): GET /api/v1/study-design/studies/{id}/summary</li>
+     * </ul>
+     * 
      * Query: Find study with aggregated metrics
      * 
      * @param id Study identifier (UUID or numeric ID)
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with study overview
      */
-    @GetMapping("/{id}/overview")
-    public ResponseEntity<StudyResponseDto> getStudyOverview(@PathVariable String id) {
+    @GetMapping(value = {
+        StudyApiConstants.GetStudyOverview.OLD,
+        StudyApiConstants.GetStudyOverview.NEW
+    })
+    public ResponseEntity<StudyResponseDto> getStudyOverview(
+            @PathVariable String id,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
         log.info("REST: Fetching study overview: {}", id);
         
         StudyResponseDto study;
@@ -193,13 +311,35 @@ public class StudyQueryController {
     /**
      * Get study arms (supports UUID or legacy ID)
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/{id}/arms</li>
+     *   <li>New (recommended): GET /api/v1/study-design/studies/{id}/arms</li>
+     * </ul>
+     * 
      * Query: Get all arms for a study
      * 
      * @param id Study identifier (UUID or numeric ID)
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with list of study arms
      */
-    @GetMapping("/{id}/arms")
-    public ResponseEntity<List<StudyArmResponseDto>> getStudyArms(@PathVariable String id) {
+    @GetMapping(value = {
+        StudyApiConstants.GetStudyArms.OLD,
+        StudyApiConstants.GetStudyArms.NEW
+    })
+    public ResponseEntity<List<StudyArmResponseDto>> getStudyArms(
+            @PathVariable String id,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
         log.info("REST: Fetching study arms for study: {}", id);
         
         try {
@@ -237,18 +377,38 @@ public class StudyQueryController {
     /**
      * Search studies with advanced filters
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/search</li>
+     *   <li>New (recommended): GET /api/v1/study-design/studies?q={query}</li>
+     * </ul>
+     * 
      * Query: Search studies in read model
      * 
      * @param query Search query string
      * @param status Filter by status
      * @param phase Filter by phase
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with matching studies
      */
-    @GetMapping("/search")
+    @GetMapping(value = {
+        StudyApiConstants.SearchStudies.OLD
+        // Note: NEW URL uses query param on base path, handled by getAllStudies when q param present
+    })
     public ResponseEntity<List<StudyListResponseDto>> searchStudies(
             @RequestParam(value = "q", required = false) String query,
             @RequestParam(value = "status", required = false) String status,
-            @RequestParam(value = "phase", required = false) String phase) {
+            @RequestParam(value = "phase", required = false) String phase,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.SearchStudies.OLD,
+            StudyApiConstants.SearchStudies.NEW
+        );
         
         log.info("REST: Searching studies - query: {}, status: {}, phase: {}", query, status, phase);
         
@@ -263,12 +423,33 @@ public class StudyQueryController {
     /**
      * Get all study statuses for dropdown
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/lookup/statuses</li>
+     *   <li>New (recommended): GET /api/v1/study-design/metadata/study-statuses</li>
+     * </ul>
+     * 
      * Query: Lookup reference data
      * 
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with list of study statuses
      */
-    @GetMapping("/lookup/statuses")
-    public ResponseEntity<List<StudyStatusDto>> getStudyStatuses() {
+    @GetMapping(value = {
+        StudyApiConstants.GetStudyStatuses.OLD,
+        StudyApiConstants.GetStudyStatuses.NEW
+    })
+    public ResponseEntity<List<StudyStatusDto>> getStudyStatuses(
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.METADATA_BASE_PATH
+        );
+        
         log.info("REST: Fetching study statuses");
         
         // TODO: Implement reference data query service
@@ -288,12 +469,33 @@ public class StudyQueryController {
     /**
      * Get all regulatory statuses for dropdown
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/lookup/regulatory-statuses</li>
+     *   <li>New (recommended): GET /api/v1/study-design/metadata/regulatory-statuses</li>
+     * </ul>
+     * 
      * Query: Lookup reference data
      * 
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with list of regulatory statuses
      */
-    @GetMapping("/lookup/regulatory-statuses")
-    public ResponseEntity<List<RegulatoryStatusDto>> getRegulatoryStatuses() {
+    @GetMapping(value = {
+        StudyApiConstants.GetRegulatoryStatuses.OLD,
+        StudyApiConstants.GetRegulatoryStatuses.NEW
+    })
+    public ResponseEntity<List<RegulatoryStatusDto>> getRegulatoryStatuses(
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.METADATA_BASE_PATH
+        );
+        
         log.info("REST: Fetching regulatory statuses");
         
         // TODO: Implement reference data query service
@@ -312,12 +514,33 @@ public class StudyQueryController {
     /**
      * Get all study phases for dropdown
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/lookup/phases</li>
+     *   <li>New (recommended): GET /api/v1/study-design/metadata/study-phases</li>
+     * </ul>
+     * 
      * Query: Lookup reference data
      * 
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with list of study phases
      */
-    @GetMapping("/lookup/phases")
-    public ResponseEntity<List<StudyPhaseDto>> getStudyPhases() {
+    @GetMapping(value = {
+        StudyApiConstants.GetStudyPhases.OLD,
+        StudyApiConstants.GetStudyPhases.NEW
+    })
+    public ResponseEntity<List<StudyPhaseDto>> getStudyPhases(
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.METADATA_BASE_PATH
+        );
+        
         log.info("REST: Fetching study phases");
         
         // TODO: Implement reference data query service
@@ -336,14 +559,35 @@ public class StudyQueryController {
     /**
      * Get dashboard metrics
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/dashboard/metrics</li>
+     *   <li>New (recommended): GET /api/v1/study-design/analytics/dashboard-metrics</li>
+     * </ul>
+     * 
      * Query: Aggregate metrics from read model
      * 
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with dashboard metrics
      * 
      * NOTE: This method is temporarily disabled until getDashboardMetrics is implemented in StudyQueryService
      */
-    @GetMapping("/dashboard/metrics")
-    public ResponseEntity<StudyDashboardMetricsDto> getDashboardMetrics() {
+    @GetMapping(value = {
+        StudyApiConstants.GetDashboardMetrics.OLD,
+        StudyApiConstants.GetDashboardMetrics.NEW
+    })
+    public ResponseEntity<StudyDashboardMetricsDto> getDashboardMetrics(
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.ANALYTICS_BASE_PATH
+        );
+        
         log.info("REST: Fetching dashboard metrics");
         
         try {
@@ -370,15 +614,38 @@ public class StudyQueryController {
     /**
      * Get design progress for a study (supports UUID or legacy ID)
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/{id}/design-progress</li>
+     *   <li>New (recommended): GET /api/v1/study-design/studies/{id}/design-progress</li>
+     * </ul>
+     * 
      * Query: Get design progress from read model
+     * Bridge Pattern: Accepts both UUID and numeric ID
      * 
      * @param id Study identifier (UUID or numeric ID)
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with design progress
      * 
      * NOTE: This method is temporarily disabled until getDesignProgress is implemented in StudyQueryService
      */
-    @GetMapping("/{id}/design-progress")
-    public ResponseEntity<DesignProgressResponseDto> getDesignProgress(@PathVariable String id) {
+    @GetMapping(value = {
+        StudyApiConstants.GetDesignProgress.OLD,
+        StudyApiConstants.GetDesignProgress.NEW
+    })
+    public ResponseEntity<DesignProgressResponseDto> getDesignProgress(
+            @PathVariable String id,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
         log.info("REST: Fetching design progress for study: {}", id);
         
         try {

@@ -10,6 +10,9 @@ class StudyDesignService {
      * Initialize StudyDesignAggregate for a study
      * This is required for DDD/Event Sourcing operations (arms, visits, forms)
      * 
+     * NEW URL: /api/v1/study-design/designs
+     * OLD URL: /api/clinops/study-design (deprecated)
+     * 
      * @param {string} studyAggregateUuid - The study's aggregate UUID
      * @param {string} studyName - The study name
      * @param {string} createdBy - User who created the study
@@ -27,7 +30,7 @@ class StudyDesignService {
                 payload.legacyStudyId = legacyStudyId;
             }
 
-            const response = await ApiService.post('/clinops-ws/api/clinops/study-design', payload);
+            const response = await ApiService.post('/clinops-ws/api/v1/study-design/designs', payload);
             return response.data;
         } catch (error) {
             console.error('Error initializing study design:', error);
@@ -68,9 +71,14 @@ class StudyDesignService {
         }
     }
 
+    /**
+     * Update an existing study arm
+     * NEW URL: /api/v1/study-design/arms/{armId}
+     * OLD URL: /api/arms/{armId} (deprecated)
+     */
     async updateStudyArm(armId, updates) {
         try {
-            const response = await ApiService.put(`/api/arms/${armId}`, updates);
+            const response = await ApiService.put(`/api/v1/study-design/arms/${armId}`, updates);
             return response.data;
         } catch (error) {
             console.error('Error updating study arm:', error);
@@ -78,9 +86,14 @@ class StudyDesignService {
         }
     }
 
+    /**
+     * Delete a study arm
+     * NEW URL: /api/v1/study-design/arms/{armId}
+     * OLD URL: /api/arms/{armId} (deprecated)
+     */
     async deleteStudyArm(armId) {
         try {
-            await ApiService.delete(`/api/arms/${armId}`);
+            await ApiService.delete(`/api/v1/study-design/arms/${armId}`);
             return { success: true };
         } catch (error) {
             console.error('Error deleting study arm:', error);
