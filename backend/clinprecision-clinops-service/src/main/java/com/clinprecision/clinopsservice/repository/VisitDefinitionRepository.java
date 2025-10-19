@@ -122,6 +122,32 @@ public interface VisitDefinitionRepository extends JpaRepository<VisitDefinition
      * Find by aggregate UUID (for querying all visits in event-sourced aggregate)
      */
     List<VisitDefinitionEntity> findByAggregateUuidOrderBySequenceNumberAsc(UUID aggregateUuid);
+    
+    // ========== Unscheduled visit queries (Option 1 implementation) ==========
+    
+    /**
+     * Find unscheduled visit definition by study ID and visit code
+     * Used by VisitProjector to lookup visit_id for unscheduled visits
+     * 
+     * @param studyId Study ID
+     * @param visitCode Visit code (e.g., EARLY_TERM, AE_VISIT)
+     * @return Optional containing the unscheduled visit definition
+     */
+    @Query("SELECT v FROM VisitDefinitionEntity v WHERE v.studyId = :studyId " +
+           "AND v.visitCode = :visitCode AND v.isUnscheduled = true")
+    Optional<VisitDefinitionEntity> findByStudyIdAndVisitCodeAndIsUnscheduled(
+            @Param("studyId") Long studyId,
+            @Param("visitCode") String visitCode);
+    
+    /**
+     * Find all unscheduled visit definitions for a study
+     * 
+     * @param studyId Study ID
+     * @return List of unscheduled visit definitions ordered by visit_order
+     */
+    @Query("SELECT v FROM VisitDefinitionEntity v WHERE v.studyId = :studyId " +
+           "AND v.isUnscheduled = true ORDER BY v.visitOrder ASC")
+    List<VisitDefinitionEntity> findUnscheduledVisitsByStudyId(@Param("studyId") Long studyId);
 }
 
 

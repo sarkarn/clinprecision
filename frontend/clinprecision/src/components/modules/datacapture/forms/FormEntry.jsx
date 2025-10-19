@@ -43,7 +43,7 @@ export default function FormEntry() {
         fetchFormData();
     }, [subjectId, visitId, formId]);
 
-    // Load options for select, radio, and multiselect fields
+    // Load options for select, radio, multiselect, and checkbox-group fields
     useEffect(() => {
         if (!formDefinition?.fields) return;
 
@@ -58,12 +58,20 @@ export default function FormEntry() {
                 formId
             };
 
+            console.log('🔍 [FormEntry] Starting to load options for fields...');
+            console.log('🔍 [FormEntry] Total fields:', formDefinition.fields.length);
+
             for (const field of formDefinition.fields) {
                 // Only load options for fields that need them
-                if (['select', 'radio', 'multiselect'].includes(field.type)) {
+                if (['select', 'radio', 'multiselect', 'checkbox-group'].includes(field.type)) {
+                    console.log(`🔍 [FormEntry] Loading options for field: ${field.id}, type: ${field.type}`);
+                    console.log(`🔍 [FormEntry] Field metadata:`, field.metadata);
+                    console.log(`🔍 [FormEntry] Code list category:`, field.metadata?.codeListCategory);
                     await loadFieldOptions(field, context);
                 }
             }
+
+            console.log('🔍 [FormEntry] Finished loading all options');
         };
 
         loadAllOptions();
@@ -74,9 +82,10 @@ export default function FormEntry() {
 
         try {
             const options = await OptionLoaderService.loadFieldOptions(field, context);
+            console.log(`✅ [FormEntry] Loaded ${options.length} options for field ${field.id}:`, options);
             setFieldOptions(prev => ({ ...prev, [field.id]: options }));
         } catch (error) {
-            console.error(`Error loading options for field ${field.id}:`, error);
+            console.error(`❌ [FormEntry] Error loading options for field ${field.id}:`, error);
             // On error, use empty array or static fallback
             setFieldOptions(prev => ({ ...prev, [field.id]: [] }));
         } finally {
@@ -318,10 +327,18 @@ export default function FormEntry() {
                 const options = fieldOptions[field.id] || [];
                 const isLoadingOptions = loadingOptions[field.id];
 
+                console.log(`🎯 [SELECT RENDER] Field ${field.id}:`, {
+                    optionsCount: options.length,
+                    options: options,
+                    isLoading: isLoadingOptions,
+                    allFieldOptions: Object.keys(fieldOptions),
+                    fieldOptionsForThisField: fieldOptions[field.id]
+                });
+
                 return (
                     <div>
                         <select
-                            value={value}
+                            value={value || ''}
                             onChange={(e) => handleInputChange(field.id, e.target.value)}
                             onBlur={() => handleFieldBlur(field.id)}
                             className={fieldClass}
@@ -340,6 +357,131 @@ export default function FormEntry() {
                             <div className="mt-1 text-sm text-gray-500">
                                 <span className="inline-block animate-spin mr-1">⏳</span>
                                 Loading options...
+                            </div>
+                        )}
+                        {renderValidationMessages()}
+                    </div>
+                );
+
+            case 'multiselect':
+                const multiselectOptions = fieldOptions[field.id] || [];
+                const isLoadingMultiselectOptions = loadingOptions[field.id];
+                const selectedValues = Array.isArray(value) ? value : (value ? [value] : []);
+
+                return (
+                    <div>
+                        {isLoadingMultiselectOptions ? (
+                            <div className="text-sm text-gray-500">
+                                <span className="inline-block animate-spin mr-1">⏳</span>
+                                Loading options...
+                            </div>
+                        ) : (
+                            <select
+                                multiple
+                                value={selectedValues}
+                                onChange={(e) => {
+                                    const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                    handleInputChange(field.id, selected);
+                                }}
+                                onBlur={() => handleFieldBlur(field.id)}
+                                className={`${fieldClass} h-auto`}
+                                size={Math.min(multiselectOptions.length, 6)}
+                                disabled={isLoadingMultiselectOptions}
+                            >
+                                {multiselectOptions.map((option, i) => (
+                                    <option key={i} value={option.value} title={option.description}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                        {selectedValues.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                                {selectedValues.map((val, idx) => {
+                                    const opt = multiselectOptions.find(o => o.value === val);
+                                    return opt ? (
+                                        <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            {opt.label}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newValues = selectedValues.filter(v => v !== val);
+                                                    handleInputChange(field.id, newValues);
+                                                }}
+                                                className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-blue-200"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    ) : null;
+                                })}
+                            </div>
+                        )}
+                        <div className="mt-1 text-xs text-gray-500">
+                            Hold Ctrl (Windows) or Cmd (Mac) to select multiple options
+                        </div>
+                        {renderValidationMessages()}
+                    </div>
+                );
+
+            case 'checkbox-group':
+                const checkboxGroupOptions = fieldOptions[field.id] || [];
+                const isLoadingCheckboxOptions = loadingOptions[field.id];
+                const checkedValues = Array.isArray(value) ? value : (value ? [value] : []);
+
+                return (
+                    <div>
+                        {isLoadingCheckboxOptions ? (
+                            <div className="text-sm text-gray-500">
+                                <span className="inline-block animate-spin mr-1">⏳</span>
+                                Loading options...
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {checkboxGroupOptions.map((option, i) => {
+                                    const isChecked = checkedValues.includes(option.value);
+                                    return (
+                                        <div key={i} className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                id={`${field.id}_${i}`}
+                                                value={option.value}
+                                                checked={isChecked}
+                                                onChange={(e) => {
+                                                    let newValues;
+                                                    if (e.target.checked) {
+                                                        newValues = [...checkedValues, option.value];
+                                                    } else {
+                                                        newValues = checkedValues.filter(v => v !== option.value);
+                                                    }
+                                                    handleInputChange(field.id, newValues);
+                                                    // Validate after selection
+                                                    setTimeout(() => handleFieldBlur(field.id), 0);
+                                                }}
+                                                className="h-4 w-4 border-gray-300 rounded text-blue-600"
+                                            />
+                                            <label
+                                                htmlFor={`${field.id}_${i}`}
+                                                className="ml-2 text-gray-700 cursor-pointer"
+                                                title={option.description}
+                                            >
+                                                {option.label}
+                                            </label>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        {checkedValues.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                                {checkedValues.map((val, idx) => {
+                                    const opt = checkboxGroupOptions.find(o => o.value === val);
+                                    return opt ? (
+                                        <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            {opt.label}
+                                        </span>
+                                    ) : null;
+                                })}
                             </div>
                         )}
                         {renderValidationMessages()}
@@ -423,9 +565,12 @@ export default function FormEntry() {
         const requiredFields = formDefinition.fields.filter(f => f.metadata?.required);
         const completedFields = formDefinition.fields.filter(field => {
             const value = formData[field.id];
-            // Check if field has a value (handles strings, numbers, booleans)
+            // Check if field has a value (handles strings, numbers, booleans, arrays)
             if (field.type === 'checkbox') {
                 return value === true;
+            }
+            if (field.type === 'multiselect' || field.type === 'checkbox-group') {
+                return Array.isArray(value) && value.length > 0;
             }
             return value !== undefined && value !== null && value !== '';
         });
@@ -434,6 +579,9 @@ export default function FormEntry() {
             const value = formData[field.id];
             if (field.type === 'checkbox') {
                 return value === true;
+            }
+            if (field.type === 'multiselect' || field.type === 'checkbox-group') {
+                return Array.isArray(value) && value.length > 0;
             }
             return value !== undefined && value !== null && value !== '';
         });

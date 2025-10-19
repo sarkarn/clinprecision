@@ -1,6 +1,9 @@
 package com.clinprecision.clinopsservice.visit.controller;
 
+import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.repository.VisitDefinitionRepository;
 import com.clinprecision.clinopsservice.visit.dto.CreateVisitRequest;
+import com.clinprecision.clinopsservice.visit.dto.UnscheduledVisitTypeDto;
 import com.clinprecision.clinopsservice.visit.dto.VisitDto;
 import com.clinprecision.clinopsservice.visit.dto.VisitFormDto;
 import com.clinprecision.clinopsservice.visit.dto.VisitResponse;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * REST Controller for Unscheduled Visit Management
@@ -64,6 +68,39 @@ public class VisitController {
 
     private final UnscheduledVisitService visitService;
     private final VisitFormQueryService visitFormQueryService;
+    private final VisitDefinitionRepository visitDefinitionRepository;
+
+    /**
+     * Get unscheduled visit definitions for a study
+     * Returns all enabled unscheduled visit types that can be created on-demand
+     * 
+     * @param studyId Study ID
+     * @return ResponseEntity with List<UnscheduledVisitTypeDto>
+     */
+    @GetMapping("/study/{studyId}/unscheduled-types")
+    public ResponseEntity<List<UnscheduledVisitTypeDto>> getUnscheduledVisitTypes(@PathVariable Long studyId) {
+        log.info("REST: Getting unscheduled visit types for studyId: {}", studyId);
+        
+        List<VisitDefinitionEntity> unscheduledVisits = visitDefinitionRepository
+            .findUnscheduledVisitsByStudyId(studyId);
+        
+        // Convert entities to DTOs to avoid circular reference issues
+        List<UnscheduledVisitTypeDto> visitTypeDtos = unscheduledVisits.stream()
+            .map(visit -> UnscheduledVisitTypeDto.builder()
+                .id(visit.getId())
+                .name(visit.getName())
+                .description(visit.getDescription())
+                .visitCode(visit.getVisitCode())
+                .visitOrder(visit.getVisitOrder())
+                .isRequired(visit.getIsRequired())
+                .build())
+            .collect(Collectors.toList());
+        
+        log.info("REST: Found {} unscheduled visit types for studyId: {}", 
+                visitTypeDtos.size(), studyId);
+        
+        return ResponseEntity.ok(visitTypeDtos);
+    }
 
     /**
      * Create a new unscheduled visit

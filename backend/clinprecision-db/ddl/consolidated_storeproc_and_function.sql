@@ -252,7 +252,7 @@ END$$
 
 DELIMITER //
 
-CREATE FUNCTION IF NOT EXISTS fn_get_patient_status_count(
+CREATE FUNCTION  fn_get_patient_status_count(
     p_patient_id BIGINT
 ) RETURNS INT
 DETERMINISTIC
@@ -316,5 +316,3 @@ BEGIN
 END//
 
 DELIMITER ;
-
-

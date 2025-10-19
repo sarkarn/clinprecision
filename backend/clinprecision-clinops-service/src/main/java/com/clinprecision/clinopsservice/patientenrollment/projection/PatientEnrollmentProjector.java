@@ -3,12 +3,14 @@ package com.clinprecision.clinopsservice.patientenrollment.projection;
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientRegisteredEvent;
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientEnrolledEvent;
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientStatusChangedEvent;
+import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientDemographicsUpdatedEvent;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEntity;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentEntity;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentAuditEntity;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatusHistoryEntity;
 import com.clinprecision.clinopsservice.patientenrollment.entity.EnrollmentStatus;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatus;
+import com.clinprecision.clinopsservice.patientenrollment.entity.PatientGender;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientRepository;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentRepository;
 import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentAuditRepository;
@@ -410,6 +412,85 @@ public class PatientEnrollmentProjector {
             log.error("Error projecting PatientStatusChangedEvent: {}", e.getMessage(), e);
             // Throw exception to ensure transaction rollback and retry
             throw new RuntimeException("Failed to project PatientStatusChangedEvent", e);
+        }
+    }
+    
+    /**
+     * Handle PatientDemographicsUpdatedEvent - Update patient information in read model
+     * 
+     * This handler updates the patient entity with new demographic information.
+     * Maintains complete audit trail through event sourcing.
+     * 
+     * Idempotency: Safe to replay - updates are idempotent
+     */
+    @EventHandler
+    @Transactional
+    public void on(PatientDemographicsUpdatedEvent event) {
+        log.info("Projecting PatientDemographicsUpdatedEvent: patient={}, updatedBy={}", 
+            event.getPatientId(), event.getUpdatedBy());
+        
+        try {
+            // Find patient entity
+            Optional<PatientEntity> patientOpt = patientRepository.findByAggregateUuid(event.getPatientId().toString());
+            if (patientOpt.isEmpty()) {
+                log.error("Patient not found for UUID: {}", event.getPatientId());
+                return; // Don't throw - patient might not be in projection yet
+            }
+            
+            PatientEntity patient = patientOpt.get();
+            
+            // Capture old values for audit
+            String oldValues = String.format("{\"firstName\":\"%s\",\"middleName\":\"%s\",\"lastName\":\"%s\"," +
+                "\"dateOfBirth\":\"%s\",\"gender\":\"%s\",\"phoneNumber\":\"%s\",\"email\":\"%s\"}",
+                patient.getFirstName(), patient.getMiddleName(), patient.getLastName(),
+                patient.getDateOfBirth(), patient.getGender(), patient.getPhoneNumber(), patient.getEmail());
+            
+            // Update patient entity with new values (only non-null values from event)
+            if (event.getFirstName() != null) patient.setFirstName(event.getFirstName());
+            if (event.getMiddleName() != null) patient.setMiddleName(event.getMiddleName());
+            if (event.getLastName() != null) patient.setLastName(event.getLastName());
+            if (event.getDateOfBirth() != null) patient.setDateOfBirth(event.getDateOfBirth());
+            if (event.getGender() != null) {
+                try {
+                    patient.setGender(PatientGender.valueOf(event.getGender().toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid gender value in event: {}", event.getGender());
+                }
+            }
+            if (event.getPhoneNumber() != null) patient.setPhoneNumber(event.getPhoneNumber());
+            if (event.getEmail() != null) patient.setEmail(event.getEmail());
+            
+            patient.setUpdatedAt(event.getUpdatedAt() != null ? event.getUpdatedAt() : LocalDateTime.now());
+            
+            // Save updated patient
+            patientRepository.save(patient);
+            
+            log.info("Patient demographics updated: patientId={}, name={} {}", 
+                patient.getId(), patient.getFirstName(), patient.getLastName());
+            
+            // Create audit record with new values
+            String newValues = String.format("{\"firstName\":\"%s\",\"middleName\":\"%s\",\"lastName\":\"%s\"," +
+                "\"dateOfBirth\":\"%s\",\"gender\":\"%s\",\"phoneNumber\":\"%s\",\"email\":\"%s\"}",
+                patient.getFirstName(), patient.getMiddleName(), patient.getLastName(),
+                patient.getDateOfBirth(), patient.getGender(), patient.getPhoneNumber(), patient.getEmail());
+            
+            createAuditRecord(
+                patient.getId(),
+                event.getPatientId().toString(),
+                PatientEnrollmentAuditEntity.AuditActionType.UPDATE,
+                oldValues,
+                newValues,
+                event.getUpdatedBy(),
+                "Patient demographics updated"
+            );
+            
+            log.info("PatientDemographicsUpdatedEvent projection completed successfully: patient={}", 
+                event.getPatientId());
+            
+        } catch (Exception e) {
+            log.error("Error projecting PatientDemographicsUpdatedEvent: {}", e.getMessage(), e);
+            // Throw exception to ensure transaction rollback and retry
+            throw new RuntimeException("Failed to project PatientDemographicsUpdatedEvent", e);
         }
     }
     

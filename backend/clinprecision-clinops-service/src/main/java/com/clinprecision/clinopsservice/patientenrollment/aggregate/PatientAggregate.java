@@ -9,9 +9,11 @@ import org.axonframework.spring.stereotype.Aggregate;
 import com.clinprecision.clinopsservice.patientenrollment.domain.commands.RegisterPatientCommand;
 import com.clinprecision.clinopsservice.patientenrollment.domain.commands.EnrollPatientCommand;
 import com.clinprecision.clinopsservice.patientenrollment.domain.commands.ChangePatientStatusCommand;
+import com.clinprecision.clinopsservice.patientenrollment.domain.commands.UpdatePatientDemographicsCommand;
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientRegisteredEvent;
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientEnrolledEvent;
 import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientStatusChangedEvent;
+import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientDemographicsUpdatedEvent;
 import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatus;
 
 import org.slf4j.Logger;
@@ -213,6 +215,57 @@ public class PatientAggregate {
         this.status = PatientStatus.valueOf(event.getNewStatus());
         
         logger.info("Patient {} status updated to {}", event.getPatientId(), this.status);
+    }
+    
+    /**
+     * Command Handler: Update Patient Demographics
+     * Business Rules:
+     * - Patient must exist (aggregate already created)
+     * - At least one field must be provided
+     * - If dateOfBirth changes, patient must still be 18+
+     * - Must have either phone or email
+     */
+    @CommandHandler
+    public void handle(UpdatePatientDemographicsCommand command) {
+        logger.info("Handling UpdatePatientDemographicsCommand for patient: {}", command.getPatientId());
+        
+        // Validate command
+        command.validate();
+        
+        // Apply event with both old and new values for audit trail
+        AggregateLifecycle.apply(PatientDemographicsUpdatedEvent.builder()
+            .patientId(command.getPatientId())
+            .firstName(command.getFirstName() != null ? command.getFirstName() : this.firstName)
+            .middleName(command.getMiddleName() != null ? command.getMiddleName() : this.middleName)
+            .lastName(command.getLastName() != null ? command.getLastName() : this.lastName)
+            .dateOfBirth(command.getDateOfBirth() != null ? command.getDateOfBirth() : this.dateOfBirth)
+            .gender(command.getGender() != null ? command.getGender() : this.gender)
+            .phoneNumber(command.getPhoneNumber() != null ? command.getPhoneNumber() : this.phoneNumber)
+            .email(command.getEmail() != null ? command.getEmail() : this.email)
+            .updatedBy(command.getUpdatedBy())
+            .updatedAt(LocalDateTime.now())
+            .build());
+        
+        logger.info("PatientDemographicsUpdatedEvent emitted for patient: {}", command.getPatientId());
+    }
+    
+    /**
+     * Event Sourcing Handler: Patient Demographics Updated
+     */
+    @EventSourcingHandler
+    public void on(PatientDemographicsUpdatedEvent event) {
+        logger.info("Applying PatientDemographicsUpdatedEvent for patient: {}", event.getPatientId());
+        
+        // Update aggregate state with new values
+        if (event.getFirstName() != null) this.firstName = event.getFirstName();
+        if (event.getMiddleName() != null) this.middleName = event.getMiddleName();
+        if (event.getLastName() != null) this.lastName = event.getLastName();
+        if (event.getDateOfBirth() != null) this.dateOfBirth = event.getDateOfBirth();
+        if (event.getGender() != null) this.gender = event.getGender();
+        if (event.getPhoneNumber() != null) this.phoneNumber = event.getPhoneNumber();
+        if (event.getEmail() != null) this.email = event.getEmail();
+        
+        logger.info("Patient {} demographics updated", event.getPatientId());
     }
     
     private void validatePatientRegistration(RegisterPatientCommand command) {

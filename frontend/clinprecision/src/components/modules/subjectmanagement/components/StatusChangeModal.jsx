@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import PatientStatusService from '../../../../services/PatientStatusService';
+import { useAuth } from '../../../login/AuthContext';
 
 /**
  * Modal for changing patient status
@@ -31,12 +32,15 @@ const StatusChangeModal = ({
     preselectedStatus,
     onStatusChanged
 }) => {
+    // Get authenticated user from context
+    const { user } = useAuth();
+
     // Form state
     const [formData, setFormData] = useState({
         newStatus: preselectedStatus || '',
         reason: '',
         notes: '',
-        changedBy: '' // TODO: Get from auth context
+        changedBy: '' // Auto-populated from AuthContext
     });
 
     // UI state
@@ -54,11 +58,10 @@ const StatusChangeModal = ({
     useEffect(() => {
         if (isOpen && patientId) {
             loadValidTransitions();
-            // Get current user from localStorage or default to 'admin'
-            // TODO: Replace with proper authentication context
-            const currentUser = localStorage.getItem('currentUser') ||
-                localStorage.getItem('username') ||
-                'admin';
+
+            // Auto-populate from AuthContext (Option C: Hybrid Approach)
+            // Priority: email > name > userId > fallback
+            const currentUser = user?.email || user?.name || user?.userId || 'Unknown User';
 
             setFormData(prev => ({
                 ...prev,
@@ -66,7 +69,7 @@ const StatusChangeModal = ({
                 newStatus: preselectedStatus || prev.newStatus
             }));
         }
-    }, [isOpen, patientId, preselectedStatus]);
+    }, [isOpen, patientId, preselectedStatus, user]);
 
     /**
      * Fetch valid transitions from API
@@ -378,8 +381,29 @@ const StatusChangeModal = ({
                         </p>
                     </div>
 
-                    {/* Changed By (Hidden for now - TODO: get from auth) */}
-                    <input type="hidden" value={formData.changedBy} />
+                    {/* Changed By (Auto-populated from AuthContext - Option C: Hybrid Approach) */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Changed By
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={formData.changedBy}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
+                                disabled
+                                readOnly
+                            />
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
+                        <p className="mt-1 text-sm text-gray-500">
+                            ✓ Logged in as: <span className="font-medium text-gray-700">{formData.changedBy}</span>
+                        </p>
+                    </div>
 
                     {/* Info Message */}
                     <div className="bg-blue-50 border border-blue-200 rounded-md p-3">

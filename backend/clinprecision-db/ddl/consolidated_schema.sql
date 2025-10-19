@@ -216,7 +216,8 @@ CREATE TABLE code_list_usage (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     category VARCHAR(100) NOT NULL,
     application_module VARCHAR(100) NOT NULL COMMENT 'Module/service name',
-    usage_type ENUM('DROPDOWN', 'VALIDATION', 'DISPLAY', 'FILTER') NOT NULL,
+    usage_type ENUM('DROPDOWN', 'MULTI_SELECT', 'CHECKBOX_GROUP', 'VALIDATION', 'DISPLAY', 'FILTER') NOT NULL 
+        COMMENT 'Type of UI control or usage pattern',
     field_name VARCHAR(100) COMMENT 'Field/property name where used',
     is_required BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -971,7 +972,7 @@ CREATE TABLE study_database_builds (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Tracks database build processes for clinical studies';
 
 CREATE TABLE visit_definitions (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Primary key; copied to study_visit_instances.visit_id for FK relationship',
     aggregate_uuid VARCHAR(255) NULL COMMENT 'UUID linking to StudyDesignAggregate in event store',
 	build_id BIGINT NULL COMMENT 'FK to study_database_builds - tracks which build version this visit definition belongs to',
     visit_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this visit entity from VisitDefinedEvent',
@@ -984,6 +985,9 @@ CREATE TABLE visit_definitions (
     window_before INT DEFAULT 0,
     window_after INT DEFAULT 0,
     visit_type ENUM('SCREENING', 'BASELINE', 'TREATMENT', 'FOLLOW_UP', 'UNSCHEDULED', 'END_OF_STUDY') DEFAULT 'TREATMENT',
+	is_unscheduled BOOLEAN DEFAULT FALSE COMMENT 'TRUE for unscheduled visits (not in protocol timeline)',
+    visit_code VARCHAR(50) NULL COMMENT 'Unique code for unscheduled visits (e.g., EARLY_TERM, AE_VISIT)',
+    visit_order INT NULL COMMENT 'Sort order for unscheduled visits (9000+ recommended)',
     is_required BOOLEAN DEFAULT TRUE,
     is_deleted BOOLEAN DEFAULT FALSE COMMENT 'Soft delete flag - set by RemoveVisitEvent',
     sequence_number INT,
@@ -994,10 +998,54 @@ CREATE TABLE visit_definitions (
     deleted_at TIMESTAMP NULL COMMENT 'When this visit was soft deleted',
     deleted_by VARCHAR(100) NULL COMMENT 'User who deleted this visit definition',
     deletion_reason TEXT NULL COMMENT 'Reason for deleting this visit definition',
+    
+    INDEX idx_visit_def_unscheduled (study_id, is_unscheduled),
+    INDEX idx_visit_def_code (study_id, visit_code),
+    
     FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
     FOREIGN KEY (arm_id) REFERENCES study_arms(id) ON DELETE SET NULL,
 	CONSTRAINT fk_visit_definition_build FOREIGN KEY (build_id) REFERENCES study_database_builds(id) ON DELETE RESTRICT
 );
+
+CREATE TABLE unscheduled_visit_config (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    visit_code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Unique code (e.g., EARLY_TERM, AE_VISIT)',
+    visit_name VARCHAR(100) NOT NULL COMMENT 'Display name (e.g., Early Termination Visit)',
+    description TEXT COMMENT 'Detailed description of visit purpose',
+    visit_order INT DEFAULT 9000 COMMENT 'Sort order (9000+ for unscheduled)',
+    is_enabled BOOLEAN DEFAULT TRUE COMMENT 'Enable/disable this visit type',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(100),
+    updated_by VARCHAR(100),
+    
+    INDEX idx_enabled (is_enabled),
+    INDEX idx_visit_code (visit_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Configurable unscheduled visit types';
+
+-- Insert default unscheduled visit configurations
+INSERT INTO unscheduled_visit_config 
+    (visit_code, visit_name, description, visit_order, is_enabled, created_by) 
+VALUES
+    ('EARLY_TERM', 'Early Termination Visit', 
+     'Visit conducted when subject discontinues from study prematurely', 
+     9001, TRUE, 'SYSTEM'),
+    
+    ('UNSCHED_SAFETY', 'Unscheduled Safety Visit', 
+     'Visit conducted for safety monitoring outside scheduled visits', 
+     9002, TRUE, 'SYSTEM'),
+    
+    ('AE_VISIT', 'Adverse Event Visit', 
+     'Visit conducted to assess or follow up on adverse event', 
+     9003, TRUE, 'SYSTEM'),
+    
+    ('PROTO_DEV', 'Protocol Deviation Visit', 
+     'Visit conducted outside protocol due to deviation or amendment', 
+     9004, TRUE, 'SYSTEM'),
+    
+    ('UNSCHED_FU', 'Unscheduled Follow-up', 
+     'Unplanned follow-up visit for additional monitoring', 
+     9005, TRUE, 'SYSTEM');
 
 -- Form definitions
 CREATE TABLE form_definitions (
@@ -1212,7 +1260,7 @@ CREATE TABLE IF NOT EXISTS patient_enrollments (
     enrolled_by VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (study_id) REFERENCES studies(id),
     FOREIGN KEY (study_site_id) REFERENCES site_studies(id),
@@ -1229,7 +1277,7 @@ CREATE TABLE IF NOT EXISTS patient_enrollments (
     
     UNIQUE KEY uk_screening_number (screening_number, study_id),
     UNIQUE KEY uk_patient_study_enrollment (patient_id, study_id)
-) COMMENT 'Patient enrollment records linking patients to specific studies and sites';
+) COMMENT = 'Patient enrollments - Blinding compliant (treatment arm assignments stored in external IWRS/RTSM system, not in EDC database)';
 
 -- Patient Eligibility Assessments (detailed eligibility tracking)
 CREATE TABLE IF NOT EXISTS patient_eligibility_assessments (
@@ -1549,7 +1597,7 @@ CREATE TABLE IF NOT EXISTS study_visit_instances (
 	aggregate_uuid VARCHAR(36) NULL COMMENT 'UUID for event sourcing - populated for unscheduled visits created via events',
 	build_id BIGINT NULL COMMENT 'FK to study_database_builds - tracks which build version was used for this patient',
     study_id BIGINT NOT NULL,
-    visit_id BIGINT NOT NULL,               -- FK to visit_definitions
+    visit_id BIGINT NOT NULL COMMENT 'FK to visit_definitions.id - now supports both scheduled and unscheduled visits',               -- FK to visit_definitions
     subject_id BIGINT NOT NULL,             -- FK to study_subjects
     site_id BIGINT,
     visit_date DATE,                        -- Scheduled/planned date
@@ -1598,26 +1646,6 @@ CREATE TABLE IF NOT EXISTS study_visit_instances_audit (
 -- 2. CONFIGURATION TABLES (Study-specific settings)
 -- ============================================================================
 
--- Study Visit Form Mapping - Associates forms with visits per study
-CREATE TABLE IF NOT EXISTS study_visit_form_mapping (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    study_id BIGINT NOT NULL,
-    visit_id BIGINT NOT NULL,
-    form_id BIGINT NOT NULL,
-    is_required BOOLEAN DEFAULT true,
-    sequence INT,                           -- Display order
-    conditional_logic JSON,                 -- Conditions for form visibility
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by BIGINT,
-    
-    UNIQUE KEY uk_study_visit_form (study_id, visit_id, form_id),
-    INDEX idx_study (study_id),
-    INDEX idx_visit (study_id, visit_id),
-    INDEX idx_form (study_id, form_id),
-    
-    CONSTRAINT fk_svfm_study FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Study Form Validation Rules - Field-level validation rules per study
 CREATE TABLE IF NOT EXISTS study_form_validation_rules (
@@ -1884,5 +1912,7 @@ CREATE INDEX idx_form_definitions_study_build ON form_definitions(study_id, buil
 CREATE INDEX idx_study_form_data_build_id ON study_form_data(build_id);
 CREATE INDEX idx_study_form_data_study_build ON study_form_data(study_id, build_id);
 CREATE INDEX idx_study_form_data_form_build ON study_form_data(form_id, build_id);
+CREATE INDEX idx_visit_def_unscheduled ON visit_definitions(study_id, is_unscheduled);
+
 
 

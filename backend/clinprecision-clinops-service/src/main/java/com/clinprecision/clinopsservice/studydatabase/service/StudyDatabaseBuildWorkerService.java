@@ -3,9 +3,11 @@ package com.clinprecision.clinopsservice.studydatabase.service;
 import com.clinprecision.clinopsservice.entity.FormDefinitionEntity;
 import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
 import com.clinprecision.clinopsservice.entity.StudyArmEntity;
+import com.clinprecision.clinopsservice.entity.VisitFormEntity;
 import com.clinprecision.clinopsservice.repository.FormDefinitionRepository;
 import com.clinprecision.clinopsservice.repository.VisitDefinitionRepository;
 import com.clinprecision.clinopsservice.repository.StudyArmRepository;
+import com.clinprecision.clinopsservice.repository.VisitFormRepository;
 import com.clinprecision.clinopsservice.studydatabase.domain.commands.CompleteStudyDatabaseBuildCommand;
 import com.clinprecision.clinopsservice.studydatabase.domain.events.StudyDatabaseBuildStartedEvent;
 import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
@@ -64,8 +66,10 @@ public class StudyDatabaseBuildWorkerService {
     private final FormDefinitionRepository formDefinitionRepository;
     private final VisitDefinitionRepository visitDefinitionRepository;
     private final StudyArmRepository studyArmRepository;
+    private final VisitFormRepository visitFormRepository;
     private final CommandGateway commandGateway;
     private final JdbcTemplate jdbcTemplate;
+    private final com.clinprecision.clinopsservice.visit.repository.UnscheduledVisitConfigRepository unscheduledVisitConfigRepository;
     
     // Phase 6 repositories REMOVED - See PHASE_6_BACKEND_NECESSITY_ANALYSIS.md
     // private final StudyFieldMetadataRepository fieldMetadataRepository;
@@ -147,12 +151,16 @@ public class StudyDatabaseBuildWorkerService {
         // ============================================================
         log.info("Phase 1: Validating study design for studyId={}", studyId);
         
+        // CRITICAL: Create unscheduled visit definitions FIRST (before any visit instances)
+        int unscheduledVisitsCreated = createUnscheduledVisitDefinitions(studyId, buildId);
+        log.info("Created {} unscheduled visit definitions", unscheduledVisitsCreated);
+        
         List<FormDefinitionEntity> forms = formDefinitionRepository.findByStudyId(studyId);
         List<VisitDefinitionEntity> visits = visitDefinitionRepository.findByStudyIdOrderBySequenceNumberAsc(studyId);
         List<StudyArmEntity> arms = studyArmRepository.findByStudyIdOrderBySequenceAsc(studyId);
         
-        log.info("Found {} forms, {} visits, {} arms for study {}", 
-                 forms.size(), visits.size(), arms.size(), studyId);
+        log.info("Found {} forms, {} visits (including {} unscheduled), {} arms for study {}", 
+                 forms.size(), visits.size(), unscheduledVisitsCreated, arms.size(), studyId);
         
         // Validation checks
         if (forms.isEmpty()) {
@@ -165,7 +173,8 @@ public class StudyDatabaseBuildWorkerService {
                                           ". Cannot build database without visits.");
         }
         
-        log.info("Phase 1 complete: Study design validation passed");
+        log.info("Phase 1 complete: Study design validation passed (including {} unscheduled visits)", 
+                unscheduledVisitsCreated);
         
         // Update progress: Phase 1 complete (20%)
         updateProgress(buildId, formsConfigured, mappingsCreated, indexesCreated, 
@@ -340,8 +349,80 @@ public class StudyDatabaseBuildWorkerService {
     // ============================================================
 
     /**
+     * Create unscheduled visit definitions from configuration
+     * Copies enabled unscheduled visit configs to visit_definitions for this study
+     * 
+     * This is called FIRST during study build to ensure unscheduled visits exist
+     * before any visit instances are created.
+     * 
+     * @param studyId Study ID
+     * @param buildId Build UUID
+     * @return Number of unscheduled visit definitions created
+     */
+    private int createUnscheduledVisitDefinitions(Long studyId, UUID buildId) {
+        log.info("Creating unscheduled visit definitions for study {} from configuration", studyId);
+        
+        int unscheduledVisitsCreated = 0;
+        
+        try {
+            // Get all enabled unscheduled visit configurations
+            List<com.clinprecision.clinopsservice.visit.entity.UnscheduledVisitConfigEntity> configs = 
+                unscheduledVisitConfigRepository.findByIsEnabledTrueOrderByVisitOrderAsc();
+            
+            if (configs.isEmpty()) {
+                log.warn("No enabled unscheduled visit configurations found. Creating defaults.");
+                // This should not happen if migration ran correctly, but handle gracefully
+                return 0;
+            }
+            
+            log.info("Found {} enabled unscheduled visit configurations", configs.size());
+            
+            // Create a visit definition for each enabled configuration
+            for (com.clinprecision.clinopsservice.visit.entity.UnscheduledVisitConfigEntity config : configs) {
+                VisitDefinitionEntity visitDef = VisitDefinitionEntity.builder()
+                    .studyId(studyId)
+                    .name(config.getVisitName())
+                    .description(config.getDescription())
+                    .visitCode(config.getVisitCode())
+                    .visitOrder(config.getVisitOrder())
+                    .isUnscheduled(true)
+                    .visitType(VisitDefinitionEntity.VisitType.UNSCHEDULED)
+                    .timepoint(0) // Unscheduled visits have no fixed timepoint
+                    .windowBefore(0)
+                    .windowAfter(0)
+                    .isRequired(false) // Unscheduled visits are never required
+                    .sequenceNumber(config.getVisitOrder()) // Use visit_order as sequence
+                    .createdBy("SYSTEM")
+                    .build();
+                
+                visitDefinitionRepository.save(visitDef);
+                unscheduledVisitsCreated++;
+                
+                log.debug("Created unscheduled visit definition: study={}, code={}, name={}", 
+                         studyId, config.getVisitCode(), config.getVisitName());
+                
+                // Track configuration
+                trackBuildConfig(buildId, studyId, "UNSCHEDULED_VISIT", 
+                               String.format("%s (%s)", config.getVisitName(), config.getVisitCode()));
+            }
+            
+            log.info("Created {} unscheduled visit definitions for study {}", 
+                     unscheduledVisitsCreated, studyId);
+            
+        } catch (Exception e) {
+            log.error("Failed to create unscheduled visit definitions: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create unscheduled visit definitions", e);
+        }
+        
+        return unscheduledVisitsCreated;
+    }
+
+    /**
      * Create form-visit mappings - Associates forms with visits
-     * Inserts into study_visit_form_mapping table
+     * Inserts into visit_forms table (FIXED: Oct 17, 2025 - Changed from study_visit_form_mapping)
+     * 
+     * CRITICAL: This method now uses the correct visit_forms table with build_id support
+     * for proper protocol versioning and query service compatibility.
      */
     private int createFormVisitMappings(Long studyId, UUID buildId, 
                                         List<FormDefinitionEntity> forms, 
@@ -351,33 +432,40 @@ public class StudyDatabaseBuildWorkerService {
         
         int mappingsCreated = 0;
         
-        String insertSql = 
-            "INSERT INTO study_visit_form_mapping " +
-            "(study_id, visit_id, form_id, is_required, sequence, created_by, created_at) " +
-            "VALUES (?, ?, ?, ?, ?, ?, NOW())";
-        
         try {
-            // For each visit, associate all forms (in real implementation, use actual visit-form associations)
-            int sequence = 1;
-            for (VisitDefinitionEntity visit : visits) {
+            // Get the numeric build ID from UUID
+            Long buildIdLong = getBuildIdFromUuid(buildId);
+            
+            // CRITICAL FIX (Oct 18, 2025): Exclude unscheduled visits from form mappings
+            // Unscheduled visits should NOT have automatic form mappings - they are on-demand only
+            List<VisitDefinitionEntity> scheduledVisits = visits.stream()
+                .filter(v -> !Boolean.TRUE.equals(v.getIsUnscheduled()))
+                .toList();
+            
+            log.info("Filtered to {} scheduled visits (excluded {} unscheduled visits)", 
+                     scheduledVisits.size(), visits.size() - scheduledVisits.size());
+            
+            // For each SCHEDULED visit, associate all forms
+            int displayOrder = 1;
+            for (VisitDefinitionEntity visit : scheduledVisits) {
                 for (FormDefinitionEntity form : forms) {
-                    // Check if mapping already exists
-                    String checkSql = 
-                        "SELECT COUNT(*) FROM study_visit_form_mapping " +
-                        "WHERE study_id = ? AND visit_id = ? AND form_id = ?";
+                    // Check if mapping already exists for this build
+                    boolean exists = visitFormRepository.existsByVisitDefinitionIdAndFormDefinitionId(
+                            visit.getId(), form.getId());
                     
-                    Integer existingCount = jdbcTemplate.queryForObject(checkSql, Integer.class, 
-                                                                        studyId, visit.getId(), form.getId());
-                    
-                    if (existingCount == null || existingCount == 0) {
-                        jdbcTemplate.update(insertSql, 
-                            studyId, 
-                            visit.getId(), 
-                            form.getId(), 
-                            true,  // is_required (could be parsed from study design)
-                            sequence++, 
-                            1L);   // created_by (system user)
+                    if (!exists) {
+                        // Create VisitFormEntity with proper build_id
+                        VisitFormEntity visitForm = VisitFormEntity.builder()
+                                .visitDefinition(visit)
+                                .formDefinition(form)
+                                .buildId(buildIdLong)  // CRITICAL: Set build_id for versioning
+                                .isRequired(true)      // Could be parsed from study design
+                                .isConditional(false)
+                                .displayOrder(displayOrder++)
+                                .createdBy(1L)         // System user
+                                .build();
                         
+                        visitFormRepository.save(visitForm);
                         mappingsCreated++;
                         
                         // Track configuration in build config table
@@ -387,7 +475,8 @@ public class StudyDatabaseBuildWorkerService {
                 }
             }
             
-            log.info("Created {} form-visit mappings", mappingsCreated);
+            log.info("Created {} form-visit mappings for SCHEDULED visits only (build_id={})", 
+                     mappingsCreated, buildIdLong);
             
         } catch (Exception e) {
             log.error("Failed to create form-visit mappings: {}", e.getMessage(), e);
@@ -395,6 +484,17 @@ public class StudyDatabaseBuildWorkerService {
         }
         
         return mappingsCreated;
+    }
+    
+    /**
+     * Helper method to get numeric build ID from UUID
+     * Looks up the StudyDatabaseBuildEntity by UUID and returns its ID
+     */
+    private Long getBuildIdFromUuid(UUID buildUuid) {
+        return buildRepository.findByAggregateUuid(buildUuid.toString())
+                .map(StudyDatabaseBuildEntity::getId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Build not found for UUID: " + buildUuid));
     }
 
     /**

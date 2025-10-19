@@ -135,10 +135,29 @@ const CRFBuilderIntegration = () => {
                         const structure = typeof formData.structure === 'string' ? JSON.parse(formData.structure) : formData.structure || {};
 
                         // Ensure fields have a 'name' property for compatibility with the form builder
-                        const normalizedFields = fields.map(field => ({
-                            ...field,
-                            name: field.name || field.id // Use 'id' as 'name' if 'name' doesn't exist
-                        }));
+                        const normalizedFields = fields.map(field => {
+                            // Clean up options location - migrate from old to new format
+                            const cleanedField = { ...field };
+
+                            // If options are at root level (old format), move them to metadata
+                            if (field.options && Array.isArray(field.options) && field.options.length > 0) {
+                                console.log(`🔧 Migrating options for field ${field.id || field.name} from root to metadata`);
+                                if (!cleanedField.metadata) {
+                                    cleanedField.metadata = {};
+                                }
+                                // Move options to metadata if not already there or if metadata.options is empty
+                                if (!cleanedField.metadata.options || cleanedField.metadata.options.length === 0) {
+                                    cleanedField.metadata.options = field.options;
+                                }
+                                // Remove from root level
+                                delete cleanedField.options;
+                            }
+
+                            return {
+                                ...cleanedField,
+                                name: cleanedField.name || cleanedField.id // Use 'id' as 'name' if 'name' doesn't exist
+                            };
+                        });
 
                         console.log('Loaded form data:', { formData, fields: normalizedFields, structure });
                         console.log('Reconstructing CRF data...');
@@ -1286,6 +1305,17 @@ const CRFBuilderIntegration = () => {
                 }
             });
             console.log('*** handleSave: Extracted fields:', allFields.length, 'total fields');
+            console.log('*** handleSave: DETAILED FIELD INSPECTION ***');
+            allFields.forEach((field, idx) => {
+                console.log(`Field ${idx} (${field.fieldName}):`, {
+                    type: field.fieldType,
+                    hasMetadata: !!field.metadata,
+                    metadataOptions: field.metadata?.options,
+                    metadataUiConfigOptions: field.metadata?.uiConfig?.options,
+                    rootOptions: field.options,
+                    fullField: field
+                });
+            });
 
             // Create structure object (organized layout information)
             const structureData = {
@@ -2058,22 +2088,42 @@ const CRFBuilderIntegration = () => {
                                                                                     Options (one per line)
                                                                                 </label>
                                                                                 <textarea
-                                                                                    defaultValue={(field.metadata?.options || []).join('\n')}
+                                                                                    defaultValue={(field.metadata?.options || []).map(opt =>
+                                                                                        typeof opt === 'string' ? opt : opt.label
+                                                                                    ).join('\n')}
                                                                                     onBlur={(e) => {
                                                                                         // Parse options when user finishes editing (blur event)
                                                                                         const rawValue = e.target.value;
-                                                                                        const newOptions = rawValue.split('\n').map(line => line.trim()).filter(line => line !== '');
+                                                                                        const lines = rawValue.split('\n').map(line => line.trim()).filter(line => line !== '');
+
+                                                                                        // Convert to proper format: {value, label}
+                                                                                        const newOptions = lines.map(line => ({
+                                                                                            value: line.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+                                                                                            label: line
+                                                                                        }));
+
                                                                                         console.log('📝 Manual options saved on blur:', {
                                                                                             rawInput: rawValue,
                                                                                             parsedOptions: newOptions,
                                                                                             optionCount: newOptions.length
                                                                                         });
-                                                                                        updateField(sectionIndex, fieldIndex, {
+
+                                                                                        // Create a clean field update that removes old location and sets new location
+                                                                                        const cleanedField = {
+                                                                                            ...field,
+                                                                                            options: undefined, // Remove old root-level options
                                                                                             metadata: {
                                                                                                 ...field.metadata,
-                                                                                                options: newOptions
+                                                                                                options: newOptions // Set new metadata-level options
                                                                                             }
-                                                                                        });
+                                                                                        };
+
+                                                                                        // Replace the entire field to ensure clean state
+                                                                                        const updatedSections = [...crfData.sections];
+                                                                                        const updatedFields = [...updatedSections[sectionIndex].fields];
+                                                                                        updatedFields[fieldIndex] = cleanedField;
+                                                                                        updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], fields: updatedFields };
+                                                                                        handleCrfDataUpdate({ ...crfData, sections: updatedSections });
                                                                                     }}
                                                                                     onKeyDown={(e) => {
                                                                                         // Prevent Enter from triggering any parent handlers

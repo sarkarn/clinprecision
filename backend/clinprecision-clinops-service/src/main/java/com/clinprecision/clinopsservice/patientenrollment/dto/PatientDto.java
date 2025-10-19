@@ -45,8 +45,10 @@ public class PatientDto {
     private String screeningNumber;     // Study-specific screening number
     private Long siteId;               // Site association ID
     private String siteName;           // Site name for display
-    private String treatmentArm;       // Treatment arm assignment
-    private String treatmentArmName;   // Treatment arm name for display
+    
+    // NOTE: Treatment arm fields removed for EDC blinding compliance
+    // See: EDC_BLINDING_ARCHITECTURE_DECISION.md
+    // Randomization handled by external IWRS/RTSM system
 }
 
 
