@@ -148,28 +148,48 @@ public class ProtocolVisitInstantiationService {
     /**
      * Get protocol visits for study
      * Includes arm-specific visits (if armId provided) + common visits
+     * 
+     * CRITICAL FIX (Oct 19, 2025): Exclude unscheduled visits from automatic instantiation
+     * Unscheduled visits should ONLY be created on-demand via VisitController.createUnscheduledVisit()
      */
     private List<VisitDefinitionEntity> getProtocolVisits(Long studyId, Long armId) {
         List<VisitDefinitionEntity> protocolVisits = new ArrayList<>();
 
         if (armId != null) {
-            // Get arm-specific visits
+            // Get arm-specific visits (EXCLUDING unscheduled)
             List<VisitDefinitionEntity> armVisits =
                     visitDefinitionRepository.findByStudyIdAndArmIdOrderBySequenceNumberAsc(studyId, armId);
-            protocolVisits.addAll(armVisits);
+            
+            // CRITICAL: Filter out unscheduled visits
+            List<VisitDefinitionEntity> scheduledArmVisits = armVisits.stream()
+                .filter(v -> !Boolean.TRUE.equals(v.getIsUnscheduled()))
+                .toList();
+            
+            protocolVisits.addAll(scheduledArmVisits);
 
-            log.debug("Found {} arm-specific visits for armId: {}", armVisits.size(), armId);
+            log.debug("Found {} arm-specific visits for armId: {} (excluded {} unscheduled)", 
+                     scheduledArmVisits.size(), armId, armVisits.size() - scheduledArmVisits.size());
         }
 
-        // Get common visits (no arm assignment)
+        // Get common visits (no arm assignment, EXCLUDING unscheduled)
         List<VisitDefinitionEntity> commonVisits =
                 visitDefinitionRepository.findByStudyIdAndArmIdIsNullOrderBySequenceNumberAsc(studyId);
-        protocolVisits.addAll(commonVisits);
+        
+        // CRITICAL: Filter out unscheduled visits
+        List<VisitDefinitionEntity> scheduledCommonVisits = commonVisits.stream()
+            .filter(v -> !Boolean.TRUE.equals(v.getIsUnscheduled()))
+            .toList();
+        
+        protocolVisits.addAll(scheduledCommonVisits);
 
-        log.debug("Found {} common visits", commonVisits.size());
+        log.debug("Found {} common visits (excluded {} unscheduled)", 
+                 scheduledCommonVisits.size(), commonVisits.size() - scheduledCommonVisits.size());
 
         // Sort by timepoint (day offset) to ensure correct chronological order
         protocolVisits.sort(Comparator.comparing(VisitDefinitionEntity::getTimepoint));
+
+        log.info("Total SCHEDULED protocol visits for study {}: {} (unscheduled visits excluded)", 
+                studyId, protocolVisits.size());
 
         return protocolVisits;
     }
