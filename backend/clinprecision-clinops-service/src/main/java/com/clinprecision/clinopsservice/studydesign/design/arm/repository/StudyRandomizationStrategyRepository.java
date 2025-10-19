@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydesign.studymgmt.repository;
+package com.clinprecision.clinopsservice.studydesign.design.arm.repository;
 
 import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyRandomizationStrategyEntity;
 import org.springframework.data.jpa.repository.JpaRepository;

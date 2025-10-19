@@ -7,7 +7,7 @@ import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyRandom
 import com.clinprecision.clinopsservice.studydesign.design.arm.repository.StudyArmRepository;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRepository;
 import com.clinprecision.clinopsservice.studydesign.design.arm.repository.StudyInterventionRepository;
-import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRandomizationStrategyRepository;
+import com.clinprecision.clinopsservice.studydesign.design.arm.repository.StudyRandomizationStrategyRepository;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyArmResponseDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyListResponseDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyResponseDto;
