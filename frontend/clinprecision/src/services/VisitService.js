@@ -188,12 +188,16 @@ const getUnscheduledVisitTypes = async (studyId) => {
     try {
         console.log('Fetching unscheduled visit types for study:', studyId);
         
+        // Get auth token from localStorage
+        const token = localStorage.getItem('authToken');
+        
         const response = await fetch(
             `${API_BASE_URL}/clinops-ws/api/v1/visits/study/${studyId}/unscheduled-types`,
             {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 }
             }
         );
