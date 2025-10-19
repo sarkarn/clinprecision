@@ -55,6 +55,32 @@ const UnscheduledVisitModal = ({
     const [errorMessage, setErrorMessage] = useState('');
     const [createdVisit, setCreatedVisit] = useState(null);
 
+    // Dynamic visit types from backend
+    const [visitTypes, setVisitTypes] = useState([]);
+    const [loadingVisitTypes, setLoadingVisitTypes] = useState(false);
+
+    /**
+     * Fetch unscheduled visit types for the study
+     */
+    useEffect(() => {
+        if (isOpen && studyId) {
+            setLoadingVisitTypes(true);
+            VisitService.getUnscheduledVisitTypes(studyId)
+                .then(types => {
+                    console.log('Loaded visit types:', types);
+                    setVisitTypes(types);
+                })
+                .catch(error => {
+                    console.error('Failed to load visit types:', error);
+                    setErrorMessage('Failed to load visit types: ' + error.message);
+                    setShowError(true);
+                })
+                .finally(() => {
+                    setLoadingVisitTypes(false);
+                });
+        }
+    }, [isOpen, studyId]);
+
     /**
      * Initialize form when modal opens
      */
@@ -268,17 +294,30 @@ const UnscheduledVisitModal = ({
                         <select
                             value={formData.visitType}
                             onChange={(e) => handleInputChange('visitType', e.target.value)}
-                            disabled={submitting || showSuccess}
+                            disabled={submitting || showSuccess || loadingVisitTypes}
                             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.visitType ? 'border-red-500' : 'border-gray-300'
-                                } ${submitting || showSuccess ? 'bg-gray-100' : ''}`}
+                                } ${submitting || showSuccess || loadingVisitTypes ? 'bg-gray-100' : ''}`}
                         >
-                            <option value={VISIT_TYPES.SCREENING}>{getVisitTypeLabel(VISIT_TYPES.SCREENING)}</option>
-                            <option value={VISIT_TYPES.ENROLLMENT}>{getVisitTypeLabel(VISIT_TYPES.ENROLLMENT)}</option>
-                            <option value={VISIT_TYPES.DISCONTINUATION}>{getVisitTypeLabel(VISIT_TYPES.DISCONTINUATION)}</option>
-                            <option value={VISIT_TYPES.ADVERSE_EVENT}>{getVisitTypeLabel(VISIT_TYPES.ADVERSE_EVENT)}</option>
+                            {loadingVisitTypes ? (
+                                <option value="">Loading visit types...</option>
+                            ) : visitTypes.length > 0 ? (
+                                <>
+                                    <option value="">Select visit type</option>
+                                    {visitTypes.map(vt => (
+                                        <option key={vt.id} value={vt.visitCode}>
+                                            {vt.name}
+                                        </option>
+                                    ))}
+                                </>
+                            ) : (
+                                <option value="">No visit types available</option>
+                            )}
                         </select>
                         {errors.visitType && (
                             <p className="mt-1 text-sm text-red-600">{errors.visitType}</p>
+                        )}
+                        {loadingVisitTypes && (
+                            <p className="mt-1 text-sm text-gray-500">Loading available visit types...</p>
                         )}
                     </div>
 

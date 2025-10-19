@@ -1,4 +1,5 @@
 import ApiService from './ApiService';
+import { API_BASE_URL } from '../config';
 
 /**
  * Visit Service - API client for unscheduled visit management
@@ -170,6 +171,48 @@ export const getVisitById = async (visitId) => {
 };
 
 /**
+ * Get available unscheduled visit types from backend configuration
+ * Fetches the list of enabled unscheduled visit types for the study
+ * 
+ * @param {number} studyId - Study ID
+ * @returns {Promise<Array>} Array of visit definitions
+ * 
+ * @example
+ * const visitTypes = await VisitService.getUnscheduledVisitTypes(11);
+ * // Returns: [
+ * //   { id: 123, name: 'Early Termination Visit', visitCode: 'EARLY_TERM', ... },
+ * //   { id: 124, name: 'Adverse Event Visit', visitCode: 'AE_VISIT', ... },
+ * // ]
+ */
+const getUnscheduledVisitTypes = async (studyId) => {
+    try {
+        console.log('Fetching unscheduled visit types for study:', studyId);
+        
+        const response = await fetch(
+            `${API_BASE_URL}/clinops-ws/api/v1/visits/study/${studyId}/unscheduled-types`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch unscheduled visit types: ${response.statusText}`);
+        }
+
+        const visitTypes = await response.json();
+        console.log('Fetched unscheduled visit types:', visitTypes);
+        
+        return visitTypes;
+    } catch (error) {
+        console.error('Error fetching unscheduled visit types:', error);
+        throw error;
+    }
+};
+
+/**
  * Visit type constants
  */
 export const VISIT_TYPES = {
@@ -272,6 +315,7 @@ const VisitService = {
     getStudyVisits,
     getVisitsByType,
     getVisitById,
+    getUnscheduledVisitTypes,
     VISIT_TYPES,
     VISIT_STATUS,
     getVisitTypeForStatus,

@@ -1,5 +1,7 @@
 package com.clinprecision.clinopsservice.visit.controller;
 
+import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.repository.VisitDefinitionRepository;
 import com.clinprecision.clinopsservice.visit.dto.CreateVisitRequest;
 import com.clinprecision.clinopsservice.visit.dto.VisitDto;
 import com.clinprecision.clinopsservice.visit.dto.VisitFormDto;
@@ -64,6 +66,27 @@ public class VisitController {
 
     private final UnscheduledVisitService visitService;
     private final VisitFormQueryService visitFormQueryService;
+    private final VisitDefinitionRepository visitDefinitionRepository;
+
+    /**
+     * Get unscheduled visit definitions for a study
+     * Returns all enabled unscheduled visit types that can be created on-demand
+     * 
+     * @param studyId Study ID
+     * @return ResponseEntity with List<VisitDefinitionEntity>
+     */
+    @GetMapping("/study/{studyId}/unscheduled-types")
+    public ResponseEntity<List<VisitDefinitionEntity>> getUnscheduledVisitTypes(@PathVariable Long studyId) {
+        log.info("REST: Getting unscheduled visit types for studyId: {}", studyId);
+        
+        List<VisitDefinitionEntity> unscheduledVisits = visitDefinitionRepository
+            .findUnscheduledVisitsByStudyId(studyId);
+        
+        log.info("REST: Found {} unscheduled visit types for studyId: {}", 
+                unscheduledVisits.size(), studyId);
+        
+        return ResponseEntity.ok(unscheduledVisits);
+    }
 
     /**
      * Create a new unscheduled visit
