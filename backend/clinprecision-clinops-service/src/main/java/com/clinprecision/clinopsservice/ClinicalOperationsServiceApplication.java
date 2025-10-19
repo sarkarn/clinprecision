@@ -19,27 +19,42 @@ import com.clinprecision.axon.config.AxonConfig;
 @EnableFeignClients
 @Import(AxonConfig.class)
 @EnableJpaRepositories(basePackages = {
-        "com.clinprecision.clinopsservice.repository",
-        "com.clinprecision.clinopsservice.study.repository",
-        "com.clinprecision.clinopsservice.studydesign.repository",
-        "com.clinprecision.clinopsservice.protocolversion.repository",
-        "com.clinprecision.clinopsservice.studydatabase.repository",
-        "com.clinprecision.clinopsservice.patientenrollment.repository",
-        "com.clinprecision.clinopsservice.formdata.repository",
-        "com.clinprecision.clinopsservice.visit.repository",
+        // Study Design bounded context
+        "com.clinprecision.clinopsservice.studydesign.studymgmt.repository",
+        "com.clinprecision.clinopsservice.studydesign.protocolmgmt.repository",
+        "com.clinprecision.clinopsservice.studydesign.documentmgmt.repository",
+        "com.clinprecision.clinopsservice.studydesign.metadatamgmt.repository",
+        "com.clinprecision.clinopsservice.studydesign.build.repository",
+        "com.clinprecision.clinopsservice.studydesign.design.repository",
+        "com.clinprecision.clinopsservice.studydesign.design.arm.repository",
+        "com.clinprecision.clinopsservice.studydesign.design.form.repository",
+        "com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository",
+        // Study Operation bounded context
+        "com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository",
+        "com.clinprecision.clinopsservice.studyoperation.visit.repository",
+        "com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.repository",
+        // Common
         "com.clinprecision.common.repository"
 })
 @EntityScan(basePackages = {
-        "com.clinprecision.clinopsservice.entity",
-        "com.clinprecision.clinopsservice.study.entity",
-        "com.clinprecision.clinopsservice.studydesign.entity",
-        "com.clinprecision.clinopsservice.protocolversion.entity",
-        "com.clinprecision.clinopsservice.studydatabase.entity",
-        "com.clinprecision.clinopsservice.patientenrollment.entity",
-        "com.clinprecision.clinopsservice.formdata.entity",
-        "com.clinprecision.clinopsservice.visit.entity",
+        // Study Design bounded context
+        "com.clinprecision.clinopsservice.studydesign.studymgmt.entity",
+        "com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity",
+        "com.clinprecision.clinopsservice.studydesign.documentmgmt.entity",
+        "com.clinprecision.clinopsservice.studydesign.metadatamgmt.entity",
+        "com.clinprecision.clinopsservice.studydesign.build.entity",
+        "com.clinprecision.clinopsservice.studydesign.design.entity",
+        "com.clinprecision.clinopsservice.studydesign.design.arm.entity",
+        "com.clinprecision.clinopsservice.studydesign.design.form.entity",
+        "com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity",
+        // Study Operation bounded context
+        "com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity",
+        "com.clinprecision.clinopsservice.studyoperation.visit.entity",
+        "com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.entity",
+        // Common
         "com.clinprecision.common.entity",
         "com.clinprecision.common.entity.clinops",
+        // Axon Framework
         "org.axonframework.eventsourcing.eventstore.jpa",
         "org.axonframework.modelling.saga.repository.jpa",
         "org.axonframework.eventhandling.tokenstore.jpa"

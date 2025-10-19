@@ -1,11 +1,12 @@
 package com.clinprecision.clinopsservice.study.integration;
 
-import com.clinprecision.clinopsservice.study.dto.request.*;
-import com.clinprecision.clinopsservice.study.dto.response.StudyListResponseDto;
-import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
-import com.clinprecision.clinopsservice.study.event.*;
-import com.clinprecision.clinopsservice.study.service.StudyCommandService;
-import com.clinprecision.clinopsservice.study.service.StudyQueryService;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyListResponseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyResponseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.event.StudyCreatedEvent;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.event.StudyUpdatedEvent;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyCommandService;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyQueryService;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.eventsourcing.eventstore.EventStore;
 import org.junit.jupiter.api.*;
