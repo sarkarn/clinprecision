@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.config;
+package com.clinprecision.clinopsservice.common.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;

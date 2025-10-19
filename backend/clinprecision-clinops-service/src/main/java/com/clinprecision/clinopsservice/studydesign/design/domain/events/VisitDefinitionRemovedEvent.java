@@ -11,7 +11,7 @@ import java.util.UUID;
  */
 @Data
 @Builder
-public class VisitRemovedEvent {
+public class VisitDefinitionRemovedEvent {
     
     private final UUID studyDesignId;
     private final UUID visitId;
@@ -19,9 +19,9 @@ public class VisitRemovedEvent {
     private final Long removedBy;
     private final LocalDateTime occurredAt;
     
-    public static VisitRemovedEvent from(UUID studyDesignId, UUID visitId, 
-                                        String reason, Long removedBy) {
-        return VisitRemovedEvent.builder()
+    public static VisitDefinitionRemovedEvent from(UUID studyDesignId, UUID visitId,
+                                                   String reason, Long removedBy) {
+        return VisitDefinitionRemovedEvent.builder()
             .studyDesignId(studyDesignId)
             .visitId(visitId)
             .reason(reason)

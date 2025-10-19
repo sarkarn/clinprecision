@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.visit.entity;
+package com.clinprecision.clinopsservice.studyoperation.visit.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

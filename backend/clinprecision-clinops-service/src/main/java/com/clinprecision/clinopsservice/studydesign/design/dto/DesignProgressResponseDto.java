@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.dto;
+package com.clinprecision.clinopsservice.studydesign.design.dto;
 
 import java.util.Map;
 

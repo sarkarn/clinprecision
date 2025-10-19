@@ -1,5 +1,6 @@
-package com.clinprecision.clinopsservice.patientenrollment.dto;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto;
 
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientStatusHistoryEntity;
 import lombok.Data;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
  * 
  * Maps from PatientStatusHistoryEntity to API response format
  * 
- * @see com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatusHistoryEntity
+ * @see PatientStatusHistoryEntity
  */
 @Data
 @Builder

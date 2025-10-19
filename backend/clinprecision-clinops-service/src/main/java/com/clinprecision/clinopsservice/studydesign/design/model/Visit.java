@@ -1,7 +1,5 @@
-package com.clinprecision.clinopsservice.studydesign.domain.model;
+package com.clinprecision.clinopsservice.studydesign.design.model;
 
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.VisitType;
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.VisitWindow;
 import lombok.Value;
 
 import java.util.UUID;

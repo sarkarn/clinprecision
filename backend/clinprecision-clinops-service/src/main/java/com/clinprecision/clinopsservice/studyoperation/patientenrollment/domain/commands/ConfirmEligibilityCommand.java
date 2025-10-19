@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.patientenrollment.domain.commands;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.domain.commands;
 
 import com.clinprecision.axon.command.BaseCommand;
 import org.axonframework.modelling.command.TargetAggregateIdentifier;

@@ -1,13 +1,13 @@
-package com.clinprecision.clinopsservice.service;
+package com.clinprecision.clinopsservice.studydesign.design.form.service;
 
-import com.clinprecision.clinopsservice.repository.FormTemplateRepository;
+import com.clinprecision.clinopsservice.studydesign.design.form.repository.FormTemplateRepository;
 
 import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormTemplateCreateRequestDto;
 import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormTemplateDto;
-import com.clinprecision.clinopsservice.entity.FormTemplateEntity;
+import com.clinprecision.clinopsservice.studydesign.design.form.entity.FormTemplateEntity;
 import com.clinprecision.common.exception.EntityNotFoundException;
 import com.clinprecision.common.exception.DuplicateEntityException;
-import com.clinprecision.clinopsservice.mapper.FormTemplateMapper;
+import com.clinprecision.clinopsservice.studydesign.design.form.mapper.FormTemplateMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

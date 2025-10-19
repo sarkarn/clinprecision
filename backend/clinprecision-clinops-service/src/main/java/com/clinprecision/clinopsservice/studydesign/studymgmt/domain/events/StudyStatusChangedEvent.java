@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.studydesign.domain.events;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.domain.events;
 
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.StudyStatus;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatus;
 import lombok.Builder;
 import lombok.Value;
 

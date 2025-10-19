@@ -1,13 +1,13 @@
-package com.clinprecision.clinopsservice.service;
+package com.clinprecision.clinopsservice.studydesign.design.service;
 
 
 
-import com.clinprecision.clinopsservice.repository.DesignProgressRepository;
-import com.clinprecision.clinopsservice.repository.StudyRepository;
+import com.clinprecision.clinopsservice.studydesign.design.repository.DesignProgressRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRepository;
 import com.clinprecision.clinopsservice.studydesign.design.dto.DesignProgressDto;
 import com.clinprecision.clinopsservice.studydesign.design.dto.DesignProgressResponseDto;
 import com.clinprecision.clinopsservice.studydesign.design.dto.DesignProgressUpdateRequestDto;
-import com.clinprecision.clinopsservice.entity.DesignProgressEntity;
+import com.clinprecision.clinopsservice.studydesign.design.entity.DesignProgressEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

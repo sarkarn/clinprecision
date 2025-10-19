@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.formdata.dto;
+package com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.dto;
 
 import lombok.Data;
 import lombok.Builder;

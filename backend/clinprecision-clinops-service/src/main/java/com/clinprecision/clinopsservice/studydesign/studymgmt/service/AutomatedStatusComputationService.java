@@ -1,9 +1,9 @@
-package com.clinprecision.clinopsservice.service;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.service;
 
 
 
-import com.clinprecision.clinopsservice.repository.StudyRepository;
-import com.clinprecision.clinopsservice.entity.StudyEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;

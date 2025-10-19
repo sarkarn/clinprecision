@@ -1,10 +1,11 @@
-package com.clinprecision.clinopsservice.document.projection;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.projection;
 
-import com.clinprecision.clinopsservice.document.event.*;
-import com.clinprecision.clinopsservice.repository.StudyDocumentAuditRepository;
-import com.clinprecision.clinopsservice.repository.StudyDocumentRepository;
-import com.clinprecision.clinopsservice.entity.StudyDocumentAuditEntity;
-import com.clinprecision.clinopsservice.entity.StudyDocumentEntity;
+
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.repository.StudyDocumentAuditRepository;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.repository.StudyDocumentRepository;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.entity.StudyDocumentAuditEntity;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.entity.StudyDocumentEntity;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.event.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;

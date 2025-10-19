@@ -1,11 +1,11 @@
-package com.clinprecision.clinopsservice.service;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.service;
 
 
 
-import com.clinprecision.clinopsservice.dto.StudyDocumentDto;
-import com.clinprecision.clinopsservice.entity.StudyDocumentEntity;
-import com.clinprecision.clinopsservice.mapper.StudyDocumentMapper;
-import com.clinprecision.clinopsservice.repository.StudyDocumentRepository;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.dto.StudyDocumentDto;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.entity.StudyDocumentEntity;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.mapper.StudyDocumentMapper;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.repository.StudyDocumentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

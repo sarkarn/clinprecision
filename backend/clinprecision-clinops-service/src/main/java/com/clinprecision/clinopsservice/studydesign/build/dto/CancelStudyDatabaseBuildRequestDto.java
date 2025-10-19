@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydatabase.dto;
+package com.clinprecision.clinopsservice.studydesign.build.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

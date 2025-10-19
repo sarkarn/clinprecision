@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.visit.dto;
+package com.clinprecision.clinopsservice.studyoperation.visit.dto;
 
 import java.time.LocalDate;
 

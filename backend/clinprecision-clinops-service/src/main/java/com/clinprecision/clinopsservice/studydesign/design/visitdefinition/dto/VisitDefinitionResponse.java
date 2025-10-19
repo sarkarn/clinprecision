@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydesign.dto;
+package com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

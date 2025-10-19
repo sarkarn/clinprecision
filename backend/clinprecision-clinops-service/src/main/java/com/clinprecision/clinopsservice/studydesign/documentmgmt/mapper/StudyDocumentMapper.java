@@ -1,8 +1,8 @@
-package com.clinprecision.clinopsservice.mapper;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.mapper;
 
 
-import com.clinprecision.clinopsservice.dto.StudyDocumentDto;
-import com.clinprecision.clinopsservice.entity.StudyDocumentEntity;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.dto.StudyDocumentDto;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.entity.StudyDocumentEntity;
 import org.springframework.stereotype.Component;
 
 import java.time.format.DateTimeFormatter;

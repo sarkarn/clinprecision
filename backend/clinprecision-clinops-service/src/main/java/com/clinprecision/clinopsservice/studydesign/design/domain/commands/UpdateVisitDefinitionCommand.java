@@ -1,6 +1,6 @@
 package com.clinprecision.clinopsservice.studydesign.design.domain.commands;
 
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.VisitType;
+import com.clinprecision.clinopsservice.studydesign.design.model.VisitType;
 import lombok.Builder;
 import lombok.Data;
 import org.axonframework.modelling.command.TargetAggregateIdentifier;
@@ -12,7 +12,7 @@ import java.util.UUID;
  */
 @Data
 @Builder
-public class UpdateVisitCommand {
+public class UpdateVisitDefinitionCommand {
     
     @TargetAggregateIdentifier
     private final UUID studyDesignId;

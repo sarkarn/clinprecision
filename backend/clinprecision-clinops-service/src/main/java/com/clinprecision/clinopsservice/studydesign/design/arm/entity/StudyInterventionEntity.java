@@ -1,5 +1,6 @@
-package com.clinprecision.clinopsservice.entity;
+package com.clinprecision.clinopsservice.studydesign.design.arm.entity;
 
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.InterventionType;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 

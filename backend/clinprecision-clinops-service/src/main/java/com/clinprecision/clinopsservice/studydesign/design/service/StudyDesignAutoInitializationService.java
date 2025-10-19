@@ -1,10 +1,10 @@
-package com.clinprecision.clinopsservice.studydesign.service;
+package com.clinprecision.clinopsservice.studydesign.design.service;
 
-import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
-import com.clinprecision.clinopsservice.study.service.StudyQueryService;
-import com.clinprecision.clinopsservice.studydesign.domain.commands.InitializeStudyDesignCommand;
-import com.clinprecision.clinopsservice.studydesign.domain.events.StudyDesignInitializedEvent;
-import com.clinprecision.clinopsservice.studydesign.dto.InitializeStudyDesignRequest;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyResponseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyQueryService;
+import com.clinprecision.clinopsservice.studydesign.design.domain.commands.InitializeStudyDesignCommand;
+import com.clinprecision.clinopsservice.studydesign.design.domain.events.StudyDesignInitializedEvent;
+import com.clinprecision.clinopsservice.studydesign.design.dto.InitializeStudyDesignRequest;
 import com.clinprecision.clinopsservice.studydesign.util.StudyDesignIdentifiers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

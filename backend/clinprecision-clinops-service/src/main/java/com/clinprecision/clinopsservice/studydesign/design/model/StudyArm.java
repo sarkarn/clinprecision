@@ -1,6 +1,5 @@
-package com.clinprecision.clinopsservice.studydesign.domain.model;
+package com.clinprecision.clinopsservice.studydesign.design.model;
 
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.ArmType;
 import lombok.Value;
 
 import java.util.UUID;

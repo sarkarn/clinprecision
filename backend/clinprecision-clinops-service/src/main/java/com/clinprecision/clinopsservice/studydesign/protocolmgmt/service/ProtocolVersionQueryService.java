@@ -1,8 +1,8 @@
-package com.clinprecision.clinopsservice.protocolversion.service;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.service;
 
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionStatus;
-import com.clinprecision.clinopsservice.protocolversion.entity.ProtocolVersionEntity;
-import com.clinprecision.clinopsservice.protocolversion.repository.ProtocolVersionReadRepository;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity.ProtocolVersionEntity;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.repository.ProtocolVersionReadRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.repository;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.repository;
 
 import com.clinprecision.common.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;

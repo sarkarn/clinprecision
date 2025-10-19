@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.study.dto.request;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

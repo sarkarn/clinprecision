@@ -1,10 +1,10 @@
-package com.clinprecision.clinopsservice.protocolversion.controller;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.controller;
 
-import com.clinprecision.clinopsservice.protocolversion.domain.commands.*;
-import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.VersionIdentifier;
-import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.VersionNumber;
-import com.clinprecision.clinopsservice.protocolversion.dto.*;
-import com.clinprecision.clinopsservice.protocolversion.service.ProtocolVersionCommandService;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.commands.*;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionIdentifier;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionNumber;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.service.ProtocolVersionCommandService;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

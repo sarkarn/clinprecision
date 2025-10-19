@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.controller;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.controller;
 
-import com.clinprecision.clinopsservice.service.AutomatedStatusComputationService;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.service.AutomatedStatusComputationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;

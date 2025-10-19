@@ -1,8 +1,9 @@
-package com.clinprecision.clinopsservice.document.controller;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.controller;
 
-import com.clinprecision.clinopsservice.document.dto.*;
-import com.clinprecision.clinopsservice.document.service.StudyDocumentCommandService;
-import com.clinprecision.clinopsservice.document.service.StudyDocumentQueryService;
+
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.dto.*;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.service.StudyDocumentCommandService;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.service.StudyDocumentQueryService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

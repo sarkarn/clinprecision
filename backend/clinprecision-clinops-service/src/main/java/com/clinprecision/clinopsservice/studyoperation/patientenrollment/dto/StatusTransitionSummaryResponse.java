@@ -1,5 +1,6 @@
-package com.clinprecision.clinopsservice.patientenrollment.dto;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto;
 
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientStatusHistoryRepository;
 import lombok.Data;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
@@ -25,7 +26,7 @@ import lombok.AllArgsConstructor;
  * }
  * </pre>
  * 
- * @see com.clinprecision.clinopsservice.patientenrollment.repository.PatientStatusHistoryRepository.StatusTransitionSummary
+ * @see PatientStatusHistoryRepository.StatusTransitionSummary
  */
 @Data
 @Builder

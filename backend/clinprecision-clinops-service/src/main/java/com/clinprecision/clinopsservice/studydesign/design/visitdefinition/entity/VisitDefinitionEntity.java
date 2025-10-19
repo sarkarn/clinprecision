@@ -1,7 +1,7 @@
-package com.clinprecision.clinopsservice.entity;
+package com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity;
 
 
-import com.clinprecision.clinopsservice.mapper.VisitTypeConverter;
+import com.clinprecision.clinopsservice.studydesign.build.entity.VisitFormEntity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.*;

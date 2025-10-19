@@ -1,8 +1,8 @@
-package com.clinprecision.clinopsservice.repository;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.repository;
 
 
 
-import com.clinprecision.clinopsservice.entity.StudyAmendmentEntity;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity.StudyAmendmentEntity;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.AmendmentType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

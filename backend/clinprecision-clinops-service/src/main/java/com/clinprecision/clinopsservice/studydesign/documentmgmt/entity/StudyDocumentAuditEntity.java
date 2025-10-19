@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.entity;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

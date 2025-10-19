@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.visit.repository;
+package com.clinprecision.clinopsservice.studyoperation.visit.repository;
 
-import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

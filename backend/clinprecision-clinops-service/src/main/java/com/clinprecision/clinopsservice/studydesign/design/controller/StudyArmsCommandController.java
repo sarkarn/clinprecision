@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.studydesign.studymgmt.controller;
+package com.clinprecision.clinopsservice.studydesign.design.controller;
 
-import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.StudyArmRequestDto;
+import com.clinprecision.clinopsservice.studydesign.design.arm.dto.StudyArmRequestDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyArmResponseDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyCommandService;
 import jakarta.validation.Valid;

@@ -1,11 +1,11 @@
-package com.clinprecision.clinopsservice.service;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.service;
 
 
 
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity.ProtocolVersionEntity;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.repository.ProtocolVersionReadRepository;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionStatus;
-import com.clinprecision.clinopsservice.entity.StudyEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

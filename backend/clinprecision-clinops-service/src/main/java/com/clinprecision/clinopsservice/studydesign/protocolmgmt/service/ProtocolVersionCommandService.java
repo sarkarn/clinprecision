@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.protocolversion.service;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.service;
 
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.commands.*;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionStatus;

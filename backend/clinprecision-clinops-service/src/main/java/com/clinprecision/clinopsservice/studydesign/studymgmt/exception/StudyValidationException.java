@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.exception;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.exception;
 
 /**
  * Exception thrown when study validation fails

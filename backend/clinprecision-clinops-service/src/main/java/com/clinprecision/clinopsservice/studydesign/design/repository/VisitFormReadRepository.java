@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.studydesign.repository;
+package com.clinprecision.clinopsservice.studydesign.design.repository;
 
-import com.clinprecision.clinopsservice.entity.VisitFormEntity;
+import com.clinprecision.clinopsservice.studydesign.build.entity.VisitFormEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

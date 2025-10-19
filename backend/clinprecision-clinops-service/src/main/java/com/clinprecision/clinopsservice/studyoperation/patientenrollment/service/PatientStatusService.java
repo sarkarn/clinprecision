@@ -1,11 +1,11 @@
-package com.clinprecision.clinopsservice.patientenrollment.service;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.service;
 
-import com.clinprecision.clinopsservice.patientenrollment.domain.commands.ChangePatientStatusCommand;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEntity;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatus;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatusHistoryEntity;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientRepository;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientStatusHistoryRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.domain.commands.ChangePatientStatusCommand;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientStatus;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientStatusHistoryEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientStatusHistoryRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

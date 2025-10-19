@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.protocolversion.domain.events;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.events;
 
 import lombok.Builder;
 import lombok.Value;

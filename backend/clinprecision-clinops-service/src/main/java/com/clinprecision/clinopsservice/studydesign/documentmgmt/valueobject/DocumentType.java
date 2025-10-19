@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.document.valueobject;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.valueobject;
 
 /**
  * Document Type - Value Object representing types of clinical study documents

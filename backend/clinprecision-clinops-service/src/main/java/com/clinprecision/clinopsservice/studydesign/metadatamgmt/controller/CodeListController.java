@@ -1,9 +1,9 @@
-package com.clinprecision.clinopsservice.controller;
+package com.clinprecision.clinopsservice.studydesign.metadatamgmt.controller;
 
-import com.clinprecision.clinopsservice.service.CodeListService;
-import com.clinprecision.clinopsservice.dto.CodeListDto;
-import com.clinprecision.clinopsservice.dto.CreateCodeListRequest;
-import com.clinprecision.clinopsservice.dto.UpdateCodeListRequest;
+import com.clinprecision.clinopsservice.studydesign.metadatamgmt.service.CodeListService;
+import com.clinprecision.clinopsservice.studydesign.metadatamgmt.dto.CodeListDto;
+import com.clinprecision.clinopsservice.studydesign.metadatamgmt.dto.CreateCodeListRequest;
+import com.clinprecision.clinopsservice.studydesign.metadatamgmt.dto.UpdateCodeListRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;

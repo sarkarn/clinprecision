@@ -1,8 +1,8 @@
-package com.clinprecision.clinopsservice.mapper;
+package com.clinprecision.clinopsservice.studydesign.design.form.mapper;
 
 import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormTemplateCreateRequestDto;
 import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormTemplateDto;
-import com.clinprecision.clinopsservice.entity.FormTemplateEntity;
+import com.clinprecision.clinopsservice.studydesign.design.form.entity.FormTemplateEntity;
 import org.springframework.stereotype.Component;
 
 /**

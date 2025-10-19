@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.protocolversion.domain.events;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.events;
 
-import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.VersionStatus;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionStatus;
 import lombok.Builder;
 import lombok.Value;
 

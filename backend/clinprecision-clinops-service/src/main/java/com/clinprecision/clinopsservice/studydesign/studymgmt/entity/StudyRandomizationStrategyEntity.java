@@ -1,5 +1,6 @@
-package com.clinprecision.clinopsservice.entity;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.entity;
 
+import com.clinprecision.clinopsservice.studydesign.design.arm.entity.StudyArmEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

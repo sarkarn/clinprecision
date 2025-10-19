@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.entity;
+package com.clinprecision.clinopsservice.studydesign.metadatamgmt.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;

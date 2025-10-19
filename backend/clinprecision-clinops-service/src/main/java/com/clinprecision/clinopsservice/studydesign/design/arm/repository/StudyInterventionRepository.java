@@ -1,8 +1,8 @@
-package com.clinprecision.clinopsservice.repository;
+package com.clinprecision.clinopsservice.studydesign.design.arm.repository;
 
 
 
-import com.clinprecision.clinopsservice.entity.StudyInterventionEntity;
+import com.clinprecision.clinopsservice.studydesign.design.arm.entity.StudyInterventionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

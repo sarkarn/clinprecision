@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.visit.aggregate;
+package com.clinprecision.clinopsservice.studyoperation.visit.aggregate;
 
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
@@ -8,8 +8,8 @@ import org.axonframework.spring.stereotype.Aggregate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.clinprecision.clinopsservice.visit.domain.commands.CreateVisitCommand;
-import com.clinprecision.clinopsservice.visit.domain.events.VisitCreatedEvent;
+import com.clinprecision.clinopsservice.studyoperation.visit.domain.commands.CreateVisitCommand;
+import com.clinprecision.clinopsservice.studyoperation.visit.domain.events.VisitCreatedEvent;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

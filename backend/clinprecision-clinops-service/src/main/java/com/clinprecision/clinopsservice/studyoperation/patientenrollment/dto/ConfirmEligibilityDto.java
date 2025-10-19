@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.patientenrollment.dto;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;

@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.document.command;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.command;
 
-import com.clinprecision.clinopsservice.document.valueobject.DocumentType;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.valueobject.DocumentType;
 import lombok.Builder;
 import lombok.Value;
 import org.axonframework.modelling.command.TargetAggregateIdentifier;

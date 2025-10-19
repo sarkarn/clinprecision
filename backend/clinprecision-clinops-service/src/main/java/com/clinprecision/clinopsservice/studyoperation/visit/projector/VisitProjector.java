@@ -1,12 +1,12 @@
-package com.clinprecision.clinopsservice.visit.projector;
+package com.clinprecision.clinopsservice.studyoperation.visit.projector;
 
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus;
-import com.clinprecision.clinopsservice.studydatabase.repository.StudyDatabaseBuildRepository;
-import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
-import com.clinprecision.clinopsservice.repository.VisitDefinitionRepository;
-import com.clinprecision.clinopsservice.visit.domain.events.VisitCreatedEvent;
-import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
-import com.clinprecision.clinopsservice.visit.repository.StudyVisitInstanceRepository;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildStatus;
+import com.clinprecision.clinopsservice.studydesign.build.repository.StudyDatabaseBuildRepository;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.domain.events.VisitCreatedEvent;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.repository.StudyVisitInstanceRepository;
 import org.axonframework.eventhandling.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

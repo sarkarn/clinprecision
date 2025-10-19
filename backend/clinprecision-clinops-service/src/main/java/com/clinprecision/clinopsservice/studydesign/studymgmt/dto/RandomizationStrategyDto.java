@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.study.dto;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

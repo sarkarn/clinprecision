@@ -1,7 +1,7 @@
-package com.clinprecision.clinopsservice.dto;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.dto;
 
 
-import com.clinprecision.clinopsservice.entity.StudyAmendmentEntity;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity.StudyAmendmentEntity;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.AmendmentType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;

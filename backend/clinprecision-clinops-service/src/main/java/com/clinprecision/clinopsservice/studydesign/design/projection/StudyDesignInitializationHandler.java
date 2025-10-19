@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydesign.projection;
+package com.clinprecision.clinopsservice.studydesign.design.projection;
 
 import com.clinprecision.clinopsservice.studydesign.studymgmt.event.StudyCreatedEvent;
 import com.clinprecision.clinopsservice.studydesign.design.domain.commands.InitializeStudyDesignCommand;

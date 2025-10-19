@@ -1,7 +1,7 @@
-package com.clinprecision.clinopsservice.studydatabase.repository;
+package com.clinprecision.clinopsservice.studydesign.build.repository;
 
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildEntity;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

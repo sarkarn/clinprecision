@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.config;
+package com.clinprecision.clinopsservice.common.config;
 
 import org.axonframework.config.EventProcessingConfigurer;
 import org.springframework.context.annotation.Configuration;

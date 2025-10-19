@@ -1,14 +1,14 @@
-package com.clinprecision.clinopsservice.study.projection;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.projection;
 
-import com.clinprecision.clinopsservice.study.event.*;
-import com.clinprecision.clinopsservice.entity.StudyEntity;
-import com.clinprecision.clinopsservice.entity.StudyStatusEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyStatusEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.event.*;
 import com.clinprecision.common.entity.UserEntity;
-import com.clinprecision.clinopsservice.repository.StudyRepository;
-import com.clinprecision.clinopsservice.repository.StudyStatusRepository;
-import com.clinprecision.clinopsservice.repository.RegulatoryStatusRepository;
-import com.clinprecision.clinopsservice.repository.StudyPhaseRepository;
-import com.clinprecision.clinopsservice.repository.UserLookupRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyStatusRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.RegulatoryStatusRepository;
+import com.clinprecision.clinopsservice.studydesign.design.repository.StudyPhaseRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.UserLookupRepository;
 import org.axonframework.eventhandling.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

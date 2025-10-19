@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request;
+package com.clinprecision.clinopsservice.studydesign.design.arm.dto;
 
 
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.InterventionDto;

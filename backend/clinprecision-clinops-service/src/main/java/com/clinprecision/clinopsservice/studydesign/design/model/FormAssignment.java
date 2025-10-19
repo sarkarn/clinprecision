@@ -22,9 +22,9 @@ public class FormAssignment {
     int displayOrder;
     String instructions;
     
-    private FormAssignment(UUID assignmentId, UUID visitId, UUID formId, 
-                          boolean isRequired, boolean isConditional, 
-                          String conditionalLogic, int displayOrder, String instructions) {
+    private FormAssignment(UUID assignmentId, UUID visitId, UUID formId,
+                           boolean isRequired, boolean isConditional,
+                           String conditionalLogic, int displayOrder, String instructions) {
         // Validation
         if (assignmentId == null) {
             throw new IllegalArgumentException("Assignment ID cannot be null");
@@ -55,30 +55,30 @@ public class FormAssignment {
     /**
      * Create new form assignment
      */
-    public static FormAssignment create(UUID visitId, UUID formId, boolean isRequired, 
-                                       boolean isConditional, String conditionalLogic, 
-                                       int displayOrder, String instructions) {
-        return new FormAssignment(UUID.randomUUID(), visitId, formId, isRequired, 
+    public static FormAssignment create(UUID visitId, UUID formId, boolean isRequired,
+                                        boolean isConditional, String conditionalLogic,
+                                        int displayOrder, String instructions) {
+        return new FormAssignment(UUID.randomUUID(), visitId, formId, isRequired,
                                  isConditional, conditionalLogic, displayOrder, instructions);
     }
     
     /**
      * Reconstruct form assignment from events
      */
-    public static FormAssignment reconstruct(UUID assignmentId, UUID visitId, UUID formId, 
-                                            boolean isRequired, boolean isConditional, 
-                                            String conditionalLogic, int displayOrder, 
-                                            String instructions) {
-        return new FormAssignment(assignmentId, visitId, formId, isRequired, isConditional, 
+    public static FormAssignment reconstruct(UUID assignmentId, UUID visitId, UUID formId,
+                                             boolean isRequired, boolean isConditional,
+                                             String conditionalLogic, int displayOrder,
+                                             String instructions) {
+        return new FormAssignment(assignmentId, visitId, formId, isRequired, isConditional,
                                  conditionalLogic, displayOrder, instructions);
     }
     
     /**
      * Update assignment details
      */
-    public FormAssignment withUpdatedDetails(boolean isRequired, boolean isConditional, 
-                                            String conditionalLogic, String instructions) {
-        return new FormAssignment(this.assignmentId, this.visitId, this.formId, 
+    public FormAssignment withUpdatedDetails(boolean isRequired, boolean isConditional,
+                                             String conditionalLogic, String instructions) {
+        return new FormAssignment(this.assignmentId, this.visitId, this.formId,
                                  isRequired, isConditional, conditionalLogic, 
                                  this.displayOrder, instructions);
     }
@@ -87,7 +87,7 @@ public class FormAssignment {
      * Change display order
      */
     public FormAssignment withDisplayOrder(int newOrder) {
-        return new FormAssignment(this.assignmentId, this.visitId, this.formId, 
+        return new FormAssignment(this.assignmentId, this.visitId, this.formId,
                                  this.isRequired, this.isConditional, this.conditionalLogic, 
                                  newOrder, this.instructions);
     }

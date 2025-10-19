@@ -1,15 +1,15 @@
-package com.clinprecision.clinopsservice.studydesign.service;
+package com.clinprecision.clinopsservice.studydesign.design.service;
 
-import com.clinprecision.clinopsservice.studydesign.dto.FormAssignmentResponse;
-import com.clinprecision.clinopsservice.studydesign.dto.StudyArmResponse;
-import com.clinprecision.clinopsservice.studydesign.dto.StudyDesignResponse;
-import com.clinprecision.clinopsservice.studydesign.dto.VisitDefinitionResponse;
-import com.clinprecision.clinopsservice.studydesign.repository.StudyArmReadRepository;
-import com.clinprecision.clinopsservice.studydesign.repository.VisitDefinitionReadRepository;
-import com.clinprecision.clinopsservice.studydesign.repository.VisitFormReadRepository;
-import com.clinprecision.clinopsservice.entity.StudyArmEntity;
-import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
-import com.clinprecision.clinopsservice.entity.VisitFormEntity;
+import com.clinprecision.clinopsservice.studydesign.design.dto.FormAssignmentResponse;
+import com.clinprecision.clinopsservice.studydesign.design.arm.dto.StudyArmResponse;
+import com.clinprecision.clinopsservice.studydesign.design.dto.StudyDesignResponse;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.VisitDefinitionResponse;
+import com.clinprecision.clinopsservice.studydesign.design.arm.repository.StudyArmReadRepository;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionReadRepository;
+import com.clinprecision.clinopsservice.studydesign.design.repository.VisitFormReadRepository;
+import com.clinprecision.clinopsservice.studydesign.design.arm.entity.StudyArmEntity;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.studydesign.build.entity.VisitFormEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

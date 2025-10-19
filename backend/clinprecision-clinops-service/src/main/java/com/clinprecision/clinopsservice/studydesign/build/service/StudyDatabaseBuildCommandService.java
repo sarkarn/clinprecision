@@ -1,13 +1,21 @@
-package com.clinprecision.clinopsservice.studydatabase.service;
+package com.clinprecision.clinopsservice.studydesign.build.service;
 
 
-import com.clinprecision.clinopsservice.entity.StudyArmEntity;
-import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
-import com.clinprecision.clinopsservice.studydatabase.domain.commands.*;
-import com.clinprecision.clinopsservice.studydatabase.dto.*;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
-import com.clinprecision.clinopsservice.studydatabase.repository.StudyDatabaseBuildRepository;
+import com.clinprecision.clinopsservice.studydesign.design.arm.entity.StudyArmEntity;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildEntity;
+import com.clinprecision.clinopsservice.studydesign.build.repository.StudyDatabaseBuildRepository;
 
+import com.clinprecision.clinopsservice.studydesign.build.domain.commands.BuildStudyDatabaseCommand;
+import com.clinprecision.clinopsservice.studydesign.build.domain.commands.CancelStudyDatabaseBuildCommand;
+import com.clinprecision.clinopsservice.studydesign.build.domain.commands.CompleteStudyDatabaseBuildCommand;
+import com.clinprecision.clinopsservice.studydesign.build.domain.commands.ValidateStudyDatabaseCommand;
+import com.clinprecision.clinopsservice.studydesign.build.dto.*;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildStatus;
+import com.clinprecision.clinopsservice.studydesign.design.arm.repository.StudyArmRepository;
+import com.clinprecision.clinopsservice.studydesign.design.form.repository.FormDefinitionRepository;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -37,10 +45,10 @@ public class StudyDatabaseBuildCommandService {
 
     private final CommandGateway commandGateway;
     private final StudyDatabaseBuildRepository buildRepository;
-    private final com.clinprecision.clinopsservice.repository.FormDefinitionRepository formDefinitionRepository;
-    private final com.clinprecision.clinopsservice.repository.StudyRepository studyRepository;
-    private final com.clinprecision.clinopsservice.repository.VisitDefinitionRepository visitDefinitionRepository;
-    private final com.clinprecision.clinopsservice.repository.StudyArmRepository studyArmRepository;
+    private final FormDefinitionRepository formDefinitionRepository;
+    private final StudyRepository studyRepository;
+    private final VisitDefinitionRepository visitDefinitionRepository;
+    private final StudyArmRepository studyArmRepository;
 
     /**
      * Build a study database
@@ -56,7 +64,7 @@ public class StudyDatabaseBuildCommandService {
             // Check for existing in-progress build
             boolean hasActiveBuild = buildRepository.existsByStudyIdAndBuildStatus(
                 requestDto.getStudyId(), 
-                com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus.IN_PROGRESS
+                StudyDatabaseBuildStatus.IN_PROGRESS
             );
             
             if (hasActiveBuild) {
@@ -120,7 +128,7 @@ public class StudyDatabaseBuildCommandService {
                     .studyId(requestDto.getStudyId())
                     .studyName(requestDto.getStudyName())
                     .studyProtocol(requestDto.getStudyProtocol())
-                    .buildStatus(com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus.IN_PROGRESS)
+                    .buildStatus(StudyDatabaseBuildStatus.IN_PROGRESS)
                     .buildStartTime(java.time.LocalDateTime.now())
                     .requestedBy(requestDto.getRequestedBy())
                     .tablesCreated(0)
@@ -195,7 +203,7 @@ public class StudyDatabaseBuildCommandService {
      * @return Updated build DTO
      */
     public StudyDatabaseBuildDto cancelStudyDatabaseBuild(
-            CancelStudyDatabaseBuildRequestDto requestDto, 
+            CancelStudyDatabaseBuildRequestDto requestDto,
             Long cancelledBy) {
         log.info("Cancelling study database build: {} by user: {}", 
                  requestDto.getBuildRequestId(), cancelledBy);
@@ -261,7 +269,7 @@ public class StudyDatabaseBuildCommandService {
             ));
             
             // Create validation result
-            CompleteStudyDatabaseBuildCommand.ValidationResultData validationResult = 
+            CompleteStudyDatabaseBuildCommand.ValidationResultData validationResult =
                 CompleteStudyDatabaseBuildCommand.ValidationResultData.builder()
                     .isValid(requestDto.getValidationResult().getIsValid())
                     .overallAssessment(requestDto.getValidationResult().getOverallAssessment())

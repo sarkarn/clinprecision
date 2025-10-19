@@ -1,17 +1,26 @@
-package com.clinprecision.clinopsservice.study.controller;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.controller;
 
+import com.clinprecision.clinopsservice.studydesign.build.entity.VisitFormEntity;
+import com.clinprecision.clinopsservice.studydesign.build.repository.VisitFormRepository;
+import com.clinprecision.clinopsservice.studydesign.design.arm.dto.StudyArmRequestDto;
+import com.clinprecision.clinopsservice.studydesign.design.dto.AssignFormToVisitRequest;
 import com.clinprecision.clinopsservice.studydesign.design.dto.DesignProgressResponseDto;
 import com.clinprecision.clinopsservice.studydesign.design.dto.DesignProgressUpdateRequestDto;
-import com.clinprecision.clinopsservice.service.DesignProgressService;
-import com.clinprecision.clinopsservice.study.dto.request.*;
-import com.clinprecision.clinopsservice.study.service.StudyCommandService;
-import com.clinprecision.clinopsservice.study.service.StudyQueryService;
+import com.clinprecision.clinopsservice.studydesign.design.service.DesignProgressService;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyCommandService;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyQueryService;
+import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignAutoInitializationService;
+import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignCommandService;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.commands.CreateProtocolVersionCommand;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.AmendmentType;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionIdentifier;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionNumber;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.dto.CreateVersionRequest;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.service.ProtocolVersionCommandService;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyArmResponseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyResponseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.exception.StudyStatusTransitionException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -64,9 +73,9 @@ public class StudyCommandController {
 
     private final StudyCommandService studyCommandService;
     private final DesignProgressService designProgressService;
-    private final com.clinprecision.clinopsservice.studydesign.service.StudyDesignCommandService studyDesignCommandService;
-    private final com.clinprecision.clinopsservice.studydesign.service.StudyDesignAutoInitializationService studyDesignAutoInitService;
-    private final com.clinprecision.clinopsservice.repository.VisitFormRepository visitFormRepository;
+    private final StudyDesignCommandService studyDesignCommandService;
+    private final StudyDesignAutoInitializationService studyDesignAutoInitService;
+    private final VisitFormRepository visitFormRepository;
     private final StudyQueryService studyQueryService;
     private final ProtocolVersionCommandService protocolVersionCommandService;
 
@@ -215,7 +224,7 @@ public class StudyCommandController {
                 log.info("REST: Using legacy ID {} for status change (Bridge Pattern)", legacyId);
                 
                 // Get Study entity to retrieve its aggregate UUID
-                com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto study = 
+                StudyResponseDto study =
                     studyQueryService.getStudyById(legacyId);
                 studyAggregateUuid = study.getStudyAggregateUuid();
                 
@@ -241,7 +250,7 @@ public class StudyCommandController {
             log.info("REST: Study status changed successfully: {} to {}", studyAggregateUuid, newStatus);
             return ResponseEntity.ok().build();
             
-        } catch (com.clinprecision.clinopsservice.study.exception.StudyStatusTransitionException ex) {
+        } catch (StudyStatusTransitionException ex) {
             // Transform technical error into user-friendly message
             String userFriendlyMessage = makeUserFriendly(ex.getMessage(), newStatus);
             log.warn("REST: Status transition validation failed: {}", userFriendlyMessage);
@@ -509,7 +518,7 @@ public class StudyCommandController {
      * @return 201 Created with created arm data
      */
     @PostMapping("/{id}/arms")
-    public ResponseEntity<com.clinprecision.clinopsservice.study.dto.response.StudyArmResponseDto> createStudyArm(
+    public ResponseEntity<StudyArmResponseDto> createStudyArm(
             @PathVariable String id,
             @Valid @RequestBody StudyArmRequestDto armData) {
         
@@ -531,7 +540,7 @@ public class StudyCommandController {
             
             // TODO: Send DDD command to StudyDesignAggregate
             // For now, create directly in read model (temporary bridge implementation)
-            com.clinprecision.clinopsservice.study.dto.response.StudyArmResponseDto createdArm = 
+            StudyArmResponseDto createdArm =
                 studyCommandService.createStudyArm(studyIdNumeric, armData);
             
             log.info("REST: Study arm created successfully: {}", createdArm.getName());
@@ -587,7 +596,7 @@ public class StudyCommandController {
                 displayOrder = ((Number) bindingData.get("displayOrder")).intValue();
             } else {
                 // Query existing assignments for this visit and get max display order
-                List<com.clinprecision.clinopsservice.entity.VisitFormEntity> existingAssignments = 
+                List<VisitFormEntity> existingAssignments =
                     visitFormRepository.findByAggregateUuidOrderByDisplayOrderAsc(studyDesignId);
                 
                 // Filter for this specific visit UUID
@@ -608,8 +617,8 @@ public class StudyCommandController {
             UUID formUuid = UUID.fromString(String.format("00000000-0000-0000-0000-%012d", formId));
             
             // Create request DTO
-            com.clinprecision.clinopsservice.studydesign.dto.AssignFormToVisitRequest request = 
-                com.clinprecision.clinopsservice.studydesign.dto.AssignFormToVisitRequest.builder()
+            AssignFormToVisitRequest request =
+                AssignFormToVisitRequest.builder()
                     .visitId(UUID.fromString(visitId))
                     .formId(formUuid)
                     .isRequired((Boolean) bindingData.getOrDefault("isRequired", true))
@@ -705,7 +714,7 @@ public class StudyCommandController {
                     Long legacyId = Long.parseLong(studyId);
                     log.info("REST: Using legacy ID {} for version creation (Bridge Pattern)", legacyId);
                     
-                    com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto study = 
+                    StudyResponseDto study =
                         studyQueryService.getStudyById(legacyId);
                     studyAggregateUuid = study.getStudyAggregateUuid();
                     

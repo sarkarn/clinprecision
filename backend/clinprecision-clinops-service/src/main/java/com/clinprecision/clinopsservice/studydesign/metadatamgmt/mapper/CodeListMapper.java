@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.mapper;
+package com.clinprecision.clinopsservice.studydesign.metadatamgmt.mapper;
 
 import com.clinprecision.clinopsservice.studydesign.metadatamgmt.dto.CreateCodeListRequest;
 import com.clinprecision.clinopsservice.studydesign.metadatamgmt.dto.UpdateCodeListRequest;

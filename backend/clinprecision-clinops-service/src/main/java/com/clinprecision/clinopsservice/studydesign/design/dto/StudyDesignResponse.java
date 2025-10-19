@@ -1,5 +1,7 @@
-package com.clinprecision.clinopsservice.studydesign.dto;
+package com.clinprecision.clinopsservice.studydesign.design.dto;
 
+import com.clinprecision.clinopsservice.studydesign.design.arm.dto.StudyArmResponse;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.VisitDefinitionResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

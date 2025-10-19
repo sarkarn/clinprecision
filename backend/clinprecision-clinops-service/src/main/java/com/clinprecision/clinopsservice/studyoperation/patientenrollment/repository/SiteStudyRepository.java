@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.patientenrollment.repository;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository;
 
 import com.clinprecision.common.entity.SiteStudyEntity;
 import org.springframework.data.jpa.repository.JpaRepository;

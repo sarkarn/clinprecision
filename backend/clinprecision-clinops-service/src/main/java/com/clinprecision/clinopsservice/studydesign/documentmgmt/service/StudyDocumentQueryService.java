@@ -1,13 +1,13 @@
-package com.clinprecision.clinopsservice.document.service;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.service;
 
-import com.clinprecision.clinopsservice.document.dto.AuditRecordDTO;
-import com.clinprecision.clinopsservice.document.dto.DocumentDTO;
-import com.clinprecision.clinopsservice.document.dto.DocumentStatisticsDTO;
-import com.clinprecision.clinopsservice.entity.StudyDocumentAuditEntity;
-import com.clinprecision.clinopsservice.entity.StudyDocumentEntity;
-import com.clinprecision.clinopsservice.entity.StudyDocumentEntity.DocumentStatus;
-import com.clinprecision.clinopsservice.repository.StudyDocumentAuditRepository;
-import com.clinprecision.clinopsservice.repository.StudyDocumentRepository;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.dto.AuditRecordDTO;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.dto.DocumentDTO;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.dto.DocumentStatisticsDTO;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.entity.StudyDocumentAuditEntity;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.entity.StudyDocumentEntity;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.entity.StudyDocumentEntity.DocumentStatus;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.repository.StudyDocumentAuditRepository;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.repository.StudyDocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

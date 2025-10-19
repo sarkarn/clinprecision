@@ -1,7 +1,7 @@
-package com.clinprecision.clinopsservice.protocolversion.repository;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.repository;
 
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionStatus;
-import com.clinprecision.clinopsservice.protocolversion.entity.ProtocolVersionEntity;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity.ProtocolVersionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

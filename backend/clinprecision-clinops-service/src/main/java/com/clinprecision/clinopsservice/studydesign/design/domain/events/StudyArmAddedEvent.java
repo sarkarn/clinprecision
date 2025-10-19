@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.studydesign.domain.events;
+package com.clinprecision.clinopsservice.studydesign.design.domain.events;
 
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.ArmType;
+import com.clinprecision.clinopsservice.studydesign.design.model.ArmType;
 import lombok.Builder;
 import lombok.Data;
 

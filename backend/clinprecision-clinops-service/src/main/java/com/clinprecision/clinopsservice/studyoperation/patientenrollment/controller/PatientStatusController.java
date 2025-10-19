@@ -1,16 +1,16 @@
-package com.clinprecision.clinopsservice.patientenrollment.controller;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.controller;
 
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatus;
-import com.clinprecision.clinopsservice.patientenrollment.dto.ChangePatientStatusRequest;
-import com.clinprecision.clinopsservice.patientenrollment.dto.PatientStatusHistoryResponse;
-import com.clinprecision.clinopsservice.patientenrollment.dto.PatientStatusSummaryResponse;
-import com.clinprecision.clinopsservice.patientenrollment.dto.StatusTransitionSummaryResponse;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEntity;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentEntity;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatusHistoryEntity;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientRepository;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientStatusHistoryRepository;
-import com.clinprecision.clinopsservice.patientenrollment.service.PatientStatusService;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientStatus;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.ChangePatientStatusRequest;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.PatientStatusHistoryResponse;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.PatientStatusSummaryResponse;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.StatusTransitionSummaryResponse;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientEnrollmentEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientStatusHistoryEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientStatusHistoryRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.service.PatientStatusService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.exception;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

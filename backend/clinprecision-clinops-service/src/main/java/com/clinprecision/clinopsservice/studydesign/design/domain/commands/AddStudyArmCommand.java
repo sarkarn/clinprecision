@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.studydesign.design.commands;
+package com.clinprecision.clinopsservice.studydesign.design.domain.commands;
 
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.ArmType;
+import com.clinprecision.clinopsservice.studydesign.design.model.ArmType;
 import lombok.Builder;
 import lombok.Data;
 import org.axonframework.modelling.command.TargetAggregateIdentifier;

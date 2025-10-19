@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.patientenrollment.dto;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto;
 
-import jakarta.validation.constraints.NotNull;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.service.PatientStatusService;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.Builder;
@@ -24,7 +24,7 @@ import lombok.AllArgsConstructor;
  * }
  * </pre>
  * 
- * @see com.clinprecision.clinopsservice.patientenrollment.service.PatientStatusService
+ * @see PatientStatusService
  */
 @Data
 @Builder

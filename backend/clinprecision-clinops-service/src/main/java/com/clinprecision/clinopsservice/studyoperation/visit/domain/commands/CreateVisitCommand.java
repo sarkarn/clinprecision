@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.visit.domain.commands;
+package com.clinprecision.clinopsservice.studyoperation.visit.domain.commands;
 
 import org.axonframework.modelling.command.TargetAggregateIdentifier;
 

@@ -1,7 +1,8 @@
-package com.clinprecision.clinopsservice.study.mapper;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.mapper;
 
-import com.clinprecision.clinopsservice.study.command.*;
-import com.clinprecision.clinopsservice.study.dto.request.*;
+
+import com.clinprecision.clinopsservice.studydesign.studymgmt.domain.commands.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

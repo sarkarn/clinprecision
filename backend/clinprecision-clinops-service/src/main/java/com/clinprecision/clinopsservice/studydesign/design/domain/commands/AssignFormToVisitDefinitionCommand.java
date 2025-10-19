@@ -11,7 +11,7 @@ import java.util.UUID;
  */
 @Data
 @Builder
-public class AssignFormToVisitCommand {
+public class AssignFormToVisitDefinitionCommand {
     
     @TargetAggregateIdentifier
     private final UUID studyDesignId;

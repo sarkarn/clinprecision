@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.dto.metadata;
+package com.clinprecision.clinopsservice.studydesign.design.form.dto.metadata;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;

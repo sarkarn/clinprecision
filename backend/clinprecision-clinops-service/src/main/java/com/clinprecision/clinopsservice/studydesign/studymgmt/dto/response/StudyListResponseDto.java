@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.study.dto.response;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response;
 
-import com.clinprecision.clinopsservice.study.domain.valueobjects.StudyStatusCode;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -1,12 +1,12 @@
-package com.clinprecision.clinopsservice.service;
+package com.clinprecision.clinopsservice.studydesign.metadatamgmt.service;
 
-import com.clinprecision.clinopsservice.repository.CodeListRepository;
+import com.clinprecision.clinopsservice.studydesign.metadatamgmt.repository.CodeListRepository;
 import com.clinprecision.clinopsservice.studydesign.metadatamgmt.dto.CodeListDto;
 import com.clinprecision.clinopsservice.studydesign.metadatamgmt.dto.CreateCodeListRequest;
 import com.clinprecision.clinopsservice.studydesign.metadatamgmt.dto.UpdateCodeListRequest;
 import com.clinprecision.clinopsservice.studydesign.metadatamgmt.entity.CodeListEntity;
 import com.clinprecision.common.exception.ResourceNotFoundException;
-import com.clinprecision.clinopsservice.mapper.CodeListMapper;
+import com.clinprecision.clinopsservice.studydesign.metadatamgmt.mapper.CodeListMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

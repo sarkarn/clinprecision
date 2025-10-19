@@ -1,14 +1,14 @@
-package com.clinprecision.clinopsservice.service;
+package com.clinprecision.clinopsservice.studydesign.design.form.service;
 
 
 import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormDefinitionCreateRequestDto;
 import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormDefinitionDto;
-import com.clinprecision.clinopsservice.entity.FormDefinitionEntity;
+import com.clinprecision.clinopsservice.studydesign.design.form.entity.FormDefinitionEntity;
 import com.clinprecision.common.exception.DuplicateEntityException;
 import com.clinprecision.common.exception.EntityLockedException;
 import com.clinprecision.common.exception.EntityNotFoundException;
-import com.clinprecision.clinopsservice.mapper.FormDefinitionMapper;
-import com.clinprecision.clinopsservice.repository.FormDefinitionRepository;
+import com.clinprecision.clinopsservice.studydesign.design.form.mapper.FormDefinitionMapper;
+import com.clinprecision.clinopsservice.studydesign.design.form.repository.FormDefinitionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

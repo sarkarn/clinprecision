@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.entity;
+package com.clinprecision.clinopsservice.studydesign.design.entity;
 
 import jakarta.persistence.*;
 

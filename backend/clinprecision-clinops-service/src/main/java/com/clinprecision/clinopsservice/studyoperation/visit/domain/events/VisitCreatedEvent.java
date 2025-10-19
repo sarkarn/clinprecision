@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.visit.domain.events;
+package com.clinprecision.clinopsservice.studyoperation.visit.domain.events;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

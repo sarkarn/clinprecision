@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.entity;
+package com.clinprecision.clinopsservice.studydesign.design.arm.entity;
 
 /**
  * Enum for Study Arm Types

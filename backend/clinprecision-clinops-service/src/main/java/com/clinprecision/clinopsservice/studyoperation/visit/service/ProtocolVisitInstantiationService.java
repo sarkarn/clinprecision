@@ -1,12 +1,12 @@
-package com.clinprecision.clinopsservice.visit.service;
+package com.clinprecision.clinopsservice.studyoperation.visit.service;
 
-import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
-import com.clinprecision.clinopsservice.repository.VisitDefinitionRepository;
-import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
-import com.clinprecision.clinopsservice.visit.repository.StudyVisitInstanceRepository;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus;
-import com.clinprecision.clinopsservice.studydatabase.repository.StudyDatabaseBuildRepository;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.repository.StudyVisitInstanceRepository;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildEntity;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildStatus;
+import com.clinprecision.clinopsservice.studydesign.build.repository.StudyDatabaseBuildRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

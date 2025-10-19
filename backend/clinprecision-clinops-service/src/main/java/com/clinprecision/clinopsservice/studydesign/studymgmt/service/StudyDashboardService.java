@@ -1,9 +1,9 @@
-package com.clinprecision.clinopsservice.service;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.service;
 
 
 
-import com.clinprecision.clinopsservice.repository.StudyRepository;
-import com.clinprecision.clinopsservice.dto.StudyDashboardMetricsDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.StudyDashboardMetricsDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

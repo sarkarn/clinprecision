@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.study.domain.valueobjects;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects;
 
 /**
  * Study Status Code - Value Object

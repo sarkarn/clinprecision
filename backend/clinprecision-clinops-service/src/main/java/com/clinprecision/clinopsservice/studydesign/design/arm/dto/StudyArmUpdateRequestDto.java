@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.dto;
+package com.clinprecision.clinopsservice.studydesign.design.arm.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;

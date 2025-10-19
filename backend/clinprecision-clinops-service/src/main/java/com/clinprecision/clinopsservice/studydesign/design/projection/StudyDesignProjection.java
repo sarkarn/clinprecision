@@ -1,9 +1,8 @@
-package com.clinprecision.clinopsservice.studydesign.projection;
+package com.clinprecision.clinopsservice.studydesign.design.projection;
 
 import com.clinprecision.clinopsservice.studydesign.design.arm.entity.StudyArmType;
 import com.clinprecision.clinopsservice.studydesign.design.domain.events.*;
 import com.clinprecision.clinopsservice.studydesign.design.form.repository.FormDefinitionRepository;
-import com.clinprecision.clinopsservice.studydesign.domain.events.*;
 import com.clinprecision.clinopsservice.studydesign.design.arm.entity.StudyArmEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
 import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity.VisitDefinitionEntity;
@@ -174,7 +173,7 @@ public class StudyDesignProjection {
 
     @EventHandler
     @Transactional
-    public void on(VisitUpdatedEvent event) {
+    public void on(VisitDefinitionUpdatedEvent event) {
         log.info("Projecting VisitUpdatedEvent for visit: {}", event.getVisitId());
         
         visitRepository.findByAggregateUuidAndVisitUuid(event.getStudyDesignId(), event.getVisitId())
@@ -199,7 +198,7 @@ public class StudyDesignProjection {
 
     @EventHandler
     @Transactional
-    public void on(VisitRemovedEvent event) {
+    public void on(VisitDefinitionRemovedEvent event) {
         log.info("Projecting VisitRemovedEvent for visit: {}", event.getVisitId());
         
         visitRepository.findByAggregateUuidAndVisitUuid(event.getStudyDesignId(), event.getVisitId())

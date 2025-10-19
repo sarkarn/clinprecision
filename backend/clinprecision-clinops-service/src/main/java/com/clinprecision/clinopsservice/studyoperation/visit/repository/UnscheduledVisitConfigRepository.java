@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.visit.repository;
+package com.clinprecision.clinopsservice.studyoperation.visit.repository;
 
-import com.clinprecision.clinopsservice.visit.entity.UnscheduledVisitConfigEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.UnscheduledVisitConfigEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

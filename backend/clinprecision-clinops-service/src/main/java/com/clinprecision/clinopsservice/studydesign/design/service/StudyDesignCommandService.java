@@ -1,10 +1,14 @@
-package com.clinprecision.clinopsservice.studydesign.service;
+package com.clinprecision.clinopsservice.studydesign.design.service;
 
-import com.clinprecision.clinopsservice.studydesign.domain.commands.*;
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.ArmType;
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.StudyDesignIdentifier;
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.VisitType;
-import com.clinprecision.clinopsservice.studydesign.dto.*;
+import com.clinprecision.clinopsservice.studydesign.design.arm.dto.AddStudyArmRequest;
+import com.clinprecision.clinopsservice.studydesign.design.arm.dto.UpdateStudyArmRequest;
+import com.clinprecision.clinopsservice.studydesign.design.domain.commands.*;
+import com.clinprecision.clinopsservice.studydesign.design.dto.*;
+import com.clinprecision.clinopsservice.studydesign.design.model.ArmType;
+import com.clinprecision.clinopsservice.studydesign.design.model.StudyDesignIdentifier;
+import com.clinprecision.clinopsservice.studydesign.design.model.VisitType;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.DefineVisitDefinitionRequest;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.UpdateVisitDefinitionRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -126,7 +130,7 @@ public class StudyDesignCommandService {
      * Validates study status allows design modifications
      * @return CompletableFuture containing the UUID of the created visit
      */
-    public CompletableFuture<UUID> defineVisit(UUID studyDesignId, DefineVisitRequest request) {
+    public CompletableFuture<UUID> defineVisit(UUID studyDesignId, DefineVisitDefinitionRequest request) {
         log.info("Defining visit '{}' at timepoint {} in design: {}", 
             request.getName(), request.getTimepoint(), studyDesignId);
         
@@ -156,13 +160,13 @@ public class StudyDesignCommandService {
     /**
      * Update visit
      */
-    public CompletableFuture<Void> updateVisit(UUID studyDesignId, UUID visitId, UpdateVisitRequest request) {
+    public CompletableFuture<Void> updateVisit(UUID studyDesignId, UUID visitId, UpdateVisitDefinitionRequest request) {
         log.info("Updating visit {} in design: {}", visitId, studyDesignId);
         
         // Provide default user ID if not specified (handles legacy API calls)
         Long updatedBy = request.getUpdatedBy() != null ? request.getUpdatedBy() : 1L;
         
-        UpdateVisitCommand command = UpdateVisitCommand.builder()
+        UpdateVisitDefinitionCommand command = UpdateVisitDefinitionCommand.builder()
             .studyDesignId(studyDesignId)
             .visitId(visitId)
             .name(request.getName())
@@ -184,7 +188,7 @@ public class StudyDesignCommandService {
     public CompletableFuture<Void> removeVisit(UUID studyDesignId, UUID visitId, String reason, Long removedBy) {
         log.info("Removing visit {} from design: {}", visitId, studyDesignId);
         
-        RemoveVisitCommand command = RemoveVisitCommand.builder()
+        RemoveVisitDefinitionCommand command = RemoveVisitDefinitionCommand.builder()
             .studyDesignId(studyDesignId)
             .visitId(visitId)
             .reason(reason)
@@ -204,7 +208,7 @@ public class StudyDesignCommandService {
         
         UUID assignmentId = UUID.randomUUID();
         
-        AssignFormToVisitCommand command = AssignFormToVisitCommand.builder()
+        AssignFormToVisitDefinitionCommand command = AssignFormToVisitDefinitionCommand.builder()
             .studyDesignId(studyDesignId)
             .assignmentId(assignmentId)
             .visitId(request.getVisitId())

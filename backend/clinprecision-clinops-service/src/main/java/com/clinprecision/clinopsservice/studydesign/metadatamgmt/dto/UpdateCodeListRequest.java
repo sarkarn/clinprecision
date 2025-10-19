@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.dto;
+package com.clinprecision.clinopsservice.studydesign.metadatamgmt.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

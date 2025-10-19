@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.formdata.repository;
+package com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.repository;
 
-import com.clinprecision.clinopsservice.formdata.entity.StudyFormDataEntity;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.entity.StudyFormDataEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydesign.dto;
+package com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateVisitRequest {
+public class UpdateVisitDefinitionRequest {
     
     private String name;
     private String description;

@@ -1,22 +1,23 @@
-package com.clinprecision.clinopsservice.patientenrollment.projection;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.projection;
 
-import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientRegisteredEvent;
-import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientEnrolledEvent;
-import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientStatusChangedEvent;
-import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientDemographicsUpdatedEvent;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEntity;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentEntity;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentAuditEntity;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatusHistoryEntity;
-import com.clinprecision.clinopsservice.patientenrollment.entity.EnrollmentStatus;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatus;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientGender;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientRepository;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentRepository;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentAuditRepository;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientStatusHistoryRepository;
-import com.clinprecision.clinopsservice.visit.service.ProtocolVisitInstantiationService;
-import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.domain.events.PatientRegisteredEvent;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.domain.events.PatientEnrolledEvent;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.domain.events.PatientStatusChangedEvent;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.domain.events.PatientDemographicsUpdatedEvent;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientEnrollmentEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientEnrollmentAuditEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientStatusHistoryEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.EnrollmentStatus;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientStatus;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientGender;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientEnrollmentRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientEnrollmentAuditRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientStatusHistoryRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.SiteStudyRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.service.ProtocolVisitInstantiationService;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
 
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
@@ -47,7 +48,7 @@ public class PatientEnrollmentProjector {
     private final PatientRepository patientRepository;
     private final PatientEnrollmentAuditRepository auditRepository;
     private final PatientStatusHistoryRepository statusHistoryRepository;
-    private final com.clinprecision.clinopsservice.patientenrollment.repository.SiteStudyRepository siteStudyRepository;
+    private final SiteStudyRepository siteStudyRepository;
     private final ProtocolVisitInstantiationService protocolVisitInstantiationService;
     
     /**

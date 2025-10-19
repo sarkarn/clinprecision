@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydesign.domain.events;
+package com.clinprecision.clinopsservice.studydesign.design.domain.events;
 
 import lombok.Builder;
 import lombok.Data;

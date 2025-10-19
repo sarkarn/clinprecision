@@ -1,14 +1,14 @@
-package com.clinprecision.clinopsservice.visit.controller;
+package com.clinprecision.clinopsservice.studyoperation.visit.controller;
 
-import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
-import com.clinprecision.clinopsservice.repository.VisitDefinitionRepository;
-import com.clinprecision.clinopsservice.visit.dto.CreateVisitRequest;
-import com.clinprecision.clinopsservice.visit.dto.UnscheduledVisitTypeDto;
-import com.clinprecision.clinopsservice.visit.dto.VisitDto;
-import com.clinprecision.clinopsservice.visit.dto.VisitFormDto;
-import com.clinprecision.clinopsservice.visit.dto.VisitResponse;
-import com.clinprecision.clinopsservice.visit.service.UnscheduledVisitService;
-import com.clinprecision.clinopsservice.visit.service.VisitFormQueryService;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.dto.CreateVisitRequest;
+import com.clinprecision.clinopsservice.studyoperation.visit.dto.UnscheduledVisitTypeDto;
+import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitDto;
+import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitFormDto;
+import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitResponse;
+import com.clinprecision.clinopsservice.studyoperation.visit.service.UnscheduledVisitService;
+import com.clinprecision.clinopsservice.studyoperation.visit.service.VisitFormQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -16,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**

@@ -1,5 +1,6 @@
-package com.clinprecision.clinopsservice.patientenrollment.dto;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto;
 
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.service.PatientEnrollmentService;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Past;
 import lombok.Data;
@@ -25,7 +26,7 @@ import java.time.LocalDate;
  * }
  * </pre>
  * 
- * @see com.clinprecision.clinopsservice.patientenrollment.service.PatientEnrollmentService
+ * @see PatientEnrollmentService
  */
 @Data
 @Builder

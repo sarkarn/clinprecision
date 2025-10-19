@@ -1,22 +1,22 @@
-package com.clinprecision.clinopsservice.studydatabase.service;
+package com.clinprecision.clinopsservice.studydesign.build.service;
 
-import com.clinprecision.clinopsservice.entity.FormDefinitionEntity;
-import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
-import com.clinprecision.clinopsservice.entity.StudyArmEntity;
-import com.clinprecision.clinopsservice.entity.VisitFormEntity;
-import com.clinprecision.clinopsservice.repository.FormDefinitionRepository;
-import com.clinprecision.clinopsservice.repository.VisitDefinitionRepository;
-import com.clinprecision.clinopsservice.repository.StudyArmRepository;
-import com.clinprecision.clinopsservice.repository.VisitFormRepository;
-import com.clinprecision.clinopsservice.studydatabase.domain.commands.CompleteStudyDatabaseBuildCommand;
-import com.clinprecision.clinopsservice.studydatabase.domain.events.StudyDatabaseBuildStartedEvent;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus;
+import com.clinprecision.clinopsservice.studydesign.design.form.entity.FormDefinitionEntity;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity.VisitDefinitionEntity;
+import com.clinprecision.clinopsservice.studydesign.design.arm.entity.StudyArmEntity;
+import com.clinprecision.clinopsservice.studydesign.build.entity.VisitFormEntity;
+import com.clinprecision.clinopsservice.studydesign.design.form.repository.FormDefinitionRepository;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionRepository;
+import com.clinprecision.clinopsservice.studydesign.design.arm.repository.StudyArmRepository;
+import com.clinprecision.clinopsservice.studydesign.build.repository.VisitFormRepository;
+import com.clinprecision.clinopsservice.studydesign.build.domain.commands.CompleteStudyDatabaseBuildCommand;
+import com.clinprecision.clinopsservice.studydesign.build.domain.events.StudyDatabaseBuildStartedEvent;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildEntity;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildStatus;
 // Phase 6 imports REMOVED - See PHASE_6_BACKEND_NECESSITY_ANALYSIS.md
 // import com.clinprecision.clinopsservice.studydatabase.entity.StudyFieldMetadataEntity;
 // import com.clinprecision.clinopsservice.studydatabase.entity.StudyCdashMappingEntity;
 // import com.clinprecision.clinopsservice.studydatabase.entity.StudyMedicalCodingConfigEntity;
-import com.clinprecision.clinopsservice.studydatabase.repository.StudyDatabaseBuildRepository;
+import com.clinprecision.clinopsservice.studydesign.build.repository.StudyDatabaseBuildRepository;
 // import com.clinprecision.clinopsservice.studydatabase.repository.StudyFieldMetadataRepository;
 // import com.clinprecision.clinopsservice.studydatabase.repository.StudyCdashMappingRepository;
 // import com.clinprecision.clinopsservice.studydatabase.repository.StudyMedicalCodingConfigRepository;
@@ -802,7 +802,7 @@ public class StudyDatabaseBuildWorkerService {
             
             if (entityOpt.isPresent()) {
                 StudyDatabaseBuildEntity entity = entityOpt.get();
-                entity.setBuildStatus(com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus.FAILED);
+                entity.setBuildStatus(StudyDatabaseBuildStatus.FAILED);
                 entity.setErrorDetails(errorMessage);
                 entity.setBuildEndTime(java.time.LocalDateTime.now());
                 

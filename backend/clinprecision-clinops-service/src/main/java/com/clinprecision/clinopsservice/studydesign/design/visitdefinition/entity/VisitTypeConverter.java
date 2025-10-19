@@ -1,7 +1,6 @@
-package com.clinprecision.clinopsservice.mapper;
+package com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity;
 
 
-import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity.VisitDefinitionEntity;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 

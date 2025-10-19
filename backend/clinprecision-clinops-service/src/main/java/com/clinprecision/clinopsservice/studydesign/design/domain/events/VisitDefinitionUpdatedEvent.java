@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.studydesign.domain.events;
+package com.clinprecision.clinopsservice.studydesign.design.domain.events;
 
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.VisitType;
+import com.clinprecision.clinopsservice.studydesign.design.model.VisitType;
 import lombok.Builder;
 import lombok.Data;
 
@@ -12,7 +12,7 @@ import java.util.UUID;
  */
 @Data
 @Builder
-public class VisitUpdatedEvent {
+public class VisitDefinitionUpdatedEvent {
     
     private final UUID studyDesignId;
     private final UUID visitId;
@@ -26,10 +26,10 @@ public class VisitUpdatedEvent {
     private final Long updatedBy;
     private final LocalDateTime occurredAt;
     
-    public static VisitUpdatedEvent from(UUID studyDesignId, UUID visitId, String name,
-                                        String description, Integer timepoint, Integer windowBefore,
-                                        Integer windowAfter, VisitType visitType, Boolean isRequired, Long updatedBy) {
-        return VisitUpdatedEvent.builder()
+    public static VisitDefinitionUpdatedEvent from(UUID studyDesignId, UUID visitId, String name,
+                                                   String description, Integer timepoint, Integer windowBefore,
+                                                   Integer windowAfter, VisitType visitType, Boolean isRequired, Long updatedBy) {
+        return VisitDefinitionUpdatedEvent.builder()
             .studyDesignId(studyDesignId)
             .visitId(visitId)
             .name(name)

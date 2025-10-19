@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydesign.domain.valueobjects;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects;
 
 /**
  * StudyPhase Value Object

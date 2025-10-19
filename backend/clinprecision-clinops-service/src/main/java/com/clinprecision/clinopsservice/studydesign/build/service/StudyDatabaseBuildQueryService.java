@@ -1,9 +1,9 @@
-package com.clinprecision.clinopsservice.studydatabase.service;
+package com.clinprecision.clinopsservice.studydesign.build.service;
 
-import com.clinprecision.clinopsservice.studydatabase.dto.StudyDatabaseBuildDto;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus;
-import com.clinprecision.clinopsservice.studydatabase.repository.StudyDatabaseBuildRepository;
+import com.clinprecision.clinopsservice.studydesign.build.dto.StudyDatabaseBuildDto;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildEntity;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildStatus;
+import com.clinprecision.clinopsservice.studydesign.build.repository.StudyDatabaseBuildRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.document.event;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.event;
 
 import lombok.Builder;
 import lombok.Value;

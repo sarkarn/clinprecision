@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.studydesign.repository;
+package com.clinprecision.clinopsservice.studydesign.design.repository;
 
-import com.clinprecision.clinopsservice.entity.StudyEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,7 +17,7 @@ import java.util.UUID;
  * Queries against the denormalized read model for performance.
  */
 @Repository
-public interface StudyReadRepository extends JpaRepository<StudyEntity, Long> {
+public interface StudyDesignReadRepository extends JpaRepository<StudyEntity, Long> {
 
     /**
      * Find study by aggregate UUID (event sourcing identifier)

@@ -1,15 +1,15 @@
-package com.clinprecision.clinopsservice.document.service;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.service;
 
-import com.clinprecision.clinopsservice.document.command.*;
-import com.clinprecision.clinopsservice.document.dto.*;
-import com.clinprecision.clinopsservice.document.valueobject.DocumentType;
-import com.clinprecision.clinopsservice.entity.StudyDocumentEntity;
-import com.clinprecision.clinopsservice.repository.StudyDocumentRepository;
+
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.command.*;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.dto.*;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.valueobject.DocumentType;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.entity.StudyDocumentEntity;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.repository.StudyDocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;

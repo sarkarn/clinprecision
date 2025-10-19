@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.document.command;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.command;
 
 import lombok.Builder;
 import lombok.Value;

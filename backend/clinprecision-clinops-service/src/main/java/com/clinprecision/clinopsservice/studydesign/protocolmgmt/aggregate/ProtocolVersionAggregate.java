@@ -1,8 +1,9 @@
-package com.clinprecision.clinopsservice.protocolversion.aggregate;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.aggregate;
 
-import com.clinprecision.clinopsservice.protocolversion.domain.commands.*;
-import com.clinprecision.clinopsservice.protocolversion.domain.events.*;
-import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.*;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.commands.*;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.events.*;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.AmendmentType;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionStatus;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;

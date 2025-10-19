@@ -1,10 +1,10 @@
-package com.clinprecision.clinopsservice.formdata.projection;
+package com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.projection;
 
-import com.clinprecision.clinopsservice.formdata.domain.events.FormDataSubmittedEvent;
-import com.clinprecision.clinopsservice.formdata.entity.StudyFormDataEntity;
-import com.clinprecision.clinopsservice.formdata.entity.StudyFormDataAuditEntity;
-import com.clinprecision.clinopsservice.formdata.repository.StudyFormDataRepository;
-import com.clinprecision.clinopsservice.formdata.repository.StudyFormDataAuditRepository;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.domain.events.FormDataSubmittedEvent;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.entity.StudyFormDataEntity;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.entity.StudyFormDataAuditEntity;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.repository.StudyFormDataRepository;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.repository.StudyFormDataAuditRepository;
 
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;

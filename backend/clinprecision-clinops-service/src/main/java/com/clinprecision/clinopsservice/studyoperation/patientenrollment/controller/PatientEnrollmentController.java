@@ -1,11 +1,11 @@
-package com.clinprecision.clinopsservice.patientenrollment.controller;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.controller;
 
-import com.clinprecision.clinopsservice.patientenrollment.dto.RegisterPatientDto;
-import com.clinprecision.clinopsservice.patientenrollment.dto.UpdatePatientDemographicsDto;
-import com.clinprecision.clinopsservice.patientenrollment.dto.EnrollPatientDto;
-import com.clinprecision.clinopsservice.patientenrollment.dto.PatientDto;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentEntity;
-import com.clinprecision.clinopsservice.patientenrollment.service.PatientEnrollmentService;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.RegisterPatientDto;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.UpdatePatientDemographicsDto;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.EnrollPatientDto;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.PatientDto;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientEnrollmentEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.service.PatientEnrollmentService;
 import com.clinprecision.common.entity.SiteStudyEntity;
 
 import lombok.RequiredArgsConstructor;

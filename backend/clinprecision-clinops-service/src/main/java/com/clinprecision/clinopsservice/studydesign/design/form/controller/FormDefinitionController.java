@@ -1,11 +1,11 @@
-package com.clinprecision.clinopsservice.controller;
+package com.clinprecision.clinopsservice.studydesign.design.form.controller;
 
 
 
-import com.clinprecision.clinopsservice.service.FormDefinitionService;
-import com.clinprecision.clinopsservice.dto.FormDefinitionCreateRequestDto;
-import com.clinprecision.clinopsservice.dto.FormDefinitionDto;
-import com.clinprecision.clinopsservice.entity.FormDefinitionEntity;
+import com.clinprecision.clinopsservice.studydesign.design.form.service.FormDefinitionService;
+import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormDefinitionCreateRequestDto;
+import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormDefinitionDto;
+import com.clinprecision.clinopsservice.studydesign.design.form.entity.FormDefinitionEntity;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

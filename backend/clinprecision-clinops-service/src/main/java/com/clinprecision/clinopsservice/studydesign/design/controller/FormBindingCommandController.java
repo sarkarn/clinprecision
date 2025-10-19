@@ -1,7 +1,8 @@
-package com.clinprecision.clinopsservice.studydesign.studymgmt.controller;
+package com.clinprecision.clinopsservice.studydesign.design.controller;
 
 import com.clinprecision.clinopsservice.studydesign.build.entity.VisitFormEntity;
 import com.clinprecision.clinopsservice.studydesign.build.repository.VisitFormRepository;
+import com.clinprecision.clinopsservice.studydesign.design.dto.UpdateFormAssignmentRequest;
 import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignCommandService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -77,8 +78,8 @@ public class FormBindingCommandController {
             UUID studyDesignId = existingBinding.getAggregateUuid();
             
             // Create request DTO
-            com.clinprecision.clinopsservice.studydesign.dto.UpdateFormAssignmentRequest request = 
-                com.clinprecision.clinopsservice.studydesign.dto.UpdateFormAssignmentRequest.builder()
+            UpdateFormAssignmentRequest request =
+                UpdateFormAssignmentRequest.builder()
                     .isRequired((Boolean) updates.getOrDefault("isRequired", existingBinding.getIsRequired()))
                     .isConditional((Boolean) updates.getOrDefault("isConditional", existingBinding.getIsConditional()))
                     .conditionalLogic((String) updates.get("conditionalLogic"))

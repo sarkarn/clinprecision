@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.document.event;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.event;
 
-import com.clinprecision.clinopsservice.document.valueobject.DocumentType;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.valueobject.DocumentType;
 import lombok.Builder;
 import lombok.Value;
 

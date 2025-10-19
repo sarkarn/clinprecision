@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.repository;
+package com.clinprecision.clinopsservice.studydesign.metadatamgmt.repository;
 
 import com.clinprecision.clinopsservice.studydesign.metadatamgmt.entity.CodeListEntity;
 import org.springframework.data.jpa.repository.JpaRepository;

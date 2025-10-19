@@ -1,7 +1,10 @@
-package com.clinprecision.clinopsservice.studydatabase.aggregate;
+package com.clinprecision.clinopsservice.studydesign.build.aggregate;
 
-import com.clinprecision.clinopsservice.studydatabase.domain.commands.*;
-import com.clinprecision.clinopsservice.studydatabase.domain.events.*;
+import com.clinprecision.clinopsservice.studydesign.build.domain.commands.BuildStudyDatabaseCommand;
+import com.clinprecision.clinopsservice.studydesign.build.domain.commands.CancelStudyDatabaseBuildCommand;
+import com.clinprecision.clinopsservice.studydesign.build.domain.commands.CompleteStudyDatabaseBuildCommand;
+import com.clinprecision.clinopsservice.studydesign.build.domain.commands.ValidateStudyDatabaseCommand;
+import com.clinprecision.clinopsservice.studydesign.build.domain.events.*;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
@@ -163,7 +166,7 @@ public class StudyDatabaseBuildAggregate {
         }
         
         // Convert command validation result to event validation result
-        StudyDatabaseBuildCompletedEvent.ValidationResultData eventValidationResult = 
+        StudyDatabaseBuildCompletedEvent.ValidationResultData eventValidationResult =
             StudyDatabaseBuildCompletedEvent.ValidationResultData.builder()
                 .isValid(command.getValidationResult().isValid())
                 .overallAssessment(command.getValidationResult().getOverallAssessment())

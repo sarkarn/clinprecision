@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.protocolversion.domain.commands;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.commands;
 
 import lombok.Builder;
 import lombok.Value;

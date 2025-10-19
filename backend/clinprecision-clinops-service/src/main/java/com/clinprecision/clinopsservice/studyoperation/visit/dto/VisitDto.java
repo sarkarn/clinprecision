@@ -1,6 +1,6 @@
-package com.clinprecision.clinopsservice.visit.dto;
+package com.clinprecision.clinopsservice.studyoperation.visit.dto;
 
-import com.clinprecision.clinopsservice.visit.entity.VisitEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.VisitEntity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

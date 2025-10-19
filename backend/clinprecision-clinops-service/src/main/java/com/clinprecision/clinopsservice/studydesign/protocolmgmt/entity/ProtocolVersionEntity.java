@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.protocolversion.entity;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity;
 
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.AmendmentType;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionStatus;

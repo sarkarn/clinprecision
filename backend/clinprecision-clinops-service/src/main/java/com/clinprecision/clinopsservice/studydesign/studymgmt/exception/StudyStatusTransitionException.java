@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.study.exception;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.exception;
 
 import java.util.ArrayList;
 import java.util.Collections;

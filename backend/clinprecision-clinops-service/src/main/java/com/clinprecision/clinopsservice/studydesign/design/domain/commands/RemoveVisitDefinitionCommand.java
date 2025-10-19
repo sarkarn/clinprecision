@@ -11,7 +11,7 @@ import java.util.UUID;
  */
 @Data
 @Builder
-public class RemoveVisitCommand {
+public class RemoveVisitDefinitionCommand {
     
     @TargetAggregateIdentifier
     private final UUID studyDesignId;

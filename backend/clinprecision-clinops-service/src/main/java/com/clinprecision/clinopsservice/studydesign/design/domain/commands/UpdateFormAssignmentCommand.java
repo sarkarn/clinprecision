@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydesign.design.commands;
+package com.clinprecision.clinopsservice.studydesign.design.domain.commands;
 
 import lombok.Builder;
 import lombok.Data;

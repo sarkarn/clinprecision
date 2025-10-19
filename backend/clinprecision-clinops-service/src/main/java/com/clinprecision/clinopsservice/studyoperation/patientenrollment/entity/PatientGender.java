@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.patientenrollment.entity;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity;
 
 /**
  * Patient Gender enumeration

@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydatabase.domain.commands;
+package com.clinprecision.clinopsservice.studydesign.build.domain.commands;
 
 import com.clinprecision.axon.command.BaseCommand;
 import jakarta.validation.Valid;

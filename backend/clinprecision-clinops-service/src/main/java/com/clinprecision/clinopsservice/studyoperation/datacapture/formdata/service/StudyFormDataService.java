@@ -1,16 +1,16 @@
-package com.clinprecision.clinopsservice.formdata.service;
+package com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.service;
 
-import com.clinprecision.clinopsservice.formdata.domain.commands.SubmitFormDataCommand;
-import com.clinprecision.clinopsservice.formdata.dto.FormSubmissionRequest;
-import com.clinprecision.clinopsservice.formdata.dto.FormSubmissionResponse;
-import com.clinprecision.clinopsservice.formdata.dto.FormDataDto;
-import com.clinprecision.clinopsservice.formdata.entity.StudyFormDataEntity;
-import com.clinprecision.clinopsservice.formdata.repository.StudyFormDataRepository;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.domain.commands.SubmitFormDataCommand;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.dto.FormSubmissionRequest;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.dto.FormSubmissionResponse;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.dto.FormDataDto;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.entity.StudyFormDataEntity;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.repository.StudyFormDataRepository;
 import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
 import com.clinprecision.clinopsservice.studyoperation.visit.repository.StudyVisitInstanceRepository;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildEntity;
-import com.clinprecision.clinopsservice.studydatabase.entity.StudyDatabaseBuildStatus;
-import com.clinprecision.clinopsservice.studydatabase.repository.StudyDatabaseBuildRepository;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildEntity;
+import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildStatus;
+import com.clinprecision.clinopsservice.studydesign.build.repository.StudyDatabaseBuildRepository;
 
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.stereotype.Service;

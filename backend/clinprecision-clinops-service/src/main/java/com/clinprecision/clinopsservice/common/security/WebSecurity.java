@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.security;
+package com.clinprecision.clinopsservice.common.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

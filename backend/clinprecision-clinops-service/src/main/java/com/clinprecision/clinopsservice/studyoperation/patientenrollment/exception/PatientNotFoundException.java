@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.patientenrollment.exception;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.exception;
 
 /**
  * Exception thrown when a patient is not found by ID

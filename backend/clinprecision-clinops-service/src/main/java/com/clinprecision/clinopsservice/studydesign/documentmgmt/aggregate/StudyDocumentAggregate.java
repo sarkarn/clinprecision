@@ -1,9 +1,10 @@
-package com.clinprecision.clinopsservice.document.aggregate;
+package com.clinprecision.clinopsservice.studydesign.documentmgmt.aggregate;
 
-import com.clinprecision.clinopsservice.document.command.*;
-import com.clinprecision.clinopsservice.document.event.*;
-import com.clinprecision.clinopsservice.document.valueobject.DocumentStatus;
-import com.clinprecision.clinopsservice.document.valueobject.DocumentType;
+
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.command.*;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.event.*;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.valueobject.DocumentStatus;
+import com.clinprecision.clinopsservice.studydesign.documentmgmt.valueobject.DocumentType;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;

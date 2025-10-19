@@ -1,8 +1,8 @@
-package com.clinprecision.clinopsservice.study.aggregate;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.aggregate;
 
-import com.clinprecision.clinopsservice.study.command.*;
-import com.clinprecision.clinopsservice.study.domain.valueobjects.StudyStatusCode;
-import com.clinprecision.clinopsservice.study.event.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.domain.commands.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.event.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
 import org.axonframework.modelling.command.AggregateIdentifier;

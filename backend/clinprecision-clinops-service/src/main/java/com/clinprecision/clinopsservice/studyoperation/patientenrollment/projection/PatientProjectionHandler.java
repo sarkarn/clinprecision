@@ -1,10 +1,10 @@
-package com.clinprecision.clinopsservice.patientenrollment.projection;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.projection;
 
-import com.clinprecision.clinopsservice.patientenrollment.domain.events.PatientRegisteredEvent;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEntity;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientGender;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatus;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.domain.events.PatientRegisteredEvent;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientGender;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientStatus;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientRepository;
 
 import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;

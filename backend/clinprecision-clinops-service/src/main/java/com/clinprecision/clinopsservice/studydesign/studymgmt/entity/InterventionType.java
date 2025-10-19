@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.entity;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.entity;
 
 /**
  * Enum for Intervention Types

@@ -1,8 +1,8 @@
-package com.clinprecision.clinopsservice.visit.controller;
+package com.clinprecision.clinopsservice.studyoperation.visit.controller;
 
-import com.clinprecision.clinopsservice.visit.dto.UnscheduledVisitConfigDto;
-import com.clinprecision.clinopsservice.visit.entity.UnscheduledVisitConfigEntity;
-import com.clinprecision.clinopsservice.visit.repository.UnscheduledVisitConfigRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.dto.UnscheduledVisitConfigDto;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.UnscheduledVisitConfigEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.repository.UnscheduledVisitConfigRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,9 +1,9 @@
-package com.clinprecision.clinopsservice.formdata.controller;
+package com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.controller;
 
-import com.clinprecision.clinopsservice.formdata.dto.FormSubmissionRequest;
-import com.clinprecision.clinopsservice.formdata.dto.FormSubmissionResponse;
-import com.clinprecision.clinopsservice.formdata.dto.FormDataDto;
-import com.clinprecision.clinopsservice.formdata.service.StudyFormDataService;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.dto.FormSubmissionRequest;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.dto.FormSubmissionResponse;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.dto.FormDataDto;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.service.StudyFormDataService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

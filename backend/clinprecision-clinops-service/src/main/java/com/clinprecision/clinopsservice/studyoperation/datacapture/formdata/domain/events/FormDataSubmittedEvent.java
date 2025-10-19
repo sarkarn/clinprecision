@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.formdata.domain.events;
+package com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.domain.events;
 
 import lombok.Builder;
 import lombok.Getter;

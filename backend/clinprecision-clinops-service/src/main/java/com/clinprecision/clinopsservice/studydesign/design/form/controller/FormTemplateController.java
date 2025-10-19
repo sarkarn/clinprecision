@@ -1,9 +1,9 @@
-package com.clinprecision.clinopsservice.controller;
-import com.clinprecision.clinopsservice.service.FormTemplateService;
+package com.clinprecision.clinopsservice.studydesign.design.form.controller;
+import com.clinprecision.clinopsservice.studydesign.design.form.service.FormTemplateService;
 
 
-import com.clinprecision.clinopsservice.dto.FormTemplateCreateRequestDto;
-import com.clinprecision.clinopsservice.dto.FormTemplateDto;
+import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormTemplateCreateRequestDto;
+import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormTemplateDto;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

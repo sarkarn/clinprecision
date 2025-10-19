@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydatabase.entity;
+package com.clinprecision.clinopsservice.studydesign.build.entity;
 
 /**
  * Study Database Build Status Enumeration

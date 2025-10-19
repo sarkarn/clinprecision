@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.studydesign.studymgmt.command;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.domain.commands;
 
 import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
 import lombok.Builder;

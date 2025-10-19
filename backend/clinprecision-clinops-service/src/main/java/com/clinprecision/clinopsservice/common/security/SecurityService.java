@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.security;
+package com.clinprecision.clinopsservice.common.security;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;

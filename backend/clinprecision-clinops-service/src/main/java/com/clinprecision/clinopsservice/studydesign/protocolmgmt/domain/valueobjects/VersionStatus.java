@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.protocolversion.domain.valueobjects;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects;
 
 import java.util.Arrays;
 import java.util.List;

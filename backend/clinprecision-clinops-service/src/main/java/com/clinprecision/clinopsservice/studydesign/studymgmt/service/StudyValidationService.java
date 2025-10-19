@@ -1,10 +1,9 @@
-package com.clinprecision.clinopsservice.study.service;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.service;
 
-import com.clinprecision.clinopsservice.entity.StudyEntity;
-import com.clinprecision.clinopsservice.repository.StudyRepository;
-import com.clinprecision.clinopsservice.service.CrossEntityStatusValidationService;
-import com.clinprecision.clinopsservice.service.CrossEntityStatusValidationService.CrossEntityValidationResult;
-import com.clinprecision.clinopsservice.study.exception.StudyStatusTransitionException;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.service.CrossEntityStatusValidationService.CrossEntityValidationResult;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.exception.StudyStatusTransitionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

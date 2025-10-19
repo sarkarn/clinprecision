@@ -1,9 +1,9 @@
-package com.clinprecision.clinopsservice.study.mapper;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.mapper;
 
-import com.clinprecision.clinopsservice.study.dto.response.StudyListResponseDto;
-import com.clinprecision.clinopsservice.study.dto.response.StudyResponseDto;
-import com.clinprecision.clinopsservice.study.domain.valueobjects.StudyStatusCode;
-import com.clinprecision.clinopsservice.entity.StudyEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyListResponseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyResponseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

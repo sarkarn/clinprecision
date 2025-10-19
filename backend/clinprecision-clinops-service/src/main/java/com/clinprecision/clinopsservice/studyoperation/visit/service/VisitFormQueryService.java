@@ -1,13 +1,13 @@
-package com.clinprecision.clinopsservice.visit.service;
+package com.clinprecision.clinopsservice.studyoperation.visit.service;
 
-import com.clinprecision.clinopsservice.entity.VisitFormEntity;
-import com.clinprecision.clinopsservice.entity.FormDefinitionEntity;
-import com.clinprecision.clinopsservice.repository.VisitFormRepository;
-import com.clinprecision.clinopsservice.visit.repository.StudyVisitInstanceRepository;
-import com.clinprecision.clinopsservice.visit.dto.VisitFormDto;
-import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
-import com.clinprecision.clinopsservice.formdata.entity.StudyFormDataEntity;
-import com.clinprecision.clinopsservice.formdata.repository.StudyFormDataRepository;
+import com.clinprecision.clinopsservice.studydesign.build.entity.VisitFormEntity;
+import com.clinprecision.clinopsservice.studydesign.design.form.entity.FormDefinitionEntity;
+import com.clinprecision.clinopsservice.studydesign.build.repository.VisitFormRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.repository.StudyVisitInstanceRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitFormDto;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.entity.StudyFormDataEntity;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.repository.StudyFormDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

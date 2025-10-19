@@ -1,7 +1,9 @@
-package com.clinprecision.clinopsservice.exception;
+package com.clinprecision.clinopsservice.studydesign.design.exception;
 
 
-import com.clinprecision.clinopsservice.exception.StudyControllerExceptionHandler.ErrorResponse;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.exception.StudyControllerExceptionHandler.ErrorResponse;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.exception.StudyNotFoundException;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.exception.StudyValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;

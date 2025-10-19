@@ -1,7 +1,7 @@
-package com.clinprecision.clinopsservice.patientenrollment.repository;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository;
 
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatus;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientStatusHistoryEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientStatus;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientStatusHistoryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

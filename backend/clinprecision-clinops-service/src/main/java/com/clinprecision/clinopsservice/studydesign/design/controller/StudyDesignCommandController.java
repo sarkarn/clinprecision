@@ -1,9 +1,14 @@
-package com.clinprecision.clinopsservice.studydesign.controller;
+package com.clinprecision.clinopsservice.studydesign.design.controller;
 
-import com.clinprecision.clinopsservice.studydesign.dto.*;
-import com.clinprecision.clinopsservice.studydesign.service.StudyDesignCommandService;
-import com.clinprecision.clinopsservice.studydesign.service.StudyDesignQueryService;
-import com.clinprecision.clinopsservice.studydesign.service.StudyDesignAutoInitializationService;
+import com.clinprecision.clinopsservice.studydesign.design.arm.dto.AddStudyArmRequest;
+import com.clinprecision.clinopsservice.studydesign.design.arm.dto.UpdateStudyArmRequest;
+import com.clinprecision.clinopsservice.studydesign.design.dto.*;
+import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignCommandService;
+import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignQueryService;
+import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignAutoInitializationService;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.DefineVisitDefinitionRequest;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.UpdateVisitDefinitionRequest;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.VisitDefinitionResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -116,7 +121,7 @@ public class StudyDesignCommandController {
     @PostMapping("/{studyDesignId}/visits")
     public CompletableFuture<ResponseEntity<Void>> defineVisit(
             @PathVariable UUID studyDesignId,
-            @RequestBody DefineVisitRequest request) {
+            @RequestBody DefineVisitDefinitionRequest request) {
         log.info("REST: Define visit '{}' in design: {}", request.getName(), studyDesignId);
         
         return commandService.defineVisit(studyDesignId, request)
@@ -138,7 +143,7 @@ public class StudyDesignCommandController {
     @PostMapping("/studies/{studyId}/visits")
     public CompletableFuture<ResponseEntity<Map<String, UUID>>> defineVisitForStudy(
             @PathVariable String studyId,
-            @RequestBody DefineVisitRequest request) {
+            @RequestBody DefineVisitDefinitionRequest request) {
         log.info("REST: Auto-define visit '{}' for study: {}", request.getName(), studyId);
         
         return autoInitService.ensureStudyDesignExists(studyId)
@@ -215,7 +220,7 @@ public class StudyDesignCommandController {
     public CompletableFuture<ResponseEntity<Void>> updateVisitForStudy(
             @PathVariable String studyId,
             @PathVariable UUID visitId,
-            @RequestBody UpdateVisitRequest request) {
+            @RequestBody UpdateVisitDefinitionRequest request) {
         log.info("REST: Auto-update visit {} for study: {}", visitId, studyId);
         
         return autoInitService.ensureStudyDesignExists(studyId)
@@ -260,7 +265,7 @@ public class StudyDesignCommandController {
     public CompletableFuture<ResponseEntity<Void>> updateVisit(
             @PathVariable UUID studyDesignId,
             @PathVariable UUID visitId,
-            @RequestBody UpdateVisitRequest request) {
+            @RequestBody UpdateVisitDefinitionRequest request) {
         log.info("REST: Update visit {} in design: {}", visitId, studyDesignId);
         
         return commandService.updateVisit(studyDesignId, visitId, request)

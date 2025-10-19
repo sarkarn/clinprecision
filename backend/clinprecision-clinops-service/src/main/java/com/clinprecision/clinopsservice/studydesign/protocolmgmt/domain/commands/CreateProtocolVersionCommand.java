@@ -1,7 +1,7 @@
-package com.clinprecision.clinopsservice.protocolversion.domain.commands;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.commands;
 
-import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.AmendmentType;
-import com.clinprecision.clinopsservice.protocolversion.domain.valueobjects.VersionNumber;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.AmendmentType;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionNumber;
 import lombok.Builder;
 import lombok.Value;
 import org.axonframework.modelling.command.TargetAggregateIdentifier;

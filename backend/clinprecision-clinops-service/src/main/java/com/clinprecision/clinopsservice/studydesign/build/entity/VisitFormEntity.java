@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.entity;
+package com.clinprecision.clinopsservice.studydesign.build.entity;
 
 
 import com.clinprecision.clinopsservice.studydesign.design.form.entity.FormDefinitionEntity;

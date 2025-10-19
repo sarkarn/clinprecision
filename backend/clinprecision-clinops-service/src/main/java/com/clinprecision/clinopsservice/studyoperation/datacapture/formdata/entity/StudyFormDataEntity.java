@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.formdata.entity;
+package com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

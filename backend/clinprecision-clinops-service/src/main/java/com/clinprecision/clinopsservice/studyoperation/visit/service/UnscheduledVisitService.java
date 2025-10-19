@@ -1,20 +1,18 @@
-package com.clinprecision.clinopsservice.visit.service;
+package com.clinprecision.clinopsservice.studyoperation.visit.service;
 
-import com.clinprecision.clinopsservice.entity.VisitDefinitionEntity;
-import com.clinprecision.clinopsservice.repository.VisitDefinitionRepository;
-import com.clinprecision.clinopsservice.visit.domain.commands.CreateVisitCommand;
-import com.clinprecision.clinopsservice.visit.dto.CreateVisitRequest;
-import com.clinprecision.clinopsservice.visit.dto.VisitDto;
-import com.clinprecision.clinopsservice.visit.dto.VisitResponse;
-import com.clinprecision.clinopsservice.visit.entity.StudyVisitInstanceEntity;
-import com.clinprecision.clinopsservice.visit.repository.StudyVisitInstanceRepository;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.domain.commands.CreateVisitCommand;
+import com.clinprecision.clinopsservice.studyoperation.visit.dto.CreateVisitRequest;
+import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitDto;
+import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitResponse;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.repository.StudyVisitInstanceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;

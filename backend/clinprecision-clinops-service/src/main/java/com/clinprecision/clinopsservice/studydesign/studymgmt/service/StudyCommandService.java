@@ -1,19 +1,26 @@
-package com.clinprecision.clinopsservice.study.service;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.service;
 
 import com.clinprecision.clinopsservice.common.security.SecurityService;
-import com.clinprecision.clinopsservice.entity.StudyEntity;
-import com.clinprecision.clinopsservice.entity.StudyInterventionEntity;
-import com.clinprecision.clinopsservice.entity.StudyRandomizationStrategyEntity;
-import com.clinprecision.clinopsservice.entity.InterventionType;
-import com.clinprecision.clinopsservice.repository.StudyInterventionRepository;
-import com.clinprecision.clinopsservice.repository.StudyRandomizationStrategyRepository;
-import com.clinprecision.clinopsservice.study.command.*;
-import com.clinprecision.clinopsservice.study.dto.request.*;
-import com.clinprecision.clinopsservice.study.dto.InterventionDto;
-import com.clinprecision.clinopsservice.study.dto.RandomizationStrategyDto;
-import com.clinprecision.clinopsservice.study.mapper.StudyCommandMapper;
+import com.clinprecision.clinopsservice.studydesign.design.arm.dto.StudyArmRequestDto;
+import com.clinprecision.clinopsservice.studydesign.design.arm.entity.StudyArmEntity;
+import com.clinprecision.clinopsservice.studydesign.design.arm.entity.StudyArmType;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.domain.commands.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
+import com.clinprecision.clinopsservice.studydesign.design.arm.entity.StudyInterventionEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyRandomizationStrategyEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.InterventionType;
+import com.clinprecision.clinopsservice.studydesign.design.arm.repository.StudyInterventionRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRandomizationStrategyRepository;
+import com.clinprecision.clinopsservice.studydesign.design.arm.repository.StudyArmRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.InterventionDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.RandomizationStrategyDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.mapper.StudyCommandMapper;
 import java.time.Duration;
 import java.util.Objects;
+
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyArmResponseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import lombok.RequiredArgsConstructor;
@@ -254,13 +261,13 @@ public class StudyCommandService {
         ensureAggregateExists(studyUuid);
         
         // Convert string to StudyStatusCode enum
-        com.clinprecision.clinopsservice.study.domain.valueobjects.StudyStatusCode newStatus;
+        StudyStatusCode newStatus;
         try {
-            newStatus = com.clinprecision.clinopsservice.study.domain.valueobjects.StudyStatusCode.fromString(newStatusString);
+            newStatus = StudyStatusCode.fromString(newStatusString);
         } catch (IllegalArgumentException e) {
             log.error("Invalid status code: {}", newStatusString);
             throw new IllegalArgumentException("Invalid status: " + newStatusString + ". Valid statuses are: " + 
-                java.util.Arrays.toString(com.clinprecision.clinopsservice.study.domain.valueobjects.StudyStatusCode.values()));
+                java.util.Arrays.toString(StudyStatusCode.values()));
         }
         
         // Validate cross-entity dependencies BEFORE sending command
@@ -489,18 +496,18 @@ public class StudyCommandService {
      * @return Created arm DTO
      */
     @Transactional
-    public com.clinprecision.clinopsservice.study.dto.response.StudyArmResponseDto createStudyArm(
+    public StudyArmResponseDto createStudyArm(
             Long studyId, 
-            com.clinprecision.clinopsservice.study.dto.request.StudyArmRequestDto armData) {
+            StudyArmRequestDto armData) {
         
         log.info("Creating study arm '{}' for study ID: {}", armData.getName(), studyId);
         
         // Create entity
-        com.clinprecision.clinopsservice.entity.StudyArmEntity entity = 
-            new com.clinprecision.clinopsservice.entity.StudyArmEntity();
+        StudyArmEntity entity =
+            new StudyArmEntity();
         entity.setName(armData.getName());
         entity.setDescription(armData.getDescription());
-        entity.setType(com.clinprecision.clinopsservice.entity.StudyArmType.valueOf(armData.getType()));
+        entity.setType(StudyArmType.valueOf(armData.getType()));
         entity.setSequence(armData.getSequence());
         entity.setPlannedSubjects(armData.getPlannedSubjects() != null ? armData.getPlannedSubjects() : 0);
         entity.setStudyId(studyId);
@@ -508,9 +515,9 @@ public class StudyCommandService {
         entity.setUpdatedBy("system");
         
         // Save to read model
-        com.clinprecision.clinopsservice.repository.StudyArmRepository armRepository = 
-            ((com.clinprecision.clinopsservice.study.service.StudyQueryService) studyQueryService).getStudyArmRepository();
-        com.clinprecision.clinopsservice.entity.StudyArmEntity saved = armRepository.save(entity);
+        StudyArmRepository armRepository =
+            ((StudyQueryService) studyQueryService).getStudyArmRepository();
+        StudyArmEntity saved = armRepository.save(entity);
         
         // Handle interventions if provided
         if (armData.getInterventions() != null && !armData.getInterventions().isEmpty()) {
@@ -535,29 +542,29 @@ public class StudyCommandService {
      * @return Updated arm DTO
      */
     @Transactional
-    public com.clinprecision.clinopsservice.study.dto.response.StudyArmResponseDto updateStudyArm(
+    public StudyArmResponseDto updateStudyArm(
             Long armId,
-            com.clinprecision.clinopsservice.study.dto.request.StudyArmRequestDto armData) {
+            StudyArmRequestDto armData) {
         
         log.info("Updating study arm ID: {} with interventions: {}", armId, 
                 armData.getInterventions() != null ? armData.getInterventions().size() : 0);
         
-        com.clinprecision.clinopsservice.repository.StudyArmRepository armRepository = 
-            ((com.clinprecision.clinopsservice.study.service.StudyQueryService) studyQueryService).getStudyArmRepository();
+        StudyArmRepository armRepository =
+            ((StudyQueryService) studyQueryService).getStudyArmRepository();
         
-        com.clinprecision.clinopsservice.entity.StudyArmEntity entity = armRepository.findById(armId)
+        StudyArmEntity entity = armRepository.findById(armId)
             .orElseThrow(() -> new RuntimeException("Study arm not found: " + armId));
         
         // Update fields
         entity.setName(armData.getName());
         entity.setDescription(armData.getDescription());
-        entity.setType(com.clinprecision.clinopsservice.entity.StudyArmType.valueOf(armData.getType()));
+        entity.setType(StudyArmType.valueOf(armData.getType()));
         entity.setSequence(armData.getSequence());
         entity.setPlannedSubjects(armData.getPlannedSubjects() != null ? armData.getPlannedSubjects() : entity.getPlannedSubjects());
         entity.setUpdatedBy("system"); // TODO: Get from security context
         
         // Save updated entity
-        com.clinprecision.clinopsservice.entity.StudyArmEntity updated = armRepository.save(entity);
+        StudyArmEntity updated = armRepository.save(entity);
         
         // Handle interventions - delete existing and create new ones
         updateArmInterventions(armId, armData.getInterventions());
@@ -642,11 +649,11 @@ public class StudyCommandService {
     public void deleteStudyArm(Long armId) {
         log.info("Deleting study arm ID: {}", armId);
         
-        com.clinprecision.clinopsservice.repository.StudyArmRepository armRepository = 
-            ((com.clinprecision.clinopsservice.study.service.StudyQueryService) studyQueryService).getStudyArmRepository();
+        StudyArmRepository armRepository =
+            ((StudyQueryService) studyQueryService).getStudyArmRepository();
         
         // Soft delete - set is_deleted flag
-        com.clinprecision.clinopsservice.entity.StudyArmEntity entity = armRepository.findById(armId)
+        StudyArmEntity entity = armRepository.findById(armId)
             .orElseThrow(() -> new RuntimeException("Study arm not found: " + armId));
         
         entity.setIsDeleted(true);

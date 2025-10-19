@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.formdata.domain.commands;
+package com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.domain.commands;
 
 import com.clinprecision.axon.command.BaseCommand;
 import org.axonframework.modelling.command.TargetAggregateIdentifier;

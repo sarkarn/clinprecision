@@ -1,25 +1,22 @@
-package com.clinprecision.clinopsservice.patientenrollment.service;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.service;
 
-import com.clinprecision.clinopsservice.patientenrollment.domain.commands.RegisterPatientCommand;
-import com.clinprecision.clinopsservice.patientenrollment.domain.commands.EnrollPatientCommand;
-import com.clinprecision.clinopsservice.patientenrollment.domain.commands.UpdatePatientDemographicsCommand;
-import com.clinprecision.clinopsservice.patientenrollment.dto.EnrollPatientDto;
-import com.clinprecision.clinopsservice.patientenrollment.dto.RegisterPatientDto;
-import com.clinprecision.clinopsservice.patientenrollment.dto.UpdatePatientDemographicsDto;
-import com.clinprecision.clinopsservice.patientenrollment.dto.PatientDto;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEntity;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentEntity;
-import com.clinprecision.clinopsservice.patientenrollment.entity.EnrollmentStatus;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientRepository;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentRepository;
-import com.clinprecision.clinopsservice.patientenrollment.repository.PatientEnrollmentAuditRepository;
-import com.clinprecision.clinopsservice.patientenrollment.entity.PatientEnrollmentAuditEntity;
-import com.clinprecision.clinopsservice.patientenrollment.repository.SiteStudyRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.domain.commands.RegisterPatientCommand;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.domain.commands.EnrollPatientCommand;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.domain.commands.UpdatePatientDemographicsCommand;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.EnrollPatientDto;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.RegisterPatientDto;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.UpdatePatientDemographicsDto;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.dto.PatientDto;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.PatientEnrollmentEntity;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity.EnrollmentStatus;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientEnrollmentRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.PatientEnrollmentAuditRepository;
+import com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository.SiteStudyRepository;
 import com.clinprecision.common.entity.SiteStudyEntity;
-import com.clinprecision.clinopsservice.repository.StudyRepository;
-import com.clinprecision.clinopsservice.repository.StudyArmRepository;
-import com.clinprecision.clinopsservice.entity.StudyEntity;
-import com.clinprecision.clinopsservice.entity.StudyArmEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRepository;
+import com.clinprecision.clinopsservice.studydesign.design.arm.repository.StudyArmRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -456,8 +453,8 @@ public class PatientEnrollmentService {
         log.info("Study UUID: {}", studyUuid);
 
         // Create and send EnrollPatientCommand via Axon
-        com.clinprecision.clinopsservice.patientenrollment.domain.commands.EnrollPatientCommand command = 
-            com.clinprecision.clinopsservice.patientenrollment.domain.commands.EnrollPatientCommand.builder()
+        EnrollPatientCommand command =
+            EnrollPatientCommand.builder()
                 .patientId(patientUuid)
                 .enrollmentId(enrollmentUuid)
                 .studyId(studyUuid)

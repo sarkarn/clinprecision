@@ -1,9 +1,9 @@
-package com.clinprecision.clinopsservice.studydatabase.controller;
+package com.clinprecision.clinopsservice.studydesign.build.controller;
 
-import com.clinprecision.clinopsservice.studydatabase.dto.*;
-import com.clinprecision.clinopsservice.studydatabase.service.StudyDatabaseBuildCommandService;
-import com.clinprecision.clinopsservice.studydatabase.service.StudyDatabaseBuildQueryService;
+import com.clinprecision.clinopsservice.studydesign.build.service.StudyDatabaseBuildCommandService;
+import com.clinprecision.clinopsservice.studydesign.build.service.StudyDatabaseBuildQueryService;
 
+import com.clinprecision.clinopsservice.studydesign.build.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,13 +1,13 @@
-package com.clinprecision.clinopsservice.protocolversion.service;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.service;
 
-import com.clinprecision.clinopsservice.entity.StudyEntity;
-import com.clinprecision.clinopsservice.protocolversion.entity.ProtocolVersionEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity.ProtocolVersionEntity;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionStatus;
-import com.clinprecision.clinopsservice.protocolversion.repository.ProtocolVersionReadRepository;
-import com.clinprecision.clinopsservice.service.CrossEntityStatusValidationService;
-import com.clinprecision.clinopsservice.service.CrossEntityStatusValidationService.CrossEntityValidationResult;
-import com.clinprecision.clinopsservice.study.service.StudyQueryService;
-import com.clinprecision.clinopsservice.study.exception.StudyStatusTransitionException;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.repository.ProtocolVersionReadRepository;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.service.CrossEntityStatusValidationService;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.service.CrossEntityStatusValidationService.CrossEntityValidationResult;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyQueryService;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.exception.StudyStatusTransitionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

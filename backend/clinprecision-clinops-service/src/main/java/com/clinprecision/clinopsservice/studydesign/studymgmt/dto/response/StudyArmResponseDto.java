@@ -1,8 +1,8 @@
-package com.clinprecision.clinopsservice.study.dto.response;
+package com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response;
 
 
-import com.clinprecision.clinopsservice.study.dto.InterventionDto;
-import com.clinprecision.clinopsservice.study.dto.RandomizationStrategyDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.InterventionDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.RandomizationStrategyDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

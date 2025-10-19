@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.dto;
+package com.clinprecision.clinopsservice.studydesign.design.arm.dto;
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;

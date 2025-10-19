@@ -1,4 +1,4 @@
-package com.clinprecision.clinopsservice.patientenrollment.domain.events;
+package com.clinprecision.clinopsservice.studyoperation.patientenrollment.domain.events;
 
 import lombok.Builder;
 import lombok.Getter;

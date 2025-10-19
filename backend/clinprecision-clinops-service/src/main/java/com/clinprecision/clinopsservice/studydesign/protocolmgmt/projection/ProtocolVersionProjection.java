@@ -1,7 +1,7 @@
-package com.clinprecision.clinopsservice.protocolversion.projection;
+package com.clinprecision.clinopsservice.studydesign.protocolmgmt.projection;
 
-import com.clinprecision.clinopsservice.protocolversion.entity.ProtocolVersionEntity;
-import com.clinprecision.clinopsservice.protocolversion.repository.ProtocolVersionReadRepository;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity.ProtocolVersionEntity;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.repository.ProtocolVersionReadRepository;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.events.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

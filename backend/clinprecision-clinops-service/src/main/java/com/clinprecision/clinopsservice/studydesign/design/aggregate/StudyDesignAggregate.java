@@ -1,11 +1,14 @@
-package com.clinprecision.clinopsservice.studydesign.aggregate;
+package com.clinprecision.clinopsservice.studydesign.design.aggregate;
 
-import com.clinprecision.clinopsservice.studydesign.domain.commands.*;
-import com.clinprecision.clinopsservice.studydesign.domain.events.*;
-import com.clinprecision.clinopsservice.studydesign.domain.model.FormAssignment;
-import com.clinprecision.clinopsservice.studydesign.domain.model.StudyArm;
-import com.clinprecision.clinopsservice.studydesign.domain.model.Visit;
-import com.clinprecision.clinopsservice.studydesign.domain.valueobjects.VisitWindow;
+import com.clinprecision.clinopsservice.studydesign.design.domain.commands.*;
+import com.clinprecision.clinopsservice.studydesign.design.domain.events.*;
+import com.clinprecision.clinopsservice.studydesign.design.model.FormAssignment;
+import com.clinprecision.clinopsservice.studydesign.design.model.StudyArm;
+import com.clinprecision.clinopsservice.studydesign.design.model.Visit;
+import com.clinprecision.clinopsservice.studydesign.design.model.VisitWindow;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.domain.events.StudyClosedEvent;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.domain.events.StudyDetailsUpdatedEvent;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.domain.events.StudyStatusChangedEvent;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;
@@ -15,7 +18,6 @@ import org.axonframework.modelling.command.AggregateLifecycle;
 import org.axonframework.spring.stereotype.Aggregate;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * StudyDesign Aggregate Root managing study arms, visits, and form assignments
@@ -206,7 +208,7 @@ public class StudyDesignAggregate {
     }
 
     @CommandHandler
-    public void handle(UpdateVisitCommand command) {
+    public void handle(UpdateVisitDefinitionCommand command) {
         log.info("Updating visit: {} in study design: {}", command.getVisitId(), studyDesignId);
         
         // Business Rule: Visit must exist
@@ -229,7 +231,7 @@ public class StudyDesignAggregate {
             );
         }
         
-        AggregateLifecycle.apply(VisitUpdatedEvent.from(
+        AggregateLifecycle.apply(VisitDefinitionUpdatedEvent.from(
             studyDesignId,
             command.getVisitId(),
             command.getName(),
@@ -244,7 +246,7 @@ public class StudyDesignAggregate {
     }
 
     @CommandHandler
-    public void handle(RemoveVisitCommand command) {
+    public void handle(RemoveVisitDefinitionCommand command) {
         log.info("Removing visit: {} from study design: {}", command.getVisitId(), studyDesignId);
         log.info("Current visits in aggregate: {} visits - IDs: {}", visits.size(), visits.keySet());
         
@@ -273,7 +275,7 @@ public class StudyDesignAggregate {
             );
         }
         
-        AggregateLifecycle.apply(VisitRemovedEvent.from(
+        AggregateLifecycle.apply(VisitDefinitionRemovedEvent.from(
             studyDesignId,
             command.getVisitId(),
             command.getReason(),
@@ -282,7 +284,7 @@ public class StudyDesignAggregate {
     }
 
     @CommandHandler
-    public void handle(AssignFormToVisitCommand command) {
+    public void handle(AssignFormToVisitDefinitionCommand command) {
         log.info("Assigning form: {} to visit: {} in study design: {}", 
             command.getFormId(), command.getVisitId(), studyDesignId);
         
@@ -438,7 +440,7 @@ public class StudyDesignAggregate {
     }
 
     @EventSourcingHandler
-    public void on(VisitUpdatedEvent event) {
+    public void on(VisitDefinitionUpdatedEvent event) {
         Visit existingVisit = this.visits.get(event.getVisitId());
         if (existingVisit != null) {
             Visit updatedVisit = existingVisit.withUpdatedDetails(
@@ -455,7 +457,7 @@ public class StudyDesignAggregate {
     }
 
     @EventSourcingHandler
-    public void on(VisitRemovedEvent event) {
+    public void on(VisitDefinitionRemovedEvent event) {
         this.visits.remove(event.getVisitId());
         log.debug("Visit removed: {} from design: {}", event.getVisitId(), studyDesignId);
     }
