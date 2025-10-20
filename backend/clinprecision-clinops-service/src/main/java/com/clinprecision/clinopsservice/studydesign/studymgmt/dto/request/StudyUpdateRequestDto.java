@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Request DTO for updating an existing study via DDD aggregate
@@ -61,6 +62,8 @@ public class StudyUpdateRequestDto {
     // Additional updates
     private String notes;
     private String riskLevel;
+    private List<StudyOrganizationAssociationRequestDto> organizations;
+    private String metadata;
 }
 
 

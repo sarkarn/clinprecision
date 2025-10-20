@@ -1,10 +1,12 @@
 package com.clinprecision.clinopsservice.studydesign.studymgmt.domain.commands;
 
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyOrganizationAssociation;
 import lombok.Builder;
 import lombok.Value;
 import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -66,6 +68,8 @@ public class UpdateStudyCommand {
     // Additional fields
     String notes;
     String riskLevel;
+    List<StudyOrganizationAssociation> organizationAssociations;
+    String metadata;
     
     // Audit
     UUID userId;

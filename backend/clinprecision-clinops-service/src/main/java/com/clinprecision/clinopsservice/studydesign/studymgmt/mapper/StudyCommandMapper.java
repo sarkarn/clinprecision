@@ -2,11 +2,19 @@ package com.clinprecision.clinopsservice.studydesign.studymgmt.mapper;
 
 
 import com.clinprecision.clinopsservice.studydesign.studymgmt.domain.commands.*;
-import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.StudyCreateRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.StudyOrganizationAssociationRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.StudyUpdateRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.SuspendStudyRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.TerminateStudyRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.WithdrawStudyRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyOrganizationAssociation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Mapper for converting Study Request DTOs to Domain Commands
@@ -62,6 +70,8 @@ public class StudyCommandMapper {
                 .controlType(dto.getControlType())
                 .notes(dto.getNotes())
                 .riskLevel(dto.getRiskLevel())
+                .organizationAssociations(mapAssociations(dto.getOrganizations()))
+                .metadata(dto.getMetadata())
                 .userId(userId)
                 .userName(userName)
                 .build();
@@ -109,9 +119,25 @@ public class StudyCommandMapper {
                 .controlType(dto.getControlType())
                 .notes(dto.getNotes())
                 .riskLevel(dto.getRiskLevel())
+                .organizationAssociations(mapAssociations(dto.getOrganizations()))
+                .metadata(dto.getMetadata())
                 .userId(userId)
                 .userName(userName)
                 .build();
+    }
+
+    private List<StudyOrganizationAssociation> mapAssociations(List<StudyOrganizationAssociationRequestDto> associationDtos) {
+        if (associationDtos == null) {
+            return null;
+        }
+
+        return associationDtos.stream()
+                .map(dto -> StudyOrganizationAssociation.builder()
+                        .organizationId(dto.getOrganizationId())
+                        .role(dto.getRole())
+                        .isPrimary(dto.getIsPrimary())
+                        .build())
+                .collect(Collectors.toList());
     }
     
     /**

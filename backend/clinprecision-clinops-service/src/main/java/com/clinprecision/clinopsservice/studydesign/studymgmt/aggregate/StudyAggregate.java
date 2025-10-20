@@ -2,6 +2,7 @@ package com.clinprecision.clinopsservice.studydesign.studymgmt.aggregate;
 
 import com.clinprecision.clinopsservice.studydesign.studymgmt.domain.commands.*;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.event.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyOrganizationAssociation;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -86,6 +88,8 @@ public class StudyAggregate {
     // Additional fields
     private String notes;
     private String riskLevel;
+    private List<StudyOrganizationAssociation> organizationAssociations;
+    private String metadata;
     
     // Required for Axon Framework
     protected StudyAggregate() {
@@ -146,6 +150,10 @@ public class StudyAggregate {
                 .controlType(command.getControlType())
                 .notes(command.getNotes())
                 .riskLevel(command.getRiskLevel())
+        .organizationAssociations(command.getOrganizationAssociations() != null
+            ? List.copyOf(command.getOrganizationAssociations())
+            : null)
+        .metadata(command.getMetadata())
                 .userId(command.getUserId())
                 .userName(command.getUserName())
                 .timestamp(Instant.now())
@@ -220,6 +228,10 @@ public class StudyAggregate {
                 .controlType(command.getControlType())
                 .notes(command.getNotes())
                 .riskLevel(command.getRiskLevel())
+        .organizationAssociations(command.getOrganizationAssociations() != null
+            ? List.copyOf(command.getOrganizationAssociations())
+            : null)
+        .metadata(command.getMetadata())
                 .userId(command.getUserId())
                 .userName(command.getUserName())
                 .timestamp(Instant.now())
@@ -482,6 +494,10 @@ public class StudyAggregate {
         this.controlType = event.getControlType();
         this.notes = event.getNotes();
         this.riskLevel = event.getRiskLevel();
+    this.organizationAssociations = event.getOrganizationAssociations() != null
+        ? List.copyOf(event.getOrganizationAssociations())
+        : null;
+    this.metadata = event.getMetadata();
     }
     
     /**
@@ -523,6 +539,10 @@ public class StudyAggregate {
         if (event.getControlType() != null) this.controlType = event.getControlType();
         if (event.getNotes() != null) this.notes = event.getNotes();
         if (event.getRiskLevel() != null) this.riskLevel = event.getRiskLevel();
+        if (event.getOrganizationAssociations() != null) {
+            this.organizationAssociations = List.copyOf(event.getOrganizationAssociations());
+        }
+        if (event.getMetadata() != null) this.metadata = event.getMetadata();
     }
     
     /**

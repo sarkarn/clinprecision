@@ -1,8 +1,11 @@
 package com.clinprecision.clinopsservice.studydesign.studymgmt.projection;
 
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.OrganizationRole;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.OrganizationStudyEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyStatusEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.event.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyOrganizationAssociation;
 import com.clinprecision.common.entity.UserEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRepository;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyStatusRepository;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -105,6 +109,11 @@ public class StudyProjection {
                 if (existingEntity.getUpdatedAt() == null) {
                     existingEntity.setUpdatedAt(LocalDateTime.now());
                 }
+                if (existingEntity.getMetadata() == null && event.getMetadata() != null) {
+                    existingEntity.setMetadata(event.getMetadata());
+                }
+
+                synchronizeOrganizationAssociations(existingEntity, event.getOrganizationAssociations());
 
                 studyRepository.save(existingEntity);
                 return;
@@ -157,6 +166,7 @@ public class StudyProjection {
             entity.setRandomizedSubjects(0);
             entity.setCompletedSubjects(0);
             entity.setWithdrawnSubjects(0);
+            entity.setMetadata(event.getMetadata());
             
             // Set lookup table relationships
             if (event.getStudyStatusId() != null) {
@@ -182,6 +192,8 @@ public class StudyProjection {
             entity.setCreatedBy(resolveAuditUserId(event.getUserId()));
             entity.setCreatedAt(LocalDateTime.now());
             entity.setUpdatedAt(LocalDateTime.now());
+
+            synchronizeOrganizationAssociations(entity, event.getOrganizationAssociations());
             
             // Save to database
             StudyEntity saved = studyRepository.save(entity);
@@ -259,6 +271,9 @@ public class StudyProjection {
 //            if (event.getEstimatedCompletion() != null) {
 //                entity.setEstimatedCompletion(event.getEstimatedCompletion());
 //            }
+            if (event.getMetadata() != null) {
+                entity.setMetadata(event.getMetadata());
+            }
             
             // Update version fields (PROTOCOL VERSION FIELDS)
             if (event.getVersion() != null) {
@@ -285,6 +300,10 @@ public class StudyProjection {
             if (event.getRegulatoryStatusId() != null) {
                 regulatoryStatusRepository.findById(event.getRegulatoryStatusId())
                     .ifPresent(entity::setRegulatoryStatus);
+            }
+
+            if (event.getOrganizationAssociations() != null) {
+                synchronizeOrganizationAssociations(entity, event.getOrganizationAssociations());
             }
             
             // Update audit
@@ -508,6 +527,46 @@ public class StudyProjection {
                 logger.warn("No matching user found for aggregate UUID {}; leaving audit reference null to avoid FK violation", userUuid);
                 return null;
             });
+    }
+
+    private void synchronizeOrganizationAssociations(StudyEntity entity, java.util.List<StudyOrganizationAssociation> associations) {
+        if (associations == null) {
+            return;
+        }
+
+        // Remove existing associations cleanly so orphanRemoval will delete rows.
+        new ArrayList<>(entity.getOrganizationStudies()).forEach(entity::removeOrganizationStudy);
+
+        associations.forEach(association -> {
+            if (association == null || association.getOrganizationId() == null) {
+                logger.warn("Skipping organization association with missing organizationId for study {}", entity.getAggregateUuid());
+                return;
+            }
+
+            OrganizationRole role = resolveOrganizationRole(association.getRole());
+            if (role == null) {
+                logger.warn("Skipping organization association for study {} due to invalid role value '{}'", entity.getAggregateUuid(), association.getRole());
+                return;
+            }
+
+            OrganizationStudyEntity organizationStudy = new OrganizationStudyEntity();
+            organizationStudy.setOrganizationId(association.getOrganizationId());
+            organizationStudy.setRole(role);
+            organizationStudy.setIsPrimary(Boolean.TRUE.equals(association.getIsPrimary()));
+            entity.addOrganizationStudy(organizationStudy);
+        });
+    }
+
+    private OrganizationRole resolveOrganizationRole(String roleValue) {
+        if (roleValue == null || roleValue.isBlank()) {
+            return null;
+        }
+
+        try {
+            return OrganizationRole.valueOf(roleValue.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 }
 

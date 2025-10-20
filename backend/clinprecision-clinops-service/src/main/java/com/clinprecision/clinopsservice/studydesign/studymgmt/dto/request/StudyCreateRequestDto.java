@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Request DTO for creating a new study via DDD aggregate
@@ -67,6 +68,8 @@ public class StudyCreateRequestDto {
     // Optional fields - Additional
     private String notes;
     private String riskLevel;
+    private List<StudyOrganizationAssociationRequestDto> organizations;
+    private String metadata;
 }
 
 
