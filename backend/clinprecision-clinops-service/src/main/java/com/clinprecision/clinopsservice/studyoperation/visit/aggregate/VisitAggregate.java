@@ -133,6 +133,59 @@ public class VisitAggregate {
         logger.debug("Visit aggregate state updated for visitId: {}", visitId);
     }
 
+    /**
+     * Command handler for updating visit status
+     * 
+     * @param command UpdateVisitStatusCommand containing new status and user ID
+     */
+    @CommandHandler
+    public void handle(com.clinprecision.clinopsservice.studyoperation.visit.domain.commands.UpdateVisitStatusCommand command) {
+        logger.info("Updating visit status for visitId: {}, oldStatus: {}, newStatus: {}", 
+                   this.visitId, this.status, command.getNewStatus());
+        
+        // Business rule validation
+        if (command.getNewStatus() == null || command.getNewStatus().trim().isEmpty()) {
+            throw new IllegalArgumentException("New status cannot be null or empty");
+        }
+        if (command.getUpdatedBy() == null) {
+            throw new IllegalArgumentException("UpdatedBy user ID cannot be null");
+        }
+        
+        // Don't allow status update if already the same
+        if (this.status != null && this.status.equals(command.getNewStatus())) {
+            logger.warn("Visit status is already {}, skipping update", this.status);
+            return;
+        }
+        
+        // Emit domain event
+        AggregateLifecycle.apply(new com.clinprecision.clinopsservice.studyoperation.visit.domain.events.VisitStatusChangedEvent(
+            command.getAggregateUuid(),
+            this.status, // old status
+            command.getNewStatus(),
+            command.getUpdatedBy(),
+            command.getNotes(),
+            System.currentTimeMillis()
+        ));
+        
+        logger.info("VisitStatusChangedEvent emitted for visitId: {}", this.visitId);
+    }
+
+    /**
+     * Event sourcing handler for VisitStatusChangedEvent
+     * Updates the aggregate state based on the event
+     * 
+     * @param event VisitStatusChangedEvent containing status change details
+     */
+    @EventSourcingHandler
+    public void on(com.clinprecision.clinopsservice.studyoperation.visit.domain.events.VisitStatusChangedEvent event) {
+        logger.debug("Handling VisitStatusChangedEvent for visitId: {}, oldStatus: {}, newStatus: {}", 
+                    this.visitId, event.getOldStatus(), event.getNewStatus());
+        
+        this.status = event.getNewStatus();
+        
+        logger.debug("Visit aggregate status updated to: {}", this.status);
+    }
+
     // Getters for aggregate state (used in business logic methods)
     public UUID getVisitId() {
         return visitId;

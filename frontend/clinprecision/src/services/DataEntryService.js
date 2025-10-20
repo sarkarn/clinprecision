@@ -25,8 +25,9 @@ export const getFormDefinition = async (formId) => {
   console.log('DataEntryService: getFormDefinition called with formId:', formId);
   
   try {
-    // Call real API to get form definition
-    const response = await ApiService.get(`/clinops-ws/api/form-definitions/${formId}`);
+    // Call real API to get form definition (Module 1.3 Phase 2 - NEW DDD-aligned URL)
+    const response = await ApiService.get(`/clinops-ws/api/v1/study-design/form-definitions/${formId}`);
+    // OLD URL (deprecated - sunset: April 19, 2026): /clinops-ws/api/form-definitions/${formId}
     console.log('DataEntryService: Received form definition from API:', response.data);
     
     // Map backend DTO to frontend format expected by FormEntry component
@@ -392,5 +393,25 @@ export const getVisitDetails = async (subjectId, visitId) => {
       timepoint: 0,
       forms: []
     };
+  }
+};
+
+// Start a visit (change status from not_started to in_progress)
+export const startVisit = async (visitId, userId) => {
+  console.log('DataEntryService: startVisit called - visitId:', visitId, 'userId:', userId);
+  
+  try {
+    const response = await ApiService.put(`/clinops-ws/api/v1/visits/${visitId}/status`, {
+      newStatus: 'IN_PROGRESS',
+      updatedBy: userId,
+      notes: 'Visit started by CRC'
+    });
+    
+    console.log('DataEntryService: Visit started successfully:', response.data);
+    return { success: true, newStatus: response.data.newStatus };
+    
+  } catch (error) {
+    console.error('DataEntryService: Error starting visit:', error);
+    return { success: false, error: error.message };
   }
 };

@@ -1,9 +1,13 @@
 package com.clinprecision.clinopsservice.studydesign.protocolmgmt.controller;
 
+import com.clinprecision.clinopsservice.common.util.DeprecationHeaderUtil;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.api.ProtocolApiConstants;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionStatus;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.dto.VersionResponse;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity.ProtocolVersionEntity;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.service.ProtocolVersionQueryService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,20 +18,55 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Protocol Version Query Controller - Read operations (Queries)
+ * Protocol Version Query Controller - DDD/CQRS Read Operations
  * 
- * Handles all read operations for protocol versions.
- * Queries the read model (ProtocolVersionEntity) for optimized queries.
+ * <p>Handles all read operations for protocol versions following CQRS pattern.</p>
+ * <p>Queries the read model (ProtocolVersionEntity) for optimized queries.</p>
  * 
- * Endpoints:
- * - GET /api/protocol-versions/{id} - Get version by UUID
- * - GET /api/protocol-versions/study/{studyUuid} - Get all versions for study
- * - GET /api/protocol-versions/study/{studyUuid}/active - Get active version
- * - GET /api/protocol-versions/status/{status} - Get versions by status
- * - GET /api/protocol-versions/awaiting-approval - Get versions awaiting approval
+ * <p><b>⚠️ URL MIGRATION IN PROGRESS</b></p>
+ * <p>This controller supports both old and new URL patterns during the migration period.
+ * Old URLs are deprecated and will be removed on April 19, 2026.</p>
+ * 
+ * <p><b>Old URLs (DEPRECATED):</b></p>
+ * <ul>
+ *   <li>GET /api/protocol-versions/{id} - Get version by UUID</li>
+ *   <li>GET /api/protocol-versions/study/{studyUuid} - Get all versions for study</li>
+ *   <li>GET /api/protocol-versions/study/{studyUuid}/active - Get active version</li>
+ *   <li>GET /api/protocol-versions/study/{studyUuid}/status/{status} - Get versions by study and status</li>
+ *   <li>GET /api/protocol-versions/status/{status} - Get versions by status</li>
+ *   <li>GET /api/protocol-versions/awaiting-approval - Get versions awaiting approval</li>
+ *   <li>GET /api/protocol-versions/db/{id} - Get version by database ID</li>
+ *   <li>GET /api/protocol-versions/study/{studyUuid}/version/{versionNumber}/exists - Check if version exists</li>
+ *   <li>GET /api/protocol-versions/study/{studyUuid}/status/{status}/count - Count versions</li>
+ *   <li>GET /api/protocol-versions/all - Get all versions</li>
+ * </ul>
+ * 
+ * <p><b>New URLs (RECOMMENDED):</b></p>
+ * <ul>
+ *   <li>GET /api/v1/study-design/protocol-versions/{id} - Get version by UUID</li>
+ *   <li>GET /api/v1/study-design/studies/{studyUuid}/protocol-versions - Get versions for study</li>
+ *   <li>GET /api/v1/study-design/studies/{studyUuid}/protocol-versions/active - Get active version</li>
+ *   <li>GET /api/v1/study-design/studies/{studyUuid}/protocol-versions?status={status} - Filter by status</li>
+ *   <li>GET /api/v1/study-design/protocol-versions?status={status} - Get versions by status</li>
+ *   <li>GET /api/v1/study-design/protocol-versions?status=awaiting_approval - Awaiting approval</li>
+ *   <li>GET /api/v1/study-design/protocol-versions/by-database-id/{id} - Get by database ID</li>
+ *   <li>GET /api/v1/study-design/studies/{studyUuid}/protocol-versions/{versionNumber}/exists - Check exists</li>
+ *   <li>GET /api/v1/study-design/studies/{studyUuid}/protocol-versions/count?status={status} - Count versions</li>
+ *   <li>GET /api/v1/study-design/protocol-versions?includeAll=true - Get all versions</li>
+ * </ul>
+ * 
+ * <p><b>Backward Compatibility:</b> Both URL patterns work during migration period.
+ * Clients using old URLs will receive deprecation headers.</p>
+ * 
+ * @see ProtocolApiConstants
+ * @see ProtocolVersionQueryService
+ * @since October 2025 (URL Refactoring)
  */
 @RestController
-@RequestMapping("/api/protocol-versions")
+@RequestMapping({
+    ProtocolApiConstants.PROTOCOL_VERSIONS_PATH,      // NEW: /api/v1/study-design/protocol-versions
+    ProtocolApiConstants.LEGACY_PROTOCOL_VERSIONS     // OLD (deprecated): /api/protocol-versions
+})
 @RequiredArgsConstructor
 @Slf4j
 public class ProtocolVersionQueryController {
@@ -36,10 +75,30 @@ public class ProtocolVersionQueryController {
 
     /**
      * Get version by aggregate UUID
-     * GET /api/protocol-versions/{id}
+     * 
+     * <p><b>New URL:</b> GET /api/v1/study-design/protocol-versions/{id}</p>
+     * <p><b>Old URL:</b> GET /api/protocol-versions/{id} (deprecated)</p>
+     * 
+     * @param id the protocol version UUID
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with version details
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<VersionResponse> getVersionByUuid(@PathVariable UUID id) {
+    @GetMapping(ProtocolApiConstants.BY_ID)
+    public ResponseEntity<VersionResponse> getVersionByUuid(
+            @PathVariable UUID id,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.PROTOCOL_VERSIONS_PATH + ProtocolApiConstants.BY_ID,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
+        
         log.info("REST: Querying version by UUID: {}", id);
         
         return queryService.findByAggregateUuid(id)
@@ -49,29 +108,94 @@ public class ProtocolVersionQueryController {
     }
 
     /**
-     * Get all versions for a study
-     * GET /api/protocol-versions/study/{studyUuid}
+     * Get all versions for a study (with optional status filter)
+     * 
+     * <p><b>New URLs:</b></p>
+     * <ul>
+     *   <li>GET /api/v1/study-design/studies/{studyUuid}/protocol-versions</li>
+     *   <li>GET /api/v1/study-design/studies/{studyUuid}/protocol-versions?status=DRAFT</li>
+     * </ul>
+     * 
+     * <p><b>Old URLs (deprecated):</b></p>
+     * <ul>
+     *   <li>GET /api/protocol-versions/study/{studyUuid}</li>
+     *   <li>GET /api/protocol-versions/study/{studyUuid}/status/{status}</li>
+     * </ul>
+     * 
+     * @param studyUuid the study UUID
+     * @param status optional status filter (query parameter)
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with list of versions
      */
-    @GetMapping("/study/{studyUuid}")
-    public ResponseEntity<List<VersionResponse>> getVersionsByStudyUuid(@PathVariable UUID studyUuid) {
-        log.info("REST: Querying versions for study: {}", studyUuid);
+    @GetMapping(value = {
+        "/study/{studyUuid}",                           // OLD (deprecated)
+        "/study/{studyUuid}/status/{status}"            // OLD (deprecated) - for backward compatibility
+    })
+    public ResponseEntity<List<VersionResponse>> getVersionsByStudyUuid(
+            @PathVariable UUID studyUuid,
+            @PathVariable(required = false) VersionStatus status,
+            @RequestParam(required = false) VersionStatus statusParam,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         
-        List<VersionResponse> versions = queryService.findByStudyUuidOrderedByDate(studyUuid)
-            .stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.STUDIES_PATH + ProtocolApiConstants.BY_STUDY,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
         
-        return ResponseEntity.ok(versions);
+        // Determine which status to use (path variable takes precedence for backward compatibility)
+        VersionStatus filterStatus = (status != null) ? status : statusParam;
+        
+        if (filterStatus != null) {
+            log.info("REST: Querying versions for study {} with status {}", studyUuid, filterStatus);
+            List<VersionResponse> versions = queryService.findByStudyUuidAndStatus(studyUuid, filterStatus)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+            return ResponseEntity.ok(versions);
+        } else {
+            log.info("REST: Querying versions for study: {}", studyUuid);
+            List<VersionResponse> versions = queryService.findByStudyUuidOrderedByDate(studyUuid)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+            return ResponseEntity.ok(versions);
+        }
     }
 
     /**
      * Get active version for a study
-     * GET /api/protocol-versions/study/{studyUuid}/active
      * 
-     * CRITICAL: Only one version should be active per study
+     * <p><b>New URL:</b> GET /api/v1/study-design/studies/{studyUuid}/protocol-versions/active</p>
+     * <p><b>Old URL:</b> GET /api/protocol-versions/study/{studyUuid}/active (deprecated)</p>
+     * 
+     * <p><b>⚠️ CRITICAL:</b> Only one version should be active per study.</p>
+     * 
+     * @param studyUuid the study UUID
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with active version
      */
     @GetMapping("/study/{studyUuid}/active")
-    public ResponseEntity<VersionResponse> getActiveVersionByStudyUuid(@PathVariable UUID studyUuid) {
+    public ResponseEntity<VersionResponse> getActiveVersionByStudyUuid(
+            @PathVariable UUID studyUuid,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.STUDIES_PATH + ProtocolApiConstants.BY_STUDY_ACTIVE,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
+        
         log.info("REST: Querying active version for study: {}", studyUuid);
         
         return queryService.findActiveVersionByStudyUuid(studyUuid)
@@ -81,62 +205,123 @@ public class ProtocolVersionQueryController {
     }
 
     /**
-     * Get versions for a study by status
-     * GET /api/protocol-versions/study/{studyUuid}/status/{status}
+     * Get versions by status (with optional includeAll flag)
+     * 
+     * <p><b>New URLs:</b></p>
+     * <ul>
+     *   <li>GET /api/v1/study-design/protocol-versions?status=DRAFT</li>
+     *   <li>GET /api/v1/study-design/protocol-versions?status=awaiting_approval</li>
+     *   <li>GET /api/v1/study-design/protocol-versions?includeAll=true</li>
+     * </ul>
+     * 
+     * <p><b>Old URLs (deprecated):</b></p>
+     * <ul>
+     *   <li>GET /api/protocol-versions/status/{status}</li>
+     *   <li>GET /api/protocol-versions/awaiting-approval</li>
+     *   <li>GET /api/protocol-versions/all</li>
+     * </ul>
+     * 
+     * @param status optional status filter (query parameter)
+     * @param pathStatus status from path variable (for backward compatibility)
+     * @param includeAll flag to include all versions
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with list of versions
      */
-    @GetMapping("/study/{studyUuid}/status/{status}")
-    public ResponseEntity<List<VersionResponse>> getVersionsByStudyUuidAndStatus(
-            @PathVariable UUID studyUuid,
-            @PathVariable VersionStatus status) {
+    @GetMapping(value = {
+        "",                                    // NEW: query param based
+        "/status/{pathStatus}",                // OLD (deprecated): path-based
+        "/awaiting-approval",                  // OLD (deprecated): specific endpoint
+        "/all"                                 // OLD (deprecated): specific endpoint
+    })
+    public ResponseEntity<List<VersionResponse>> getVersionsByStatus(
+            @RequestParam(required = false) VersionStatus status,
+            @PathVariable(required = false) VersionStatus pathStatus,
+            @RequestParam(required = false, defaultValue = "false") Boolean includeAll,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         
-        log.info("REST: Querying versions for study {} with status {}", studyUuid, status);
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.PROTOCOL_VERSIONS_PATH,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
         
-        List<VersionResponse> versions = queryService.findByStudyUuidAndStatus(studyUuid, status)
+        // Determine which status to use (path variable takes precedence for backward compatibility)
+        VersionStatus filterStatus = (pathStatus != null) ? pathStatus : status;
+        
+        // Handle /awaiting-approval endpoint (backward compatibility)
+        String requestUri = httpRequest.getRequestURI();
+        if (requestUri.endsWith("/awaiting-approval")) {
+            log.info("REST: Querying versions awaiting regulatory approval");
+            List<VersionResponse> versions = queryService.findVersionsAwaitingRegulatoryApproval()
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+            return ResponseEntity.ok(versions);
+        }
+        
+        // Handle /all endpoint (backward compatibility)
+        if (requestUri.endsWith("/all") || includeAll) {
+            log.info("REST: Querying all versions");
+            List<VersionResponse> versions = queryService.findAll()
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+            return ResponseEntity.ok(versions);
+        }
+        
+        // Handle status filter
+        if (filterStatus != null) {
+            log.info("REST: Querying versions by status: {}", filterStatus);
+            List<VersionResponse> versions = queryService.findByStatus(filterStatus)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+            return ResponseEntity.ok(versions);
+        }
+        
+        // Default: return all versions
+        log.info("REST: Querying all versions (default)");
+        List<VersionResponse> versions = queryService.findAll()
             .stream()
             .map(this::toResponse)
             .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(versions);
-    }
-
-    /**
-     * Get versions by status
-     * GET /api/protocol-versions/status/{status}
-     */
-    @GetMapping("/status/{status}")
-    public ResponseEntity<List<VersionResponse>> getVersionsByStatus(@PathVariable VersionStatus status) {
-        log.info("REST: Querying versions by status: {}", status);
-        
-        List<VersionResponse> versions = queryService.findByStatus(status)
-            .stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(versions);
-    }
-
-    /**
-     * Get versions awaiting regulatory approval
-     * GET /api/protocol-versions/awaiting-approval
-     */
-    @GetMapping("/awaiting-approval")
-    public ResponseEntity<List<VersionResponse>> getVersionsAwaitingApproval() {
-        log.info("REST: Querying versions awaiting regulatory approval");
-        
-        List<VersionResponse> versions = queryService.findVersionsAwaitingRegulatoryApproval()
-            .stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
-        
         return ResponseEntity.ok(versions);
     }
 
     /**
      * Get version by database ID
-     * GET /api/protocol-versions/db/{id}
+     * 
+     * <p><b>New URL:</b> GET /api/v1/study-design/protocol-versions/by-database-id/{id}</p>
+     * <p><b>Old URL:</b> GET /api/protocol-versions/db/{id} (deprecated)</p>
+     * 
+     * @param id the database ID
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with version details
      */
-    @GetMapping("/db/{id}")
-    public ResponseEntity<VersionResponse> getVersionById(@PathVariable Long id) {
+    @GetMapping(value = {
+        ProtocolApiConstants.BY_DATABASE_ID,   // NEW: /by-database-id/{id}
+        "/db/{id}"                              // OLD (deprecated): /db/{id}
+    })
+    public ResponseEntity<VersionResponse> getVersionById(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.PROTOCOL_VERSIONS_PATH + ProtocolApiConstants.BY_DATABASE_ID,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
+        
         log.info("REST: Querying version by database ID: {}", id);
         
         return queryService.findById(id)
@@ -147,12 +332,31 @@ public class ProtocolVersionQueryController {
 
     /**
      * Check if version number exists for a study
-     * GET /api/protocol-versions/study/{studyUuid}/version/{versionNumber}/exists
+     * 
+     * <p><b>New URL:</b> GET /api/v1/study-design/studies/{studyUuid}/protocol-versions/{versionNumber}/exists</p>
+     * <p><b>Old URL:</b> GET /api/protocol-versions/study/{studyUuid}/version/{versionNumber}/exists (deprecated)</p>
+     * 
+     * @param studyUuid the study UUID
+     * @param versionNumber the version number to check
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with boolean indicating existence
      */
     @GetMapping("/study/{studyUuid}/version/{versionNumber}/exists")
     public ResponseEntity<Boolean> versionNumberExists(
             @PathVariable UUID studyUuid,
-            @PathVariable String versionNumber) {
+            @PathVariable String versionNumber,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.STUDIES_PATH + ProtocolApiConstants.BY_STUDY_VERSION_EXISTS,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
         
         log.info("REST: Checking if version {} exists for study {}", versionNumber, studyUuid);
         
@@ -162,33 +366,50 @@ public class ProtocolVersionQueryController {
 
     /**
      * Count versions by status for a study
-     * GET /api/protocol-versions/study/{studyUuid}/status/{status}/count
+     * 
+     * <p><b>New URL:</b> GET /api/v1/study-design/studies/{studyUuid}/protocol-versions/count?status=DRAFT</p>
+     * <p><b>Old URL:</b> GET /api/protocol-versions/study/{studyUuid}/status/{status}/count (deprecated)</p>
+     * 
+     * @param studyUuid the study UUID
+     * @param status status from query parameter
+     * @param pathStatus status from path variable (for backward compatibility)
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with count
      */
-    @GetMapping("/study/{studyUuid}/status/{status}/count")
+    @GetMapping(value = {
+        "/study/{studyUuid}/protocol-versions/count",           // NEW: query param based
+        "/study/{studyUuid}/status/{pathStatus}/count"          // OLD (deprecated): path-based
+    })
     public ResponseEntity<Long> countVersionsByStatus(
             @PathVariable UUID studyUuid,
-            @PathVariable VersionStatus status) {
+            @RequestParam(required = false) VersionStatus status,
+            @PathVariable(required = false) VersionStatus pathStatus,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         
-        log.info("REST: Counting versions for study {} with status {}", studyUuid, status);
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.STUDIES_PATH + ProtocolApiConstants.BY_STUDY_COUNT,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
         
-        long count = queryService.countByStudyUuidAndStatus(studyUuid, status);
-        return ResponseEntity.ok(count);
-    }
-
-    /**
-     * Get all versions (admin endpoint)
-     * GET /api/protocol-versions/all
-     */
-    @GetMapping("/all")
-    public ResponseEntity<List<VersionResponse>> getAllVersions() {
-        log.info("REST: Querying all versions");
+        // Determine which status to use (path variable takes precedence for backward compatibility)
+        VersionStatus filterStatus = (pathStatus != null) ? pathStatus : status;
         
-        List<VersionResponse> versions = queryService.findAll()
-            .stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(versions);
+        if (filterStatus != null) {
+            log.info("REST: Counting versions for study {} with status {}", studyUuid, filterStatus);
+            long count = queryService.countByStudyUuidAndStatus(studyUuid, filterStatus);
+            return ResponseEntity.ok(count);
+        } else {
+            log.info("REST: Counting all versions for study {}", studyUuid);
+            // Count all versions for the study
+            long count = queryService.findByStudyUuidOrderedByDate(studyUuid).size();
+            return ResponseEntity.ok(count);
+        }
     }
 
     /**

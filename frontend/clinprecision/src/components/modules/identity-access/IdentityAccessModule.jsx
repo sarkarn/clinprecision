@@ -2,13 +2,14 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import IAMDashboard from './IAMDashboard';
 import UserList from './users/UserList';
-// Temporarily import from old admin folder until migration is complete
-import UserForm from '../admin/UserForm';
-import UserTypeList from '../admin/UserTypeList';
-import UserTypeForm from '../admin/UserTypeForm';
-import UserStudyRoleList from '../admin/UserStudyRoleList';
-import UserStudyRoleForm from '../admin/UserStudyRoleForm';
-// Import other IAM components as they are migrated
+// Migrated components - now in proper locations
+import UserForm from './users/UserForm';
+import UserTypeList from './users/UserTypeList';
+import UserTypeForm from './users/UserTypeForm';
+import UserStudyRoleList from './roles/UserStudyRoleList';
+import UserStudyRoleForm from './roles/UserStudyRoleForm';
+import UserStudyRoleBulkAssignment from './roles/UserStudyRoleBulkAssignment';
+import StudyTeamManagement from './roles/StudyTeamManagement';
 
 /**
  * Identity & Access Management Module Router
@@ -27,9 +28,8 @@ const IdentityAccessModule = () => {
             <Route path="/study-assignments" element={<UserStudyRoleList />} />
             <Route path="/study-assignments/create" element={<UserStudyRoleForm />} />
             <Route path="/study-assignments/edit/:id" element={<UserStudyRoleForm />} />
-            {/* Add more routes as components are migrated:
-      <Route path="/study-teams/:studyId" element={<StudyTeamManagement />} />
-      */}
+            <Route path="/study-assignments/bulk-assign" element={<UserStudyRoleBulkAssignment />} />
+            <Route path="/study-teams/:studyId" element={<StudyTeamManagement />} />
             <Route path="*" element={<Navigate to="/identity-access" replace />} />
         </Routes>
     );

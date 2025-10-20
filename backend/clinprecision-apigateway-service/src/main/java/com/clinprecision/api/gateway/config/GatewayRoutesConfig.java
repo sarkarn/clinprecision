@@ -165,8 +165,20 @@ public class GatewayRoutesConfig {
                     .filters(f -> f
                             .removeRequestHeader("Cookie")
                             .rewritePath("/clinops-ws/api/(?<segment>.*)", "/api/${segment}")
-                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId, Deprecation, Sunset, Link, X-API-Warn")
                             .filter(authFilter)
+                    )
+                    .uri("lb://clinops-ws")
+                )
+                
+                // Study Design Module - New DDD-aligned routes (highest priority)
+                .route("clinops-study-design-v1", r -> r
+                    .path("/api/v1/study-design/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId, Deprecation, Sunset, Link, X-API-Warn")
                     )
                     .uri("lb://clinops-ws")
                 )
@@ -195,16 +207,111 @@ public class GatewayRoutesConfig {
                     .uri("lb://clinops-ws")
                 )
                 
-                // Clinical Operations Service - Direct routes for studies, arms, visits, study-versions
+                // Clinical Operations Service - Direct routes for studies, arms, visits, protocol-versions, study-versions (backward compatibility)
                 .route("clinops-direct", r -> r
-                    .path("/studies/**", "/arms/**", "/api/studies/**", "/api/arms/**", "/api/visits/**", "/api/study-versions/**")
+                    .path("/studies/**", "/arms/**", "/api/studies/**", "/api/arms/**", "/api/visits/**", "/api/protocol-versions/**", "/api/study-versions/**")
                     .and()
                     .method("GET","POST","PUT","DELETE","PATCH")
                     .and()
                     .header("Authorization", "Bearer (.*)")
                     .filters(f -> f
                             .removeRequestHeader("Cookie")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId, Deprecation, Sunset, Link, X-API-Warn")
+                    )
+                    .uri("lb://clinops-ws")
+                )
+                
+                // Module 1.3: Study Design Management - Legacy routes (deprecated)
+                // These routes redirect old URLs to clinops-ws where dual @RequestMapping handlers will add deprecation headers
+                .route("clinops-study-design-legacy", r -> r
+                    .path("/api/clinops/study-design/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId, Deprecation, Sunset, Link, X-API-Warn")
+                    )
+                    .uri("lb://clinops-ws")
+                )
+                
+                .route("clinops-form-bindings-legacy", r -> r
+                    .path("/api/form-bindings/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId, Deprecation, Sunset, Link, X-API-Warn")
+                    )
+                    .uri("lb://clinops-ws")
+                )
+                
+                // Module 1.3 Phase 2: Form Definitions & Templates - Legacy routes (deprecated)
+                .route("clinops-form-definitions-legacy", r -> r
+                    .path("/api/form-definitions/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId, Deprecation, Sunset, Link, X-API-Warn")
+                    )
+                    .uri("lb://clinops-ws")
+                )
+                
+                .route("clinops-form-templates-legacy", r -> r
+                    .path("/api/form-templates/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId, Deprecation, Sunset, Link, X-API-Warn")
+                    )
+                    .uri("lb://clinops-ws")
+                )
+                
+                // Module 1.4: Document Management - Legacy route (deprecated)
+                .route("clinops-documents-legacy", r -> r
+                    .path("/api/v1/documents/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId, Deprecation, Sunset, Link, X-API-Warn")
+                    )
+                    .uri("lb://clinops-ws")
+                )
+                
+                // Module 1.5: Metadata Management - Legacy route (deprecated)
+                .route("clinops-admin-codelists-legacy", r -> r
+                    .path("/api/admin/codelists/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId, Deprecation, Sunset, Link, X-API-Warn")
+                    )
+                    .uri("lb://clinops-ws")
+                )
+                
+                // Module 1.6: Study Operations - New versioned route
+                .route("clinops-study-operations-v1", r -> r
+                    .path("/api/v1/study-operations/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
                             .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId")
+                    )
+                    .uri("lb://clinops-ws")
+                )
+                
+                // Module 1.6: Visit Config - Legacy route (deprecated)
+                .route("clinops-unscheduled-visit-config-legacy", r -> r
+                    .path("/api/clinops/unscheduled-visit-config/**")
+                    .and()
+                    .method("GET", "POST", "PUT", "DELETE", "PATCH", "PATCH")
+                    .filters(f -> f
+                            .removeRequestHeader("Cookie")
+                            .addResponseHeader("Access-Control-Expose-Headers", "Authorization, token, userId, Deprecation, Sunset, Link, X-API-Warn")
                     )
                     .uri("lb://clinops-ws")
                 )

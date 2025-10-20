@@ -207,11 +207,14 @@ class VisitFormService {
 
     /**
      * Update a form binding by ID
-     * PUT /api/form-bindings/{bindingId}
+     * NEW URL: /api/v1/study-design/form-bindings/{bindingId}
+     * OLD URL: /api/form-bindings/{bindingId} (deprecated)
+     * 
+     * PUT /api/v1/study-design/form-bindings/{bindingId}
      */
     static async updateFormBinding(bindingId, updates) {
         try {
-            const response = await ApiService.put(`/api/form-bindings/${bindingId}`, updates);
+            const response = await ApiService.put(`/api/v1/study-design/form-bindings/${bindingId}`, updates);
             return response.data;
         } catch (error) {
             console.error('Error updating form binding:', error);
@@ -221,11 +224,14 @@ class VisitFormService {
 
     /**
      * Delete a form binding by ID
-     * DELETE /api/form-bindings/{bindingId}
+     * NEW URL: /api/v1/study-design/form-bindings/{bindingId}
+     * OLD URL: /api/form-bindings/{bindingId} (deprecated)
+     * 
+     * DELETE /api/v1/study-design/form-bindings/{bindingId}
      */
     static async deleteFormBinding(bindingId) {
         try {
-            await ApiService.delete(`/api/form-bindings/${bindingId}`);
+            await ApiService.delete(`/api/v1/study-design/form-bindings/${bindingId}`);
         } catch (error) {
             console.error('Error deleting form binding:', error);
             throw error;

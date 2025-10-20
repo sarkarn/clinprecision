@@ -1,10 +1,10 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import SiteDashboard from './SiteDashboard';
-// Temporarily import from admin folder until migrated
-import SiteManagement from '../../admin/SiteManagement/SiteManagement';
-import StudySiteAssociationList from '../admin/StudySiteAssociationList';
-import StudySiteAssociationForm from '../admin/StudySiteAssociationForm';
+// Migrated components - now in proper locations
+import SiteManagement from './sites/SiteManagement';
+import StudySiteAssociationList from './study-sites/StudySiteAssociationList';
+import StudySiteAssociationForm from './study-sites/StudySiteAssociationForm';
 
 /**
  * Site Operations Module Router

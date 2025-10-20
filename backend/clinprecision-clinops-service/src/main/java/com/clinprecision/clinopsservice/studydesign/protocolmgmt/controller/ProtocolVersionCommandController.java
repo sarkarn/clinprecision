@@ -1,10 +1,14 @@
 package com.clinprecision.clinopsservice.studydesign.protocolmgmt.controller;
 
+import com.clinprecision.clinopsservice.common.util.DeprecationHeaderUtil;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.api.ProtocolApiConstants;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.commands.*;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionIdentifier;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionNumber;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.service.ProtocolVersionCommandService;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.dto.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,21 +20,49 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Protocol Version Command Controller - Write operations (Commands)
+ * Protocol Version Command Controller - DDD/CQRS Write Operations
  * 
- * Handles all write operations for protocol versions.
- * REPLACES DATABASE TRIGGERS with explicit REST API endpoints!
+ * <p>Handles all write operations for protocol versions following CQRS pattern.</p>
+ * <p><b>⚠️ REPLACES DATABASE TRIGGERS</b> with explicit REST API endpoints!</p>
  * 
- * Endpoints:
- * - POST /api/protocol-versions - Create version
- * - PUT /api/protocol-versions/{id}/status - Change status (REPLACES TRIGGERS!)
- * - PUT /api/protocol-versions/{id}/approve - Approve version
- * - PUT /api/protocol-versions/{id}/activate - Activate version
- * - PUT /api/protocol-versions/{id} - Update version details
- * - DELETE /api/protocol-versions/{id} - Withdraw version
+ * <p><b>⚠️ URL MIGRATION IN PROGRESS</b></p>
+ * <p>This controller supports both old and new URL patterns during the migration period.
+ * Old URLs are deprecated and will be removed on April 19, 2026.</p>
+ * 
+ * <p><b>Old URLs (DEPRECATED):</b></p>
+ * <ul>
+ *   <li>POST   /api/protocol-versions - Create version</li>
+ *   <li>PUT    /api/protocol-versions/{id}/status - Change status (REPLACES TRIGGERS!)</li>
+ *   <li>PUT    /api/protocol-versions/{id}/approve - Approve version</li>
+ *   <li>PUT    /api/protocol-versions/{id}/activate - Activate version</li>
+ *   <li>PUT    /api/protocol-versions/{id} - Update version details</li>
+ *   <li>DELETE /api/protocol-versions/{id} - Withdraw version</li>
+ *   <li>POST   /api/protocol-versions/async - Async create</li>
+ * </ul>
+ * 
+ * <p><b>New URLs (RECOMMENDED):</b></p>
+ * <ul>
+ *   <li>POST   /api/v1/study-design/protocol-versions - Create version</li>
+ *   <li>PUT    /api/v1/study-design/protocol-versions/{id}/status - Change status</li>
+ *   <li>PUT    /api/v1/study-design/protocol-versions/{id}/lifecycle/approve - Approve version</li>
+ *   <li>PUT    /api/v1/study-design/protocol-versions/{id}/lifecycle/activate - Activate version</li>
+ *   <li>PUT    /api/v1/study-design/protocol-versions/{id} - Update version details</li>
+ *   <li>DELETE /api/v1/study-design/protocol-versions/{id} - Withdraw version</li>
+ *   <li>POST   /api/v1/study-design/protocol-versions/async - Async create</li>
+ * </ul>
+ * 
+ * <p><b>Backward Compatibility:</b> Both URL patterns work during migration period.
+ * Clients using old URLs will receive deprecation headers.</p>
+ * 
+ * @see ProtocolApiConstants
+ * @see ProtocolVersionCommandService
+ * @since October 2025 (URL Refactoring)
  */
 @RestController
-@RequestMapping("/api/protocol-versions")
+@RequestMapping({
+    ProtocolApiConstants.PROTOCOL_VERSIONS_PATH,      // NEW: /api/v1/study-design/protocol-versions
+    ProtocolApiConstants.LEGACY_PROTOCOL_VERSIONS     // OLD (deprecated): /api/protocol-versions
+})
 @RequiredArgsConstructor
 @Slf4j
 public class ProtocolVersionCommandController {
@@ -39,10 +71,30 @@ public class ProtocolVersionCommandController {
 
     /**
      * Create a new protocol version
-     * POST /api/protocol-versions
+     * 
+     * <p><b>New URL:</b> POST /api/v1/study-design/protocol-versions</p>
+     * <p><b>Old URL:</b> POST /api/protocol-versions (deprecated)</p>
+     * 
+     * @param request the version creation request
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with created version UUID
      */
     @PostMapping
-    public ResponseEntity<UUID> createVersion(@Valid @RequestBody CreateVersionRequest request) {
+    public ResponseEntity<UUID> createVersion(
+            @Valid @RequestBody CreateVersionRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.PROTOCOL_VERSIONS_PATH,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
+        
         log.info("REST: Creating protocol version: {}", request.getVersionNumber());
         
         try {
@@ -78,15 +130,34 @@ public class ProtocolVersionCommandController {
 
     /**
      * Change version status
-     * PUT /api/protocol-versions/{id}/status
      * 
-     * CRITICAL: This endpoint REPLACES database triggers!
-     * All status changes must go through this explicit API call.
+     * <p><b>New URL:</b> PUT /api/v1/study-design/protocol-versions/{id}/status</p>
+     * <p><b>Old URL:</b> PUT /api/protocol-versions/{id}/status (deprecated)</p>
+     * 
+     * <p><b>⚠️ CRITICAL:</b> This endpoint REPLACES database triggers!
+     * All status changes must go through this explicit API call.</p>
+     * 
+     * @param id the protocol version UUID
+     * @param request the status change request
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with status
      */
-    @PutMapping("/{id}/status")
+    @PutMapping(ProtocolApiConstants.STATUS)
     public ResponseEntity<Void> changeStatus(
             @PathVariable UUID id,
-            @Valid @RequestBody ChangeStatusRequest request) {
+            @Valid @RequestBody ChangeStatusRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.PROTOCOL_VERSIONS_PATH + ProtocolApiConstants.STATUS,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
         
         log.info("REST: Changing version status: {} -> {}", id, request.getNewStatus());
         
@@ -114,12 +185,34 @@ public class ProtocolVersionCommandController {
 
     /**
      * Approve a protocol version
-     * PUT /api/protocol-versions/{id}/approve
+     * 
+     * <p><b>New URL:</b> PUT /api/v1/study-design/protocol-versions/{id}/lifecycle/approve</p>
+     * <p><b>Old URL:</b> PUT /api/protocol-versions/{id}/approve (deprecated)</p>
+     * 
+     * @param id the protocol version UUID
+     * @param request the approval request
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with status
      */
-    @PutMapping("/{id}/approve")
+    @PutMapping(value = {
+        ProtocolApiConstants.LIFECYCLE_APPROVE,  // NEW: /{id}/lifecycle/approve
+        "/{id}/approve"                           // OLD (deprecated): /{id}/approve
+    })
     public ResponseEntity<Void> approveVersion(
             @PathVariable UUID id,
-            @Valid @RequestBody ApproveVersionRequest request) {
+            @Valid @RequestBody ApproveVersionRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.PROTOCOL_VERSIONS_PATH + ProtocolApiConstants.LIFECYCLE_APPROVE,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
         
         log.info("REST: Approving version: {}", id);
         
@@ -148,14 +241,36 @@ public class ProtocolVersionCommandController {
 
     /**
      * Activate a protocol version
-     * PUT /api/protocol-versions/{id}/activate
      * 
-     * Makes version active and supersedes previous active version
+     * <p><b>New URL:</b> PUT /api/v1/study-design/protocol-versions/{id}/lifecycle/activate</p>
+     * <p><b>Old URL:</b> PUT /api/protocol-versions/{id}/activate (deprecated)</p>
+     * 
+     * <p>Makes version active and supersedes previous active version.</p>
+     * 
+     * @param id the protocol version UUID
+     * @param request the activation request
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with status
      */
-    @PutMapping("/{id}/activate")
+    @PutMapping(value = {
+        ProtocolApiConstants.LIFECYCLE_ACTIVATE,  // NEW: /{id}/lifecycle/activate
+        "/{id}/activate"                           // OLD (deprecated): /{id}/activate
+    })
     public ResponseEntity<Void> activateVersion(
             @PathVariable UUID id,
-            @Valid @RequestBody ActivateVersionRequest request) {
+            @Valid @RequestBody ActivateVersionRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.PROTOCOL_VERSIONS_PATH + ProtocolApiConstants.LIFECYCLE_ACTIVATE,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
         
         log.info("REST: Activating version: {}", id);
         
@@ -183,14 +298,33 @@ public class ProtocolVersionCommandController {
 
     /**
      * Update version details
-     * PUT /api/protocol-versions/{id}
      * 
-     * Only editable fields can be updated
+     * <p><b>New URL:</b> PUT /api/v1/study-design/protocol-versions/{id}</p>
+     * <p><b>Old URL:</b> PUT /api/protocol-versions/{id} (deprecated)</p>
+     * 
+     * <p>Only editable fields can be updated.</p>
+     * 
+     * @param id the protocol version UUID
+     * @param request the update request
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with status
      */
-    @PutMapping("/{id}")
+    @PutMapping(ProtocolApiConstants.BY_ID)
     public ResponseEntity<Void> updateVersion(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateVersionRequest request) {
+            @Valid @RequestBody UpdateVersionRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.PROTOCOL_VERSIONS_PATH + ProtocolApiConstants.BY_ID,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
         
         log.info("REST: Updating version details: {}", id);
         
@@ -222,12 +356,31 @@ public class ProtocolVersionCommandController {
 
     /**
      * Withdraw a protocol version
-     * DELETE /api/protocol-versions/{id}
+     * 
+     * <p><b>New URL:</b> DELETE /api/v1/study-design/protocol-versions/{id}</p>
+     * <p><b>Old URL:</b> DELETE /api/protocol-versions/{id} (deprecated)</p>
+     * 
+     * @param id the protocol version UUID
+     * @param request the withdrawal request
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return ResponseEntity with status
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping(ProtocolApiConstants.BY_ID)
     public ResponseEntity<Void> withdrawVersion(
             @PathVariable UUID id,
-            @Valid @RequestBody WithdrawVersionRequest request) {
+            @Valid @RequestBody WithdrawVersionRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.PROTOCOL_VERSIONS_PATH + ProtocolApiConstants.BY_ID,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
         
         log.info("REST: Withdrawing version: {}", id);
         
@@ -254,11 +407,29 @@ public class ProtocolVersionCommandController {
 
     /**
      * Create version asynchronously
-     * POST /api/protocol-versions/async
+     * 
+     * <p><b>New URL:</b> POST /api/v1/study-design/protocol-versions/async</p>
+     * <p><b>Old URL:</b> POST /api/protocol-versions/async (deprecated)</p>
+     * 
+     * @param request the version creation request
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
+     * @return CompletableFuture with ResponseEntity containing created version UUID
      */
-    @PostMapping("/async")
+    @PostMapping(ProtocolApiConstants.ASYNC)
     public CompletableFuture<ResponseEntity<UUID>> createVersionAsync(
-            @Valid @RequestBody CreateVersionRequest request) {
+            @Valid @RequestBody CreateVersionRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.PROTOCOL_VERSIONS_PATH + ProtocolApiConstants.ASYNC,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
         
         log.info("REST: Creating protocol version asynchronously: {}", request.getVersionNumber());
         

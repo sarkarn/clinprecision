@@ -3,8 +3,6 @@ import TopNavigationHeader from "./shared/TopNavigationHeader";
 import StudyDesignModule from "./modules/trialdesign/StudyDesignModule";
 import DataCaptureModule from "./modules/datacapture/DataCaptureModule";
 import SubjectManagementModule from "./modules/subjectmanagement/SubjectManagementModule";
-import DQManagement from "./modules/dqmgmt/DQManagement";
-import AdminModule from "./modules/admin/AdminModule";
 import BreadcrumbNavigation from "./shared/BreadcrumbNavigation";
 import { useAuth } from "./login/AuthContext";
 import { useRoleBasedNavigation } from "../hooks/useRoleBasedNavigation";
@@ -879,15 +877,35 @@ export default function Home() {
 
                             <Route path="/study-design/*" element={<StudyDesignModule />} />
                             <Route path="/datacapture-management/*" element={<DataCaptureModule />} />
-                            <Route path="/dq-management" element={<DQManagement />} />
 
-                            {/* New Module Routes - Phase 2 Implementation */}
+                            {/* New Module Routes - Phase 2 Implementation - NOW ACTIVE */}
                             <Route path="/identity-access/*" element={<IdentityAccessModule />} />
                             <Route path="/organization-admin/*" element={<OrganizationAdminModule />} />
                             <Route path="/site-operations/*" element={<SiteOperationsModule />} />
 
-                            {/* Legacy Routes - Deprecated (Remove after 3 months) */}
-                            <Route path="/user-management/*" element={<AdminModule />} />
+                            {/* Legacy Admin Module - DEPRECATED - Redirects to new modules */}
+                            {/* Users route */}
+                            <Route path="/user-management/users" element={<Navigate to="/identity-access/users" replace />} />
+                            <Route path="/user-management/users/*" element={<Navigate to="/identity-access/users" replace />} />
+                            <Route path="/user-management/usertypes" element={<Navigate to="/identity-access/user-types" replace />} />
+                            <Route path="/user-management/usertypes/*" element={<Navigate to="/identity-access/user-types" replace />} />
+                            {/* Role assignments route */}
+                            <Route path="/user-management/user-study-roles" element={<Navigate to="/identity-access/study-assignments" replace />} />
+                            <Route path="/user-management/user-study-roles/*" element={<Navigate to="/identity-access/study-assignments" replace />} />
+                            <Route path="/user-management/study-teams/*" element={<Navigate to="/identity-access/study-teams" replace />} />
+                            {/* Organizations route */}
+                            <Route path="/user-management/organizations" element={<Navigate to="/organization-admin/organizations" replace />} />
+                            <Route path="/user-management/organizations/*" element={<Navigate to="/organization-admin/organizations" replace />} />
+                            {/* Sites route */}
+                            <Route path="/user-management/sites" element={<Navigate to="/site-operations/sites" replace />} />
+                            <Route path="/user-management/sites/*" element={<Navigate to="/site-operations/sites" replace />} />
+                            <Route path="/user-management/study-site-associations" element={<Navigate to="/site-operations/study-sites" replace />} />
+                            <Route path="/user-management/study-site-associations/*" element={<Navigate to="/site-operations/study-sites" replace />} />
+                            {/* Form templates route */}
+                            <Route path="/user-management/form-templates/*" element={<Navigate to="/study-design/forms" replace />} />
+                            {/* Catch-all for any other /user-management paths - redirect to identity-access */}
+                            <Route path="/user-management/*" element={<Navigate to="/identity-access" replace />} />
+                            <Route path="/user-management" element={<Navigate to="/identity-access" replace />} />
 
                             {/* Subject Management Module */}
                             <Route path="/subject-management/*" element={<SubjectManagementModule />} />

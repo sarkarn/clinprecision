@@ -1,10 +1,14 @@
 package com.clinprecision.clinopsservice.studydesign.protocolmgmt.controller;
 
+import com.clinprecision.clinopsservice.common.util.DeprecationHeaderUtil;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.api.ProtocolApiConstants;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.commands.ChangeVersionStatusCommand;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionStatus;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity.ProtocolVersionEntity;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.service.ProtocolVersionCommandService;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.service.ProtocolVersionQueryService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,17 +18,43 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Bridge Controller for Protocol Versions
+ * Bridge Controller for Protocol Versions - Legacy Compatibility
  * 
- * Purpose: Provide backward-compatible REST endpoints that accept legacy Long IDs
- * Maps: /api/study-versions/{legacyId} → DDD commands with UUIDs
+ * <p><b>Purpose:</b> Provide backward-compatible REST endpoints that accept legacy Long IDs
+ * and map them to DDD commands with UUIDs.</p>
  * 
- * This controller exists to maintain API compatibility with the frontend
- * while the backend uses DDD with UUID-based aggregate identifiers.
+ * <p><b>Mapping:</b> /api/study-versions/{legacyId} → DDD commands with UUIDs</p>
+ * 
+ * <p>This controller exists to maintain API compatibility with the frontend
+ * while the backend uses DDD with UUID-based aggregate identifiers.</p>
+ * 
+ * <p><b>⚠️ URL MIGRATION IN PROGRESS</b></p>
+ * <p>This controller supports both old and new URL patterns during the migration period.
+ * Old URLs are deprecated and will be removed on April 19, 2026.</p>
+ * 
+ * <p><b>Old URL (DEPRECATED):</b></p>
+ * <ul>
+ *   <li>PUT /api/study-versions/{versionId}/status - Update version status</li>
+ * </ul>
+ * 
+ * <p><b>New URL (RECOMMENDED):</b></p>
+ * <ul>
+ *   <li>PUT /api/v1/study-design/protocol-versions/{versionId}/status - Update version status</li>
+ * </ul>
+ * 
+ * <p><b>Note:</b> This endpoint should eventually be consolidated into 
+ * {@link ProtocolVersionCommandController} once legacy ID support is removed.</p>
+ * 
+ * @see ProtocolApiConstants
+ * @see ProtocolVersionCommandController
+ * @since October 2025 (URL Refactoring)
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/study-versions")
+@RequestMapping({
+    ProtocolApiConstants.PROTOCOL_VERSIONS_PATH,      // NEW: /api/v1/study-design/protocol-versions
+    ProtocolApiConstants.LEGACY_STUDY_VERSIONS        // OLD (deprecated): /api/study-versions
+})
 @RequiredArgsConstructor
 public class ProtocolVersionBridgeController {
 
@@ -32,19 +62,44 @@ public class ProtocolVersionBridgeController {
     private final ProtocolVersionCommandService protocolVersionCommandService;
 
     /**
-     * Bridge endpoint: Update protocol version status
+     * Bridge endpoint: Update protocol version status (accepts legacy Long IDs)
      * 
-     * Frontend path: PUT /api/study-versions/{versionId}/status
-     * Maps to DDD command: ChangeVersionStatusCommand
+     * <p><b>New URL:</b> PUT /api/v1/study-design/protocol-versions/{versionId}/status</p>
+     * <p><b>Old URL:</b> PUT /api/study-versions/{versionId}/status (deprecated)</p>
+     * 
+     * <p><b>Frontend compatibility:</b> This endpoint accepts legacy Long IDs from the database
+     * and maps them to DDD aggregate UUIDs internally.</p>
+     * 
+     * <p><b>Request body:</b></p>
+     * <pre>
+     * {
+     *   "status": "UNDER_REVIEW",
+     *   "reason": "Reason for status change",
+     *   "userId": 1
+     * }
+     * </pre>
      * 
      * @param versionId Legacy protocol version ID (Long)
-     * @param statusData Request body: { "status": "UNDER_REVIEW", "reason": "..." }
+     * @param statusData Request body with status, reason, and userId
+     * @param httpRequest the HTTP servlet request
+     * @param httpResponse the HTTP servlet response
      * @return Success response or error details
      */
     @PutMapping("/{versionId}/status")
     public ResponseEntity<?> updateStatus(
             @PathVariable Long versionId,
-            @RequestBody Map<String, Object> statusData) {
+            @RequestBody Map<String, Object> statusData,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest,
+            httpResponse,
+            ProtocolApiConstants.PROTOCOL_VERSIONS_PATH + ProtocolApiConstants.STATUS,
+            ProtocolApiConstants.DEPRECATION_MESSAGE,
+            ProtocolApiConstants.SUNSET_DATE
+        );
         
         log.info("BRIDGE: ====== STATUS UPDATE REQUEST START ======");
         log.info("BRIDGE: Update protocol version status for legacy ID: {}", versionId);

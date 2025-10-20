@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getSubjectById, updateSubjectStatus } from '../../../services/SubjectService';
 import { getPatientVisits } from '../../../services/VisitService';
+import { startVisit } from '../../../services/DataEntryService';
 import PatientStatusBadge from '../subjectmanagement/components/PatientStatusBadge';
 import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
 import StatusHistoryTimeline from '../subjectmanagement/components/StatusHistoryTimeline';
@@ -258,6 +259,60 @@ export default function SubjectDetails() {
                     </div>
                 </div>
 
+                {/* Visit Progress Summary */}
+                {visits && visits.length > 0 && !visitsLoading && (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-6">
+                                <div>
+                                    <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Total Visits</p>
+                                    <p className="text-2xl font-bold text-gray-900">{visits.length}</p>
+                                </div>
+                                <div className="h-12 w-px bg-gray-300"></div>
+                                <div>
+                                    <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Completed</p>
+                                    <p className="text-2xl font-bold text-green-600">
+                                        {visits.filter(v => v.status === 'complete').length}
+                                    </p>
+                                </div>
+                                <div className="h-12 w-px bg-gray-300"></div>
+                                <div>
+                                    <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">In Progress</p>
+                                    <p className="text-2xl font-bold text-yellow-600">
+                                        {visits.filter(v => v.status === 'incomplete').length}
+                                    </p>
+                                </div>
+                                <div className="h-12 w-px bg-gray-300"></div>
+                                <div>
+                                    <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Not Started</p>
+                                    <p className="text-2xl font-bold text-gray-600">
+                                        {visits.filter(v => v.status === 'not_started').length}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex-1 max-w-md ml-6">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-medium text-gray-600">Overall Progress</span>
+                                    <span className="text-sm font-bold text-gray-900">
+                                        {Math.round((visits.filter(v => v.status === 'complete').length / visits.length) * 100)}%
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-3">
+                                    <div
+                                        className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500 shadow-sm"
+                                        style={{
+                                            width: `${(visits.filter(v => v.status === 'complete').length / visits.length) * 100}%`
+                                        }}
+                                    ></div>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {visits.filter(v => v.status === 'complete').length} of {visits.length} visits completed
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {visitsLoading ? (
                     <div className="text-center py-4 bg-gray-50 border border-gray-200 rounded-md">
                         <p className="text-gray-500">Loading visits...</p>
@@ -284,8 +339,8 @@ export default function SubjectDetails() {
                                                 <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-[80px]">
                                                     <div
                                                         className={`h-2 rounded-full transition-all duration-300 ${visit.completionPercentage === 100 ? 'bg-green-600' :
-                                                                visit.completionPercentage > 0 ? 'bg-yellow-500' :
-                                                                    'bg-gray-400'
+                                                            visit.completionPercentage > 0 ? 'bg-yellow-500' :
+                                                                'bg-gray-400'
                                                             }`}
                                                         style={{ width: `${visit.completionPercentage}%` }}
                                                     ></div>
@@ -308,9 +363,40 @@ export default function SubjectDetails() {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <Link to={`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`} className="text-blue-600 hover:text-blue-800">
-                                            View Details
-                                        </Link>
+                                        {visit.status === 'complete' ? (
+                                            <Link
+                                                to={`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`}
+                                                className="text-blue-600 hover:text-blue-800"
+                                            >
+                                                View
+                                            </Link>
+                                        ) : visit.status === 'incomplete' ? (
+                                            <Link
+                                                to={`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`}
+                                                className="text-yellow-600 hover:text-yellow-800 font-medium"
+                                            >
+                                                Continue Visit
+                                            </Link>
+                                        ) : (
+                                            <button
+                                                onClick={async () => {
+                                                    console.log('Starting visit:', visit.id);
+                                                    // Call API to update visit status
+                                                    const result = await startVisit(visit.id, 1); // TODO: Get real user ID
+                                                    if (result.success) {
+                                                        console.log('Visit started successfully, navigating...');
+                                                        // Navigate to visit details
+                                                        navigate(`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`);
+                                                    } else {
+                                                        console.error('Failed to start visit:', result.error);
+                                                        alert('Failed to start visit. Please try again.');
+                                                    }
+                                                }}
+                                                className="text-green-600 hover:text-green-800 font-medium hover:underline"
+                                            >
+                                                Start Visit
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

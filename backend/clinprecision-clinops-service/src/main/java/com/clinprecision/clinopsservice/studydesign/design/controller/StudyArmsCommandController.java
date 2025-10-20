@@ -1,8 +1,12 @@
 package com.clinprecision.clinopsservice.studydesign.design.controller;
 
+import com.clinprecision.clinopsservice.common.util.DeprecationHeaderUtil;
+import com.clinprecision.clinopsservice.studydesign.design.api.StudyDesignApiConstants;
 import com.clinprecision.clinopsservice.studydesign.design.arm.dto.StudyArmRequestDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyArmResponseDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyCommandService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,28 +15,43 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Study Arms Command Controller
+ * Study Arms Command Controller (Bridge Pattern)
  * 
- * Separate controller for arm-specific endpoints that don't fit under /api/studies path.
- * This is a bridge pattern implementation for backward compatibility.
+ * <p>Separate controller for arm-specific endpoints that don't fit under /api/studies path.
+ * This is a bridge pattern implementation for backward compatibility.</p>
  * 
- * Base Path: /api/arms
+ * <p><b>URL Migration (October 2025 - April 2026):</b></p>
+ * <ul>
+ *   <li>NEW (Primary): {@code /api/v1/study-design/arms/*} - DDD-aligned, domain-focused paths</li>
+ *   <li>OLD (Deprecated): {@code /api/arms/*} - Legacy bridge paths</li>
+ * </ul>
  * 
- * Command Endpoints:
- * - PUT    /api/arms/{armId}    - Update study arm
- * - DELETE /api/arms/{armId}    - Delete study arm
+ * <p><b>Command Endpoints:</b></p>
+ * <ul>
+ *   <li>PUT /api/arms/{armId} - Update study arm</li>
+ *   <li>DELETE /api/arms/{armId} - Delete study arm</li>
+ * </ul>
  * 
- * Architecture:
- * - Bridge pattern for frontend compatibility
- * - Delegates to StudyCommandService
- * - TODO: Migrate to proper DDD commands when StudyDesignAggregate is ready
+ * <p><b>Architecture:</b></p>
+ * <ul>
+ *   <li>Bridge pattern for frontend compatibility</li>
+ *   <li>Delegates to StudyCommandService</li>
+ *   <li>TODO: Migrate to proper DDD commands when StudyDesignAggregate is ready</li>
+ * </ul>
  * 
+ * <p><b>Deprecation Timeline:</b> October 19, 2025 - April 19, 2026 (6 months)</p>
+ * 
+ * @see StudyDesignApiConstants
+ * @see DeprecationHeaderUtil
  * @author DDD Migration Team
  * @version 1.0
- * @since V004 Migration
+ * @since V004 Migration - Module 1.3 Phase 1 (October 2025)
  */
 @RestController
-@RequestMapping("/api/arms")
+@RequestMapping({
+    StudyDesignApiConstants.ARMS_PATH,        // NEW: /api/v1/study-design/arms
+    StudyDesignApiConstants.LEGACY_ARMS       // OLD: /api/arms (deprecated)
+})
 @RequiredArgsConstructor
 @Validated
 @Slf4j
@@ -43,20 +62,36 @@ public class StudyArmsCommandController {
     /**
      * Update a study arm by arm ID
      * 
-     * Bridge endpoint: Frontend calls PUT /api/arms/{armId}
+     * <p><b>Endpoints (Bridge Pattern):</b></p>
+     * <ul>
+     *   <li>NEW: {@code PUT /api/v1/study-design/arms/{armId}}</li>
+     *   <li>OLD: {@code PUT /api/arms/{armId}} (deprecated)</li>
+     * </ul>
      * 
-     * Command: UpdateStudyArmCommand (TODO - future DDD implementation)
+     * <p><b>Command:</b> UpdateStudyArmCommand (TODO - future DDD implementation)</p>
      * 
      * @param armId Arm ID
      * @param armData Updated arm data
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
      * @return 200 OK with updated arm data
      */
     @PutMapping("/{armId}")
     public ResponseEntity<StudyArmResponseDto> updateStudyArm(
             @PathVariable Long armId,
-            @Valid @RequestBody StudyArmRequestDto armData) {
+            @Valid @RequestBody StudyArmRequestDto armData,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         
         log.info("REST: Updating study arm: {}", armId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.ARMS_PATH + "/{armId}",
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         try {
             // TODO: Send DDD command to StudyDesignAggregate
@@ -75,16 +110,34 @@ public class StudyArmsCommandController {
     /**
      * Delete a study arm by arm ID
      * 
-     * Bridge endpoint: Frontend calls DELETE /api/arms/{armId}
+     * <p><b>Endpoints (Bridge Pattern):</b></p>
+     * <ul>
+     *   <li>NEW: {@code DELETE /api/v1/study-design/arms/{armId}}</li>
+     *   <li>OLD: {@code DELETE /api/arms/{armId}} (deprecated)</li>
+     * </ul>
      * 
-     * Command: RemoveStudyArmCommand (TODO - future DDD implementation)
+     * <p><b>Command:</b> RemoveStudyArmCommand (TODO - future DDD implementation)</p>
      * 
      * @param armId Arm ID
+     * @param httpRequest HTTP servlet request for deprecation header detection
+     * @param httpResponse HTTP servlet response for deprecation headers
      * @return 204 No Content
      */
     @DeleteMapping("/{armId}")
-    public ResponseEntity<Void> deleteStudyArm(@PathVariable Long armId) {
+    public ResponseEntity<Void> deleteStudyArm(
+            @PathVariable Long armId,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
         log.info("REST: Deleting study arm: {}", armId);
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyDesignApiConstants.ARMS_PATH + "/{armId}",
+            StudyDesignApiConstants.DEPRECATION_MESSAGE,
+            StudyDesignApiConstants.SUNSET_DATE
+        );
         
         try {
             // TODO: Send DDD command to StudyDesignAggregate

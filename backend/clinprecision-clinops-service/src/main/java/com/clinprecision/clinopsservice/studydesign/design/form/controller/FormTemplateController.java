@@ -1,7 +1,7 @@
 package com.clinprecision.clinopsservice.studydesign.design.form.controller;
+
+import com.clinprecision.clinopsservice.studydesign.design.api.StudyDesignApiConstants;
 import com.clinprecision.clinopsservice.studydesign.design.form.service.FormTemplateService;
-
-
 import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormTemplateCreateRequestDto;
 import com.clinprecision.clinopsservice.studydesign.design.form.dto.FormTemplateDto;
 import jakarta.validation.Valid;
@@ -14,10 +14,25 @@ import java.util.List;
 
 /**
  * REST Controller for Form Template operations
- * Provides endpoints for form template management
+ * 
+ * Provides endpoints for form template management.
+ * Supports dual URL structure for backward compatibility during DDD migration.
+ * 
+ * <p><b>URL Migration:</b></p>
+ * <ul>
+ *   <li>NEW: {@code /api/v1/study-design/form-templates/*} (DDD-aligned)</li>
+ *   <li>OLD: {@code /api/form-templates/*} (deprecated, sunset: April 19, 2026)</li>
+ * </ul>
+ * 
+ * @author DDD Migration Team
+ * @version 2.0
+ * @since October 2025 - Module 1.3 Phase 2
  */
 @RestController
-@RequestMapping("/api/form-templates")
+@RequestMapping({
+    StudyDesignApiConstants.FORM_TEMPLATES_PATH,        // NEW: /api/v1/study-design/form-templates
+    StudyDesignApiConstants.LEGACY_FORM_TEMPLATES       // OLD: /api/form-templates (deprecated)
+})
 public class FormTemplateController {
     
     private final FormTemplateService formTemplateService;

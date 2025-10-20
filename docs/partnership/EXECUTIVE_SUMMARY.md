@@ -3,7 +3,7 @@
 
 **Version:** 1.0  
 **Date:** October 2025  
-**Contact:** [Your Contact Information]
+**Contact:** 4154 W Cullom Ave, Chicago, IL
 
 ---
 
@@ -551,8 +551,8 @@
 - Technical whitepaper
 
 **Connect With Us:**
-- Website: [www.clinprecision.com]
-- LinkedIn: [Company LinkedIn]
+- Website: www.novatra-ai.com
+- LinkedIn: https://www.linkedin.com/in/narendra-sarkar-7127a11/
 - Twitter/X: [@ClinPrecision]
 
 ---

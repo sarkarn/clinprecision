@@ -157,7 +157,7 @@ const loadCodeListOptions = async (optionSource) => {
   }
   
   console.log(`📡 [OptionLoader] Loading code list: ${category}`);
-  const apiUrl = `/clinops-ws/api/admin/codelists/simple/${category}`;
+  const apiUrl = `/clinops-ws/api/v1/study-design/metadata/codelists/simple/${category}`;
   console.log(`📡 [OptionLoader] API URL: ${apiUrl}`);
   
   try {

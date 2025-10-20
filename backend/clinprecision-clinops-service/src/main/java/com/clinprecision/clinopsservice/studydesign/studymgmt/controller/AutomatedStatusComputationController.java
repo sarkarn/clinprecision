@@ -1,6 +1,10 @@
 package com.clinprecision.clinopsservice.studydesign.studymgmt.controller;
 
+import com.clinprecision.clinopsservice.common.util.DeprecationHeaderUtil;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.api.StudyApiConstants;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.service.AutomatedStatusComputationService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -13,10 +17,49 @@ import java.util.Map;
 
 /**
  * REST Controller for Automated Study Status Computation Triggers
- * Provides endpoints for managing and monitoring automated status computation
+ * 
+ * <p>Provides endpoints for managing and monitoring automated status computation.
+ * This controller handles status computation triggers, analytics, and system health monitoring.</p>
+ * 
+ * <h3>⚠️ URL MIGRATION IN PROGRESS (October 2025)</h3>
+ * 
+ * <p><b>Old URLs (Deprecated - Will be removed April 19, 2026):</b></p>
+ * <ul>
+ *   <li>POST /api/v1/studies/status/automated/{studyId}/compute</li>
+ *   <li>POST /api/v1/studies/status/automated/batch-compute</li>
+ *   <li>GET /api/v1/studies/status/automated/{studyId}/history</li>
+ *   <li>GET /api/v1/studies/status/automated/recent-changes</li>
+ *   <li>GET /api/v1/studies/status/automated/frequent-changes</li>
+ *   <li>GET /api/v1/studies/status/automated/errors</li>
+ *   <li>GET /api/v1/studies/status/automated/system-health</li>
+ *   <li>POST /api/v1/studies/status/automated/{studyId}/refresh</li>
+ *   <li>GET /api/v1/studies/status/automated/statistics</li>
+ * </ul>
+ * 
+ * <p><b>New URLs (Recommended - Use these for new integrations):</b></p>
+ * <ul>
+ *   <li>POST /api/v1/study-design/studies/{studyId}/status/compute</li>
+ *   <li>POST /api/v1/study-design/studies/status/batch-compute</li>
+ *   <li>GET /api/v1/study-design/studies/{studyId}/status/history</li>
+ *   <li>GET /api/v1/study-design/analytics/status-changes</li>
+ *   <li>GET /api/v1/study-design/analytics/frequent-status-changes</li>
+ *   <li>GET /api/v1/study-design/analytics/status-errors</li>
+ *   <li>GET /api/v1/study-design/health/status-computation</li>
+ *   <li>POST /api/v1/study-design/studies/{studyId}/status/refresh</li>
+ *   <li>GET /api/v1/study-design/analytics/status-statistics</li>
+ * </ul>
+ * 
+ * <p><b>Migration Timeline:</b></p>
+ * <ol>
+ *   <li><b>Phase 1 (Now - Dec 2025):</b> Both old and new URLs supported. Deprecation headers sent for old URLs.</li>
+ *   <li><b>Phase 2 (Jan - Mar 2026):</b> Update all frontend and API consumers to use new URLs.</li>
+ *   <li><b>Phase 3 (April 19, 2026):</b> Old URLs removed. Only new URLs supported.</li>
+ * </ol>
+ * 
+ * @version 1.0 (URL Refactoring - October 2025)
+ * @author ClinPrecision Development Team
  */
 @RestController
-@RequestMapping("/api/v1/studies/status/automated")
 public class AutomatedStatusComputationController {
 
     private static final Logger logger = LoggerFactory.getLogger(AutomatedStatusComputationController.class);
@@ -29,11 +72,35 @@ public class AutomatedStatusComputationController {
 
     /**
      * Manually trigger status computation for a specific study
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/v1/studies/status/automated/{studyId}/compute</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{studyId}/status/compute</li>
+     * </ul>
+     * 
+     * @param studyId The study ID
+     * @param reason Reason for manual computation
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return Computation result with status details
      */
-    @PostMapping("/{studyId}/compute")
+    @PostMapping(value = {
+        StudyApiConstants.ComputeStatus.OLD,
+        StudyApiConstants.ComputeStatus.NEW
+    })
     public ResponseEntity<Map<String, Object>> manuallyComputeStatus(
             @PathVariable Long studyId,
-            @RequestParam(defaultValue = "Manual trigger via API") String reason) {
+            @RequestParam(defaultValue = "Manual trigger via API") String reason,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            "/api/v1/studies/status/automated",
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         logger.info("Manual status computation requested for study: {} - reason: {}", studyId, reason);
         
@@ -77,9 +144,32 @@ public class AutomatedStatusComputationController {
 
     /**
      * Trigger batch computation for all studies
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/v1/studies/status/automated/batch-compute</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/status/batch-compute</li>
+     * </ul>
+     * 
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return Batch computation result
      */
-    @PostMapping("/batch-compute")
-    public ResponseEntity<Map<String, Object>> batchComputeAllStatuses() {
+    @PostMapping(value = {
+        StudyApiConstants.BatchComputeStatus.OLD,
+        StudyApiConstants.BatchComputeStatus.NEW
+    })
+    public ResponseEntity<Map<String, Object>> batchComputeAllStatuses(
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            "/api/v1/studies/status/automated",
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
         logger.info("Batch status computation requested for all studies");
         
         try {
@@ -115,11 +205,35 @@ public class AutomatedStatusComputationController {
 
     /**
      * Get status computation history for a specific study
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/v1/studies/status/automated/{studyId}/history</li>
+     *   <li>New (recommended): GET /api/v1/study-design/studies/{studyId}/status/history</li>
+     * </ul>
+     * 
+     * @param studyId The study ID
+     * @param limit Maximum number of history entries
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return Computation history
      */
-    @GetMapping("/{studyId}/history")
+    @GetMapping(value = {
+        StudyApiConstants.GetStatusHistory.OLD,
+        StudyApiConstants.GetStatusHistory.NEW
+    })
     public ResponseEntity<Map<String, Object>> getComputationHistory(
             @PathVariable Long studyId,
-            @RequestParam(defaultValue = "20") Integer limit) {
+            @RequestParam(defaultValue = "20") Integer limit,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            "/api/v1/studies/status/automated",
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         logger.debug("Status computation history requested for study: {} - limit: {}", studyId, limit);
         
@@ -149,10 +263,33 @@ public class AutomatedStatusComputationController {
 
     /**
      * Get recent status changes across all studies
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/v1/studies/status/automated/recent-changes</li>
+     *   <li>New (recommended): GET /api/v1/study-design/analytics/status-changes</li>
+     * </ul>
+     * 
+     * @param days Number of days to look back
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return Recent status changes
      */
-    @GetMapping("/recent-changes")
+    @GetMapping(value = {
+        StudyApiConstants.GetRecentStatusChanges.OLD,
+        StudyApiConstants.GetRecentStatusChanges.NEW
+    })
     public ResponseEntity<Map<String, Object>> getRecentStatusChanges(
-            @RequestParam(defaultValue = "7") Integer days) {
+            @RequestParam(defaultValue = "7") Integer days,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            "/api/v1/studies/status/automated",
+            StudyApiConstants.ANALYTICS_BASE_PATH
+        );
         
         logger.debug("Recent status changes requested for last {} days", days);
         
@@ -181,11 +318,35 @@ public class AutomatedStatusComputationController {
 
     /**
      * Get studies with frequent status changes
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/v1/studies/status/automated/frequent-changes</li>
+     *   <li>New (recommended): GET /api/v1/study-design/analytics/frequent-status-changes</li>
+     * </ul>
+     * 
+     * @param days Number of days to analyze
+     * @param minChanges Minimum number of changes to qualify
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return Studies with frequent status changes
      */
-    @GetMapping("/frequent-changes")
+    @GetMapping(value = {
+        StudyApiConstants.GetFrequentStatusChanges.OLD,
+        StudyApiConstants.GetFrequentStatusChanges.NEW
+    })
     public ResponseEntity<Map<String, Object>> getFrequentStatusChanges(
             @RequestParam(defaultValue = "30") Integer days,
-            @RequestParam(defaultValue = "5") Integer minChanges) {
+            @RequestParam(defaultValue = "5") Integer minChanges,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            "/api/v1/studies/status/automated",
+            StudyApiConstants.ANALYTICS_BASE_PATH
+        );
         
         logger.debug("Frequent status changes requested - days: {} - min changes: {}", days, minChanges);
         
@@ -215,10 +376,33 @@ public class AutomatedStatusComputationController {
 
     /**
      * Get recent status computation errors
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/v1/studies/status/automated/errors</li>
+     *   <li>New (recommended): GET /api/v1/study-design/analytics/status-errors</li>
+     * </ul>
+     * 
+     * @param days Number of days to look back
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return Computation errors
      */
-    @GetMapping("/errors")
+    @GetMapping(value = {
+        StudyApiConstants.GetStatusErrors.OLD,
+        StudyApiConstants.GetStatusErrors.NEW
+    })
     public ResponseEntity<Map<String, Object>> getComputationErrors(
-            @RequestParam(defaultValue = "7") Integer days) {
+            @RequestParam(defaultValue = "7") Integer days,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            "/api/v1/studies/status/automated",
+            StudyApiConstants.ANALYTICS_BASE_PATH
+        );
         
         logger.debug("Status computation errors requested for last {} days", days);
         
@@ -247,9 +431,32 @@ public class AutomatedStatusComputationController {
 
     /**
      * Check the health of the trigger system
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/v1/studies/status/automated/system-health</li>
+     *   <li>New (recommended): GET /api/v1/study-design/health/status-computation</li>
+     * </ul>
+     * 
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return System health status
      */
-    @GetMapping("/system-health")
-    public ResponseEntity<Map<String, Object>> checkSystemHealth() {
+    @GetMapping(value = {
+        StudyApiConstants.GetSystemHealth.OLD,
+        StudyApiConstants.GetSystemHealth.NEW
+    })
+    public ResponseEntity<Map<String, Object>> checkSystemHealth(
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            "/api/v1/studies/status/automated",
+            StudyApiConstants.HEALTH_BASE_PATH
+        );
+        
         logger.debug("Trigger system health check requested");
         
         try {
@@ -299,10 +506,33 @@ public class AutomatedStatusComputationController {
 
     /**
      * Force refresh of study status (useful for fixing sync issues)
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/v1/studies/status/automated/{studyId}/refresh</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{studyId}/status/refresh</li>
+     * </ul>
+     * 
+     * @param studyId The study ID
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return Refresh result
      */
-    @PostMapping("/{studyId}/refresh")
+    @PostMapping(value = {
+        StudyApiConstants.RefreshStatus.OLD,
+        StudyApiConstants.RefreshStatus.NEW
+    })
     public ResponseEntity<Map<String, Object>> refreshStudyStatus(
-            @PathVariable Long studyId) {
+            @PathVariable Long studyId,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            "/api/v1/studies/status/automated",
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         logger.info("Status refresh requested for study: {}", studyId);
         
@@ -345,10 +575,33 @@ public class AutomatedStatusComputationController {
 
     /**
      * Get system statistics about automated computations
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/v1/studies/status/automated/statistics</li>
+     *   <li>New (recommended): GET /api/v1/study-design/analytics/status-statistics</li>
+     * </ul>
+     * 
+     * @param days Number of days to analyze
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return System statistics
      */
-    @GetMapping("/statistics")
+    @GetMapping(value = {
+        StudyApiConstants.GetStatusStatistics.OLD,
+        StudyApiConstants.GetStatusStatistics.NEW
+    })
     public ResponseEntity<Map<String, Object>> getSystemStatistics(
-            @RequestParam(defaultValue = "30") Integer days) {
+            @RequestParam(defaultValue = "30") Integer days,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            "/api/v1/studies/status/automated",
+            StudyApiConstants.ANALYTICS_BASE_PATH
+        );
         
         logger.debug("System statistics requested for last {} days", days);
         

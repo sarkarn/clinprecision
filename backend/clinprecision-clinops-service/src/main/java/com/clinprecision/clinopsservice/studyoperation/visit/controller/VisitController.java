@@ -318,6 +318,112 @@ public class VisitController {
     }
 
     /**
+     * Update visit status
+     * Transitions visit from one status to another (e.g., SCHEDULED → IN_PROGRESS)
+     * 
+     * @param visitInstanceId Visit instance ID (database primary key)
+     * @param request Status update request with newStatus, updatedBy, notes
+     * @return ResponseEntity with success message or error
+     */
+    @PutMapping("/{visitInstanceId}/status")
+    public ResponseEntity<?> updateVisitStatus(
+            @PathVariable Long visitInstanceId,
+            @RequestBody UpdateVisitStatusRequest request) {
+        
+        log.info("REST: Updating visit status: visitInstanceId={}, newStatus={}, updatedBy={}", 
+                visitInstanceId, request.getNewStatus(), request.getUpdatedBy());
+        
+        try {
+            boolean success = visitService.updateVisitStatus(
+                visitInstanceId,
+                request.getNewStatus(),
+                request.getUpdatedBy(),
+                request.getNotes()
+            );
+            
+            if (success) {
+                log.info("REST: Visit status updated successfully: visitInstanceId={}, newStatus={}", 
+                        visitInstanceId, request.getNewStatus());
+                return ResponseEntity.ok(new StatusUpdateResponse(
+                    true,
+                    "Visit status updated successfully",
+                    request.getNewStatus()
+                ));
+            } else {
+                log.error("REST: Failed to update visit status: visitInstanceId={}", visitInstanceId);
+                return ResponseEntity.badRequest().body(new ErrorResponse(
+                    "Failed to update visit status. Visit may not exist."
+                ));
+            }
+            
+        } catch (Exception e) {
+            log.error("REST: Error updating visit status: visitInstanceId={}", visitInstanceId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Error updating visit status: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Update visit status request DTO
+     */
+    private static class UpdateVisitStatusRequest {
+        private String newStatus;
+        private Long updatedBy;
+        private String notes;
+
+        public String getNewStatus() {
+            return newStatus;
+        }
+
+        public void setNewStatus(String newStatus) {
+            this.newStatus = newStatus;
+        }
+
+        public Long getUpdatedBy() {
+            return updatedBy;
+        }
+
+        public void setUpdatedBy(Long updatedBy) {
+            this.updatedBy = updatedBy;
+        }
+
+        public String getNotes() {
+            return notes;
+        }
+
+        public void setNotes(String notes) {
+            this.notes = notes;
+        }
+    }
+
+    /**
+     * Status update response DTO
+     */
+    private static class StatusUpdateResponse {
+        private final Boolean success;
+        private final String message;
+        private final String newStatus;
+
+        public StatusUpdateResponse(Boolean success, String message, String newStatus) {
+            this.success = success;
+            this.message = message;
+            this.newStatus = newStatus;
+        }
+
+        public Boolean getSuccess() {
+            return success;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public String getNewStatus() {
+            return newStatus;
+        }
+    }
+
+    /**
      * Error response DTO
      */
     private static class ErrorResponse {
