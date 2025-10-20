@@ -10,12 +10,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-@FeignClient(name = "study-design-ws", path = "/api/studies")
+@FeignClient(name = "clinops-ws", path = "/api/studies")
 public interface StudyServiceClient {
 
     @GetMapping("/{id}")
-    @Retry(name="study-design-ws")
-    @CircuitBreaker(name="study-design-ws", fallbackMethod="getStudyByIdFallback")
+    @Retry(name="clinops-ws")
+    @CircuitBreaker(name="clinops-ws", fallbackMethod="getStudyByIdFallback")
     public ResponseEntity<StudyResponseDto> getStudyById(@PathVariable Long id, @RequestHeader("Authorization") String authorization);
 
     default ResponseEntity<StudyResponseDto> getStudyByIdFallback(@PathVariable Long id, String authorization, Throwable exception) {

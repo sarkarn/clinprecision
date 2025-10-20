@@ -284,8 +284,8 @@ export default function SubjectDetails() {
                                                 <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-[80px]">
                                                     <div
                                                         className={`h-2 rounded-full transition-all duration-300 ${visit.completionPercentage === 100 ? 'bg-green-600' :
-                                                                visit.completionPercentage > 0 ? 'bg-yellow-500' :
-                                                                    'bg-gray-400'
+                                                            visit.completionPercentage > 0 ? 'bg-yellow-500' :
+                                                                'bg-gray-400'
                                                             }`}
                                                         style={{ width: `${visit.completionPercentage}%` }}
                                                     ></div>
@@ -308,9 +308,28 @@ export default function SubjectDetails() {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <Link to={`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`} className="text-blue-600 hover:text-blue-800">
-                                            View Details
-                                        </Link>
+                                        {visit.status === 'complete' ? (
+                                            <Link
+                                                to={`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`}
+                                                className="text-blue-600 hover:text-blue-800"
+                                            >
+                                                View
+                                            </Link>
+                                        ) : visit.status === 'incomplete' ? (
+                                            <Link
+                                                to={`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`}
+                                                className="text-yellow-600 hover:text-yellow-800 font-medium"
+                                            >
+                                                Continue Visit
+                                            </Link>
+                                        ) : (
+                                            <Link
+                                                to={`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`}
+                                                className="text-green-600 hover:text-green-800 font-medium"
+                                            >
+                                                Start Visit
+                                            </Link>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
