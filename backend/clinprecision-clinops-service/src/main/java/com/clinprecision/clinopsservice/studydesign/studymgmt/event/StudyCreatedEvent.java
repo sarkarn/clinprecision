@@ -2,7 +2,6 @@ package com.clinprecision.clinopsservice.studydesign.studymgmt.event;
 
 import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyOrganizationAssociation;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
-import com.thoughtworks.xstream.annotations.XStreamAlias;
 import lombok.Builder;
 import lombok.Value;
 
@@ -71,7 +70,10 @@ public class StudyCreatedEvent {
     // Additional fields
     String notes;
     String riskLevel;
-    @XStreamAlias("organizations")
+
+    // Legacy Axon event payloads stored organization associations under "organizations"
+    List<StudyOrganizationAssociation> organizations;
+
     List<StudyOrganizationAssociation> organizationAssociations;
 
     // Legacy metadata payload (JSON string). Retained for backward compatibility with
@@ -82,6 +84,10 @@ public class StudyCreatedEvent {
     UUID userId;
     String userName;
     Instant timestamp;
+
+    public List<StudyOrganizationAssociation> getOrganizationAssociations() {
+        return organizationAssociations != null ? organizationAssociations : organizations;
+    }
 }
 
 
