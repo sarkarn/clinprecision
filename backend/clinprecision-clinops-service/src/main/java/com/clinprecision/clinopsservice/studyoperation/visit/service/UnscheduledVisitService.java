@@ -411,4 +411,64 @@ public class UnscheduledVisitService {
         
         return dto;
     }
+
+    /**
+     * Update visit status
+     * 
+     * <p>Transitions visit between states:</p>
+     * <ul>
+     *   <li>SCHEDULED → IN_PROGRESS (when CRC clicks "Start Visit")</li>
+     *   <li>IN_PROGRESS → COMPLETED (when all required forms completed)</li>
+     *   <li>SCHEDULED → MISSED (when visit window passed)</li>
+     *   <li>SCHEDULED → CANCELLED (when visit no longer needed)</li>
+     * </ul>
+     * 
+     * @param visitInstanceId Visit instance ID (database primary key)
+     * @param newStatus New status value
+     * @param updatedBy User ID initiating the change
+     * @param notes Optional reason/notes for status change
+     * @return true if update succeeded, false otherwise
+     */
+    public boolean updateVisitStatus(Long visitInstanceId, String newStatus, Long updatedBy, String notes) {
+        log.info("Updating visit status: visitInstanceId={}, newStatus={}, updatedBy={}",
+                   visitInstanceId, newStatus, updatedBy);
+        
+        try {
+            // Find visit by ID
+            var visitOpt = studyVisitInstanceRepository.findById(visitInstanceId);
+            
+            if (visitOpt.isEmpty()) {
+                log.error("Visit not found: visitInstanceId={}", visitInstanceId);
+                return false;
+            }
+            
+            StudyVisitInstanceEntity visit = visitOpt.get();
+            
+            // Get aggregate UUID (required for command)
+            String aggregateUuid = visit.getAggregateUuid();
+            
+            if (aggregateUuid == null || aggregateUuid.trim().isEmpty()) {
+                log.error("Visit has no aggregateUuid, cannot send command: visitInstanceId={}", visitInstanceId);
+                return false;
+            }
+            
+            // Send UpdateVisitStatusCommand to aggregate
+            commandGateway.sendAndWait(new com.clinprecision.clinopsservice.studyoperation.visit.domain.commands.UpdateVisitStatusCommand(
+                aggregateUuid,
+                newStatus,
+                updatedBy,
+                notes
+            ));
+            
+            log.info("Visit status update command sent successfully: visitInstanceId={}, aggregateUuid={}, newStatus={}",
+                       visitInstanceId, aggregateUuid, newStatus);
+            
+            return true;
+            
+        } catch (Exception e) {
+            log.error("Error updating visit status: visitInstanceId={}, newStatus={}",
+                        visitInstanceId, newStatus, e);
+            return false;
+        }
+    }
 }

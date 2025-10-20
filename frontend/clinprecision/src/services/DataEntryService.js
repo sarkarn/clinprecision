@@ -395,3 +395,23 @@ export const getVisitDetails = async (subjectId, visitId) => {
     };
   }
 };
+
+// Start a visit (change status from not_started to in_progress)
+export const startVisit = async (visitId, userId) => {
+  console.log('DataEntryService: startVisit called - visitId:', visitId, 'userId:', userId);
+  
+  try {
+    const response = await ApiService.put(`/clinops-ws/api/v1/visits/${visitId}/status`, {
+      newStatus: 'IN_PROGRESS',
+      updatedBy: userId,
+      notes: 'Visit started by CRC'
+    });
+    
+    console.log('DataEntryService: Visit started successfully:', response.data);
+    return { success: true, newStatus: response.data.newStatus };
+    
+  } catch (error) {
+    console.error('DataEntryService: Error starting visit:', error);
+    return { success: false, error: error.message };
+  }
+};

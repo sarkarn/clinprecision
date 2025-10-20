@@ -183,6 +183,54 @@ public class VisitProjector {
     }
     
     /**
+     * Event handler for VisitStatusChangedEvent
+     * Updates visit status in study_visit_instances table
+     * 
+     * @param event VisitStatusChangedEvent containing status change details
+     */
+    @EventHandler
+    public void on(com.clinprecision.clinopsservice.studyoperation.visit.domain.events.VisitStatusChangedEvent event) {
+        logger.info("Projecting VisitStatusChangedEvent for aggregateUuid: {}, oldStatus: {}, newStatus: {}", 
+                   event.getAggregateUuid(), event.getOldStatus(), event.getNewStatus());
+        
+        try {
+            // Find visit by aggregate UUID
+            var visitOpt = studyVisitInstanceRepository.findByAggregateUuid(event.getAggregateUuid());
+            
+            if (visitOpt.isEmpty()) {
+                logger.error("Visit not found for aggregateUuid: {}. Cannot update status.", event.getAggregateUuid());
+                return;
+            }
+            
+            StudyVisitInstanceEntity visit = visitOpt.get();
+            
+            // Update status
+            visit.setVisitStatus(event.getNewStatus());
+            // Note: updatedBy is tracked in event store, updatedAt is auto-set by @PreUpdate
+            
+            // Update notes if provided
+            if (event.getNotes() != null && !event.getNotes().trim().isEmpty()) {
+                String existingNotes = visit.getNotes() != null ? visit.getNotes() : "";
+                String updatedNotes = existingNotes.isEmpty() 
+                    ? event.getNotes() 
+                    : existingNotes + "\n[Status Change by user " + event.getUpdatedBy() + "] " + event.getNotes();
+                visit.setNotes(updatedNotes);
+            }
+            
+            // Save updated visit (updatedAt will be auto-set by @PreUpdate)
+            studyVisitInstanceRepository.save(visit);
+            
+            logger.info("Visit status updated successfully: id={}, aggregateUuid={}, newStatus={}", 
+                       visit.getId(), event.getAggregateUuid(), event.getNewStatus());
+            
+        } catch (Exception e) {
+            logger.error("Error projecting VisitStatusChangedEvent for aggregateUuid: {}", 
+                        event.getAggregateUuid(), e);
+            throw new RuntimeException("Failed to project VisitStatusChangedEvent", e);
+        }
+    }
+
+    /**
      * Map frontend visit type strings to database visit codes
      * 
      * Frontend uses descriptive names like "DISCONTINUATION"
