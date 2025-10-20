@@ -79,7 +79,8 @@ const BasicInformationStep = ({
         };
 
         initialiseOrganizations();
-    }, [providedOrganizations]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run once on mount - providedOrganizations causes infinite loop if included
 
     const studyTypeOptions = [
         { value: 'interventional', label: 'Interventional' },
@@ -88,11 +89,14 @@ const BasicInformationStep = ({
     ];
 
     // Debug current form data (will help diagnose validation issues)
-    console.log('BasicInformationStep - Current form data:', {
-        studyPhaseId: formData.studyPhaseId,
-        studyPhaseIdType: typeof formData.studyPhaseId,
-        availablePhases: studyPhases.map(p => ({ value: p.value, valueType: typeof p.value, label: p.label }))
-    });
+    // Note: Moved to useEffect to prevent render loop
+    useEffect(() => {
+        console.log('BasicInformationStep - Current form data:', {
+            studyPhaseId: formData.studyPhaseId,
+            studyPhaseIdType: typeof formData.studyPhaseId,
+            availablePhases: studyPhases.map(p => ({ value: p.value, valueType: typeof p.value, label: p.label }))
+        });
+    }, [formData.studyPhaseId, studyPhases.length]); // Only log when studyPhaseId changes
 
     return (
         <div className="space-y-6">

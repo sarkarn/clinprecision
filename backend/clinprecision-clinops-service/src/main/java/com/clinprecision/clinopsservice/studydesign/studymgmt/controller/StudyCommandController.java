@@ -153,18 +153,18 @@ public class StudyCommandController {
     }
 
     /**
-     * Update an existing study
+     * Update an existing study (Bridge Pattern - accepts UUID or numeric ID)
      * 
      * <p><b>URL Migration:</b></p>
      * <ul>
-     *   <li>Old (deprecated): PUT /api/studies/{uuid}</li>
-     *   <li>New (recommended): PUT /api/v1/study-design/studies/{uuid}</li>
+     *   <li>Old (deprecated): PUT /api/studies/{id}</li>
+     *   <li>New (recommended): PUT /api/v1/study-design/studies/{id}</li>
      * </ul>
      * 
      * Command: UpdateStudyCommand
      * Event: StudyUpdatedEvent
      * 
-     * @param uuid Study aggregate UUID
+     * @param id Study identifier (UUID or legacy numeric ID)
      * @param request Study update request (partial update)
      * @param httpRequest HTTP request for deprecation header detection
      * @param httpResponse HTTP response for deprecation headers
@@ -175,7 +175,7 @@ public class StudyCommandController {
         StudyApiConstants.UpdateStudy.NEW
     })
     public ResponseEntity<Void> updateStudy(
-            @PathVariable UUID uuid,
+            @PathVariable String id,
             @Valid @RequestBody StudyUpdateRequestDto request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
@@ -187,7 +187,28 @@ public class StudyCommandController {
             StudyApiConstants.NEW_BASE_PATH
         );
         
-        log.info("REST: Updating study: {}", uuid);
+        // Bridge pattern: resolve UUID from either UUID string or legacy numeric ID
+        UUID uuid;
+        try {
+            // Try parsing as UUID first
+            uuid = UUID.fromString(id);
+            log.info("REST: Updating study with UUID: {}", uuid);
+        } catch (IllegalArgumentException e) {
+            // Not a UUID, treat as legacy numeric ID
+            try {
+                Long legacyId = Long.parseLong(id);
+                log.info("REST: Using legacy ID {} (Bridge Pattern for backward compatibility)", legacyId);
+                
+                // Fetch study by legacy ID to get its UUID
+                StudyResponseDto study = studyQueryService.getStudyById(legacyId);
+                uuid = study.getStudyAggregateUuid();
+                
+                log.debug("Resolved legacy ID {} to UUID: {}", legacyId, uuid);
+            } catch (NumberFormatException nfe) {
+                log.error("REST: Invalid identifier format (not UUID or numeric): {}", id);
+                return ResponseEntity.badRequest().build();
+            }
+        }
         
         studyCommandService.updateStudy(uuid, request);
         
@@ -196,18 +217,18 @@ public class StudyCommandController {
     }
 
     /**
-     * Update study details (specific endpoint for StudyEditPage.jsx)
+     * Update study details (Bridge Pattern - accepts UUID or numeric ID)
      * 
      * <p><b>URL Migration:</b></p>
      * <ul>
-     *   <li>Old (deprecated): POST /api/studies/{uuid}/details</li>
-     *   <li>New (recommended): POST /api/v1/study-design/studies/{uuid}/details</li>
+     *   <li>Old (deprecated): POST /api/studies/{id}/details</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{id}/details</li>
      * </ul>
      * 
      * Command: UpdateStudyCommand
      * Event: StudyUpdatedEvent
      * 
-     * @param uuid Study aggregate UUID
+     * @param id Study identifier (UUID or legacy numeric ID)
      * @param request Study update request
      * @param httpRequest HTTP request for deprecation header detection
      * @param httpResponse HTTP response for deprecation headers
@@ -218,7 +239,7 @@ public class StudyCommandController {
         StudyApiConstants.UpdateStudyDetails.NEW
     })
     public ResponseEntity<Void> updateStudyDetails(
-            @PathVariable UUID uuid,
+            @PathVariable String id,
             @Valid @RequestBody StudyUpdateRequestDto request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
@@ -230,7 +251,28 @@ public class StudyCommandController {
             StudyApiConstants.NEW_BASE_PATH
         );
         
-        log.info("REST: Updating study details: {}", uuid);
+        // Bridge pattern: resolve UUID from either UUID string or legacy numeric ID
+        UUID uuid;
+        try {
+            // Try parsing as UUID first
+            uuid = UUID.fromString(id);
+            log.info("REST: Updating study details with UUID: {}", uuid);
+        } catch (IllegalArgumentException e) {
+            // Not a UUID, treat as legacy numeric ID
+            try {
+                Long legacyId = Long.parseLong(id);
+                log.info("REST: Using legacy ID {} for study details update (Bridge Pattern)", legacyId);
+                
+                // Fetch study by legacy ID to get its UUID
+                StudyResponseDto study = studyQueryService.getStudyById(legacyId);
+                uuid = study.getStudyAggregateUuid();
+                
+                log.debug("Resolved legacy ID {} to UUID: {}", legacyId, uuid);
+            } catch (NumberFormatException nfe) {
+                log.error("REST: Invalid identifier format (not UUID or numeric): {}", id);
+                return ResponseEntity.badRequest().build();
+            }
+        }
         
         studyCommandService.updateStudy(uuid, request);
         
@@ -788,8 +830,11 @@ public class StudyCommandController {
     /**
      * Create a study arm (supports UUID or legacy ID)
      * 
-     * Bridge endpoint: Frontend calls POST /studies/{id}/arms
-     * Backend DDD: POST /study-design/{uuid}/arms
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{id}/arms</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{id}/arms</li>
+     * </ul>
      * 
      * Command: AddStudyArmCommand (TODO - future DDD implementation)
      * 
@@ -797,10 +842,22 @@ public class StudyCommandController {
      * @param armData Study arm data
      * @return 201 Created with created arm data
      */
-    @PostMapping("/{id}/arms")
+    @PostMapping(value = {
+        StudyApiConstants.OLD_BASE_PATH + "/{id}/arms",
+        StudyApiConstants.NEW_BASE_PATH + "/{id}/arms"
+    })
     public ResponseEntity<StudyArmResponseDto> createStudyArm(
             @PathVariable String id,
-            @Valid @RequestBody StudyArmRequestDto armData) {
+            @Valid @RequestBody StudyArmRequestDto armData,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         log.info("REST: Creating study arm '{}' for study: {}", armData.getName(), id);
         
@@ -843,8 +900,11 @@ public class StudyCommandController {
     /**
      * Assign a form to a visit (create form binding)
      * 
-     * Bridge endpoint: Frontend calls POST /studies/{studyId}/visits/{visitId}/forms/{formId}
-     * Backend DDD: AssignFormToVisitCommand
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{studyId}/visits/{visitId}/forms/{formId}</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{studyId}/visits/{visitId}/forms/{formId}</li>
+     * </ul>
      * 
      * Command: AssignFormToVisitCommand
      * Event: FormAssignedToVisitEvent
@@ -855,7 +915,10 @@ public class StudyCommandController {
      * @param bindingData Form binding configuration
      * @return 201 Created with created binding data
      */
-    @PostMapping("/{studyId}/visits/{visitId}/forms/{formId}")
+    @PostMapping(value = {
+        StudyApiConstants.OLD_BASE_PATH + "/{studyId}/visits/{visitId}/forms/{formId}",
+        StudyApiConstants.NEW_BASE_PATH + "/{studyId}/visits/{visitId}/forms/{formId}"
+    })
     public ResponseEntity<Map<String, Object>> assignFormToVisit(
             @PathVariable String studyId,
             @PathVariable String visitId,
@@ -967,6 +1030,12 @@ public class StudyCommandController {
      * Bridge Endpoint: Create protocol version for a study
      * POST /api/studies/{studyId}/versions
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{studyId}/versions</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{studyId}/versions</li>
+     * </ul>
+     * 
      * Bridge Pattern: Accepts legacy study ID and resolves to Study UUID
      * to create protocol version via ProtocolVersionCommandController
      * 
@@ -974,7 +1043,10 @@ public class StudyCommandController {
      * @param versionData Protocol version data
      * @return 201 CREATED with version UUID
      */
-    @PostMapping("/{studyId}/versions")
+    @PostMapping(value = {
+        StudyApiConstants.OLD_BASE_PATH + "/{studyId}/versions",
+        StudyApiConstants.NEW_BASE_PATH + "/{studyId}/versions"
+    })
     public ResponseEntity<?> createProtocolVersion(
             @PathVariable String studyId,
             @RequestBody Map<String, Object> versionData) {

@@ -49,12 +49,14 @@ public class StudyResponseDto {
     private Integer targetSites;
     
     // Study Phase and Classification
-    private String phase;
+    private Long studyPhaseId;  // Study phase ID for dropdown selection
+    private String phase;       // Study phase name for display
     private String studyType;
     private String therapeuticArea;
     
     // Regulatory Information
-    private String regulatoryStatus;
+    private Long regulatoryStatusId;    // Regulatory status ID for dropdown selection
+    private String regulatoryStatus;    // Regulatory status name for display
     private String indNumber;
     private String protocolVersionNumber;
     
@@ -64,7 +66,8 @@ public class StudyResponseDto {
     private String contactEmail;
     
     // Study Status
-    private StudyStatusCode status;
+    private Long studyStatusId;         // Study status ID for dropdown selection
+    private StudyStatusCode status;     // Study status code for display
     private String statusReason;
     private LocalDateTime statusChangedAt;
     private String statusChangedBy;

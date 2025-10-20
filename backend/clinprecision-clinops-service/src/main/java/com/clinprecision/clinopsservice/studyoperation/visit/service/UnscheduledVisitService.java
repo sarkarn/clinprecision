@@ -446,10 +446,36 @@ public class UnscheduledVisitService {
             
             // Get aggregate UUID (required for command)
             String aggregateUuid = visit.getAggregateUuid();
+            boolean isLegacyVisit = (aggregateUuid == null || aggregateUuid.trim().isEmpty());
             
-            if (aggregateUuid == null || aggregateUuid.trim().isEmpty()) {
-                log.error("Visit has no aggregateUuid, cannot send command: visitInstanceId={}", visitInstanceId);
-                return false;
+            // If aggregateUuid is missing (legacy visit), initialize aggregate
+            if (isLegacyVisit) {
+                UUID visitUuid = UUID.randomUUID();
+                aggregateUuid = visitUuid.toString();
+                
+                log.info("Initializing aggregate for legacy visit: visitInstanceId={}, aggregateUuid={}", 
+                         visitInstanceId, aggregateUuid);
+                
+                // Create the aggregate first (this will emit VisitCreatedEvent)
+                // Note: createdAt is auto-set by constructor
+                commandGateway.sendAndWait(new CreateVisitCommand(
+                    visitUuid,
+                    visit.getSubjectId(),        // patientId
+                    visit.getStudyId(),
+                    visit.getSiteId(),
+                    "LEGACY",                    // visitType (legacy data)
+                    visit.getVisitDate(),
+                    visit.getVisitStatus(),      // current status
+                    updatedBy,                   // createdBy
+                    "Legacy visit initialized from existing data"  // notes
+                ));
+                
+                // Update the visit record with aggregateUuid
+                visit.setAggregateUuid(aggregateUuid);
+                studyVisitInstanceRepository.save(visit);
+                
+                log.info("Legacy visit aggregate initialized successfully: visitInstanceId={}, aggregateUuid={}", 
+                         visitInstanceId, aggregateUuid);
             }
             
             // Send UpdateVisitStatusCommand to aggregate

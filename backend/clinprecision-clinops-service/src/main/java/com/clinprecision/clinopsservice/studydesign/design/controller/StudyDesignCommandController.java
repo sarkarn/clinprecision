@@ -323,7 +323,7 @@ public class StudyDesignCommandController {
      * 
      * <p><b>Endpoints (Bridge Pattern):</b></p>
      * <ul>
-     *   <li>NEW: {@code GET /api/v1/study-design/studies/{studyId}/visits}</li>
+     *   <li>NEW: {@code GET /api/v1/study-design/designs/studies/{studyId}/visits}</li>
      *   <li>OLD: {@code GET /api/clinops/study-design/studies/{studyId}/visits} (deprecated)</li>
      * </ul>
      * 
@@ -343,9 +343,8 @@ public class StudyDesignCommandController {
         // Add deprecation headers if using old URL
         DeprecationHeaderUtil.addDeprecationHeaders(
             httpRequest, httpResponse,
-            StudyDesignApiConstants.STUDIES_PATH + "/studies/{studyId}/visits",
-            StudyDesignApiConstants.DEPRECATION_MESSAGE,
-            StudyDesignApiConstants.SUNSET_DATE
+            "/api/clinops/study-design",
+            "/api/v1/study-design"
         );
         
         return autoInitService.ensureStudyDesignExists(studyId)

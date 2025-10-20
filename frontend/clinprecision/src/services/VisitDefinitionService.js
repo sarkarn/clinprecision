@@ -13,7 +13,7 @@ import ApiService from './ApiService';
 class VisitService {
   /**
    * Get all visits for a study (auto-initializes StudyDesign if needed)
-   * NEW URL: /api/v1/study-design/studies/{studyId}/visits
+   * NEW URL: /api/v1/study-design/designs/studies/{studyId}/visits
    * OLD URL: /api/clinops/study-design/studies/{studyId}/visits (deprecated)
    * 
    * @param {string} studyId - The study ID (legacy ID or UUID)
@@ -21,7 +21,7 @@ class VisitService {
    */
   async getVisitsByStudy(studyId) {
     try {
-      const response = await ApiService.get(`/clinops-ws/api/v1/study-design/studies/${studyId}/visits`);
+      const response = await ApiService.get(`/clinops-ws/api/v1/study-design/designs/studies/${studyId}/visits`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching visits for study ${studyId}:`, error);
@@ -50,7 +50,7 @@ class VisitService {
 
   /**
    * Create a new visit for a study (auto-initializes StudyDesign if needed)
-   * NEW URL: /api/v1/study-design/studies/{studyId}/visits
+   * NEW URL: /api/v1/study-design/designs/studies/{studyId}/visits
    * OLD URL: /api/clinops/study-design/studies/{studyId}/visits (deprecated)
    * 
    * @param {string} studyId - The study ID (legacy ID or UUID)
@@ -75,7 +75,7 @@ class VisitService {
         actualVisitData = { ...actualVisitData, armId: actualArmId };
       }
       
-      const response = await ApiService.post(`/clinops-ws/api/v1/study-design/studies/${studyId}/visits`, actualVisitData);
+      const response = await ApiService.post(`/clinops-ws/api/v1/study-design/designs/studies/${studyId}/visits`, actualVisitData);
       return response.data;
     } catch (error) {
       console.error(`Error creating visit:`, error);
@@ -85,7 +85,7 @@ class VisitService {
 
   /**
    * Update an existing visit (auto-initializes StudyDesign if needed)
-   * NEW URL: /api/v1/study-design/studies/{studyId}/visits/{visitId}
+   * NEW URL: /api/v1/study-design/designs/studies/{studyId}/visits/{visitId}
    * OLD URL: /api/clinops/study-design/studies/{studyId}/visits/{visitId} (deprecated)
    * 
    * @param {string} studyId - The study ID (legacy ID or UUID)
@@ -95,7 +95,7 @@ class VisitService {
    */
   async updateVisit(studyId, visitId, visitData) {
     try {
-      const response = await ApiService.put(`/clinops-ws/api/v1/study-design/studies/${studyId}/visits/${visitId}`, visitData);
+      const response = await ApiService.put(`/clinops-ws/api/v1/study-design/designs/studies/${studyId}/visits/${visitId}`, visitData);
       return response.data;
     } catch (error) {
       console.error(`Error updating visit with ID ${visitId}:`, error);
@@ -105,7 +105,7 @@ class VisitService {
 
   /**
    * Delete a visit by ID (auto-initializes StudyDesign if needed)
-   * NEW URL: /api/v1/study-design/studies/{studyId}/visits/{visitId}
+   * NEW URL: /api/v1/study-design/designs/studies/{studyId}/visits/{visitId}
    * OLD URL: /api/clinops/study-design/studies/{studyId}/visits/{visitId} (deprecated)
    * 
    * @param {string} studyId - The study ID (legacy ID or UUID)
@@ -114,7 +114,7 @@ class VisitService {
    */
   async deleteVisit(studyId, visitId) {
     try {
-      const response = await ApiService.delete(`/clinops-ws/api/v1/study-design/studies/${studyId}/visits/${visitId}`);
+      const response = await ApiService.delete(`/clinops-ws/api/v1/study-design/designs/studies/${studyId}/visits/${visitId}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting visit with ID ${visitId}:`, error);
@@ -215,14 +215,14 @@ class VisitService {
   // Form binding methods (these may need separate API endpoints)
   /**
    * Get form bindings for all visits in a study
-   * Note: This may need a separate API endpoint for form bindings
+   * NEW URL: /api/v1/study-design/studies/{studyId}/form-bindings
+   * OLD URL: /api/studies/{studyId}/form-bindings (deprecated)
    * @param {string} studyId - The ID of the study
    * @returns {Promise<Array>} Promise that resolves to an array of visit-form bindings
    */
   async getVisitFormBindings(studyId) {
     try {
-      // This might need to be handled by a separate FormBindingService
-      const response = await ApiService.get(`/api/studies/${studyId}/form-bindings`);
+      const response = await ApiService.get(`/clinops-ws/api/v1/study-design/studies/${studyId}/form-bindings`);
       return response.data;
     } catch (error) {
       if (error.response && error.response.status === 404) {
