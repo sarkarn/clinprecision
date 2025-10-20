@@ -5,9 +5,9 @@ import {
     Building, BookOpen, Users, Calendar, Filter,
     CheckCircle, Clock, XCircle, AlertTriangle
 } from 'lucide-react';
-import { SiteService } from '../../../services/SiteService';
-import { SiteService as StudySiteService } from '../../../services/SiteService';
-import StudyService from '../../../services/StudyService';
+import { SiteService } from '../../../../services/SiteService';
+import { SiteService as StudySiteService } from '../../../../services/SiteService';
+import StudyService from '../../../../services/StudyService';
 
 export default function StudySiteAssociationList() {
     const [associations, setAssociations] = useState([]);

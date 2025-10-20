@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { UserStudyRoleService } from '../../../services/UserStudyRoleService';
-import { UserService } from '../../../services/UserService';
-import StudyService from '../../../services/StudyService';
-import { RoleService } from '../../../services/RoleService';
+import { Link, useNavigate } from 'react-router-dom';
+import { UserStudyRoleService } from '../../../../services/UserStudyRoleService';
+import { UserService } from '../../../../services/UserService';
+import StudyService from '../../../../services/StudyService';
+import { RoleService } from '../../../../services/RoleService';
 
 export default function UserStudyRoleList() {
     const [userStudyRoles, setUserStudyRoles] = useState([]);

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
-import SiteService from '../../../services/SiteService';
-import StudyService from '../../../services/StudyService';
+import SiteService from '../../../../services/SiteService';
+import StudyService from '../../../../services/StudyService';
 
 export default function StudySiteAssociationForm() {
     const navigate = useNavigate();

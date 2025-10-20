@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { UserTypeService } from "../../../services/UserTypeService";
+import { UserTypeService } from "../../../../services/UserTypeService";
 
 export default function UserTypeForm() {
     const { id } = useParams();

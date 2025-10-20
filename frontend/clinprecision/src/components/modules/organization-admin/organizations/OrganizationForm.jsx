@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { OrganizationService } from "../../../services/OrganizationService";
+import { OrganizationService } from "../../../../services/OrganizationService";
 
 export default function OrganizationForm() {
     const { id } = useParams();

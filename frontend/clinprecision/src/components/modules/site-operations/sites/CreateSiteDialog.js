@@ -1,7 +1,7 @@
 // src/components/admin/SiteManagement/CreateSiteDialog.js
 import React, { useState, useEffect } from 'react';
 import { X, Building, MapPin, Phone, Mail, AlertCircle, CheckCircle } from 'lucide-react';
-import { SiteService } from '../../../services/SiteService';
+import { SiteService } from '../../../../services/SiteService';
 
 const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], site = null }) => {
   const isEditMode = !!site;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import FormService from '../../../services/FormService';
+import FormService from '../../../../services/FormService';
 
 const FormTemplateManagement = () => {
     const [forms, setForms] = useState([]);

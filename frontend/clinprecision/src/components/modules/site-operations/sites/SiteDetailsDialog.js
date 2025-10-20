@@ -4,7 +4,7 @@ import {
   X, Building, MapPin, Phone, Mail, User, Calendar, 
   AlertCircle, CheckCircle, Clock, XCircle, Edit, History 
 } from 'lucide-react';
-import { SiteService } from '../../../services/SiteService';
+import { SiteService } from '../../../../services/SiteService';
 
 const SiteDetailsDialog = ({ open, onClose, site }) => {
   const [siteDetails, setSiteDetails] = useState(null);

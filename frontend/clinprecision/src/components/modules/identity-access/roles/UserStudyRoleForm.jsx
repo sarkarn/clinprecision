@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { UserStudyRoleService } from '../../../services/UserStudyRoleService';
-import { UserService } from '../../../services/UserService';
-import StudyService from '../../../services/StudyService';
-import { RoleService } from '../../../services/RoleService';
+import { UserStudyRoleService } from '../../../../services/UserStudyRoleService';
+import { UserService } from '../../../../services/UserService';
+import StudyService from '../../../../services/StudyService';
+import { RoleService } from '../../../../services/RoleService';
 
 export default function UserStudyRoleForm() {
     const navigate = useNavigate();
