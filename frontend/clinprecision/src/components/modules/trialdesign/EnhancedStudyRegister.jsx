@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StudyService from '../../../services/StudyService';
-import { OrganizationService } from '../../../services/OrganizationService';
+import { StudyOrganizationService } from '../../../services/StudyOrganizationService';
 
 // Enhanced form components
 import EnhancedFormField from './components/EnhancedFormField';
@@ -51,7 +51,7 @@ const EnhancedStudyRegister = () => {
         // Fetch organizations for selection
         const fetchOrgs = async () => {
             try {
-                const orgs = await OrganizationService.getAllOrganizations();
+                const orgs = await StudyOrganizationService.getAllOrganizations();
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
             } catch (err) {
                 setAvailableOrganizations([]);
@@ -354,8 +354,8 @@ const EnhancedStudyRegister = () => {
                     <button
                         type="submit"
                         className={`px-4 py-2 rounded transition-colors ${isFormValid
-                                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                : 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-gray-400 text-gray-600 cursor-not-allowed'
                             }`}
                         disabled={loading || !isFormValid}
                     >

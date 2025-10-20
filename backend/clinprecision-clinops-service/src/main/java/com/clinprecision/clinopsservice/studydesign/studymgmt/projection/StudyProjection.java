@@ -139,13 +139,17 @@ public class StudyProjection {
             entity.setEndDate(event.getEndDate());
           //  entity.setEstimatedCompletion(event.getEstimatedCompletion());
             
-            // Set versioning
+            // Set versioning  (PROTOCOL VERSION FIELDS)
             entity.setVersion(event.getVersion() != null ? event.getVersion() : "1.0");
             entity.setIsLatestVersion(event.getIsLatestVersion() != null ? event.getIsLatestVersion() : true);
             entity.setIsLocked(event.getIsLocked() != null ? event.getIsLocked() : false);
             
+            // Note: organizationId, blinding, randomization, controlType, notes, riskLevel
+            // objective, plannedStartDate, plannedEndDate, targetSites are in events
+            // but not yet in StudyEntity table schema. These will be stored when schema is updated.
+            
             // Set default values for other fields
-            entity.setSites(0);
+            entity.setSites(event.getTargetSites() != null ? event.getTargetSites() : 0);
             entity.setEnrolledSubjects(0);
             entity.setAmendments(0);
             entity.setActiveSites(0);
@@ -255,6 +259,23 @@ public class StudyProjection {
 //            if (event.getEstimatedCompletion() != null) {
 //                entity.setEstimatedCompletion(event.getEstimatedCompletion());
 //            }
+            
+            // Update version fields (PROTOCOL VERSION FIELDS)
+            if (event.getVersion() != null) {
+                entity.setVersion(event.getVersion());
+            }
+            if (event.getIsLatestVersion() != null) {
+                entity.setIsLatestVersion(event.getIsLatestVersion());
+            }
+            
+            // Update sites from targetSites if provided
+            if (event.getTargetSites() != null) {
+                entity.setSites(event.getTargetSites());
+            }
+            
+            // Note: organizationId, blinding, randomization, controlType, notes, riskLevel,
+            // objective, plannedStartDate, plannedEndDate fields are in events
+            // but not yet in StudyEntity table schema. Will be saved when schema is updated.
             
             // Update lookup table relationships
             if (event.getStudyPhaseId() != null) {

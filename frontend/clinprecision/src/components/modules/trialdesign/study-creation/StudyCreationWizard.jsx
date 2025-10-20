@@ -5,7 +5,7 @@ import { useWizardNavigation } from '../hooks/useWizardNavigation';
 import ProgressIndicator from '../components/ProgressIndicator';
 import { LoadingOverlay, Alert, Button } from '../components/UIComponents';
 import StudyService from '../../../../services/StudyService';
-import { OrganizationService } from '../../../../services/OrganizationService';
+import { StudyOrganizationService } from '../../../../services/StudyOrganizationService';
 
 // Step Components
 import BasicInformationStep from './steps/BasicInformationStep';
@@ -90,8 +90,8 @@ const StudyCreationWizard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch organizations
-                const orgs = await OrganizationService.getAllOrganizations();
+                // Fetch organizations via clinops-service proxy
+                const orgs = await StudyOrganizationService.getAllOrganizations();
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
 
                 // Fetch lookup data

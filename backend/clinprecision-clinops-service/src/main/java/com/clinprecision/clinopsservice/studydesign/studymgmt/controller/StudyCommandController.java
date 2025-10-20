@@ -175,7 +175,7 @@ public class StudyCommandController {
         StudyApiConstants.UpdateStudy.NEW
     })
     public ResponseEntity<Void> updateStudy(
-            @PathVariable UUID uuid,
+        @PathVariable("uuid") String uuid,
             @Valid @RequestBody StudyUpdateRequestDto request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
@@ -187,11 +187,13 @@ public class StudyCommandController {
             StudyApiConstants.NEW_BASE_PATH
         );
         
-        log.info("REST: Updating study: {}", uuid);
+        UUID studyUuid = resolveStudyUuid(uuid);
+
+        log.info("REST: Updating study: {} (resolved UUID: {})", uuid, studyUuid);
         
-        studyCommandService.updateStudy(uuid, request);
+        studyCommandService.updateStudy(studyUuid, request);
         
-        log.info("REST: Study updated successfully: {}", uuid);
+        log.info("REST: Study updated successfully: {}", studyUuid);
         return ResponseEntity.ok().build();
     }
 
@@ -218,7 +220,7 @@ public class StudyCommandController {
         StudyApiConstants.UpdateStudyDetails.NEW
     })
     public ResponseEntity<Void> updateStudyDetails(
-            @PathVariable UUID uuid,
+        @PathVariable("uuid") String uuid,
             @Valid @RequestBody StudyUpdateRequestDto request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
@@ -230,12 +232,35 @@ public class StudyCommandController {
             StudyApiConstants.NEW_BASE_PATH
         );
         
-        log.info("REST: Updating study details: {}", uuid);
+        UUID studyUuid = resolveStudyUuid(uuid);
+
+        log.info("REST: Updating study details: {} (resolved UUID: {})", uuid, studyUuid);
         
-        studyCommandService.updateStudy(uuid, request);
+        studyCommandService.updateStudy(studyUuid, request);
         
-        log.info("REST: Study details updated successfully: {}", uuid);
+        log.info("REST: Study details updated successfully: {}", studyUuid);
         return ResponseEntity.ok().build();
+    }
+
+    private UUID resolveStudyUuid(String studyId) {
+        try {
+            return UUID.fromString(studyId);
+        } catch (IllegalArgumentException uuidFormatException) {
+            try {
+                Long legacyId = Long.parseLong(studyId);
+                return studyQueryService.findStudyEntityById(legacyId)
+                        .map(entity -> {
+                            UUID aggregateUuid = entity.getAggregateUuid();
+                            if (aggregateUuid == null) {
+                                throw new IllegalStateException("Study " + legacyId + " has not been assigned an aggregate UUID yet");
+                            }
+                            return aggregateUuid;
+                        })
+                        .orElseThrow(() -> new EntityNotFoundException("Study not found with ID: " + studyId));
+            } catch (NumberFormatException idFormatException) {
+                throw new IllegalArgumentException("Invalid study ID format: " + studyId, idFormatException);
+            }
+        }
     }
 
     /**

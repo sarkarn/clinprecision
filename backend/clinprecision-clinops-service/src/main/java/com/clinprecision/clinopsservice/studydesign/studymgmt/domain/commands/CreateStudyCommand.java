@@ -18,6 +18,9 @@ public class CreateStudyCommand {
     @TargetAggregateIdentifier
     UUID studyAggregateUuid;
     
+    // Organization
+    Long organizationId;
+    
     // Core study fields
     String name;
     String description;
@@ -25,6 +28,7 @@ public class CreateStudyCommand {
     String protocolNumber;
     String indication;
     String studyType; // INTERVENTIONAL, OBSERVATIONAL, etc.
+    String objective;
     
     // Key personnel
     String principalInvestigator;
@@ -34,18 +38,34 @@ public class CreateStudyCommand {
     String therapeuticArea;
     Integer plannedSubjects;
     Integer targetEnrollment;
+    Integer targetSites;
     String primaryObjective;
     String primaryEndpoint;
     
     // Timeline
     LocalDate startDate;
     LocalDate endDate;
+    LocalDate plannedStartDate;
+    LocalDate plannedEndDate;
     LocalDate estimatedCompletion;
     
     // Lookup table IDs (nullable - can be set later)
     Long studyStatusId;
     Long regulatoryStatusId;
     Long studyPhaseId;
+    
+    // Version fields
+    String version;
+    Boolean isLatestVersion;
+    
+    // Classification fields
+    String blinding;
+    String randomization;
+    String controlType;
+    
+    // Additional fields
+    String notes;
+    String riskLevel;
     
     // Audit
     UUID userId; // User creating the study

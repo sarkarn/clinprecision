@@ -21,6 +21,7 @@ import java.time.LocalDate;
 public class StudyUpdateRequestDto {
     
     // Optional fields - only provided fields will be updated
+    private Long organizationId;
     private String name;
     private String protocolNumber;
     private String sponsor;
