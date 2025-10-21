@@ -5,6 +5,7 @@ import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.enti
 import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.entity.StudyFormDataAuditEntity;
 import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.repository.StudyFormDataRepository;
 import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.repository.StudyFormDataAuditRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.service.PatientVisitService;
 
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
+import java.util.List;
 
 /**
  * FormData Projector - Event sourcing projection handler for visit-based form data
@@ -69,6 +71,7 @@ public class FormDataProjector {
 
     private final StudyFormDataRepository formDataRepository;
     private final StudyFormDataAuditRepository auditRepository;
+    private final PatientVisitService patientVisitService;
 
     /**
      * Handle FormDataSubmittedEvent - Create form submission record
@@ -142,6 +145,11 @@ public class FormDataProjector {
             // Step 4: Create audit record
             createAuditRecord(event, savedEntity.getId());
             
+            // Step 5: Check if all visit forms are complete and auto-update visit status
+            if (event.getVisitId() != null && "SUBMITTED".equals(event.getStatus())) {
+                checkAndUpdateVisitCompletion(event.getVisitId(), event.getSubmittedBy());
+            }
+            
             log.info("FormDataSubmittedEvent projection completed successfully: record id={}, buildId={}", 
                 savedEntity.getId(), event.getBuildId());
             
@@ -201,6 +209,69 @@ public class FormDataProjector {
         } catch (Exception e) {
             log.error("Error creating audit record: recordId={}, error={}", recordId, e.getMessage(), e);
             throw new RuntimeException("Failed to create audit record", e);
+        }
+    }
+
+    /**
+     * Check if all forms in a visit are complete and auto-update visit status to COMPLETED
+     * 
+     * This method is called after each form submission to check if the visit is now complete.
+     * If all required forms for the visit are SUBMITTED, the visit status is automatically
+     * updated to COMPLETED.
+     * 
+     * Business Logic:
+     * - Only checks when a form status is SUBMITTED
+     * - Queries all forms for the visit from study_form_data
+     * - If ALL forms have status=SUBMITTED, updates visit to COMPLETED
+     * - Logs the automatic status transition
+     * 
+     * @param visitId The visit instance ID
+     * @param updatedBy The user who submitted the last form
+     */
+    private void checkAndUpdateVisitCompletion(Long visitId, Long updatedBy) {
+        try {
+            log.info("Checking visit completion for visitId={}", visitId);
+            
+            // Get all forms for this visit
+            List<StudyFormDataEntity> visitForms = formDataRepository.findByVisitIdOrderByCreatedAtDesc(visitId);
+            
+            if (visitForms.isEmpty()) {
+                log.warn("No forms found for visitId={}", visitId);
+                return;
+            }
+            
+            // Check if ALL forms are SUBMITTED
+            boolean allFormsComplete = visitForms.stream()
+                .allMatch(form -> "SUBMITTED".equals(form.getStatus()));
+            
+            if (allFormsComplete) {
+                log.info("All {} forms completed for visitId={}. Auto-updating visit status to COMPLETED.", 
+                    visitForms.size(), visitId);
+                
+                // Update visit status to COMPLETED
+                boolean updated = patientVisitService.updateVisitStatus(
+                    visitId, 
+                    "COMPLETED", 
+                    updatedBy, 
+                    "Visit auto-completed: all required forms submitted"
+                );
+                
+                if (updated) {
+                    log.info("Visit status successfully updated to COMPLETED: visitId={}", visitId);
+                } else {
+                    log.warn("Failed to update visit status to COMPLETED: visitId={}", visitId);
+                }
+            } else {
+                long completedCount = visitForms.stream()
+                    .filter(form -> "SUBMITTED".equals(form.getStatus()))
+                    .count();
+                log.info("Visit not yet complete: visitId={}, completed={}/{}", 
+                    visitId, completedCount, visitForms.size());
+            }
+            
+        } catch (Exception e) {
+            // Don't throw - visit status update is not critical to form submission
+            log.error("Error checking visit completion: visitId={}, error={}", visitId, e.getMessage(), e);
         }
     }
 
