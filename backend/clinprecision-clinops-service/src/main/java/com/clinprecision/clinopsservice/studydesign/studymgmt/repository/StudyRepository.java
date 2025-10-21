@@ -38,7 +38,7 @@ public interface StudyRepository extends JpaRepository<StudyEntity, Long> {
      * @param aggregateUuid UUID from event-sourced aggregate
      * @return Optional containing StudyEntity with loaded relationships
      */
-    @Query("SELECT s FROM StudyEntity s " +
+    @Query("SELECT DISTINCT s FROM StudyEntity s " +
            "LEFT JOIN FETCH s.organizationStudies os " +
            "LEFT JOIN FETCH s.studyStatus ss " +
            "LEFT JOIN FETCH s.regulatoryStatus rs " +
@@ -89,7 +89,7 @@ public interface StudyRepository extends JpaRepository<StudyEntity, Long> {
     /**
      * Find study by ID with all relationships eagerly loaded
      */
-    @Query("SELECT s FROM StudyEntity s " +
+    @Query("SELECT DISTINCT s FROM StudyEntity s " +
            "LEFT JOIN FETCH s.organizationStudies os " +
            "LEFT JOIN FETCH s.studyStatus ss " +
            "LEFT JOIN FETCH s.regulatoryStatus rs " +

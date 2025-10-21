@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import FormField from '../../components/FormField';
-import { OrganizationService } from '../../../../../services/OrganizationService';
+import { StudyOrganizationService } from '../../../../../services/StudyOrganizationService';
 import StudyService from '../../../../../services/StudyService';
 
 /**
@@ -12,7 +12,7 @@ const BasicInformationStep = ({
     getFieldError,
     hasFieldError,
     lookupData = { studyPhases: [], studyStatuses: [], regulatoryStatuses: [] },
-    availableOrganizations: providedOrganizations = []
+    availableOrganizations: providedOrganizations = null
 }) => {
     const [organizationList, setOrganizationList] = useState([]);
     const [loadingOrganizations, setLoadingOrganizations] = useState(true);
@@ -63,8 +63,8 @@ const BasicInformationStep = ({
                 setLoadingOrganizations(true);
                 let orgs = providedOrganizations;
 
-                if (!orgs || orgs.length === 0) {
-                    orgs = await OrganizationService.getAllOrganizations();
+                if (!Array.isArray(orgs) || orgs.length === 0) {
+                    orgs = await StudyOrganizationService.getAllOrganizations();
                 }
 
                 setOrganizationList(Array.isArray(orgs) ? orgs : []);

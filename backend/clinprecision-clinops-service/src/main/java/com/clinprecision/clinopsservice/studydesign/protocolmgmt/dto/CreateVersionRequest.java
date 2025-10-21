@@ -14,6 +14,9 @@ import java.util.UUID;
 
 /**
  * Request DTO for creating a new protocol version
+ * 
+ * <p><b>Bridge Pattern Support:</b> Can accept either studyAggregateUuid (UUID) or studyId (legacy ID).
+ * If studyId is provided, it will be resolved to studyAggregateUuid in the controller.</p>
  */
 @Data
 @Builder
@@ -21,8 +24,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CreateVersionRequest {
 
-    @NotNull(message = "Study UUID is required")
+    // Bridge Pattern: Either studyAggregateUuid OR studyId should be provided
+    // Validation is handled in controller after resolution
     private UUID studyAggregateUuid;
+    
+    // Legacy study ID - will be resolved to studyAggregateUuid if provided
+    private String studyId;
 
     @NotBlank(message = "Version number is required")
     @Size(max = 20, message = "Version number cannot exceed 20 characters")

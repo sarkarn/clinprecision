@@ -5,7 +5,7 @@ import { useWizardNavigation } from '../hooks/useWizardNavigation';
 import ProgressIndicator from '../components/ProgressIndicator';
 import { LoadingOverlay, Alert, Button } from '../components/UIComponents';
 import StudyService from '../../../../services/StudyService';
-import { OrganizationService } from '../../../../services/OrganizationService';
+import { StudyOrganizationService } from '../../../../services/StudyOrganizationService';
 
 // Step Components
 import BasicInformationStep from './steps/BasicInformationStep';
@@ -236,7 +236,7 @@ const StudyEditWizard = () => {
 
                 // Fetch organizations and lookup data in parallel
                 const [orgs, lookups] = await Promise.all([
-                    OrganizationService.getAllOrganizations(),
+                    StudyOrganizationService.getAllOrganizations(),
                     StudyService.getStudyLookupData()
                 ]);
 
@@ -377,6 +377,7 @@ const StudyEditWizard = () => {
                         getFieldError={getFieldError}
                         hasFieldError={hasFieldError}
                         lookupData={lookupData}
+                        availableOrganizations={availableOrganizations}
                     />
                 );
             case 1:

@@ -1,11 +1,17 @@
 package com.clinprecision.clinopsservice.studydesign.studymgmt.mapper;
 
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyListResponseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyOrganizationAssociationResponseDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyResponseDto;
-import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.OrganizationStudyEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * Mapper for converting Study Entity to Response DTOs
@@ -38,10 +44,10 @@ public class StudyResponseMapper {
                 .protocolNumber(entity.getProtocolNumber())
                 .sponsor(entity.getSponsor())
                 .description(entity.getDescription())
-                .organizationId(null) // TODO: Map from organizationStudies relationship
+                .organizationId(resolvePrimaryOrganizationId(entity))
                 .organizationName(null) // TODO: Map from organizationStudies relationship
-                .plannedStartDate(null) // TODO: Add to entity if needed
-                .plannedEndDate(null) // TODO: Add to entity if needed
+                .plannedStartDate(entity.getStartDate()) // Currently stored in startDate field
+                .plannedEndDate(entity.getEndDate()) // Currently stored in endDate field
                 .actualStartDate(null) // TODO: Add to entity if needed
                 .actualEndDate(null) // TODO: Add to entity if needed
                 .targetEnrollment(entity.getTargetEnrollment())
@@ -53,10 +59,15 @@ public class StudyResponseMapper {
                 .indNumber(null) // TODO: Add to entity if needed
                 .protocolVersionNumber(null) // TODO: Add to entity if needed
                 .principalInvestigator(entity.getPrincipalInvestigator())
+                .primaryObjective(entity.getPrimaryObjective())
+                .primaryEndpoint(entity.getPrimaryEndpoint())
                 .medicalMonitor(null) // TODO: Add to entity if needed
                 .contactEmail(null) // TODO: Add to entity if needed
                 .status(entity.getStudyStatus() != null ? 
                     StudyStatusCode.fromString(entity.getStudyStatus().getCode()) : null)
+                .studyStatusId(entity.getStudyStatus() != null ? entity.getStudyStatus().getId() : null)
+                .regulatoryStatusId(entity.getRegulatoryStatus() != null ? entity.getRegulatoryStatus().getId() : null)
+                .studyPhaseId(entity.getStudyPhase() != null ? entity.getStudyPhase().getId() : null)
                 .statusReason(null) // TODO: Add to entity if needed
                 .statusChangedAt(null) // TODO: Add to entity if needed
                 .statusChangedBy(null) // TODO: Add to entity if needed
@@ -64,6 +75,8 @@ public class StudyResponseMapper {
                 .createdBy(entity.getCreatedBy() != null ? entity.getCreatedBy().toString() : null)
                 .updatedAt(entity.getUpdatedAt())
                 .updatedBy(null) // TODO: Add to entity if needed
+                .metadata(entity.getMetadata())
+                .organizations(mapOrganizationAssociations(entity))
                 .build();
     }
     
@@ -88,7 +101,7 @@ public class StudyResponseMapper {
                 .name(entity.getName())
                 .protocolNumber(entity.getProtocolNumber())
                 .sponsor(entity.getSponsor())
-                .organizationId(null) // TODO: Map from organizationStudies relationship
+                .organizationId(resolvePrimaryOrganizationId(entity))
                 .organizationName(null) // TODO: Map from organizationStudies relationship
                 .plannedStartDate(entity.getStartDate())
                 .actualStartDate(entity.getStartDate())
@@ -99,6 +112,35 @@ public class StudyResponseMapper {
                 .status(entity.getStudyStatus() != null ? 
                     StudyStatusCode.fromString(entity.getStudyStatus().getCode()) : null)
                 .build();
+    }
+
+    private Long resolvePrimaryOrganizationId(StudyEntity entity) {
+        if (entity.getOrganizationStudies() == null) {
+            return null;
+        }
+
+        return entity.getOrganizationStudies().stream()
+                .filter(orgStudy -> Boolean.TRUE.equals(orgStudy.getIsPrimary()))
+                .map(OrganizationStudyEntity::getOrganizationId)
+                .findFirst()
+                .orElseGet(() -> entity.getOrganizationStudies().stream()
+                        .map(OrganizationStudyEntity::getOrganizationId)
+                        .findFirst()
+                        .orElse(null));
+    }
+
+    private List<StudyOrganizationAssociationResponseDto> mapOrganizationAssociations(StudyEntity entity) {
+        if (entity.getOrganizationStudies() == null || entity.getOrganizationStudies().isEmpty()) {
+            return List.of();
+        }
+
+        return entity.getOrganizationStudies().stream()
+                .map(orgStudy -> StudyOrganizationAssociationResponseDto.builder()
+                        .organizationId(orgStudy.getOrganizationId())
+            .role(orgStudy.getRole() != null ? orgStudy.getRole().name().toLowerCase(Locale.ROOT) : null)
+                        .isPrimary(orgStudy.getIsPrimary())
+                        .build())
+                .collect(Collectors.toList());
     }
 }
 

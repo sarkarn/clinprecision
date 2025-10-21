@@ -762,7 +762,12 @@ public class StudyQueryController {
 
     /**
      * Get form bindings (assignments) for a study with auto-initialization (Bridge endpoint)
-     * GET /api/studies/{studyId}/form-bindings
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/{studyId}/form-bindings</li>
+     *   <li>New (recommended): GET /api/v1/study-design/studies/{studyId}/form-bindings</li>
+     * </ul>
      * 
      * Bridge Pattern: Accepts study ID (legacy or UUID) and automatically ensures
      * StudyDesignAggregate exists before fetching form assignments.
@@ -770,13 +775,27 @@ public class StudyQueryController {
      * @param studyId Study identifier (legacy ID or UUID)
      * @param visitId Optional visit filter
      * @param requiredOnly Optional flag to return only required forms
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with list of form assignments
      */
-    @GetMapping("/{studyId}/form-bindings")
+    @GetMapping(value = {
+        StudyApiConstants.OLD_BASE_PATH + "/{studyId}/form-bindings",      // OLD: /api/studies/{studyId}/form-bindings
+        StudyApiConstants.NEW_BASE_PATH + "/{studyId}/form-bindings"       // NEW: /api/v1/study-design/studies/{studyId}/form-bindings
+    })
     public ResponseEntity<List<FormAssignmentResponse>> getFormBindingsForStudy(
             @PathVariable String studyId,
             @RequestParam(required = false) UUID visitId,
-            @RequestParam(required = false) Boolean requiredOnly) {
+            @RequestParam(required = false) Boolean requiredOnly,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         log.info("REST: Auto-get form bindings for study: {} (visitId={}, requiredOnly={})", 
             studyId, visitId, requiredOnly);
         
@@ -804,15 +823,22 @@ public class StudyQueryController {
 
     /**
      * Bridge Endpoint: Get protocol version history for a study
-     * GET /api/studies/{studyId}/versions/history
+     * OLD: GET /api/studies/{studyId}/versions/history
+     * NEW: GET /api/v1/study-design/studies/{studyId}/versions/history
      * 
      * Bridge Pattern: Accepts legacy study ID and resolves to Study UUID
      * to fetch protocol versions from ProtocolVersionQueryController
      * 
+     * Note: Frontend also calls /api/v1/study-design/protocol-versions/study/{studyId}
+     * which is handled by ProtocolVersionQueryController.getVersionsByStudyUuid()
+     * 
      * @param studyId Study identifier (legacy ID or UUID)
      * @return 200 OK with list of protocol versions
      */
-    @GetMapping("/{studyId}/versions/history")
+    @GetMapping({
+        StudyApiConstants.OLD_BASE_PATH + "/{studyId}/versions/history",
+        StudyApiConstants.NEW_BASE_PATH + "/{studyId}/versions/history"
+    })
     public ResponseEntity<?> getVersionHistory(@PathVariable String studyId) {
         log.info("REST: Bridge endpoint - Get version history for study: {}", studyId);
         
@@ -851,13 +877,13 @@ public class StudyQueryController {
                 protocolVersionQueryService.findByStudyUuidOrderedByDate(studyAggregateUuid);
             
             // Convert to response DTOs
-            List<VersionResponse> response =
+            List<VersionResponse> versionList =
                 versions.stream()
                     .map(this::convertToVersionResponse)
                     .collect(java.util.stream.Collectors.toList());
             
-            log.info("REST: Found {} protocol versions for study: {}", response.size(), studyId);
-            return ResponseEntity.ok(response);
+            log.info("REST: Found {} protocol versions for study: {}", versionList.size(), studyId);
+            return ResponseEntity.ok(versionList);
             
         } catch (Exception ex) {
             log.error("REST: Failed to fetch version history for study: {}", studyId, ex);
@@ -868,14 +894,18 @@ public class StudyQueryController {
 
     /**
      * Bridge Endpoint: Get protocol versions for a study
-     * GET /api/studies/{studyId}/versions
+     * OLD: GET /api/studies/{studyId}/versions
+     * NEW: GET /api/v1/study-design/studies/{studyId}/versions
      * 
      * Same as /versions/history but with a different endpoint name for compatibility
      * 
      * @param studyId Study identifier (legacy ID or UUID)
      * @return 200 OK with list of protocol versions
      */
-    @GetMapping("/{studyId}/versions")
+    @GetMapping({
+        StudyApiConstants.OLD_BASE_PATH + "/{studyId}/versions",
+        StudyApiConstants.NEW_BASE_PATH + "/{studyId}/versions"
+    })
     public ResponseEntity<?> getStudyVersions(@PathVariable String studyId) {
         log.info("REST: Bridge endpoint - Get versions for study: {}", studyId);
         // Delegate to the same implementation

@@ -83,10 +83,15 @@ public class StudyCommandService {
                   request.getName(), command.getStudyAggregateUuid());
         
         // Send command and wait for completion (synchronous)
-        commandGateway.sendAndWait(command);
-        
-        log.info("Study created successfully with UUID: {}", command.getStudyAggregateUuid());
-        return command.getStudyAggregateUuid();
+        try {
+            commandGateway.sendAndWait(command);
+            log.info("Study created successfully with UUID: {}", command.getStudyAggregateUuid());
+            return command.getStudyAggregateUuid();
+        } catch (Exception e) {
+            log.error("Failed to create study: {} with UUID: {}", request.getName(), command.getStudyAggregateUuid());
+            logExceptionChain(e);
+            throw e;
+        }
     }
     
     /**
@@ -116,11 +121,15 @@ public class StudyCommandService {
         log.debug("Dispatching UpdateStudyCommand for study: {}", studyUuid);
         
         // Send command and wait for completion
-        commandGateway.sendAndWait(command);
-        
-    log.info("Study updated successfully: {}", studyUuid);
-
-    scheduleProjectionAwait(studyUuid, request, Duration.ofSeconds(5));
+        try {
+            commandGateway.sendAndWait(command);
+            log.info("Study updated successfully: {}", studyUuid);
+            scheduleProjectionAwait(studyUuid, request, Duration.ofSeconds(5));
+        } catch (Exception e) {
+            log.error("Failed to update study: {}", studyUuid);
+            logExceptionChain(e);
+            throw e;
+        }
     }
     
     /**
@@ -148,9 +157,14 @@ public class StudyCommandService {
         
         log.debug("Dispatching SuspendStudyCommand for study: {}", studyUuid);
         
-        commandGateway.sendAndWait(command);
-        
-        log.info("Study suspended successfully: {}", studyUuid);
+        try {
+            commandGateway.sendAndWait(command);
+            log.info("Study suspended successfully: {}", studyUuid);
+        } catch (Exception e) {
+            log.error("Failed to suspend study: {}", studyUuid);
+            logExceptionChain(e);
+            throw e;
+        }
     }
     
     /**
@@ -177,9 +191,14 @@ public class StudyCommandService {
         
         log.debug("Dispatching TerminateStudyCommand for study: {}", studyUuid);
         
-        commandGateway.sendAndWait(command);
-        
-        log.warn("Study terminated (terminal state): {}", studyUuid);
+        try {
+            commandGateway.sendAndWait(command);
+            log.warn("Study terminated (terminal state): {}", studyUuid);
+        } catch (Exception e) {
+            log.error("Failed to terminate study: {}", studyUuid);
+            logExceptionChain(e);
+            throw e;
+        }
     }
     
     /**
@@ -206,9 +225,14 @@ public class StudyCommandService {
         
         log.debug("Dispatching WithdrawStudyCommand for study: {}", studyUuid);
         
-        commandGateway.sendAndWait(command);
-        
-        log.warn("Study withdrawn (terminal state): {}", studyUuid);
+        try {
+            commandGateway.sendAndWait(command);
+            log.warn("Study withdrawn (terminal state): {}", studyUuid);
+        } catch (Exception e) {
+            log.error("Failed to withdraw study: {}", studyUuid);
+            logExceptionChain(e);
+            throw e;
+        }
     }
     
     /**
@@ -234,9 +258,14 @@ public class StudyCommandService {
         
         log.debug("Dispatching CompleteStudyCommand for study: {}", studyUuid);
         
-        commandGateway.sendAndWait(command);
-        
-        log.info("Study completed successfully: {}", studyUuid);
+        try {
+            commandGateway.sendAndWait(command);
+            log.info("Study completed successfully: {}", studyUuid);
+        } catch (Exception e) {
+            log.error("Failed to complete study: {}", studyUuid);
+            logExceptionChain(e);
+            throw e;
+        }
     }
 
     /**
@@ -288,9 +317,14 @@ public class StudyCommandService {
         
         log.debug("Dispatching ChangeStudyStatusCommand for study: {} to status: {}", studyUuid, newStatus);
         
-        commandGateway.sendAndWait(command);
-        
-        log.info("Study status changed successfully: {} -> {}", studyUuid, newStatus);
+        try {
+            commandGateway.sendAndWait(command);
+            log.info("Study status changed successfully: {} -> {}", studyUuid, newStatus);
+        } catch (Exception e) {
+            log.error("Failed to change study status: {} -> {}", studyUuid, newStatus);
+            logExceptionChain(e);
+            throw e;
+        }
     }
 
     /**
@@ -376,8 +410,8 @@ public class StudyCommandService {
                 .targetEnrollment(legacyStudy.getTargetEnrollment())
                 .primaryObjective(legacyStudy.getPrimaryObjective())
                 .primaryEndpoint(legacyStudy.getPrimaryEndpoint())
-                .startDate(legacyStudy.getStartDate())
-                .endDate(legacyStudy.getEndDate())
+                .plannedStartDate(legacyStudy.getStartDate())
+                .plannedEndDate(legacyStudy.getEndDate())
                 .studyStatusId(legacyStudy.getStudyStatus() != null ? legacyStudy.getStudyStatus().getId() : null)
                 .regulatoryStatusId(legacyStudy.getRegulatoryStatus() != null ? legacyStudy.getRegulatoryStatus().getId() : null)
                 .studyPhaseId(legacyStudy.getStudyPhase() != null ? legacyStudy.getStudyPhase().getId() : null)
@@ -387,12 +421,18 @@ public class StudyCommandService {
             
             // Send command to create aggregate (will create StudyCreated event)
             log.debug("Creating event-sourced aggregate for legacy study: {}", studyUuid);
-            commandGateway.sendAndWait(migrateCommand);
-            
-            log.info("Successfully migrated legacy study {} to event store", studyUuid);
+            try {
+                commandGateway.sendAndWait(migrateCommand);
+                log.info("Successfully migrated legacy study {} to event store", studyUuid);
+            } catch (Exception migrationEx) {
+                log.error("Failed to send migration command for legacy study: {}", studyUuid);
+                logExceptionChain(migrationEx);
+                throw migrationEx;
+            }
             
         } catch (Exception e) {
-            log.error("Failed to migrate legacy study {} to event store: {}", studyUuid, e.getMessage(), e);
+            log.error("Failed to migrate legacy study {} to event store: {}", studyUuid, e.getMessage());
+            logExceptionChain(e);
             throw new RuntimeException("Failed to migrate legacy study: " + e.getMessage(), e);
         }
     }
@@ -663,6 +703,45 @@ public class StudyCommandService {
         armRepository.save(entity);
         
         log.info("Study arm deleted successfully");
+    }
+    
+    /**
+     * Helper method to log the complete exception chain
+     * This helps diagnose wrapped exceptions from Axon Framework
+     * 
+     * @param throwable The exception to log
+     */
+    private void logExceptionChain(Throwable throwable) {
+        log.error("=== EXCEPTION CHAIN START ===");
+        int level = 0;
+        Throwable current = throwable;
+        
+        while (current != null) {
+            log.error("Exception level {}: {} - {}", 
+                level, 
+                current.getClass().getName(), 
+                current.getMessage());
+            
+            // Log stack trace for this level
+            StackTraceElement[] stackTrace = current.getStackTrace();
+            if (stackTrace != null && stackTrace.length > 0) {
+                log.error("  Stack trace (first 5 elements):");
+                int limit = Math.min(5, stackTrace.length);
+                for (int i = 0; i < limit; i++) {
+                    log.error("    at {}", stackTrace[i]);
+                }
+            }
+            
+            current = current.getCause();
+            level++;
+            
+            if (level > 10) {
+                log.error("Exception chain too deep (>10 levels), stopping trace");
+                break;
+            }
+        }
+        
+        log.error("=== EXCEPTION CHAIN END ===");
     }
 }
 

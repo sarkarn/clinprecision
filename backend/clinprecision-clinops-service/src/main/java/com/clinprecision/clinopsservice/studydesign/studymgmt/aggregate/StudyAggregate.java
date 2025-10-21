@@ -2,6 +2,7 @@ package com.clinprecision.clinopsservice.studydesign.studymgmt.aggregate;
 
 import com.clinprecision.clinopsservice.studydesign.studymgmt.domain.commands.*;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.event.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyOrganizationAssociation;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -38,18 +40,56 @@ public class StudyAggregate {
     @AggregateIdentifier
     private UUID studyAggregateUuid;
     
+    // Organization
+    private Long organizationId;
+    
     // Core study state (rebuilt from events)
     private String name;
     private String protocolNumber;
     private String sponsor;
+    private String description;
+    private String indication;
+    private String studyType;
+    private String objective;
     private StudyStatusCode status;
     private String version;
     private boolean isLatestVersion;
     private boolean isLocked;
     
+    // Key personnel
+    private String principalInvestigator;
+    private String studyCoordinator;
+    
+    // Study details
+    private String therapeuticArea;
+    private Integer plannedSubjects;
+    private Integer targetEnrollment;
+    private Integer targetSites;
+    private String primaryObjective;
+    private String primaryEndpoint;
+    
     // Timeline
     private LocalDate startDate;
     private LocalDate endDate;
+    private LocalDate plannedStartDate;
+    private LocalDate plannedEndDate;
+    private LocalDate estimatedCompletion;
+    
+    // Lookup table IDs
+    private Long studyStatusId;
+    private Long regulatoryStatusId;
+    private Long studyPhaseId;
+    
+    // Classification fields
+    private String blinding;
+    private String randomization;
+    private String controlType;
+    
+    // Additional fields
+    private String notes;
+    private String riskLevel;
+    private List<StudyOrganizationAssociation> organizationAssociations;
+    private String metadata;
     
     // Required for Axon Framework
     protected StudyAggregate() {
@@ -77,29 +117,41 @@ public class StudyAggregate {
         AggregateLifecycle.apply(
             StudyCreatedEvent.builder()
                 .studyAggregateUuid(command.getStudyAggregateUuid())
+                .organizationId(command.getOrganizationId())
                 .name(command.getName())
                 .description(command.getDescription())
                 .sponsor(command.getSponsor())
                 .protocolNumber(command.getProtocolNumber())
                 .indication(command.getIndication())
                 .studyType(command.getStudyType() != null ? command.getStudyType() : "INTERVENTIONAL")
+                .objective(command.getObjective())
                 .principalInvestigator(command.getPrincipalInvestigator())
                 .studyCoordinator(command.getStudyCoordinator())
                 .therapeuticArea(command.getTherapeuticArea())
                 .plannedSubjects(command.getPlannedSubjects() != null ? command.getPlannedSubjects() : 0)
                 .targetEnrollment(command.getTargetEnrollment() != null ? command.getTargetEnrollment() : 0)
+                .targetSites(command.getTargetSites())
                 .primaryObjective(command.getPrimaryObjective())
                 .primaryEndpoint(command.getPrimaryEndpoint())
-                .startDate(command.getStartDate())
-                .endDate(command.getEndDate())
+                .plannedStartDate(command.getPlannedStartDate())
+                .plannedEndDate(command.getPlannedEndDate())
                 .estimatedCompletion(command.getEstimatedCompletion())
                 .initialStatus(StudyStatusCode.PLANNING)
                 .studyStatusId(command.getStudyStatusId())
                 .regulatoryStatusId(command.getRegulatoryStatusId())
                 .studyPhaseId(command.getStudyPhaseId())
-                .version("1.0")
-                .isLatestVersion(true)
+                .version(command.getVersion() != null ? command.getVersion() : "1.0")
+                .isLatestVersion(command.getIsLatestVersion() != null ? command.getIsLatestVersion() : true)
                 .isLocked(false)
+                .blinding(command.getBlinding())
+                .randomization(command.getRandomization())
+                .controlType(command.getControlType())
+                .notes(command.getNotes())
+                .riskLevel(command.getRiskLevel())
+        .organizationAssociations(command.getOrganizationAssociations() != null
+            ? new java.util.ArrayList<>(command.getOrganizationAssociations())
+            : null)
+        .metadata(command.getMetadata())
                 .userId(command.getUserId())
                 .userName(command.getUserName())
                 .timestamp(Instant.now())
@@ -143,24 +195,39 @@ public class StudyAggregate {
         AggregateLifecycle.apply(
             StudyUpdatedEvent.builder()
                 .studyAggregateUuid(studyAggregateUuid)
+                .organizationId(command.getOrganizationId())
                 .name(command.getName())
                 .description(command.getDescription())
                 .sponsor(command.getSponsor())
                 .protocolNumber(command.getProtocolNumber())
                 .indication(command.getIndication())
                 .studyType(command.getStudyType())
+                .objective(command.getObjective())
                 .principalInvestigator(command.getPrincipalInvestigator())
                 .studyCoordinator(command.getStudyCoordinator())
                 .therapeuticArea(command.getTherapeuticArea())
                 .plannedSubjects(command.getPlannedSubjects())
                 .targetEnrollment(command.getTargetEnrollment())
+                .targetSites(command.getTargetSites())
                 .primaryObjective(command.getPrimaryObjective())
                 .primaryEndpoint(command.getPrimaryEndpoint())
-                .startDate(command.getStartDate())
-                .endDate(command.getEndDate())
+                .plannedStartDate(command.getPlannedStartDate())
+                .plannedEndDate(command.getPlannedEndDate())
                 .estimatedCompletion(command.getEstimatedCompletion())
                 .studyPhaseId(command.getStudyPhaseId())
                 .regulatoryStatusId(command.getRegulatoryStatusId())
+                .studyStatusId(command.getStudyStatusId())
+                .version(command.getVersion())
+                .isLatestVersion(command.getIsLatestVersion())
+                .blinding(command.getBlinding())
+                .randomization(command.getRandomization())
+                .controlType(command.getControlType())
+                .notes(command.getNotes())
+                .riskLevel(command.getRiskLevel())
+        .organizationAssociations(command.getOrganizationAssociations() != null
+            ? new java.util.ArrayList<>(command.getOrganizationAssociations())
+            : null)
+        .metadata(command.getMetadata())
                 .userId(command.getUserId())
                 .userName(command.getUserName())
                 .timestamp(Instant.now())
@@ -390,15 +457,41 @@ public class StudyAggregate {
     public void on(StudyCreatedEvent event) {
         logger.debug("Applying StudyCreatedEvent to aggregate state");
         this.studyAggregateUuid = event.getStudyAggregateUuid();
+        this.organizationId = event.getOrganizationId();
         this.name = event.getName();
         this.protocolNumber = event.getProtocolNumber();
         this.sponsor = event.getSponsor();
+        this.description = event.getDescription();
+        this.indication = event.getIndication();
+        this.studyType = event.getStudyType();
+        this.objective = event.getObjective();
         this.status = event.getInitialStatus();
         this.version = event.getVersion();
         this.isLatestVersion = event.getIsLatestVersion();
         this.isLocked = event.getIsLocked();
-        this.startDate = event.getStartDate();
-        this.endDate = event.getEndDate();
+        this.principalInvestigator = event.getPrincipalInvestigator();
+        this.studyCoordinator = event.getStudyCoordinator();
+        this.therapeuticArea = event.getTherapeuticArea();
+        this.plannedSubjects = event.getPlannedSubjects();
+        this.targetEnrollment = event.getTargetEnrollment();
+        this.targetSites = event.getTargetSites();
+        this.primaryObjective = event.getPrimaryObjective();
+        this.primaryEndpoint = event.getPrimaryEndpoint();
+        this.plannedStartDate = event.getPlannedStartDate();
+        this.plannedEndDate = event.getPlannedEndDate();
+        this.estimatedCompletion = event.getEstimatedCompletion();
+        this.studyStatusId = event.getStudyStatusId();
+        this.regulatoryStatusId = event.getRegulatoryStatusId();
+        this.studyPhaseId = event.getStudyPhaseId();
+        this.blinding = event.getBlinding();
+        this.randomization = event.getRandomization();
+        this.controlType = event.getControlType();
+        this.notes = event.getNotes();
+        this.riskLevel = event.getRiskLevel();
+    this.organizationAssociations = event.getOrganizationAssociations() != null
+        ? List.copyOf(event.getOrganizationAssociations())
+        : null;
+    this.metadata = event.getMetadata();
     }
     
     /**
@@ -409,11 +502,39 @@ public class StudyAggregate {
     public void on(StudyUpdatedEvent event) {
         logger.debug("Applying StudyUpdatedEvent to aggregate state");
         // Only update fields that are not null (partial updates)
+        if (event.getOrganizationId() != null) this.organizationId = event.getOrganizationId();
         if (event.getName() != null) this.name = event.getName();
         if (event.getProtocolNumber() != null) this.protocolNumber = event.getProtocolNumber();
         if (event.getSponsor() != null) this.sponsor = event.getSponsor();
-        if (event.getStartDate() != null) this.startDate = event.getStartDate();
-        if (event.getEndDate() != null) this.endDate = event.getEndDate();
+        if (event.getDescription() != null) this.description = event.getDescription();
+        if (event.getIndication() != null) this.indication = event.getIndication();
+        if (event.getStudyType() != null) this.studyType = event.getStudyType();
+        if (event.getObjective() != null) this.objective = event.getObjective();
+        if (event.getPrincipalInvestigator() != null) this.principalInvestigator = event.getPrincipalInvestigator();
+        if (event.getStudyCoordinator() != null) this.studyCoordinator = event.getStudyCoordinator();
+        if (event.getTherapeuticArea() != null) this.therapeuticArea = event.getTherapeuticArea();
+        if (event.getPlannedSubjects() != null) this.plannedSubjects = event.getPlannedSubjects();
+        if (event.getTargetEnrollment() != null) this.targetEnrollment = event.getTargetEnrollment();
+        if (event.getTargetSites() != null) this.targetSites = event.getTargetSites();
+        if (event.getPrimaryObjective() != null) this.primaryObjective = event.getPrimaryObjective();
+        if (event.getPrimaryEndpoint() != null) this.primaryEndpoint = event.getPrimaryEndpoint();
+        if (event.getPlannedStartDate() != null) this.plannedStartDate = event.getPlannedStartDate();
+        if (event.getPlannedEndDate() != null) this.plannedEndDate = event.getPlannedEndDate();
+        if (event.getEstimatedCompletion() != null) this.estimatedCompletion = event.getEstimatedCompletion();
+        if (event.getStudyPhaseId() != null) this.studyPhaseId = event.getStudyPhaseId();
+        if (event.getRegulatoryStatusId() != null) this.regulatoryStatusId = event.getRegulatoryStatusId();
+        if (event.getStudyStatusId() != null) this.studyStatusId = event.getStudyStatusId();
+        if (event.getVersion() != null) this.version = event.getVersion();
+        if (event.getIsLatestVersion() != null) this.isLatestVersion = event.getIsLatestVersion();
+        if (event.getBlinding() != null) this.blinding = event.getBlinding();
+        if (event.getRandomization() != null) this.randomization = event.getRandomization();
+        if (event.getControlType() != null) this.controlType = event.getControlType();
+        if (event.getNotes() != null) this.notes = event.getNotes();
+        if (event.getRiskLevel() != null) this.riskLevel = event.getRiskLevel();
+        if (event.getOrganizationAssociations() != null) {
+            this.organizationAssociations = List.copyOf(event.getOrganizationAssociations());
+        }
+        if (event.getMetadata() != null) this.metadata = event.getMetadata();
     }
     
     /**

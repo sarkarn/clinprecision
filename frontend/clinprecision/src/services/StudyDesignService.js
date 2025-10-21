@@ -52,8 +52,9 @@ class StudyDesignService {
     // Study Arms Management
     async getStudyArms(studyId) {
         try {
-            // Use consistent bridge pattern: /api/studies/{id}/arms
-            const response = await ApiService.get(`/api/studies/${studyId}/arms`);
+            // NEW: Use Study Query Controller bridge pattern
+            // GET /api/v1/study-design/studies/{studyId}/arms
+            const response = await ApiService.get(`/api/v1/study-design/studies/${studyId}/arms`);
             return response.data;
         } catch (error) {
             console.error('Error fetching study arms:', error);
@@ -63,7 +64,9 @@ class StudyDesignService {
 
     async createStudyArm(studyId, armData) {
         try {
-            const response = await ApiService.post(`/api/studies/${studyId}/arms`, armData);
+            // NEW: Use Study Command Controller with absolute path
+            // POST /api/v1/study-design/studies/{studyId}/arms
+            const response = await ApiService.post(`/api/v1/study-design/studies/${studyId}/arms`, armData);
             return response.data;
         } catch (error) {
             console.error('Error creating study arm:', error);
@@ -103,7 +106,9 @@ class StudyDesignService {
 
     async saveStudyArms(studyId, armsData) {
         try {
-            const response = await ApiService.put(`/api/studies/${studyId}/arms`, armsData);
+            // NOTE: This endpoint may not exist - bulk arm updates should use individual PUT /api/v1/study-design/arms/{armId}
+            // Keeping for backward compatibility in case it's needed
+            const response = await ApiService.put(`/api/v1/study-design/studies/${studyId}/arms`, armsData);
             return response.data;
         } catch (error) {
             console.error('Error saving study arms:', error);
@@ -114,7 +119,8 @@ class StudyDesignService {
     // Visit Schedule Management
     async getVisitSchedule(studyId) {
         try {
-            const response = await ApiService.get(`/api/studies/${studyId}/visits`);
+            // Use StudyDesignCommandController bridge endpoint with auto-initialization
+            const response = await ApiService.get(`/api/v1/study-design/designs/studies/${studyId}/visits`);
             return response.data;
         } catch (error) {
             console.error('Error fetching visit schedule:', error);
@@ -124,7 +130,8 @@ class StudyDesignService {
 
     async saveVisitSchedule(studyId, visitData) {
         try {
-            const response = await ApiService.put(`/api/studies/${studyId}/visits`, visitData);
+            // Use StudyDesignCommandController bridge endpoint
+            const response = await ApiService.put(`/api/v1/study-design/designs/studies/${studyId}/visits`, visitData);
             return response.data;
         } catch (error) {
             console.error('Error saving visit schedule:', error);
@@ -135,7 +142,8 @@ class StudyDesignService {
     // Form Binding Management
     async getFormBindings(studyId) {
         try {
-            const response = await ApiService.get(`/api/studies/${studyId}/form-bindings`);
+            // Use StudyDesignCommandController bridge endpoint
+            const response = await ApiService.get(`/api/v1/study-design/designs/studies/${studyId}/form-bindings`);
             return response.data;
         } catch (error) {
             console.error('Error fetching form bindings:', error);
@@ -145,7 +153,8 @@ class StudyDesignService {
 
     async saveFormBindings(studyId, bindingData) {
         try {
-            const response = await ApiService.put(`/api/studies/${studyId}/form-bindings`, bindingData);
+            // Use StudyDesignCommandController bridge endpoint
+            const response = await ApiService.put(`/api/v1/study-design/designs/studies/${studyId}/form-bindings`, bindingData);
             return response.data;
         } catch (error) {
             console.error('Error saving form bindings:', error);

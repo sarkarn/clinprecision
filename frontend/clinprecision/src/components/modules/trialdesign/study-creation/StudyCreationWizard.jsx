@@ -5,7 +5,7 @@ import { useWizardNavigation } from '../hooks/useWizardNavigation';
 import ProgressIndicator from '../components/ProgressIndicator';
 import { LoadingOverlay, Alert, Button } from '../components/UIComponents';
 import StudyService from '../../../../services/StudyService';
-import { OrganizationService } from '../../../../services/OrganizationService';
+import { StudyOrganizationService } from '../../../../services/StudyOrganizationService';
 
 // Step Components
 import BasicInformationStep from './steps/BasicInformationStep';
@@ -90,8 +90,8 @@ const StudyCreationWizard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch organizations
-                const orgs = await OrganizationService.getAllOrganizations();
+                // Fetch organizations via clinops-service proxy
+                const orgs = await StudyOrganizationService.getAllOrganizations();
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
 
                 // Fetch lookup data
@@ -133,8 +133,8 @@ const StudyCreationWizard = () => {
                     setStepError(1, 'Principal Investigator is required');
                     return false;
                 }
-                if (formData.startDate && formData.endDate && new Date(formData.startDate) >= new Date(formData.endDate)) {
-                    setStepError(1, 'Start date must be before end date');
+                if (formData.plannedStartDate && formData.plannedEndDate && new Date(formData.plannedStartDate) >= new Date(formData.plannedEndDate)) {
+                    setStepError(1, 'Planned start date must be before planned end date');
                     return false;
                 }
                 clearStepError(1);

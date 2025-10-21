@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { OrganizationService } from '../../../../../services/OrganizationService';
+import { StudyOrganizationService } from '../../../../../services/StudyOrganizationService';
 import StudyService from '../../../../../services/StudyService';
 import { LoadingOverlay, Alert } from '../../components/UIComponents';
 
@@ -27,7 +27,7 @@ const OrganizationsRegulatoryStep = ({
         const fetchOrganizations = async () => {
             try {
                 setLoading(true);
-                const orgs = await OrganizationService.getAllOrganizations();
+                const orgs = await StudyOrganizationService.getAllOrganizations();
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
                 setError(null);
             } catch (err) {

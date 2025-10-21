@@ -1,10 +1,12 @@
 package com.clinprecision.clinopsservice.studydesign.studymgmt.domain.commands;
 
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyOrganizationAssociation;
 import lombok.Builder;
 import lombok.Value;
 import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -18,6 +20,9 @@ public class UpdateStudyCommand {
     @TargetAggregateIdentifier
     UUID studyAggregateUuid;
     
+    // Organization
+    Long organizationId;
+    
     // Core study fields (all optional - only update what's provided)
     String name;
     String description;
@@ -25,6 +30,7 @@ public class UpdateStudyCommand {
     String protocolNumber;
     String indication;
     String studyType;
+    String objective;
     
     // Key personnel
     String principalInvestigator;
@@ -34,17 +40,34 @@ public class UpdateStudyCommand {
     String therapeuticArea;
     Integer plannedSubjects;
     Integer targetEnrollment;
+    Integer targetSites;
     String primaryObjective;
     String primaryEndpoint;
     
     // Timeline
-    LocalDate startDate;
-    LocalDate endDate;
+    LocalDate plannedStartDate;
+    LocalDate plannedEndDate;
     LocalDate estimatedCompletion;
     
     // Lookup table IDs
     Long studyPhaseId;
     Long regulatoryStatusId;
+    Long studyStatusId;
+    
+    // Version fields
+    String version;
+    Boolean isLatestVersion;
+    
+    // Classification fields
+    String blinding;
+    String randomization;
+    String controlType;
+    
+    // Additional fields
+    String notes;
+    String riskLevel;
+    List<StudyOrganizationAssociation> organizationAssociations;
+    String metadata;
     
     // Audit
     UUID userId;

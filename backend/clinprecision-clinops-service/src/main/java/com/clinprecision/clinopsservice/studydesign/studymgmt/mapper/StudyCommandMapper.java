@@ -2,11 +2,19 @@ package com.clinprecision.clinopsservice.studydesign.studymgmt.mapper;
 
 
 import com.clinprecision.clinopsservice.studydesign.studymgmt.domain.commands.*;
-import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.StudyCreateRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.StudyOrganizationAssociationRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.StudyUpdateRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.SuspendStudyRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.TerminateStudyRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.request.WithdrawStudyRequestDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyOrganizationAssociation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Mapper for converting Study Request DTOs to Domain Commands
@@ -34,21 +42,36 @@ public class StudyCommandMapper {
         
         return CreateStudyCommand.builder()
                 .studyAggregateUuid(studyAggregateUuid)
+                .organizationId(dto.getOrganizationId())
                 .name(dto.getName())
                 .description(dto.getDescription())
                 .sponsor(dto.getSponsor())
                 .protocolNumber(dto.getProtocolNumber())
                 .indication(dto.getIndication())
                 .studyType(dto.getStudyType())
+                .objective(dto.getObjective())
                 .principalInvestigator(dto.getPrincipalInvestigator())
                 .therapeuticArea(dto.getTherapeuticArea())
+                .primaryObjective(dto.getPrimaryObjective())
+                .primaryEndpoint(dto.getPrimaryEndpoint())
+                .plannedSubjects(dto.getTargetEnrollment())
                 .targetEnrollment(dto.getTargetEnrollment())
-                .startDate(dto.getStartDate())
-                .endDate(dto.getEndDate())
+                .targetSites(dto.getTargetSites())
+                .plannedStartDate(dto.getPlannedStartDate())
+                .plannedEndDate(dto.getPlannedEndDate())
                 .estimatedCompletion(dto.getPlannedEndDate())
                 .studyStatusId(dto.getStudyStatusId())
                 .regulatoryStatusId(dto.getRegulatoryStatusId())
                 .studyPhaseId(dto.getStudyPhaseId())
+                .version(dto.getVersion())
+                .isLatestVersion(dto.getIsLatestVersion())
+                .blinding(dto.getBlinding())
+                .randomization(dto.getRandomization())
+                .controlType(dto.getControlType())
+                .notes(dto.getNotes())
+                .riskLevel(dto.getRiskLevel())
+                .organizationAssociations(mapAssociations(dto.getOrganizations()))
+                .metadata(dto.getMetadata())
                 .userId(userId)
                 .userName(userName)
                 .build();
@@ -68,24 +91,53 @@ public class StudyCommandMapper {
         
         return UpdateStudyCommand.builder()
                 .studyAggregateUuid(studyUuid)
+                .organizationId(dto.getOrganizationId())
                 .name(dto.getName())
                 .description(dto.getDescription())
                 .sponsor(dto.getSponsor())
                 .protocolNumber(dto.getProtocolNumber())
                 .indication(dto.getIndication())
                 .studyType(dto.getStudyType())
+                .objective(dto.getObjective())
                 .principalInvestigator(dto.getPrincipalInvestigator())
                 .therapeuticArea(dto.getTherapeuticArea())
+                .primaryObjective(dto.getPrimaryObjective())
+                .primaryEndpoint(dto.getPrimaryEndpoint())
                 .plannedSubjects(dto.getTargetEnrollment())
                 .targetEnrollment(dto.getTargetEnrollment())
-                .startDate(dto.getStartDate())
-                .endDate(dto.getEndDate())
+                .targetSites(dto.getTargetSites())
+                .plannedStartDate(dto.getPlannedStartDate())
+                .plannedEndDate(dto.getPlannedEndDate())
                 .estimatedCompletion(dto.getPlannedEndDate())
                 .studyPhaseId(dto.getStudyPhaseId())
                 .regulatoryStatusId(dto.getRegulatoryStatusId())
+                .studyStatusId(dto.getStudyStatusId())
+                .version(dto.getVersion())
+                .isLatestVersion(dto.getIsLatestVersion())
+                .blinding(dto.getBlinding())
+                .randomization(dto.getRandomization())
+                .controlType(dto.getControlType())
+                .notes(dto.getNotes())
+                .riskLevel(dto.getRiskLevel())
+                .organizationAssociations(mapAssociations(dto.getOrganizations()))
+                .metadata(dto.getMetadata())
                 .userId(userId)
                 .userName(userName)
                 .build();
+    }
+
+    private List<StudyOrganizationAssociation> mapAssociations(List<StudyOrganizationAssociationRequestDto> associationDtos) {
+        if (associationDtos == null) {
+            return null;
+        }
+
+        return associationDtos.stream()
+                .map(dto -> StudyOrganizationAssociation.builder()
+                        .organizationId(dto.getOrganizationId())
+                        .role(dto.getRole())
+                        .isPrimary(dto.getIsPrimary())
+                        .build())
+                .collect(Collectors.toList());
     }
     
     /**

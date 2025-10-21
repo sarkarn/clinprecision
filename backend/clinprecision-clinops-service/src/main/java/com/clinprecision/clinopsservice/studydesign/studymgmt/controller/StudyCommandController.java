@@ -14,6 +14,9 @@ import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyComma
 import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyQueryService;
 import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignAutoInitializationService;
 import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignCommandService;
+import com.clinprecision.clinopsservice.studydesign.design.service.StudyDesignQueryService;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.DefineVisitDefinitionRequest;
+import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.dto.UpdateVisitDefinitionRequest;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.commands.CreateProtocolVersionCommand;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.AmendmentType;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionIdentifier;
@@ -104,6 +107,7 @@ public class StudyCommandController {
     private final StudyCommandService studyCommandService;
     private final DesignProgressService designProgressService;
     private final StudyDesignCommandService studyDesignCommandService;
+    private final StudyDesignQueryService studyDesignQueryService;
     private final StudyDesignAutoInitializationService studyDesignAutoInitService;
     private final VisitFormRepository visitFormRepository;
     private final StudyQueryService studyQueryService;
@@ -175,7 +179,7 @@ public class StudyCommandController {
         StudyApiConstants.UpdateStudy.NEW
     })
     public ResponseEntity<Void> updateStudy(
-            @PathVariable UUID uuid,
+        @PathVariable("uuid") String uuid,
             @Valid @RequestBody StudyUpdateRequestDto request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
@@ -187,11 +191,13 @@ public class StudyCommandController {
             StudyApiConstants.NEW_BASE_PATH
         );
         
-        log.info("REST: Updating study: {}", uuid);
+        UUID studyUuid = resolveStudyUuid(uuid);
+
+        log.info("REST: Updating study: {} (resolved UUID: {})", uuid, studyUuid);
         
-        studyCommandService.updateStudy(uuid, request);
+        studyCommandService.updateStudy(studyUuid, request);
         
-        log.info("REST: Study updated successfully: {}", uuid);
+        log.info("REST: Study updated successfully: {}", studyUuid);
         return ResponseEntity.ok().build();
     }
 
@@ -218,7 +224,7 @@ public class StudyCommandController {
         StudyApiConstants.UpdateStudyDetails.NEW
     })
     public ResponseEntity<Void> updateStudyDetails(
-            @PathVariable UUID uuid,
+        @PathVariable("uuid") String uuid,
             @Valid @RequestBody StudyUpdateRequestDto request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
@@ -230,12 +236,35 @@ public class StudyCommandController {
             StudyApiConstants.NEW_BASE_PATH
         );
         
-        log.info("REST: Updating study details: {}", uuid);
+        UUID studyUuid = resolveStudyUuid(uuid);
+
+        log.info("REST: Updating study details: {} (resolved UUID: {})", uuid, studyUuid);
         
-        studyCommandService.updateStudy(uuid, request);
+        studyCommandService.updateStudy(studyUuid, request);
         
-        log.info("REST: Study details updated successfully: {}", uuid);
+        log.info("REST: Study details updated successfully: {}", studyUuid);
         return ResponseEntity.ok().build();
+    }
+
+    private UUID resolveStudyUuid(String studyId) {
+        try {
+            return UUID.fromString(studyId);
+        } catch (IllegalArgumentException uuidFormatException) {
+            try {
+                Long legacyId = Long.parseLong(studyId);
+                return studyQueryService.findStudyEntityById(legacyId)
+                        .map(entity -> {
+                            UUID aggregateUuid = entity.getAggregateUuid();
+                            if (aggregateUuid == null) {
+                                throw new IllegalStateException("Study " + legacyId + " has not been assigned an aggregate UUID yet");
+                            }
+                            return aggregateUuid;
+                        })
+                        .orElseThrow(() -> new EntityNotFoundException("Study not found with ID: " + studyId));
+            } catch (NumberFormatException idFormatException) {
+                throw new IllegalArgumentException("Invalid study ID format: " + studyId, idFormatException);
+            }
+        }
     }
 
     /**
@@ -788,6 +817,12 @@ public class StudyCommandController {
     /**
      * Create a study arm (supports UUID or legacy ID)
      * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{id}/arms</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{id}/arms</li>
+     * </ul>
+     * 
      * Bridge endpoint: Frontend calls POST /studies/{id}/arms
      * Backend DDD: POST /study-design/{uuid}/arms
      * 
@@ -795,12 +830,26 @@ public class StudyCommandController {
      * 
      * @param id Study identifier (UUID or numeric ID)
      * @param armData Study arm data
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 201 Created with created arm data
      */
-    @PostMapping("/{id}/arms")
+    @PostMapping(value = {
+        StudyApiConstants.OLD_BASE_PATH + "/{id}/arms",      // OLD: /api/studies/{id}/arms
+        StudyApiConstants.NEW_BASE_PATH + "/{id}/arms"       // NEW: /api/v1/study-design/studies/{id}/arms
+    })
     public ResponseEntity<StudyArmResponseDto> createStudyArm(
             @PathVariable String id,
-            @Valid @RequestBody StudyArmRequestDto armData) {
+            @Valid @RequestBody StudyArmRequestDto armData,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         log.info("REST: Creating study arm '{}' for study: {}", armData.getName(), id);
         
@@ -838,10 +887,230 @@ public class StudyCommandController {
     // NOTE: PUT /api/arms/{armId} and DELETE /api/arms/{armId} have been moved to
     // StudyArmsCommandController.java to avoid path conflicts
     
+    // ===================== VISIT SCHEDULE COMMAND ENDPOINTS (Bridge Pattern) =====================
+    
+    /**
+     * Get all visits for a study (with auto-initialization)
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/{studyId}/visits</li>
+     *   <li>New (recommended): GET /api/v1/study-design/studies/{studyId}/visits</li>
+     * </ul>
+     * 
+     * Bridge endpoint: Auto-initializes StudyDesign if needed
+     * 
+     * @param studyId Study identifier (UUID or numeric ID)
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return 200 OK with list of visits
+     */
+    @GetMapping(value = {
+        StudyApiConstants.OLD_BASE_PATH + "/{studyId}/visits",      // OLD: /api/studies/{studyId}/visits
+        StudyApiConstants.NEW_BASE_PATH + "/{studyId}/visits"       // NEW: /api/v1/study-design/studies/{studyId}/visits
+    })
+    public ResponseEntity<?> getStudyVisits(
+            @PathVariable String studyId,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
+        log.info("REST: Getting visits for study: {}", studyId);
+        
+        try {
+            // Ensure StudyDesign aggregate exists and get its ID
+            UUID studyDesignId = studyDesignAutoInitService.ensureStudyDesignExists(studyId).join();
+            log.info("REST: Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
+            
+            // Delegate to StudyDesignQueryService
+            var visits = studyDesignQueryService.getVisits(studyDesignId);
+            
+            log.info("REST: Fetched {} visits for study: {}", visits.size(), studyId);
+            return ResponseEntity.ok(visits);
+            
+        } catch (Exception e) {
+            log.error("REST: Error fetching visits for study: {}", studyId, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    /**
+     * Create a new visit for a study (with auto-initialization)
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{studyId}/visits</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{studyId}/visits</li>
+     * </ul>
+     * 
+     * Bridge endpoint: Auto-initializes StudyDesign if needed
+     * 
+     * @param studyId Study identifier (UUID or numeric ID)
+     * @param visitData Visit definition data
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return 201 Created with visit UUID
+     */
+    @PostMapping(value = {
+        StudyApiConstants.OLD_BASE_PATH + "/{studyId}/visits",      // OLD: /api/studies/{studyId}/visits
+        StudyApiConstants.NEW_BASE_PATH + "/{studyId}/visits"       // NEW: /api/v1/study-design/studies/{studyId}/visits
+    })
+    public ResponseEntity<?> createStudyVisit(
+            @PathVariable String studyId,
+            @RequestBody DefineVisitDefinitionRequest visitData,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
+        log.info("REST: Creating visit for study: {}", studyId);
+        
+        try {
+            // Ensure StudyDesign aggregate exists and get its ID
+            UUID studyDesignId = studyDesignAutoInitService.ensureStudyDesignExists(studyId).join();
+            log.info("REST: Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
+            
+            // Delegate to StudyDesignCommandService
+            UUID visitId = studyDesignCommandService.defineVisit(studyDesignId, visitData).join();
+            
+            log.info("REST: Visit created successfully with ID: {}", visitId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("visitId", visitId));
+            
+        } catch (Exception e) {
+            log.error("REST: Error creating visit for study: {}", studyId, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    /**
+     * Update an existing visit
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): PUT /api/studies/{studyId}/visits/{visitId}</li>
+     *   <li>New (recommended): PUT /api/v1/study-design/studies/{studyId}/visits/{visitId}</li>
+     * </ul>
+     * 
+     * Bridge endpoint: Auto-initializes StudyDesign if needed
+     * 
+     * @param studyId Study identifier (UUID or numeric ID)
+     * @param visitId Visit UUID
+     * @param visitData Updated visit data
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return 200 OK
+     */
+    @PutMapping(value = {
+        StudyApiConstants.OLD_BASE_PATH + "/{studyId}/visits/{visitId}",      // OLD: /api/studies/{studyId}/visits/{visitId}
+        StudyApiConstants.NEW_BASE_PATH + "/{studyId}/visits/{visitId}"       // NEW: /api/v1/study-design/studies/{studyId}/visits/{visitId}
+    })
+    public ResponseEntity<?> updateStudyVisit(
+            @PathVariable String studyId,
+            @PathVariable UUID visitId,
+            @RequestBody UpdateVisitDefinitionRequest visitData,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
+        log.info("REST: Updating visit {} for study: {}", visitId, studyId);
+        
+        try {
+            // Ensure StudyDesign aggregate exists and get its ID
+            UUID studyDesignId = studyDesignAutoInitService.ensureStudyDesignExists(studyId).join();
+            log.info("REST: Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
+            
+            // Delegate to StudyDesignCommandService
+            studyDesignCommandService.updateVisit(studyDesignId, visitId, visitData).join();
+            
+            log.info("REST: Visit updated successfully: {}", visitId);
+            return ResponseEntity.ok().build();
+            
+        } catch (Exception e) {
+            log.error("REST: Error updating visit {} for study: {}", visitId, studyId, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    /**
+     * Delete a visit
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): DELETE /api/studies/{studyId}/visits/{visitId}</li>
+     *   <li>New (recommended): DELETE /api/v1/study-design/studies/{studyId}/visits/{visitId}</li>
+     * </ul>
+     * 
+     * Bridge endpoint: Auto-initializes StudyDesign if needed
+     * 
+     * @param studyId Study identifier (UUID or numeric ID)
+     * @param visitId Visit UUID
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
+     * @return 204 No Content
+     */
+    @DeleteMapping(value = {
+        StudyApiConstants.OLD_BASE_PATH + "/{studyId}/visits/{visitId}",      // OLD: /api/studies/{studyId}/visits/{visitId}
+        StudyApiConstants.NEW_BASE_PATH + "/{studyId}/visits/{visitId}"       // NEW: /api/v1/study-design/studies/{studyId}/visits/{visitId}
+    })
+    public ResponseEntity<?> deleteStudyVisit(
+            @PathVariable String studyId,
+            @PathVariable UUID visitId,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
+        
+        log.info("REST: Deleting visit {} for study: {}", visitId, studyId);
+        
+        try {
+            // Ensure StudyDesign aggregate exists and get its ID
+            UUID studyDesignId = studyDesignAutoInitService.ensureStudyDesignExists(studyId).join();
+            log.info("REST: Using StudyDesignId: {} for study: {}", studyDesignId, studyId);
+            
+            // Delegate to StudyDesignCommandService - removeVisit requires reason and removedBy
+            studyDesignCommandService.removeVisit(studyDesignId, visitId, "Deleted via legacy API", 1L).join();
+            
+            log.info("REST: Visit deleted successfully: {}", visitId);
+            return ResponseEntity.noContent().build();
+            
+        } catch (Exception e) {
+            log.error("REST: Error deleting visit {} for study: {}", visitId, studyId, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
     // ===================== FORM BINDING COMMAND ENDPOINTS (Bridge Pattern) =====================
     
     /**
      * Assign a form to a visit (create form binding)
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): POST /api/studies/{studyId}/visits/{visitId}/forms/{formId}</li>
+     *   <li>New (recommended): POST /api/v1/study-design/studies/{studyId}/visits/{visitId}/forms/{formId}</li>
+     * </ul>
      * 
      * Bridge endpoint: Frontend calls POST /studies/{studyId}/visits/{visitId}/forms/{formId}
      * Backend DDD: AssignFormToVisitCommand
@@ -853,14 +1122,28 @@ public class StudyCommandController {
      * @param visitId Visit UUID
      * @param formId Form definition ID
      * @param bindingData Form binding configuration
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 201 Created with created binding data
      */
-    @PostMapping("/{studyId}/visits/{visitId}/forms/{formId}")
+    @PostMapping(value = {
+        StudyApiConstants.OLD_BASE_PATH + "/{studyId}/visits/{visitId}/forms/{formId}",      // OLD: /api/studies/{studyId}/visits/{visitId}/forms/{formId}
+        StudyApiConstants.NEW_BASE_PATH + "/{studyId}/visits/{visitId}/forms/{formId}"       // NEW: /api/v1/study-design/studies/{studyId}/visits/{visitId}/forms/{formId}
+    })
     public ResponseEntity<Map<String, Object>> assignFormToVisit(
             @PathVariable String studyId,
             @PathVariable String visitId,
             @PathVariable Long formId,
-            @RequestBody Map<String, Object> bindingData) {
+            @RequestBody Map<String, Object> bindingData,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         
         log.info("REST: Assigning form {} to visit {} for study: {}", formId, visitId, studyId);
         log.debug("REST: Binding data: {}", bindingData);

@@ -513,16 +513,16 @@ const ProtocolManagementDashboard = () => {
                     setShowVersionModal(false);
                     setSelectedVersionId(null);
                 }}
-                onVersionCreated={(newVersion) => {
+                onVersionCreated={async (newVersion) => {
                     // Reload protocol versions
-                    loadProtocolVersions();
+                    await loadProtocolVersions();
                     // Show success message
                     setSuccessMessage(`Protocol version ${newVersion?.versionNumber || ''} created successfully`);
                     setTimeout(() => setSuccessMessage(null), 5000); // Clear after 5 seconds
                 }}
-                onVersionUpdated={() => {
+                onVersionUpdated={async () => {
                     // Reload protocol versions
-                    loadProtocolVersions();
+                    await loadProtocolVersions();
                     // Show success message
                     setSuccessMessage('Protocol version updated successfully');
                     setTimeout(() => setSuccessMessage(null), 5000); // Clear after 5 seconds

@@ -6,6 +6,8 @@ import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobj
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.dto.VersionResponse;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity.ProtocolVersionEntity;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.service.ProtocolVersionQueryService;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyResponseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyQueryService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -72,6 +75,7 @@ import java.util.stream.Collectors;
 public class ProtocolVersionQueryController {
 
     private final ProtocolVersionQueryService queryService;
+    private final StudyQueryService studyQueryService;
 
     /**
      * Get version by aggregate UUID
@@ -110,34 +114,66 @@ public class ProtocolVersionQueryController {
     /**
      * Get all versions for a study (with optional status filter)
      * 
+     * <p><b>Bridge Pattern:</b> Accepts legacy study ID or UUID format</p>
+     * 
      * <p><b>New URLs:</b></p>
      * <ul>
-     *   <li>GET /api/v1/study-design/studies/{studyUuid}/protocol-versions</li>
-     *   <li>GET /api/v1/study-design/studies/{studyUuid}/protocol-versions?status=DRAFT</li>
+     *   <li>GET /api/v1/study-design/protocol-versions/study/{studyId}</li>
+     *   <li>GET /api/v1/study-design/protocol-versions/study/{studyId}?status=DRAFT</li>
      * </ul>
      * 
      * <p><b>Old URLs (deprecated):</b></p>
      * <ul>
-     *   <li>GET /api/protocol-versions/study/{studyUuid}</li>
-     *   <li>GET /api/protocol-versions/study/{studyUuid}/status/{status}</li>
+     *   <li>GET /api/protocol-versions/study/{studyId}</li>
+     *   <li>GET /api/protocol-versions/study/{studyId}/status/{status}</li>
      * </ul>
      * 
-     * @param studyUuid the study UUID
-     * @param status optional status filter (query parameter)
+     * @param studyId the study identifier (legacy ID or UUID)
+     * @param status optional status filter (path variable for backward compatibility)
+     * @param statusParam optional status filter (query parameter)
      * @param httpRequest the HTTP servlet request
      * @param httpResponse the HTTP servlet response
      * @return ResponseEntity with list of versions
      */
     @GetMapping(value = {
-        "/study/{studyUuid}",                           // OLD (deprecated)
-        "/study/{studyUuid}/status/{status}"            // OLD (deprecated) - for backward compatibility
+        "/study/{studyId}",                           // Accepts legacy ID or UUID
+        "/study/{studyId}/status/{status}"            // For backward compatibility
     })
-    public ResponseEntity<List<VersionResponse>> getVersionsByStudyUuid(
-            @PathVariable UUID studyUuid,
+    public ResponseEntity<?> getVersionsByStudyUuid(
+            @PathVariable String studyId,
             @PathVariable(required = false) VersionStatus status,
             @RequestParam(required = false) VersionStatus statusParam,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
+        
+        log.info("REST: Bridge endpoint - Get versions for study: {}", studyId);
+        
+        // Resolve Study aggregate UUID (Bridge Pattern)
+        UUID studyAggregateUuid;
+        try {
+            // Try as UUID first
+            studyAggregateUuid = UUID.fromString(studyId);
+            log.debug("REST: Using UUID format for protocol versions");
+        } catch (IllegalArgumentException e) {
+            // Not a UUID, try as legacy ID
+            try {
+                Long legacyId = Long.parseLong(studyId);
+                log.info("REST: Using legacy ID {} for protocol versions (Bridge Pattern)", legacyId);
+                
+                StudyResponseDto study = studyQueryService.getStudyById(legacyId);
+                studyAggregateUuid = study.getStudyAggregateUuid();
+                
+                if (studyAggregateUuid == null) {
+                    log.error("REST: Study {} has no aggregate UUID", legacyId);
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Study " + legacyId + " has not been migrated to DDD yet"));
+                }
+            } catch (NumberFormatException nfe) {
+                log.error("REST: Invalid identifier format: {}", studyId);
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Invalid study ID format: " + studyId));
+            }
+        }
         
         // Add deprecation headers if using old URL
         DeprecationHeaderUtil.addDeprecationHeaders(
@@ -152,15 +188,15 @@ public class ProtocolVersionQueryController {
         VersionStatus filterStatus = (status != null) ? status : statusParam;
         
         if (filterStatus != null) {
-            log.info("REST: Querying versions for study {} with status {}", studyUuid, filterStatus);
-            List<VersionResponse> versions = queryService.findByStudyUuidAndStatus(studyUuid, filterStatus)
+            log.info("REST: Querying versions for study {} with status {}", studyAggregateUuid, filterStatus);
+            List<VersionResponse> versions = queryService.findByStudyUuidAndStatus(studyAggregateUuid, filterStatus)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
             return ResponseEntity.ok(versions);
         } else {
-            log.info("REST: Querying versions for study: {}", studyUuid);
-            List<VersionResponse> versions = queryService.findByStudyUuidOrderedByDate(studyUuid)
+            log.info("REST: Querying versions for study: {}", studyAggregateUuid);
+            List<VersionResponse> versions = queryService.findByStudyUuidOrderedByDate(studyAggregateUuid)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -171,21 +207,52 @@ public class ProtocolVersionQueryController {
     /**
      * Get active version for a study
      * 
-     * <p><b>New URL:</b> GET /api/v1/study-design/studies/{studyUuid}/protocol-versions/active</p>
-     * <p><b>Old URL:</b> GET /api/protocol-versions/study/{studyUuid}/active (deprecated)</p>
+     * <p><b>Bridge Pattern:</b> Accepts legacy study ID or UUID format</p>
+     * 
+     * <p><b>New URL:</b> GET /api/v1/study-design/protocol-versions/study/{studyId}/active</p>
+     * <p><b>Old URL:</b> GET /api/protocol-versions/study/{studyId}/active (deprecated)</p>
      * 
      * <p><b>⚠️ CRITICAL:</b> Only one version should be active per study.</p>
      * 
-     * @param studyUuid the study UUID
+     * @param studyId the study identifier (legacy ID or UUID)
      * @param httpRequest the HTTP servlet request
      * @param httpResponse the HTTP servlet response
      * @return ResponseEntity with active version
      */
-    @GetMapping("/study/{studyUuid}/active")
-    public ResponseEntity<VersionResponse> getActiveVersionByStudyUuid(
-            @PathVariable UUID studyUuid,
+    @GetMapping("/study/{studyId}/active")
+    public ResponseEntity<?> getActiveVersionByStudyUuid(
+            @PathVariable String studyId,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
+        
+        log.info("REST: Bridge endpoint - Get active version for study: {}", studyId);
+        
+        // Resolve Study aggregate UUID (Bridge Pattern)
+        UUID studyAggregateUuid;
+        try {
+            // Try as UUID first
+            studyAggregateUuid = UUID.fromString(studyId);
+            log.debug("REST: Using UUID format for active protocol version");
+        } catch (IllegalArgumentException e) {
+            // Not a UUID, try as legacy ID
+            try {
+                Long legacyId = Long.parseLong(studyId);
+                log.info("REST: Using legacy ID {} for active protocol version (Bridge Pattern)", legacyId);
+                
+                StudyResponseDto study = studyQueryService.getStudyById(legacyId);
+                studyAggregateUuid = study.getStudyAggregateUuid();
+                
+                if (studyAggregateUuid == null) {
+                    log.error("REST: Study {} has no aggregate UUID", legacyId);
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Study " + legacyId + " has not been migrated to DDD yet"));
+                }
+            } catch (NumberFormatException nfe) {
+                log.error("REST: Invalid identifier format: {}", studyId);
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Invalid study ID format: " + studyId));
+            }
+        }
         
         // Add deprecation headers if using old URL
         DeprecationHeaderUtil.addDeprecationHeaders(
@@ -196,9 +263,9 @@ public class ProtocolVersionQueryController {
             ProtocolApiConstants.SUNSET_DATE
         );
         
-        log.info("REST: Querying active version for study: {}", studyUuid);
+        log.info("REST: Querying active version for study: {}", studyAggregateUuid);
         
-        return queryService.findActiveVersionByStudyUuid(studyUuid)
+        return queryService.findActiveVersionByStudyUuid(studyAggregateUuid)
             .map(this::toResponse)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StudyService from '../../../services/StudyService';
-import { OrganizationService } from '../../../services/OrganizationService';
+import { StudyOrganizationService } from '../../../services/StudyOrganizationService';
 
 const StudyRegister = () => {
     const navigate = useNavigate();
@@ -26,7 +26,7 @@ const StudyRegister = () => {
         // Fetch organizations for selection
         const fetchOrgs = async () => {
             try {
-                const orgs = await OrganizationService.getAllOrganizations();
+                const orgs = await StudyOrganizationService.getAllOrganizations();
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
             } catch (err) {
                 setAvailableOrganizations([]);

@@ -15,8 +15,8 @@ export const useStudyForm = (initialData = {}) => {
     
     // Timeline Information
     studyStatusId: '', // Changed from 'status' to match backend expectation
-    startDate: '',
-    endDate: '',
+    plannedStartDate: '',
+    plannedEndDate: '',
     estimatedDuration: '',
     
     // Personnel Information
@@ -80,20 +80,20 @@ export const useStudyForm = (initialData = {}) => {
       required: true,
       message: 'Principal Investigator is required'
     },
-    startDate: {
+    plannedStartDate: {
       required: false,
       validate: (value, allData) => {
-        if (value && allData.endDate && new Date(value) >= new Date(allData.endDate)) {
-          return 'Start date must be before end date';
+        if (value && allData.plannedEndDate && new Date(value) >= new Date(allData.plannedEndDate)) {
+          return 'Planned start date must be before planned end date';
         }
         return null;
       }
     },
-    endDate: {
+    plannedEndDate: {
       required: false,
       validate: (value, allData) => {
-        if (value && allData.startDate && new Date(value) <= new Date(allData.startDate)) {
-          return 'End date must be after start date';
+        if (value && allData.plannedStartDate && new Date(value) <= new Date(allData.plannedStartDate)) {
+          return 'Planned end date must be after planned start date';
         }
         return null;
       }

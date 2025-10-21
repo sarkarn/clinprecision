@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -57,14 +58,21 @@ public class StudyResponseDto {
     private String regulatoryStatus;
     private String indNumber;
     private String protocolVersionNumber;
+    private String metadata;
+    private List<StudyOrganizationAssociationResponseDto> organizations;
     
     // Contact Information
     private String principalInvestigator;
+    private String primaryObjective;
+    private String primaryEndpoint;
     private String medicalMonitor;
     private String contactEmail;
     
     // Study Status
     private StudyStatusCode status;
+    private Long studyStatusId;
+    private Long regulatoryStatusId;
+    private Long studyPhaseId;
     private String statusReason;
     private LocalDateTime statusChangedAt;
     private String statusChangedBy;

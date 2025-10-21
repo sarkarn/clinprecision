@@ -1,8 +1,11 @@
 package com.clinprecision.clinopsservice.studydesign.studymgmt.projection;
 
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.OrganizationRole;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.OrganizationStudyEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyStatusEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.event.*;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyOrganizationAssociation;
 import com.clinprecision.common.entity.UserEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyRepository;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.repository.StudyStatusRepository;
@@ -16,8 +19,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Study Projection - Event Listener
@@ -105,6 +115,11 @@ public class StudyProjection {
                 if (existingEntity.getUpdatedAt() == null) {
                     existingEntity.setUpdatedAt(LocalDateTime.now());
                 }
+                if (existingEntity.getMetadata() == null && event.getMetadata() != null) {
+                    existingEntity.setMetadata(event.getMetadata());
+                }
+
+                synchronizeOrganizationAssociations(existingEntity, event.getOrganizationAssociations());
 
                 studyRepository.save(existingEntity);
                 return;
@@ -134,18 +149,23 @@ public class StudyProjection {
             entity.setPrimaryObjective(event.getPrimaryObjective());
             entity.setPrimaryEndpoint(event.getPrimaryEndpoint());
             
-            // Set timeline
-            entity.setStartDate(event.getStartDate());
-            entity.setEndDate(event.getEndDate());
+            // Set timeline - use plannedStartDate/plannedEndDate for now
+            // (startDate/endDate columns currently store planned dates until schema is expanded)
+            entity.setStartDate(event.getPlannedStartDate());
+            entity.setEndDate(event.getPlannedEndDate());
           //  entity.setEstimatedCompletion(event.getEstimatedCompletion());
             
-            // Set versioning
+            // Set versioning  (PROTOCOL VERSION FIELDS)
             entity.setVersion(event.getVersion() != null ? event.getVersion() : "1.0");
             entity.setIsLatestVersion(event.getIsLatestVersion() != null ? event.getIsLatestVersion() : true);
             entity.setIsLocked(event.getIsLocked() != null ? event.getIsLocked() : false);
             
+            // Note: organizationId, blinding, randomization, controlType, notes, riskLevel
+            // objective, plannedStartDate, plannedEndDate, targetSites are in events
+            // but not yet in StudyEntity table schema. These will be stored when schema is updated.
+            
             // Set default values for other fields
-            entity.setSites(0);
+            entity.setSites(event.getTargetSites() != null ? event.getTargetSites() : 0);
             entity.setEnrolledSubjects(0);
             entity.setAmendments(0);
             entity.setActiveSites(0);
@@ -153,6 +173,7 @@ public class StudyProjection {
             entity.setRandomizedSubjects(0);
             entity.setCompletedSubjects(0);
             entity.setWithdrawnSubjects(0);
+            entity.setMetadata(event.getMetadata());
             
             // Set lookup table relationships
             if (event.getStudyStatusId() != null) {
@@ -178,6 +199,8 @@ public class StudyProjection {
             entity.setCreatedBy(resolveAuditUserId(event.getUserId()));
             entity.setCreatedAt(LocalDateTime.now());
             entity.setUpdatedAt(LocalDateTime.now());
+
+            synchronizeOrganizationAssociations(entity, event.getOrganizationAssociations());
             
             // Save to database
             StudyEntity saved = studyRepository.save(entity);
@@ -246,15 +269,36 @@ public class StudyProjection {
             if (event.getPrimaryEndpoint() != null) {
                 entity.setPrimaryEndpoint(event.getPrimaryEndpoint());
             }
-            if (event.getStartDate() != null) {
-                entity.setStartDate(event.getStartDate());
+            // Use plannedStartDate/plannedEndDate (stored in startDate/endDate columns until schema expands)
+            if (event.getPlannedStartDate() != null) {
+                entity.setStartDate(event.getPlannedStartDate());
             }
-            if (event.getEndDate() != null) {
-                entity.setEndDate(event.getEndDate());
+            if (event.getPlannedEndDate() != null) {
+                entity.setEndDate(event.getPlannedEndDate());
             }
 //            if (event.getEstimatedCompletion() != null) {
 //                entity.setEstimatedCompletion(event.getEstimatedCompletion());
 //            }
+            if (event.getMetadata() != null) {
+                entity.setMetadata(event.getMetadata());
+            }
+            
+            // Update version fields (PROTOCOL VERSION FIELDS)
+            if (event.getVersion() != null) {
+                entity.setVersion(event.getVersion());
+            }
+            if (event.getIsLatestVersion() != null) {
+                entity.setIsLatestVersion(event.getIsLatestVersion());
+            }
+            
+            // Update sites from targetSites if provided
+            if (event.getTargetSites() != null) {
+                entity.setSites(event.getTargetSites());
+            }
+            
+            // Note: organizationId, blinding, randomization, controlType, notes, riskLevel,
+            // objective, plannedStartDate, plannedEndDate fields are in events
+            // but not yet in StudyEntity table schema. Will be saved when schema is updated.
             
             // Update lookup table relationships
             if (event.getStudyPhaseId() != null) {
@@ -264,6 +308,10 @@ public class StudyProjection {
             if (event.getRegulatoryStatusId() != null) {
                 regulatoryStatusRepository.findById(event.getRegulatoryStatusId())
                     .ifPresent(entity::setRegulatoryStatus);
+            }
+
+            if (event.getOrganizationAssociations() != null) {
+                synchronizeOrganizationAssociations(entity, event.getOrganizationAssociations());
             }
             
             // Update audit
@@ -487,6 +535,100 @@ public class StudyProjection {
                 logger.warn("No matching user found for aggregate UUID {}; leaving audit reference null to avoid FK violation", userUuid);
                 return null;
             });
+    }
+
+    private void synchronizeOrganizationAssociations(StudyEntity entity, java.util.List<StudyOrganizationAssociation> associations) {
+        if (associations == null) {
+            return;
+        }
+
+        // Deduplicate incoming associations by organizationId + role (case-insensitive)
+        Map<String, StudyOrganizationAssociation> uniqueAssociations = new LinkedHashMap<>();
+        associations.forEach(rawAssociation -> {
+            if (rawAssociation == null || rawAssociation.getOrganizationId() == null || rawAssociation.getRole() == null) {
+                logger.warn("Skipping organization association with missing data for study {}", entity.getAggregateUuid());
+                return;
+            }
+
+            String normalizedRole = rawAssociation.getRole().trim().toUpperCase(Locale.ROOT);
+            String key = rawAssociation.getOrganizationId() + "-" + normalizedRole;
+
+            StudyOrganizationAssociation existingAssociation = uniqueAssociations.get(key);
+            if (existingAssociation == null) {
+                uniqueAssociations.put(key, rawAssociation);
+            } else {
+                boolean existingPrimary = Boolean.TRUE.equals(existingAssociation.getIsPrimary());
+                boolean incomingPrimary = Boolean.TRUE.equals(rawAssociation.getIsPrimary());
+
+                if (!existingPrimary && incomingPrimary) {
+                    // Prefer the association flagged as primary if one exists
+                    uniqueAssociations.put(key, rawAssociation);
+                    logger.debug("Replacing duplicate organization association with primary flag: orgId={}, role={}",
+                        rawAssociation.getOrganizationId(), normalizedRole);
+                } else {
+                    logger.warn("Duplicate organization association encountered for study {} -> orgId={}, role={}; ignoring duplicate entry",
+                        entity.getAggregateUuid(), rawAssociation.getOrganizationId(), normalizedRole);
+                }
+            }
+        });
+
+        // Create a set of desired associations (organizationId + role) for comparison
+        Set<String> desiredAssociations = uniqueAssociations.keySet();
+
+        // Remove associations that are no longer desired
+        List<OrganizationStudyEntity> toRemove = entity.getOrganizationStudies().stream()
+            .filter(existing -> {
+                String key = existing.getOrganizationId() + "-" + existing.getRole().name();
+                return !desiredAssociations.contains(key);
+            })
+            .collect(Collectors.toList());
+        
+        toRemove.forEach(entity::removeOrganizationStudy);
+
+        // Add or update associations
+        uniqueAssociations.values().forEach(association -> {
+            OrganizationRole role = resolveOrganizationRole(association.getRole());
+            if (role == null) {
+                logger.warn("Skipping organization association for study {} due to invalid role value '{}'", entity.getAggregateUuid(), association.getRole());
+                return;
+            }
+
+            // Check if association already exists
+            Optional<OrganizationStudyEntity> existingAssoc = entity.getOrganizationStudies().stream()
+                .filter(os -> os.getOrganizationId().equals(association.getOrganizationId()) 
+                          && os.getRole() == role)
+                .findFirst();
+
+            if (existingAssoc.isPresent()) {
+                // Update existing association
+                OrganizationStudyEntity existing = existingAssoc.get();
+                existing.setIsPrimary(Boolean.TRUE.equals(association.getIsPrimary()));
+                // Start/end dates can be updated if needed
+                logger.debug("Updated existing organization association: orgId={}, role={}", 
+                    association.getOrganizationId(), role);
+            } else {
+                // Create new association
+                OrganizationStudyEntity organizationStudy = new OrganizationStudyEntity();
+                organizationStudy.setOrganizationId(association.getOrganizationId());
+                organizationStudy.setRole(role);
+                organizationStudy.setIsPrimary(Boolean.TRUE.equals(association.getIsPrimary()));
+                entity.addOrganizationStudy(organizationStudy);
+                logger.debug("Added new organization association: orgId={}, role={}", 
+                    association.getOrganizationId(), role);
+            }
+        });
+    }
+
+    private OrganizationRole resolveOrganizationRole(String roleValue) {
+        if (roleValue == null || roleValue.isBlank()) {
+            return null;
+        }
+
+        try {
+            return OrganizationRole.valueOf(roleValue.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 }
 

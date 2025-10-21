@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Request DTO for updating an existing study via DDD aggregate
@@ -21,6 +22,7 @@ import java.time.LocalDate;
 public class StudyUpdateRequestDto {
     
     // Optional fields - only provided fields will be updated
+    private Long organizationId;
     private String name;
     private String protocolNumber;
     private String sponsor;
@@ -33,8 +35,6 @@ public class StudyUpdateRequestDto {
     private Long studyPhaseId;
     
     // Date updates
-    private LocalDate startDate;
-    private LocalDate endDate;
     private LocalDate plannedStartDate;
     private LocalDate plannedEndDate;
     
@@ -43,6 +43,8 @@ public class StudyUpdateRequestDto {
     private String indication;
     private String therapeuticArea;
     private String principalInvestigator;
+    private String primaryObjective;
+    private String primaryEndpoint;
     
     // Target updates
     private Integer targetEnrollment;
@@ -60,6 +62,8 @@ public class StudyUpdateRequestDto {
     // Additional updates
     private String notes;
     private String riskLevel;
+    private List<StudyOrganizationAssociationRequestDto> organizations;
+    private String metadata;
 }
 
 
