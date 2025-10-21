@@ -58,7 +58,7 @@ import java.util.Optional;
  * - Audit record in database for reporting
  * 
  * Future Integration (Week 3-4):
- * - Will process events from UnscheduledVisitService
+ * - Will process events from PatientVisitService
  * - Visit context will be preserved in read model
  * - Audit trail will link: Visit → Form → Data
  */

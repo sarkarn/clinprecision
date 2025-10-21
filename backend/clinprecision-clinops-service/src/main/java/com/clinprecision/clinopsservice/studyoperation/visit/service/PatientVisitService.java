@@ -18,10 +18,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Unscheduled Visit Service
+ * Patient Visit Service
  * 
- * <p>Orchestrates unscheduled visit creation following CQRS/Event Sourcing patterns.
- * This service handles both command (write) and query (read) operations for visits.</p>
+ * <p>Orchestrates all patient visit operations (scheduled and unscheduled) following CQRS/Event Sourcing patterns.
+ * This service handles both command (write) and query (read) operations for all visit types.</p>
  * 
  * <p><b>Command Operations (Write):</b></p>
  * <ul>
@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
  *   <li>createScreeningVisit() - Convenience method for screening visits</li>
  *   <li>createEnrollmentVisit() - Convenience method for enrollment visits</li>
  *   <li>createDiscontinuationVisit() - Convenience method for discontinuation visits</li>
+ *   <li>updateVisitStatus() - Update visit status (SCHEDULED → IN_PROGRESS → COMPLETED)</li>
  * </ul>
  * 
  * <p><b>Query Operations (Read):</b></p>
@@ -41,7 +42,7 @@ import java.util.stream.Collectors;
  * 
  * <p><b>Architecture Flow:</b></p>
  * <pre>
- * UI/Controller → UnscheduledVisitService → CommandGateway → VisitAggregate
+ * UI/Controller → PatientVisitService → CommandGateway → VisitAggregate
  *                                                 ↓
  *                                        VisitCreatedEvent
  *                                                 ↓
@@ -49,7 +50,7 @@ import java.util.stream.Collectors;
  *                                                 ↓
  *                                           [visit table]
  *                                                 ↓
- *                                  UnscheduledVisitService (Query)
+ *                                  PatientVisitService (Query)
  * </pre>
  * 
  * <p><b>Visit Types:</b></p>
@@ -70,7 +71,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UnscheduledVisitService {
+public class PatientVisitService {
 
     private final CommandGateway commandGateway;
     private final StudyVisitInstanceRepository studyVisitInstanceRepository;
@@ -447,9 +448,14 @@ public class UnscheduledVisitService {
             // Get aggregate UUID (required for command)
             String aggregateUuid = visit.getAggregateUuid();
             
+            // MIGRATION FIX: Generate UUID if missing (for legacy visits created before DDD migration)
             if (aggregateUuid == null || aggregateUuid.trim().isEmpty()) {
-                log.error("Visit has no aggregateUuid, cannot send command: visitInstanceId={}", visitInstanceId);
-                return false;
+                log.warn("Visit has no aggregateUuid, generating new UUID for legacy visit: visitInstanceId={}", visitInstanceId);
+                aggregateUuid = UUID.randomUUID().toString();
+                visit.setAggregateUuid(aggregateUuid);
+                studyVisitInstanceRepository.save(visit);
+                log.info("Generated and saved aggregateUuid for legacy visit: visitInstanceId={}, aggregateUuid={}", 
+                        visitInstanceId, aggregateUuid);
             }
             
             // Send UpdateVisitStatusCommand to aggregate
