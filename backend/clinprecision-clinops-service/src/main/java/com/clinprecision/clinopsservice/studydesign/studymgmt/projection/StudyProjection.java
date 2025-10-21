@@ -20,7 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -539,11 +542,38 @@ public class StudyProjection {
             return;
         }
 
+        // Deduplicate incoming associations by organizationId + role (case-insensitive)
+        Map<String, StudyOrganizationAssociation> uniqueAssociations = new LinkedHashMap<>();
+        associations.forEach(rawAssociation -> {
+            if (rawAssociation == null || rawAssociation.getOrganizationId() == null || rawAssociation.getRole() == null) {
+                logger.warn("Skipping organization association with missing data for study {}", entity.getAggregateUuid());
+                return;
+            }
+
+            String normalizedRole = rawAssociation.getRole().trim().toUpperCase(Locale.ROOT);
+            String key = rawAssociation.getOrganizationId() + "-" + normalizedRole;
+
+            StudyOrganizationAssociation existingAssociation = uniqueAssociations.get(key);
+            if (existingAssociation == null) {
+                uniqueAssociations.put(key, rawAssociation);
+            } else {
+                boolean existingPrimary = Boolean.TRUE.equals(existingAssociation.getIsPrimary());
+                boolean incomingPrimary = Boolean.TRUE.equals(rawAssociation.getIsPrimary());
+
+                if (!existingPrimary && incomingPrimary) {
+                    // Prefer the association flagged as primary if one exists
+                    uniqueAssociations.put(key, rawAssociation);
+                    logger.debug("Replacing duplicate organization association with primary flag: orgId={}, role={}",
+                        rawAssociation.getOrganizationId(), normalizedRole);
+                } else {
+                    logger.warn("Duplicate organization association encountered for study {} -> orgId={}, role={}; ignoring duplicate entry",
+                        entity.getAggregateUuid(), rawAssociation.getOrganizationId(), normalizedRole);
+                }
+            }
+        });
+
         // Create a set of desired associations (organizationId + role) for comparison
-        Set<String> desiredAssociations = associations.stream()
-            .filter(a -> a != null && a.getOrganizationId() != null && a.getRole() != null)
-            .map(a -> a.getOrganizationId() + "-" + a.getRole())
-            .collect(Collectors.toSet());
+        Set<String> desiredAssociations = uniqueAssociations.keySet();
 
         // Remove associations that are no longer desired
         List<OrganizationStudyEntity> toRemove = entity.getOrganizationStudies().stream()
@@ -556,12 +586,7 @@ public class StudyProjection {
         toRemove.forEach(entity::removeOrganizationStudy);
 
         // Add or update associations
-        associations.forEach(association -> {
-            if (association == null || association.getOrganizationId() == null) {
-                logger.warn("Skipping organization association with missing organizationId for study {}", entity.getAggregateUuid());
-                return;
-            }
-
+        uniqueAssociations.values().forEach(association -> {
             OrganizationRole role = resolveOrganizationRole(association.getRole());
             if (role == null) {
                 logger.warn("Skipping organization association for study {} due to invalid role value '{}'", entity.getAggregateUuid(), association.getRole());
