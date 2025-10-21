@@ -762,7 +762,12 @@ public class StudyQueryController {
 
     /**
      * Get form bindings (assignments) for a study with auto-initialization (Bridge endpoint)
-     * GET /api/studies/{studyId}/form-bindings
+     * 
+     * <p><b>URL Migration:</b></p>
+     * <ul>
+     *   <li>Old (deprecated): GET /api/studies/{studyId}/form-bindings</li>
+     *   <li>New (recommended): GET /api/v1/study-design/studies/{studyId}/form-bindings</li>
+     * </ul>
      * 
      * Bridge Pattern: Accepts study ID (legacy or UUID) and automatically ensures
      * StudyDesignAggregate exists before fetching form assignments.
@@ -770,13 +775,27 @@ public class StudyQueryController {
      * @param studyId Study identifier (legacy ID or UUID)
      * @param visitId Optional visit filter
      * @param requiredOnly Optional flag to return only required forms
+     * @param httpRequest HTTP request for deprecation header detection
+     * @param httpResponse HTTP response for deprecation headers
      * @return 200 OK with list of form assignments
      */
-    @GetMapping("/{studyId}/form-bindings")
+    @GetMapping(value = {
+        StudyApiConstants.OLD_BASE_PATH + "/{studyId}/form-bindings",      // OLD: /api/studies/{studyId}/form-bindings
+        StudyApiConstants.NEW_BASE_PATH + "/{studyId}/form-bindings"       // NEW: /api/v1/study-design/studies/{studyId}/form-bindings
+    })
     public ResponseEntity<List<FormAssignmentResponse>> getFormBindingsForStudy(
             @PathVariable String studyId,
             @RequestParam(required = false) UUID visitId,
-            @RequestParam(required = false) Boolean requiredOnly) {
+            @RequestParam(required = false) Boolean requiredOnly,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        
+        // Add deprecation headers if using old URL
+        DeprecationHeaderUtil.addDeprecationHeaders(
+            httpRequest, httpResponse,
+            StudyApiConstants.OLD_BASE_PATH,
+            StudyApiConstants.NEW_BASE_PATH
+        );
         log.info("REST: Auto-get form bindings for study: {} (visitId={}, requiredOnly={})", 
             studyId, visitId, requiredOnly);
         
