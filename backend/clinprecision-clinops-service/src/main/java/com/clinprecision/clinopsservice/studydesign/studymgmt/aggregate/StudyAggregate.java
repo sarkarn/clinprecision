@@ -151,7 +151,7 @@ public class StudyAggregate {
                 .notes(command.getNotes())
                 .riskLevel(command.getRiskLevel())
         .organizationAssociations(command.getOrganizationAssociations() != null
-            ? List.copyOf(command.getOrganizationAssociations())
+            ? new java.util.ArrayList<>(command.getOrganizationAssociations())
             : null)
         .metadata(command.getMetadata())
                 .userId(command.getUserId())
@@ -229,7 +229,7 @@ public class StudyAggregate {
                 .notes(command.getNotes())
                 .riskLevel(command.getRiskLevel())
         .organizationAssociations(command.getOrganizationAssociations() != null
-            ? List.copyOf(command.getOrganizationAssociations())
+            ? new java.util.ArrayList<>(command.getOrganizationAssociations())
             : null)
         .metadata(command.getMetadata())
                 .userId(command.getUserId())

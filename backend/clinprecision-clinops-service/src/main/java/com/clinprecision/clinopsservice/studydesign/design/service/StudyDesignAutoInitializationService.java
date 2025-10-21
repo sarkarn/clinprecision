@@ -241,7 +241,8 @@ public class StudyDesignAutoInitializationService {
                         log.info("StudyDesign already exists (duplicate detected), using: {}", studyDesignId);
                         return studyDesignId;
                     }
-                    log.error("Failed to auto-initialize StudyDesign for legacy study: {}", studyInfo.name, ex);
+                    log.error("Failed to auto-initialize StudyDesign for legacy study: {}", studyInfo.name);
+                    logExceptionChain(ex);
                     throw new RuntimeException("Failed to initialize StudyDesign", ex);
                 });
         } else {
@@ -267,27 +268,74 @@ public class StudyDesignAutoInitializationService {
                         log.info("StudyDesign already exists (duplicate detected), using: {}", studyInfo.preferredDesignUuid);
                         return studyInfo.preferredDesignUuid;
                     }
-                    log.error("Failed to auto-initialize StudyDesign for study: {}", studyInfo.name, ex);
+                    log.error("Failed to auto-initialize StudyDesign for study: {}", studyInfo.name);
+                    logExceptionChain(ex);
                     throw new RuntimeException("Failed to initialize StudyDesign", ex);
                 });
         }
     }
 
     private boolean isDuplicateAggregateError(Throwable throwable) {
+        log.debug("Checking if exception is duplicate aggregate error");
         Throwable current = throwable;
+        int level = 0;
         while (current != null) {
+            log.debug("  Level {}: {} - {}", level, current.getClass().getName(), current.getMessage());
             if (current.getMessage() != null) {
                 String message = current.getMessage();
                 if (message.contains("Cannot reuse aggregate identifier") || message.contains("already exists")) {
+                    log.debug("  -> Matched duplicate aggregate error at level {}", level);
                     return true;
                 }
             }
             if (current instanceof IllegalStateException && current.getMessage() != null && current.getMessage().contains("already exists")) {
+                log.debug("  -> Matched IllegalStateException with 'already exists' at level {}", level);
                 return true;
             }
             current = current.getCause();
+            level++;
         }
+        log.debug("  -> Not a duplicate aggregate error");
         return false;
+    }
+    
+    /**
+     * Helper method to log the complete exception chain
+     * This helps diagnose wrapped exceptions from Axon Framework
+     * 
+     * @param throwable The exception to log
+     */
+    private void logExceptionChain(Throwable throwable) {
+        log.error("=== STUDYDESIGN EXCEPTION CHAIN START ===");
+        int level = 0;
+        Throwable current = throwable;
+        
+        while (current != null) {
+            log.error("Exception level {}: {} - {}", 
+                level, 
+                current.getClass().getName(), 
+                current.getMessage());
+            
+            // Log stack trace for this level
+            StackTraceElement[] stackTrace = current.getStackTrace();
+            if (stackTrace != null && stackTrace.length > 0) {
+                log.error("  Stack trace (first 5 elements):");
+                int limit = Math.min(5, stackTrace.length);
+                for (int i = 0; i < limit; i++) {
+                    log.error("    at {}", stackTrace[i]);
+                }
+            }
+            
+            current = current.getCause();
+            level++;
+            
+            if (level > 10) {
+                log.error("Exception chain too deep (>10 levels), stopping trace");
+                break;
+            }
+        }
+        
+        log.error("=== STUDYDESIGN EXCEPTION CHAIN END ===");
     }
 
     /**

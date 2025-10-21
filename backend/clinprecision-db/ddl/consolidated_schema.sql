@@ -1912,7 +1912,7 @@ CREATE INDEX idx_form_definitions_study_build ON form_definitions(study_id, buil
 CREATE INDEX idx_study_form_data_build_id ON study_form_data(build_id);
 CREATE INDEX idx_study_form_data_study_build ON study_form_data(study_id, build_id);
 CREATE INDEX idx_study_form_data_form_build ON study_form_data(form_id, build_id);
-CREATE INDEX idx_visit_def_unscheduled ON visit_definitions(study_id, is_unscheduled);
+
 
 
 

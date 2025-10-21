@@ -1,5 +1,6 @@
 package com.clinprecision.clinopsservice.studydesign.studymgmt.event;
 
+import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.OrganizationAssociationUpdate;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyOrganizationAssociation;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
 import lombok.Builder;
@@ -72,7 +73,7 @@ public class StudyCreatedEvent {
     String riskLevel;
 
     // Legacy Axon event payloads stored organization associations under "organizations"
-    List<StudyOrganizationAssociation> organizations;
+    List<OrganizationAssociationUpdate> organizations;
 
     List<StudyOrganizationAssociation> organizationAssociations;
 
@@ -86,7 +87,19 @@ public class StudyCreatedEvent {
     Instant timestamp;
 
     public List<StudyOrganizationAssociation> getOrganizationAssociations() {
-        return organizationAssociations != null ? organizationAssociations : organizations;
+        if (organizationAssociations != null) {
+            return organizationAssociations;
+        }
+        if (organizations == null) {
+            return null;
+        }
+        return organizations.stream()
+            .map(legacy -> StudyOrganizationAssociation.builder()
+                .organizationId(legacy.getOrganizationId())
+                .role(legacy.getRole())
+                .isPrimary(legacy.getIsPrimary())
+                .build())
+            .toList();
     }
 }
 
