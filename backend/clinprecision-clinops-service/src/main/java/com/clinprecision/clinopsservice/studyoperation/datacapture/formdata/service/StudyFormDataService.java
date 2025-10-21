@@ -76,7 +76,7 @@ import java.util.stream.Collectors;
  * 5. Service returns response to controller
  * 
  * Future Integration (Week 3-4):
- * - UnscheduledVisitService will call this service
+ * - PatientVisitService will call this service
  * - Visit context will be provided (visitId, visitType)
  * - Forms linked to visits for proper audit trail
  */

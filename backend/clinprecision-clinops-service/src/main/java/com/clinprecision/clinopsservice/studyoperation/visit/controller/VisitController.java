@@ -7,7 +7,7 @@ import com.clinprecision.clinopsservice.studyoperation.visit.dto.UnscheduledVisi
 import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitDto;
 import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitFormDto;
 import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitResponse;
-import com.clinprecision.clinopsservice.studyoperation.visit.service.UnscheduledVisitService;
+import com.clinprecision.clinopsservice.studyoperation.visit.service.PatientVisitService;
 import com.clinprecision.clinopsservice.studyoperation.visit.service.VisitFormQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class VisitController {
 
-    private final UnscheduledVisitService visitService;
+    private final PatientVisitService visitService;
     private final VisitFormQueryService visitFormQueryService;
     private final VisitDefinitionRepository visitDefinitionRepository;
 

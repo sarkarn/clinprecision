@@ -1,5 +1,7 @@
 package com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response;
 
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.StudyPhaseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.StudyStatusDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -53,6 +55,8 @@ public class StudyResponseDto {
     private String phase;
     private String studyType;
     private String therapeuticArea;
+    private String indication;
+    private String version;
     
     // Regulatory Information
     private String regulatoryStatus;
@@ -71,8 +75,10 @@ public class StudyResponseDto {
     // Study Status
     private StudyStatusCode status;
     private Long studyStatusId;
+    private StudyStatusDto studyStatus; // Nested object for frontend display
     private Long regulatoryStatusId;
     private Long studyPhaseId;
+    private StudyPhaseDto studyPhase; // Nested object for frontend display
     private String statusReason;
     private LocalDateTime statusChangedAt;
     private String statusChangedBy;
