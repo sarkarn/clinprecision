@@ -8,6 +8,23 @@ import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal
 import StatusHistoryTimeline from '../subjectmanagement/components/StatusHistoryTimeline';
 import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVisitModal';
 
+/**
+ * Normalize backend visit status to frontend format
+ * Backend: COMPLETED, IN_PROGRESS, SCHEDULED
+ * Frontend: complete, incomplete, not_started
+ */
+const normalizeVisitStatus = (backendStatus) => {
+    if (!backendStatus) return 'not_started';
+
+    const statusMap = {
+        'COMPLETED': 'complete',
+        'IN_PROGRESS': 'incomplete',
+        'SCHEDULED': 'not_started'
+    };
+
+    return statusMap[backendStatus.toUpperCase()] || backendStatus.toLowerCase();
+};
+
 export default function SubjectDetails() {
     console.log('[SUBJECT DETAILS] Component mounted/rendering');
     const { subjectId } = useParams();
@@ -83,7 +100,16 @@ export default function SubjectDetails() {
             console.log('[SUBJECT DETAILS] Fetching visits for patient:', subject.id);
             const visitsData = await getPatientVisits(subject.id);
             console.log('[SUBJECT DETAILS] Visits loaded:', visitsData);
-            setVisits(visitsData || []);
+
+            // Normalize backend status values to frontend format
+            // Backend: COMPLETED, IN_PROGRESS, SCHEDULED
+            // Frontend: complete, incomplete, not_started
+            const normalizedVisits = (visitsData || []).map(visit => ({
+                ...visit,
+                status: normalizeVisitStatus(visit.status)
+            }));
+
+            setVisits(normalizedVisits);
         } catch (error) {
             console.error('[SUBJECT DETAILS] Error fetching visits:', error);
             setVisits([]);
