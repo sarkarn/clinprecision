@@ -6,6 +6,8 @@ import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.commands
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionIdentifier;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.domain.valueobjects.VersionNumber;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.service.ProtocolVersionCommandService;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.service.ProtocolVersionQueryService;
+import com.clinprecision.clinopsservice.studydesign.protocolmgmt.entity.ProtocolVersionEntity;
 import com.clinprecision.clinopsservice.studydesign.protocolmgmt.dto.*;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyResponseDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.service.StudyQueryService;
@@ -72,6 +74,7 @@ public class ProtocolVersionCommandController {
 
     private final ProtocolVersionCommandService commandService;
     private final StudyQueryService studyQueryService;
+    private final ProtocolVersionQueryService queryService;
 
     /**
      * Create a new protocol version
@@ -199,15 +202,18 @@ public class ProtocolVersionCommandController {
      * <p><b>⚠️ CRITICAL:</b> This endpoint REPLACES database triggers!
      * All status changes must go through this explicit API call.</p>
      * 
-     * @param id the protocol version UUID
+     * <p><b>Bridge Pattern:</b> Accepts version ID as String (can be UUID or legacy Long ID).
+     * If legacy ID is provided, it will be resolved to aggregate UUID.</p>
+     * 
+     * @param id the protocol version ID (can be UUID or legacy Long ID)
      * @param request the status change request
      * @param httpRequest the HTTP servlet request
      * @param httpResponse the HTTP servlet response
      * @return ResponseEntity with status
      */
     @PutMapping(ProtocolApiConstants.STATUS)
-    public ResponseEntity<Void> changeStatus(
-            @PathVariable UUID id,
+    public ResponseEntity<?> changeStatus(
+            @PathVariable String id,
             @Valid @RequestBody ChangeStatusRequest request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
@@ -221,11 +227,39 @@ public class ProtocolVersionCommandController {
             ProtocolApiConstants.SUNSET_DATE
         );
         
-        log.info("REST: Changing version status: {} -> {}", id, request.getNewStatus());
+        log.info("REST: Changing version status for ID: {} -> {}", id, request.getNewStatus());
         
         try {
+            // Bridge Pattern: Resolve ID to aggregate UUID if needed
+            UUID aggregateUuid;
+            try {
+                // First, try parsing as UUID
+                aggregateUuid = UUID.fromString(id);
+                log.info("REST: Parsed ID as UUID: {}", aggregateUuid);
+            } catch (IllegalArgumentException e) {
+                // If not a UUID, treat as legacy Long ID
+                log.info("REST: ID is not UUID, resolving legacy ID: {}", id);
+                try {
+                    Long legacyId = Long.parseLong(id);
+                    ProtocolVersionEntity version = queryService.findById(legacyId)
+                        .orElseThrow(() -> new IllegalArgumentException("Protocol version not found: " + legacyId));
+                    
+                    aggregateUuid = version.getAggregateUuid();
+                    if (aggregateUuid == null) {
+                        log.error("REST: Version {} has no aggregate UUID - not migrated to DDD", legacyId);
+                        return ResponseEntity.badRequest()
+                            .body(Map.of("error", "Version " + legacyId + " has not been migrated to DDD yet"));
+                    }
+                    log.info("REST: Resolved legacy ID {} to aggregate UUID: {}", legacyId, aggregateUuid);
+                } catch (NumberFormatException nfe) {
+                    log.error("REST: ID is neither UUID nor valid Long: {}", id);
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid version ID format: " + id));
+                }
+            }
+            
             ChangeVersionStatusCommand command = ChangeVersionStatusCommand.builder()
-                .versionId(id)
+                .versionId(aggregateUuid)
                 .newStatus(request.getNewStatus())
                 .reason(request.getReason())
                 .userId(request.getUserId())
@@ -234,14 +268,20 @@ public class ProtocolVersionCommandController {
             commandService.changeStatusSync(command);
             
             log.info("REST: Version status changed successfully");
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok().body(Map.of(
+                "message", "Status updated successfully",
+                "versionId", id,
+                "newStatus", request.getNewStatus().name()
+            ));
             
         } catch (IllegalArgumentException | IllegalStateException e) {
             log.error("REST: Validation error changing status", e);
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "VALIDATION_ERROR", "message", e.getMessage()));
         } catch (Exception e) {
             log.error("REST: Error changing status", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "INTERNAL_ERROR", "message", "Failed to update status: " + e.getMessage()));
         }
     }
 

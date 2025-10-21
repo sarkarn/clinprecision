@@ -83,10 +83,11 @@ class StudyVersioningService {
      */
     static async updateVersionStatus(versionId, status, reason = null) {
         try {
-            const payload = { status };
-            if (reason) {
-                payload.reason = reason;
-            }
+            const payload = { 
+                newStatus: status,  // Backend expects 'newStatus', not 'status'
+                reason: reason || 'Status update',
+                userId: 1  // TODO: Get from auth context
+            };
             const response = await ApiService.put(`${this.API_BASE}/${versionId}/status`, payload);
             return response.data;
         } catch (error) {
