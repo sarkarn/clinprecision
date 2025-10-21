@@ -59,10 +59,15 @@ public class StudyResponseMapper {
                 .indNumber(null) // TODO: Add to entity if needed
                 .protocolVersionNumber(null) // TODO: Add to entity if needed
                 .principalInvestigator(entity.getPrincipalInvestigator())
+                .primaryObjective(entity.getPrimaryObjective())
+                .primaryEndpoint(entity.getPrimaryEndpoint())
                 .medicalMonitor(null) // TODO: Add to entity if needed
                 .contactEmail(null) // TODO: Add to entity if needed
                 .status(entity.getStudyStatus() != null ? 
                     StudyStatusCode.fromString(entity.getStudyStatus().getCode()) : null)
+                .studyStatusId(entity.getStudyStatus() != null ? entity.getStudyStatus().getId() : null)
+                .regulatoryStatusId(entity.getRegulatoryStatus() != null ? entity.getRegulatoryStatus().getId() : null)
+                .studyPhaseId(entity.getStudyPhase() != null ? entity.getStudyPhase().getId() : null)
                 .statusReason(null) // TODO: Add to entity if needed
                 .statusChangedAt(null) // TODO: Add to entity if needed
                 .statusChangedBy(null) // TODO: Add to entity if needed

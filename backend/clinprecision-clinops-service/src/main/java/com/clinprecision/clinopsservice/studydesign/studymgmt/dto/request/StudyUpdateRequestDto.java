@@ -45,6 +45,8 @@ public class StudyUpdateRequestDto {
     private String indication;
     private String therapeuticArea;
     private String principalInvestigator;
+    private String primaryObjective;
+    private String primaryEndpoint;
     
     // Target updates
     private Integer targetEnrollment;

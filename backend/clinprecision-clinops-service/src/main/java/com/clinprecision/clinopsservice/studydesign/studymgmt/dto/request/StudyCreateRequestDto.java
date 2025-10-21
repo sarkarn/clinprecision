@@ -51,6 +51,8 @@ public class StudyCreateRequestDto {
     private String indication;
     private String therapeuticArea;
     private String principalInvestigator;
+    private String primaryObjective;
+    private String primaryEndpoint;
     
     // Optional fields - Targets
     private Integer targetEnrollment;

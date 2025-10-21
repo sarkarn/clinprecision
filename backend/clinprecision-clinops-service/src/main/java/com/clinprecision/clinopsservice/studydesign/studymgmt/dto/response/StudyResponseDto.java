@@ -63,11 +63,16 @@ public class StudyResponseDto {
     
     // Contact Information
     private String principalInvestigator;
+    private String primaryObjective;
+    private String primaryEndpoint;
     private String medicalMonitor;
     private String contactEmail;
     
     // Study Status
     private StudyStatusCode status;
+    private Long studyStatusId;
+    private Long regulatoryStatusId;
+    private Long studyPhaseId;
     private String statusReason;
     private LocalDateTime statusChangedAt;
     private String statusChangedBy;
