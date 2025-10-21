@@ -20,8 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Study Projection - Event Listener
@@ -536,9 +539,23 @@ public class StudyProjection {
             return;
         }
 
-        // Remove existing associations cleanly so orphanRemoval will delete rows.
-        new ArrayList<>(entity.getOrganizationStudies()).forEach(entity::removeOrganizationStudy);
+        // Create a set of desired associations (organizationId + role) for comparison
+        Set<String> desiredAssociations = associations.stream()
+            .filter(a -> a != null && a.getOrganizationId() != null && a.getRole() != null)
+            .map(a -> a.getOrganizationId() + "-" + a.getRole())
+            .collect(Collectors.toSet());
 
+        // Remove associations that are no longer desired
+        List<OrganizationStudyEntity> toRemove = entity.getOrganizationStudies().stream()
+            .filter(existing -> {
+                String key = existing.getOrganizationId() + "-" + existing.getRole().name();
+                return !desiredAssociations.contains(key);
+            })
+            .collect(Collectors.toList());
+        
+        toRemove.forEach(entity::removeOrganizationStudy);
+
+        // Add or update associations
         associations.forEach(association -> {
             if (association == null || association.getOrganizationId() == null) {
                 logger.warn("Skipping organization association with missing organizationId for study {}", entity.getAggregateUuid());
@@ -551,11 +568,29 @@ public class StudyProjection {
                 return;
             }
 
-            OrganizationStudyEntity organizationStudy = new OrganizationStudyEntity();
-            organizationStudy.setOrganizationId(association.getOrganizationId());
-            organizationStudy.setRole(role);
-            organizationStudy.setIsPrimary(Boolean.TRUE.equals(association.getIsPrimary()));
-            entity.addOrganizationStudy(organizationStudy);
+            // Check if association already exists
+            Optional<OrganizationStudyEntity> existingAssoc = entity.getOrganizationStudies().stream()
+                .filter(os -> os.getOrganizationId().equals(association.getOrganizationId()) 
+                          && os.getRole() == role)
+                .findFirst();
+
+            if (existingAssoc.isPresent()) {
+                // Update existing association
+                OrganizationStudyEntity existing = existingAssoc.get();
+                existing.setIsPrimary(Boolean.TRUE.equals(association.getIsPrimary()));
+                // Start/end dates can be updated if needed
+                logger.debug("Updated existing organization association: orgId={}, role={}", 
+                    association.getOrganizationId(), role);
+            } else {
+                // Create new association
+                OrganizationStudyEntity organizationStudy = new OrganizationStudyEntity();
+                organizationStudy.setOrganizationId(association.getOrganizationId());
+                organizationStudy.setRole(role);
+                organizationStudy.setIsPrimary(Boolean.TRUE.equals(association.getIsPrimary()));
+                entity.addOrganizationStudy(organizationStudy);
+                logger.debug("Added new organization association: orgId={}, role={}", 
+                    association.getOrganizationId(), role);
+            }
         });
     }
 
