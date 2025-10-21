@@ -97,8 +97,12 @@ const ProtocolVersionManagementModal = ({
     const handleCreateVersion = async (formData) => {
         try {
             const newVersion = await createProtocolVersion(formData);
-            onVersionCreated?.(newVersion);
-            onClose(); // Close modal after successful creation
+            // Call the callback and wait for parent to refresh data
+            if (onVersionCreated) {
+                await onVersionCreated(newVersion);
+            }
+            // Close modal after parent has refreshed
+            onClose();
         } catch (error) {
             console.error('Error creating version:', error);
             // Error is already handled by the hook and displayed in UI
@@ -111,8 +115,12 @@ const ProtocolVersionManagementModal = ({
 
         try {
             await updateProtocolVersion(selectedVersion.id, formData);
-            onVersionUpdated?.(selectedVersion.id);
-            onClose(); // Close modal after successful update
+            // Call the callback and wait for parent to refresh data
+            if (onVersionUpdated) {
+                await onVersionUpdated(selectedVersion.id);
+            }
+            // Close modal after parent has refreshed
+            onClose();
         } catch (error) {
             console.error('Error updating version:', error);
             // Error is already handled by the hook and displayed in UI
@@ -155,7 +163,8 @@ const ProtocolVersionManagementModal = ({
     const handleSubmitForReview = async (versionId) => {
         try {
             await submitForReview(versionId);
-            onClose(); // Close modal after successful submission
+            // Close modal after successful submission
+            onClose();
         } catch (error) {
             console.error('Error submitting for review:', error);
         }
@@ -164,7 +173,8 @@ const ProtocolVersionManagementModal = ({
     const handleApproveVersion = async (versionId) => {
         try {
             await approveProtocolVersion(versionId);
-            onClose(); // Close modal after successful approval
+            // Close modal after successful approval
+            onClose();
         } catch (error) {
             console.error('Error approving version:', error);
         }
@@ -173,7 +183,8 @@ const ProtocolVersionManagementModal = ({
     const handleActivateVersion = async (versionId) => {
         try {
             await activateProtocolVersion(versionId);
-            onClose(); // Close modal after successful activation
+            // Close modal after successful activation
+            onClose();
         } catch (error) {
             console.error('Error activating version:', error);
         }
