@@ -448,14 +448,38 @@ public class PatientVisitService {
             // Get aggregate UUID (required for command)
             String aggregateUuid = visit.getAggregateUuid();
             
-            // MIGRATION FIX: Generate UUID if missing (for legacy visits created before DDD migration)
-            if (aggregateUuid == null || aggregateUuid.trim().isEmpty()) {
-                log.warn("Visit has no aggregateUuid, generating new UUID for legacy visit: visitInstanceId={}", visitInstanceId);
+            // MIGRATION FIX: Generate UUID and initialize aggregate if missing (for legacy visits created before DDD migration)
+            boolean isLegacyVisit = (aggregateUuid == null || aggregateUuid.trim().isEmpty());
+            
+            if (isLegacyVisit) {
+                log.warn("Visit has no aggregateUuid, initializing aggregate for legacy visit: visitInstanceId={}", visitInstanceId);
                 aggregateUuid = UUID.randomUUID().toString();
                 visit.setAggregateUuid(aggregateUuid);
                 studyVisitInstanceRepository.save(visit);
                 log.info("Generated and saved aggregateUuid for legacy visit: visitInstanceId={}, aggregateUuid={}", 
                         visitInstanceId, aggregateUuid);
+                
+                // Create the aggregate in the event store for legacy visit
+                try {
+                    log.info("Creating aggregate for legacy visit: visitInstanceId={}, aggregateUuid={}", visitInstanceId, aggregateUuid);
+                    commandGateway.sendAndWait(new com.clinprecision.clinopsservice.studyoperation.visit.domain.commands.CreateVisitCommand(
+                        UUID.fromString(aggregateUuid),
+                        visit.getSubjectId(), // Entity has subjectId, not patientId
+                        visit.getStudyId(),
+                        visit.getSiteId() != null ? visit.getSiteId() : 0L,
+                        "UNSCHEDULED", // Legacy scheduled visits will use this type
+                        visit.getVisitDate(),
+                        visit.getVisitStatus() != null ? visit.getVisitStatus() : "SCHEDULED",
+                        updatedBy,
+                        "Legacy visit migrated to DDD aggregate"
+                    ));
+                    log.info("Successfully created aggregate for legacy visit: visitInstanceId={}, aggregateUuid={}", 
+                            visitInstanceId, aggregateUuid);
+                } catch (Exception createEx) {
+                    log.error("Failed to create aggregate for legacy visit: visitInstanceId={}, aggregateUuid={}", 
+                            visitInstanceId, aggregateUuid, createEx);
+                    throw createEx;
+                }
             }
             
             // Send UpdateVisitStatusCommand to aggregate
