@@ -1,10 +1,14 @@
 package com.clinprecision.clinopsservice.studydesign.studymgmt.mapper;
 
+import com.clinprecision.clinopsservice.studydesign.design.entity.StudyPhaseEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.StudyPhaseDto;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.StudyStatusDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyListResponseDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyOrganizationAssociationResponseDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.dto.response.StudyResponseDto;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.OrganizationStudyEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyEntity;
+import com.clinprecision.clinopsservice.studydesign.studymgmt.entity.StudyStatusEntity;
 import com.clinprecision.clinopsservice.studydesign.studymgmt.valueobjects.StudyStatusCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -55,6 +59,8 @@ public class StudyResponseMapper {
                 .phase(entity.getStudyPhase() != null ? entity.getStudyPhase().getName() : null)
                 .studyType(entity.getStudyType())
                 .therapeuticArea(entity.getTherapeuticArea())
+                .indication(entity.getIndication())
+                .version(entity.getVersion())
                 .regulatoryStatus(entity.getRegulatoryStatus() != null ? entity.getRegulatoryStatus().getName() : null)
                 .indNumber(null) // TODO: Add to entity if needed
                 .protocolVersionNumber(null) // TODO: Add to entity if needed
@@ -66,8 +72,10 @@ public class StudyResponseMapper {
                 .status(entity.getStudyStatus() != null ? 
                     StudyStatusCode.fromString(entity.getStudyStatus().getCode()) : null)
                 .studyStatusId(entity.getStudyStatus() != null ? entity.getStudyStatus().getId() : null)
+                .studyStatus(mapStudyStatus(entity.getStudyStatus()))
                 .regulatoryStatusId(entity.getRegulatoryStatus() != null ? entity.getRegulatoryStatus().getId() : null)
                 .studyPhaseId(entity.getStudyPhase() != null ? entity.getStudyPhase().getId() : null)
+                .studyPhase(mapStudyPhase(entity.getStudyPhase()))
                 .statusReason(null) // TODO: Add to entity if needed
                 .statusChangedAt(null) // TODO: Add to entity if needed
                 .statusChangedBy(null) // TODO: Add to entity if needed
@@ -141,6 +149,42 @@ public class StudyResponseMapper {
                         .isPrimary(orgStudy.getIsPrimary())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Map StudyStatusEntity to StudyStatusDto
+     * Provides nested object with both ID and name for frontend
+     */
+    private StudyStatusDto mapStudyStatus(StudyStatusEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+        
+        StudyStatusDto dto = new StudyStatusDto();
+        dto.setId(entity.getId());
+        dto.setCode(entity.getCode());
+        dto.setName(entity.getName());
+        dto.setDescription(entity.getDescription());
+        dto.setIsActive(entity.getIsActive());
+        return dto;
+    }
+
+    /**
+     * Map StudyPhaseEntity to StudyPhaseDto
+     * Provides nested object with both ID and name for frontend
+     */
+    private StudyPhaseDto mapStudyPhase(StudyPhaseEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+        
+        StudyPhaseDto dto = new StudyPhaseDto();
+        dto.setId(entity.getId());
+        dto.setCode(entity.getCode());
+        dto.setName(entity.getName());
+        dto.setDescription(entity.getDescription());
+        dto.setIsActive(entity.getIsActive());
+        return dto;
     }
 }
 
