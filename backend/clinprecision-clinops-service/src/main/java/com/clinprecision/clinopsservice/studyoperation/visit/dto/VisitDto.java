@@ -24,6 +24,11 @@ public class VisitDto {
     private String createdBy;
     private LocalDateTime createdAt;
     private String notes;
+    
+    // Form completion tracking
+    private Integer totalForms;           // Total number of forms for this visit
+    private Integer completedForms;       // Number of forms with status=SUBMITTED
+    private Double completionPercentage;  // Calculated: (completedForms / totalForms) * 100
 
     // Default constructor
     public VisitDto() {
@@ -140,5 +145,29 @@ public class VisitDto {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public Integer getTotalForms() {
+        return totalForms;
+    }
+
+    public void setTotalForms(Integer totalForms) {
+        this.totalForms = totalForms;
+    }
+
+    public Integer getCompletedForms() {
+        return completedForms;
+    }
+
+    public void setCompletedForms(Integer completedForms) {
+        this.completedForms = completedForms;
+    }
+
+    public Double getCompletionPercentage() {
+        return completionPercentage;
+    }
+
+    public void setCompletionPercentage(Double completionPercentage) {
+        this.completionPercentage = completionPercentage;
     }
 }
