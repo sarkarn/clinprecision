@@ -165,12 +165,12 @@ const ReviewConfirmationStep = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                        <span className="font-medium text-gray-700">Start Date:</span>
-                        <p className="text-gray-900">{formatDate(formData.startDate)}</p>
+                        <span className="font-medium text-gray-700">Planned Start Date:</span>
+                        <p className="text-gray-900">{formatDate(formData.plannedStartDate)}</p>
                     </div>
                     <div>
-                        <span className="font-medium text-gray-700">End Date:</span>
-                        <p className="text-gray-900">{formatDate(formData.endDate)}</p>
+                        <span className="font-medium text-gray-700">Planned End Date:</span>
+                        <p className="text-gray-900">{formatDate(formData.plannedEndDate)}</p>
                     </div>
                     <div>
                         <span className="font-medium text-gray-700">Estimated Duration:</span>

@@ -34,11 +34,11 @@ const TimelinePersonnelStep = ({
         onFieldChange(fieldName, value);
 
         // Auto-calculate duration if both dates are present
-        if (fieldName === 'startDate' && formData.endDate) {
-            const duration = calculateDuration(value, formData.endDate);
+        if (fieldName === 'plannedStartDate' && formData.plannedEndDate) {
+            const duration = calculateDuration(value, formData.plannedEndDate);
             onFieldChange('estimatedDuration', duration);
-        } else if (fieldName === 'endDate' && formData.startDate) {
-            const duration = calculateDuration(formData.startDate, value);
+        } else if (fieldName === 'plannedEndDate' && formData.plannedStartDate) {
+            const duration = calculateDuration(formData.plannedStartDate, value);
             onFieldChange('estimatedDuration', duration);
         }
     };
@@ -59,23 +59,23 @@ const TimelinePersonnelStep = ({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                         label="Planned Start Date"
-                        name="startDate"
+                        name="plannedStartDate"
                         type="date"
-                        value={formData.startDate}
+                        value={formData.plannedStartDate}
                         onChange={handleDateChange}
-                        error={getFieldError('startDate')}
-                        touched={hasFieldError('startDate')}
+                        error={getFieldError('plannedStartDate')}
+                        touched={hasFieldError('plannedStartDate')}
                         helpText="First patient first visit (FPFV)"
                     />
 
                     <FormField
                         label="Planned End Date"
-                        name="endDate"
+                        name="plannedEndDate"
                         type="date"
-                        value={formData.endDate}
+                        value={formData.plannedEndDate}
                         onChange={handleDateChange}
-                        error={getFieldError('endDate')}
-                        touched={hasFieldError('endDate')}
+                        error={getFieldError('plannedEndDate')}
+                        touched={hasFieldError('plannedEndDate')}
                         helpText="Last patient last visit (LPLV)"
                     />
 
@@ -88,7 +88,7 @@ const TimelinePersonnelStep = ({
                         touched={hasFieldError('estimatedDuration')}
                         placeholder="e.g., 2 years"
                         helpText="Auto-calculated from dates"
-                        disabled={formData.startDate && formData.endDate}
+                        disabled={formData.plannedStartDate && formData.plannedEndDate}
                     />
                 </div>
             </div>

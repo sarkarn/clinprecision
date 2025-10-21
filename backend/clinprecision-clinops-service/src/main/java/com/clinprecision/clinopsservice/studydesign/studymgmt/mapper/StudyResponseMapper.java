@@ -46,8 +46,8 @@ public class StudyResponseMapper {
                 .description(entity.getDescription())
                 .organizationId(resolvePrimaryOrganizationId(entity))
                 .organizationName(null) // TODO: Map from organizationStudies relationship
-                .plannedStartDate(null) // TODO: Add to entity if needed
-                .plannedEndDate(null) // TODO: Add to entity if needed
+                .plannedStartDate(entity.getStartDate()) // Currently stored in startDate field
+                .plannedEndDate(entity.getEndDate()) // Currently stored in endDate field
                 .actualStartDate(null) // TODO: Add to entity if needed
                 .actualEndDate(null) // TODO: Add to entity if needed
                 .targetEnrollment(entity.getTargetEnrollment())

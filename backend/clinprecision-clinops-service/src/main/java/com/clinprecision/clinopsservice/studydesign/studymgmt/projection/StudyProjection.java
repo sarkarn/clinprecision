@@ -143,9 +143,10 @@ public class StudyProjection {
             entity.setPrimaryObjective(event.getPrimaryObjective());
             entity.setPrimaryEndpoint(event.getPrimaryEndpoint());
             
-            // Set timeline
-            entity.setStartDate(event.getStartDate());
-            entity.setEndDate(event.getEndDate());
+            // Set timeline - use plannedStartDate/plannedEndDate for now
+            // (startDate/endDate columns currently store planned dates until schema is expanded)
+            entity.setStartDate(event.getPlannedStartDate());
+            entity.setEndDate(event.getPlannedEndDate());
           //  entity.setEstimatedCompletion(event.getEstimatedCompletion());
             
             // Set versioning  (PROTOCOL VERSION FIELDS)
@@ -262,11 +263,12 @@ public class StudyProjection {
             if (event.getPrimaryEndpoint() != null) {
                 entity.setPrimaryEndpoint(event.getPrimaryEndpoint());
             }
-            if (event.getStartDate() != null) {
-                entity.setStartDate(event.getStartDate());
+            // Use plannedStartDate/plannedEndDate (stored in startDate/endDate columns until schema expands)
+            if (event.getPlannedStartDate() != null) {
+                entity.setStartDate(event.getPlannedStartDate());
             }
-            if (event.getEndDate() != null) {
-                entity.setEndDate(event.getEndDate());
+            if (event.getPlannedEndDate() != null) {
+                entity.setEndDate(event.getPlannedEndDate());
             }
 //            if (event.getEstimatedCompletion() != null) {
 //                entity.setEstimatedCompletion(event.getEstimatedCompletion());

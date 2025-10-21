@@ -628,24 +628,24 @@ const StudyEditPage = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Start Date
+                                Planned Start Date
                             </label>
                             <input
                                 type="date"
-                                name="startDate"
-                                value={study.startDate}
+                                name="plannedStartDate"
+                                value={study.plannedStartDate}
                                 onChange={handleStudyChange}
                                 className="border border-gray-300 rounded-md w-full p-2"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                End Date
+                                Planned End Date
                             </label>
                             <input
                                 type="date"
-                                name="endDate"
-                                value={study.endDate}
+                                name="plannedEndDate"
+                                value={study.plannedEndDate}
                                 onChange={handleStudyChange}
                                 className="border border-gray-300 rounded-md w-full p-2"
                             />

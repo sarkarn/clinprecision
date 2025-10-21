@@ -45,8 +45,6 @@ public class CreateStudyCommand {
     String primaryEndpoint;
     
     // Timeline
-    LocalDate startDate;
-    LocalDate endDate;
     LocalDate plannedStartDate;
     LocalDate plannedEndDate;
     LocalDate estimatedCompletion;

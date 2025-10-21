@@ -91,8 +91,8 @@ class StudyDDDIntegrationTest {
                 .principalInvestigator("Dr. Jane Smith")
                 .targetEnrollment(500)
                 .targetSites(25)
-                .startDate(LocalDate.of(2025, 1, 1))
-                .endDate(LocalDate.of(2026, 12, 31))
+                .plannedStartDate(LocalDate.of(2025, 1, 1))
+                .plannedEndDate(LocalDate.of(2026, 12, 31))
                 .build();
         
         // When: Create study via command service

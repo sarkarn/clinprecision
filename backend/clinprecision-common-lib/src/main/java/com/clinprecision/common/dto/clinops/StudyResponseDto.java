@@ -65,10 +65,16 @@ public class StudyResponseDto {
     private String regulatoryStatus;
     private String studyPhase;
     
-    // Legacy fields for backward compatibility
+    // Timeline fields
+    private LocalDate plannedStartDate;
+    private LocalDate plannedEndDate;
+    
+    // Legacy fields for backward compatibility (deprecated)
     private String status;
     private String phase;
+    @Deprecated
     private LocalDate startDate;
+    @Deprecated
     private LocalDate endDate;
     private String metadata;
     private Long createdBy;
@@ -279,18 +285,38 @@ public class StudyResponseDto {
         this.modifiedBy = modifiedBy;
     }
     
+    public LocalDate getPlannedStartDate() {
+        return plannedStartDate;
+    }
+    
+    public void setPlannedStartDate(LocalDate plannedStartDate) {
+        this.plannedStartDate = plannedStartDate;
+    }
+    
+    public LocalDate getPlannedEndDate() {
+        return plannedEndDate;
+    }
+    
+    public void setPlannedEndDate(LocalDate plannedEndDate) {
+        this.plannedEndDate = plannedEndDate;
+    }
+    
+    @Deprecated
     public LocalDate getStartDate() {
         return startDate;
     }
     
+    @Deprecated
     public void setStartDate(LocalDate startDate) {
         this.startDate = startDate;
     }
     
+    @Deprecated
     public LocalDate getEndDate() {
         return endDate;
     }
     
+    @Deprecated
     public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
     }

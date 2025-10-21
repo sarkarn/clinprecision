@@ -133,8 +133,6 @@ public class StudyAggregate {
                 .targetSites(command.getTargetSites())
                 .primaryObjective(command.getPrimaryObjective())
                 .primaryEndpoint(command.getPrimaryEndpoint())
-                .startDate(command.getStartDate())
-                .endDate(command.getEndDate())
                 .plannedStartDate(command.getPlannedStartDate())
                 .plannedEndDate(command.getPlannedEndDate())
                 .estimatedCompletion(command.getEstimatedCompletion())
@@ -213,8 +211,6 @@ public class StudyAggregate {
                 .targetSites(command.getTargetSites())
                 .primaryObjective(command.getPrimaryObjective())
                 .primaryEndpoint(command.getPrimaryEndpoint())
-                .startDate(command.getStartDate())
-                .endDate(command.getEndDate())
                 .plannedStartDate(command.getPlannedStartDate())
                 .plannedEndDate(command.getPlannedEndDate())
                 .estimatedCompletion(command.getEstimatedCompletion())
@@ -481,8 +477,6 @@ public class StudyAggregate {
         this.targetSites = event.getTargetSites();
         this.primaryObjective = event.getPrimaryObjective();
         this.primaryEndpoint = event.getPrimaryEndpoint();
-        this.startDate = event.getStartDate();
-        this.endDate = event.getEndDate();
         this.plannedStartDate = event.getPlannedStartDate();
         this.plannedEndDate = event.getPlannedEndDate();
         this.estimatedCompletion = event.getEstimatedCompletion();
@@ -524,8 +518,6 @@ public class StudyAggregate {
         if (event.getTargetSites() != null) this.targetSites = event.getTargetSites();
         if (event.getPrimaryObjective() != null) this.primaryObjective = event.getPrimaryObjective();
         if (event.getPrimaryEndpoint() != null) this.primaryEndpoint = event.getPrimaryEndpoint();
-        if (event.getStartDate() != null) this.startDate = event.getStartDate();
-        if (event.getEndDate() != null) this.endDate = event.getEndDate();
         if (event.getPlannedStartDate() != null) this.plannedStartDate = event.getPlannedStartDate();
         if (event.getPlannedEndDate() != null) this.plannedEndDate = event.getPlannedEndDate();
         if (event.getEstimatedCompletion() != null) this.estimatedCompletion = event.getEstimatedCompletion();

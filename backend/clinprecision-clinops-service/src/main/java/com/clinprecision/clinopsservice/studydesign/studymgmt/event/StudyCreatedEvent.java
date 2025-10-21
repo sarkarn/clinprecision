@@ -46,8 +46,6 @@ public class StudyCreatedEvent {
     String primaryEndpoint;
     
     // Timeline
-    LocalDate startDate;
-    LocalDate endDate;
     LocalDate plannedStartDate;
     LocalDate plannedEndDate;
     LocalDate estimatedCompletion;

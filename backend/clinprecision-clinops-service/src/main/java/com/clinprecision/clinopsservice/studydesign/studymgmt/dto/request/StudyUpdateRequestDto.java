@@ -35,8 +35,6 @@ public class StudyUpdateRequestDto {
     private Long studyPhaseId;
     
     // Date updates
-    private LocalDate startDate;
-    private LocalDate endDate;
     private LocalDate plannedStartDate;
     private LocalDate plannedEndDate;
     

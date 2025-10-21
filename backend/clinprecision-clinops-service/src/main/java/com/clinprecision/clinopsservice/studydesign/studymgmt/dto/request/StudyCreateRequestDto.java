@@ -41,8 +41,6 @@ public class StudyCreateRequestDto {
     private Long studyPhaseId;
     
     // Optional fields - Dates
-    private LocalDate startDate;
-    private LocalDate endDate;
     private LocalDate plannedStartDate;
     private LocalDate plannedEndDate;
     

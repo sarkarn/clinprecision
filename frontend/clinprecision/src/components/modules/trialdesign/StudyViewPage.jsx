@@ -108,18 +108,18 @@ const StudyViewPage = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Start Date
+                            Planned Start Date
                         </label>
                         <div className="bg-gray-50 border border-gray-300 rounded-md w-full p-2 text-gray-700">
-                            {study.startDate}
+                            {study.plannedStartDate}
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            End Date
+                            Planned End Date
                         </label>
                         <div className="bg-gray-50 border border-gray-300 rounded-md w-full p-2 text-gray-700">
-                            {study.endDate}
+                            {study.plannedEndDate}
                         </div>
                     </div>
                     <div>

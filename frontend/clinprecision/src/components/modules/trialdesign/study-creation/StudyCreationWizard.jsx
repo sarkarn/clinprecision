@@ -133,8 +133,8 @@ const StudyCreationWizard = () => {
                     setStepError(1, 'Principal Investigator is required');
                     return false;
                 }
-                if (formData.startDate && formData.endDate && new Date(formData.startDate) >= new Date(formData.endDate)) {
-                    setStepError(1, 'Start date must be before end date');
+                if (formData.plannedStartDate && formData.plannedEndDate && new Date(formData.plannedStartDate) >= new Date(formData.plannedEndDate)) {
+                    setStepError(1, 'Planned start date must be before planned end date');
                     return false;
                 }
                 clearStepError(1);
