@@ -984,6 +984,11 @@ CREATE TABLE visit_definitions (
     timepoint INT NOT NULL,  -- Days from baseline (can be negative for screening)
     window_before INT DEFAULT 0,
     window_after INT DEFAULT 0,
+	visit_window_start DATE NULL COMMENT 'Earliest acceptable visit date (calculated from protocol timepoint - window_days_before)',
+    visit_window_end DATE NULL COMMENT 'Latest acceptable visit date (calculated from protocol timepoint + window_days_after)',
+    window_days_before INT NULL COMMENT 'Days before target date allowed (from visit_definitions protocol)',
+	window_days_after INT NULL COMMENT 'Days after target date allowed (from visit_definitions protocol)',
+	compliance_status VARCHAR(50) NULL COMMENT 'Visit compliance status: SCHEDULED, WINDOW_OPEN, APPROACHING_DEADLINE, ON_TIME, OVERDUE, MISSED, OUT_OF_WINDOW_EARLY, OUT_OF_WINDOW_LATE',
     visit_type ENUM('SCREENING', 'BASELINE', 'TREATMENT', 'FOLLOW_UP', 'UNSCHEDULED', 'END_OF_STUDY') DEFAULT 'TREATMENT',
 	is_unscheduled BOOLEAN DEFAULT FALSE COMMENT 'TRUE for unscheduled visits (not in protocol timeline)',
     visit_code VARCHAR(50) NULL COMMENT 'Unique code for unscheduled visits (e.g., EARLY_TERM, AE_VISIT)',
@@ -1631,7 +1636,7 @@ CREATE TABLE IF NOT EXISTS study_visit_instances_audit (
     record_id BIGINT NOT NULL,              -- ID from study_visit_instances
     action VARCHAR(20) NOT NULL,            -- INSERT, UPDATE, DELETE
     old_data JSON,
-    new_data JSON,
+    new_data JSON COMMENT 'New record data including visit_window_start, visit_window_end, window_days_before, window_days_after, compliance_status',
     changed_by BIGINT,
     changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     change_reason TEXT,
@@ -1912,6 +1917,8 @@ CREATE INDEX idx_form_definitions_study_build ON form_definitions(study_id, buil
 CREATE INDEX idx_study_form_data_build_id ON study_form_data(build_id);
 CREATE INDEX idx_study_form_data_study_build ON study_form_data(study_id, build_id);
 CREATE INDEX idx_study_form_data_form_build ON study_form_data(form_id, build_id);
+CREATE INDEX idx_compliance_status ON study_visit_instances(study_id, compliance_status);
+CREATE INDEX idx_window_dates ON study_visit_instances(visit_window_start, visit_window_end);
 
 
 

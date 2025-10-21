@@ -81,6 +81,7 @@ public class PatientVisitService {
     private final VisitDefinitionRepository visitDefinitionRepository;
     private final VisitFormRepository visitFormRepository;
     private final StudyFormDataRepository formDataRepository;
+    private final VisitComplianceService complianceService;
 
     // ==================== Command Operations (Write) ====================
 
@@ -417,6 +418,21 @@ public class PatientVisitService {
         
         // Calculate form completion percentage
         calculateFormCompletion(entity, dto);
+        
+        // Add visit window compliance data (Gap #4)
+        dto.setVisitWindowStart(entity.getVisitWindowStart());
+        dto.setVisitWindowEnd(entity.getVisitWindowEnd());
+        dto.setWindowDaysBefore(entity.getWindowDaysBefore());
+        dto.setWindowDaysAfter(entity.getWindowDaysAfter());
+        dto.setActualVisitDate(entity.getActualVisitDate());
+        
+        // Calculate compliance status
+        String complianceStatus = complianceService.calculateComplianceStatus(entity);
+        dto.setComplianceStatus(complianceStatus);
+        
+        // Calculate days overdue
+        long daysOverdue = complianceService.getDaysOverdue(entity);
+        dto.setDaysOverdue(daysOverdue);
         
         return dto;
     }
