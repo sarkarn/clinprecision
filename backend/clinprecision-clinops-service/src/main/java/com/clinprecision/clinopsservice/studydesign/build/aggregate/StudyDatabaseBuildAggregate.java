@@ -146,6 +146,13 @@ public class StudyDatabaseBuildAggregate {
         log.info("Handling complete study database build command for build ID: {}", 
                 command.getStudyDatabaseBuildId());
         
+        // Idempotent: If already completed, just return without error
+        if (status == StudyDatabaseBuildStatus.COMPLETED) {
+            log.info("Build {} already completed, ignoring duplicate completion command", 
+                    command.getStudyDatabaseBuildId());
+            return;
+        }
+        
         // Business rule: Can only complete builds in progress
         if (status != StudyDatabaseBuildStatus.IN_PROGRESS) {
             throw new IllegalStateException(
@@ -203,6 +210,13 @@ public class StudyDatabaseBuildAggregate {
     public void handle(CancelStudyDatabaseBuildCommand command) {
         log.info("Handling cancel study database build command for build ID: {}", 
                 command.getStudyDatabaseBuildId());
+        
+        // Idempotent: If already cancelled, just return without error
+        if (status == StudyDatabaseBuildStatus.CANCELLED) {
+            log.info("Build {} already cancelled, ignoring duplicate cancellation command", 
+                    command.getStudyDatabaseBuildId());
+            return;
+        }
         
         // Business rule: Can only cancel builds in progress
         if (status != StudyDatabaseBuildStatus.IN_PROGRESS) {
