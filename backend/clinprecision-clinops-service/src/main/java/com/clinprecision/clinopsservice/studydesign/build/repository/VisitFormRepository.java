@@ -75,6 +75,12 @@ public interface VisitFormRepository extends JpaRepository<VisitFormEntity, Long
     long countByVisitDefinitionId(Long visitDefinitionId);
 
     /**
+     * Count forms associated with a visit in a specific build (CRITICAL for progress calculation)
+     * This ensures we count the correct number of forms for the patient's enrolled protocol version
+     */
+    long countByVisitDefinitionIdAndBuildId(Long visitDefinitionId, Long buildId);
+
+    /**
      * Count visits that use a specific form
      */
     long countByFormDefinitionId(Long formDefinitionId);

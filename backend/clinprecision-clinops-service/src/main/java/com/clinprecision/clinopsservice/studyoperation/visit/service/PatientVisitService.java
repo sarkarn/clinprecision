@@ -455,8 +455,18 @@ public class PatientVisitService {
                 return;
             }
             
-            // Count total forms defined for this visit
-            int totalForms = (int) visitFormRepository.countByVisitDefinitionId(visitDefinitionId);
+            // Count total forms defined for this visit IN THIS BUILD VERSION
+            // CRITICAL FIX: Must filter by buildId to get correct form count for this patient's enrollment version
+            Long buildId = entity.getBuildId();
+            int totalForms;
+            if (buildId != null) {
+                // Use build-aware query (correct approach for versioned protocols)
+                totalForms = (int) visitFormRepository.countByVisitDefinitionIdAndBuildId(visitDefinitionId, buildId);
+            } else {
+                // Fallback for visits without buildId (should not happen in production)
+                totalForms = (int) visitFormRepository.countByVisitDefinitionId(visitDefinitionId);
+                log.warn("Visit instance {} has no buildId - using non-versioned form count (this may be incorrect)", entity.getId());
+            }
             dto.setTotalForms(totalForms);
             
             if (totalForms == 0) {
@@ -482,6 +492,10 @@ public class PatientVisitService {
             // Calculate percentage
             double percentage = (double) completedCount / totalForms * 100.0;
             dto.setCompletionPercentage(Math.round(percentage * 10.0) / 10.0); // Round to 1 decimal place
+            
+            // Debug logging to diagnose percentage calculation issues
+            log.debug("Visit {} form completion: totalForms={}, allSubmissions={}, uniqueCompleted={}, percentage={}%", 
+                visitInstanceId, totalForms, allForms.size(), completedCount, dto.getCompletionPercentage());
             
         } catch (Exception e) {
             log.warn("Error calculating form completion for visit {}: {}", entity.getId(), e.getMessage());
