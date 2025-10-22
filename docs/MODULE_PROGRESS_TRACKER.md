@@ -1,8 +1,8 @@
 # ClinPrecision Module Progress Tracker
 
-**Last Updated**: October 19, 2025  
-**Overall System Progress**: 52%  
-**Current Sprint**: Clinical Operations Module - Week 3 Critical Gap Resolution ⏳ IN PROGRESS (Gap #1 ✅, Gap #2 ✅, Gap #5 ✅, Gap #7 ✅)  
+**Last Updated**: October 21, 2025  
+**Overall System Progress**: 54%  
+**Current Sprint**: Clinical Operations Module - Week 3 Critical Gap Resolution ⏳ IN PROGRESS (Gap #1 ✅, Gap #2 ✅, Gap #5 ✅, Gap #7 ✅, Gap #8 ✅)  
 **Testing Phase**: 🧪 Feature 3 - Comprehensive Form Validation (Ready for UAT)
 
 ---
@@ -586,6 +586,22 @@ Patient ACTIVE → Auto-create visits from protocol_visit_definitions
    - ⏳ Add progress bars to visit cards
    - ⏳ Show completion percentage in visit details
 
+5. ✅ **Gap #8: Auto-Complete Visit Status** ✅ **COMPLETE - October 21, 2025**
+   - ✅ When all forms submitted, automatically update visit to COMPLETED
+   - ✅ FormDataProjector checks visit completion after each form submission
+   - ✅ Added checkAndUpdateVisitCompletion() helper method
+   - ✅ Integrated with PatientVisitService.updateVisitStatus()
+   - ✅ **Frontend Status Normalization** - Maps backend status to frontend format
+   - ✅ Added normalizeVisitStatus() function in SubjectDetails.jsx
+   - ✅ Status mapping: COMPLETED → complete, IN_PROGRESS → incomplete, SCHEDULED → not_started
+   - ✅ "Start Visit" button now correctly hides after all forms complete
+   - ✅ Visit status badges display correctly (Complete/Incomplete/Not Started)
+   - ✅ BUILD SUCCESS, E2E tested and verified working
+   - **Duration**: 2 hours (backend 1h + frontend normalization 1h)
+   - **Files Modified**: 2 (FormDataProjector.java, SubjectDetails.jsx)
+   - **Impact**: 🎯 CRCs no longer see "Start Visit" after completing all forms
+   - **See**: Git commit 926ddd8 (backend), latest commit (frontend)
+
 **Deliverables**:
 - ✅ Gap #1: Protocol visits auto-instantiated when patient ACTIVE ✅ **COMPLETE**
 - ✅ Gap #1: Visit dates calculated from protocol timepoint ✅ **COMPLETE**
@@ -596,10 +612,12 @@ Patient ACTIVE → Auto-create visits from protocol_visit_definitions
 - ✅ Form Entry Page: Loads from database ✅ **COMPLETE**
 - ✅ Form Data Entry: Complete save/retrieve workflow ✅ **COMPLETE**
 - ✅ **Visit Timeline UI: Complete with status-aware action buttons** ✅ **COMPLETE**
+- ✅ **Gap #8: Auto-complete visit status when all forms done** ✅ **COMPLETE**
+- ✅ **Frontend status normalization (backend → frontend mapping)** ✅ **COMPLETE**
 - ⏳ Progress indicators and completion percentages (Day 4 - 2 hours)
 - ⏳ Visit window compliance tracking (Gap #4 - Day 5)
 
-**Progress**: 80% complete (Gap #1 ✅, Gap #2 ✅, Gap #2 Phase 2 ✅, Form Entry ✅, Form Data ✅, Visit Timeline ✅)  
+**Progress**: 85% complete (Gap #1 ✅, Gap #2 ✅, Gap #2 Phase 2 ✅, Form Entry ✅, Form Data ✅, Visit Timeline ✅, Gap #8 ✅)  
 **Estimated Duration**: 0.5 days remaining (progress indicators + visit windows)
 
 ---
@@ -950,6 +968,131 @@ Patient ACTIVE → Auto-create visits from protocol_visit_definitions
 ---
 
 ## 🎉 Recent Milestones
+
+### October 21, 2025: Gap #8 - Auto-Complete Visit Status ✅ **COMPLETE!**
+
+**Achievement**: Automatically update visit to COMPLETED when all forms are submitted
+
+**Problem Solved**:
+- ❌ CRCs had to manually mark visits as complete after filling all forms
+- ❌ "Start Visit" button still showing even after all forms were done
+- ❌ Visit status not automatically reflecting form completion
+- ❌ Status mismatch between backend (COMPLETED) and frontend (complete)
+
+**What Was Built**:
+
+#### Backend: Auto-Complete Logic
+- ✅ Modified FormDataProjector to check visit completion after each form submission
+- ✅ Added checkAndUpdateVisitCompletion() helper method (50+ lines)
+- ✅ Logic: After form submission, query all forms for visit → check if ALL have status=SUBMITTED
+- ✅ If complete, call patientVisitService.updateVisitStatus(visitId, "COMPLETED", ...)
+- ✅ Non-blocking: Form submission succeeds even if visit update fails
+- ✅ Comprehensive logging for debugging
+
+**Code Example (FormDataProjector.java)**:
+```java
+// Step 5: Check if all visit forms are complete and auto-update visit status
+if (event.getVisitId() != null && "SUBMITTED".equals(event.getStatus())) {
+    checkAndUpdateVisitCompletion(event.getVisitId(), event.getSubmittedBy());
+}
+
+private void checkAndUpdateVisitCompletion(Long visitId, Long updatedBy) {
+    List<StudyFormDataEntity> visitForms = formDataRepository
+        .findByVisitIdOrderByCreatedAtDesc(visitId);
+    
+    boolean allFormsComplete = visitForms.stream()
+        .allMatch(form -> "SUBMITTED".equals(form.getStatus()));
+    
+    if (allFormsComplete) {
+        patientVisitService.updateVisitStatus(
+            visitId, 
+            "COMPLETED",
+            updatedBy, 
+            "Visit auto-completed: all required forms submitted"
+        );
+    }
+}
+```
+
+#### Frontend: Status Normalization
+- ✅ Added normalizeVisitStatus() function in SubjectDetails.jsx
+- ✅ Status mapping: 
+  * Backend "COMPLETED" → Frontend "complete"
+  * Backend "IN_PROGRESS" → Frontend "incomplete"
+  * Backend "SCHEDULED" → Frontend "not_started"
+- ✅ Normalizes status when fetching visits from API
+- ✅ Single source of truth: Backend status values authoritative
+
+**Code Example (SubjectDetails.jsx)**:
+```javascript
+const normalizeVisitStatus = (backendStatus) => {
+    if (!backendStatus) return 'not_started';
+    
+    const statusMap = {
+        'COMPLETED': 'complete',
+        'IN_PROGRESS': 'incomplete',
+        'SCHEDULED': 'not_started'
+    };
+    
+    return statusMap[backendStatus.toUpperCase()] || backendStatus.toLowerCase();
+};
+
+// In fetchVisits():
+const normalizedVisits = (visitsData || []).map(visit => ({
+    ...visit,
+    status: normalizeVisitStatus(visit.status)
+}));
+```
+
+**Complete User Workflow**:
+```
+1. CRC navigates to Subject → Visit
+2. Clicks "Start Visit" on first form
+3. Fills out form, clicks "Mark as Complete"
+4. Form status → SUBMITTED
+5. 🎯 FormDataProjector auto-checks if ALL visit forms complete
+6. If yes → Visit status automatically updates to COMPLETED
+7. Frontend normalizes "COMPLETED" → "complete"
+8. ✅ "Start Visit" button changes to "View" (correct behavior!)
+9. ✅ Visit status badge shows "Complete" (green)
+10. ✅ CRC sees visit is done (no manual status change needed)
+```
+
+**Impact**:
+- 🎯 **Zero manual work**: CRCs don't need to manually mark visits complete
+- 🎯 **Real-time updates**: Visit status updates immediately after last form submission
+- 🎯 **Correct UI state**: "Start Visit" button correctly hides after completion
+- 🎯 **Data integrity**: Backend remains authoritative, frontend adapts
+- 🎯 **Better UX**: Status badges display correctly (Complete/Incomplete/Not Started)
+- 🎯 **Audit trail**: All status changes tracked via event sourcing
+
+**Technical Details**:
+- **Duration**: 2 hours (backend 1h + frontend fix 1h)
+- **Files Modified**: 2 (FormDataProjector.java, SubjectDetails.jsx)
+- **Lines Added**: ~80 lines (backend 70 + frontend 10)
+- **Build Status**: ✅ SUCCESS (both backend and frontend)
+- **Testing**: ✅ E2E verified working by user
+
+**Commits**:
+- Backend: 926ddd8 "Auto-update visit status to COMPLETED when all forms are submitted"
+- Frontend: Latest commit (status normalization)
+
+**Architecture Decision**:
+- **Question**: Should backend transform status to lowercase OR frontend normalize?
+- **Decision**: ✅ Frontend normalizes (user's suggestion - correct choice!)
+- **Rationale**:
+  1. Backend status values remain authoritative (single source of truth)
+  2. Less risky (no impact on other backend consumers)
+  3. Simpler (one transformation point in frontend)
+  4. No database migration needed
+
+**Next Steps**:
+- ⏳ Test with multiple visits (ensure idempotency)
+- ⏳ Test with partial form completion (ensure doesn't auto-complete prematurely)
+- ⏳ Add progress indicators ("3 of 5 forms completed")
+- ⏳ Consider adding notification: "Visit automatically marked as complete"
+
+---
 
 ### October 14, 2025: Gap #1 - Protocol Visit Instantiation ✅
 

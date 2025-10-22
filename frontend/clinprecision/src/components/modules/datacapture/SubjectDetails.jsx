@@ -25,6 +25,41 @@ const normalizeVisitStatus = (backendStatus) => {
     return statusMap[backendStatus.toUpperCase()] || backendStatus.toLowerCase();
 };
 
+/**
+ * Get compliance badge styling based on compliance status
+ * Returns Tailwind CSS classes for badge display
+ */
+const getComplianceBadgeClass = (complianceStatus) => {
+    if (!complianceStatus) return 'bg-gray-100 text-gray-700';
+
+    const statusClasses = {
+        'COMPLIANT': 'bg-green-100 text-green-800',
+        'UPCOMING': 'bg-blue-100 text-blue-800',
+        'APPROACHING': 'bg-yellow-100 text-yellow-800',
+        'OVERDUE': 'bg-red-100 text-red-800',
+        'PROTOCOL_VIOLATION': 'bg-red-100 text-red-900 border border-red-300'
+    };
+
+    return statusClasses[complianceStatus] || 'bg-gray-100 text-gray-700';
+};
+
+/**
+ * Get human-readable compliance status label
+ */
+const getComplianceLabel = (complianceStatus) => {
+    if (!complianceStatus) return 'N/A';
+
+    const labels = {
+        'COMPLIANT': 'Compliant',
+        'UPCOMING': 'Upcoming',
+        'APPROACHING': 'Due Soon',
+        'OVERDUE': 'Overdue',
+        'PROTOCOL_VIOLATION': 'Protocol Violation'
+    };
+
+    return labels[complianceStatus] || complianceStatus;
+};
+
 export default function SubjectDetails() {
     console.log('[SUBJECT DETAILS] Component mounted/rendering');
     const { subjectId } = useParams();
@@ -38,6 +73,7 @@ export default function SubjectDetails() {
     const [visitType, setVisitType] = useState(null);
     const [visits, setVisits] = useState([]);
     const [visitsLoading, setVisitsLoading] = useState(false);
+    const [complianceFilter, setComplianceFilter] = useState('all'); // 'all', 'overdue', 'upcoming', 'compliant'
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -315,6 +351,13 @@ export default function SubjectDetails() {
                                         {visits.filter(v => v.status === 'not_started').length}
                                     </p>
                                 </div>
+                                <div className="h-12 w-px bg-gray-300"></div>
+                                <div>
+                                    <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">⚠️ Overdue</p>
+                                    <p className="text-2xl font-bold text-red-600">
+                                        {visits.filter(v => v.complianceStatus === 'OVERDUE' || v.complianceStatus === 'PROTOCOL_VIOLATION').length}
+                                    </p>
+                                </div>
                             </div>
                             <div className="flex-1 max-w-md ml-6">
                                 <div className="flex items-center justify-between mb-1">
@@ -339,6 +382,48 @@ export default function SubjectDetails() {
                     </div>
                 )}
 
+                {/* Compliance Filter */}
+                {visits && visits.length > 0 && !visitsLoading && (
+                    <div className="flex gap-2 mb-3">
+                        <button
+                            onClick={() => setComplianceFilter('all')}
+                            className={`px-3 py-1 text-sm rounded-md transition-colors ${complianceFilter === 'all'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                        >
+                            All Visits ({visits.length})
+                        </button>
+                        <button
+                            onClick={() => setComplianceFilter('overdue')}
+                            className={`px-3 py-1 text-sm rounded-md transition-colors ${complianceFilter === 'overdue'
+                                    ? 'bg-red-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                        >
+                            ⚠️ Overdue ({visits.filter(v => v.complianceStatus === 'OVERDUE' || v.complianceStatus === 'PROTOCOL_VIOLATION').length})
+                        </button>
+                        <button
+                            onClick={() => setComplianceFilter('upcoming')}
+                            className={`px-3 py-1 text-sm rounded-md transition-colors ${complianceFilter === 'upcoming'
+                                    ? 'bg-yellow-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                        >
+                            Due Soon ({visits.filter(v => v.complianceStatus === 'APPROACHING').length})
+                        </button>
+                        <button
+                            onClick={() => setComplianceFilter('compliant')}
+                            className={`px-3 py-1 text-sm rounded-md transition-colors ${complianceFilter === 'compliant'
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                        >
+                            ✓ Compliant ({visits.filter(v => v.complianceStatus === 'COMPLIANT').length})
+                        </button>
+                    </div>
+                )}
+
                 {visitsLoading ? (
                     <div className="text-center py-4 bg-gray-50 border border-gray-200 rounded-md">
                         <p className="text-gray-500">Loading visits...</p>
@@ -348,84 +433,126 @@ export default function SubjectDetails() {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visit Name</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visit Window</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compliance</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {visits.map(visit => (
-                                <tr key={visit.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3">{visit.visitName}</td>
-                                    <td className="px-4 py-3">{new Date(visit.visitDate).toLocaleDateString()}</td>
-                                    <td className="px-4 py-3">
-                                        {visit.completionPercentage !== undefined ? (
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-[80px]">
-                                                    <div
-                                                        className={`h-2 rounded-full transition-all duration-300 ${visit.completionPercentage === 100 ? 'bg-green-600' :
-                                                            visit.completionPercentage > 0 ? 'bg-yellow-500' :
-                                                                'bg-gray-400'
-                                                            }`}
-                                                        style={{ width: `${visit.completionPercentage}%` }}
-                                                    ></div>
+                            {visits
+                                .filter(visit => {
+                                    if (complianceFilter === 'all') return true;
+                                    if (complianceFilter === 'overdue') return visit.complianceStatus === 'OVERDUE' || visit.complianceStatus === 'PROTOCOL_VIOLATION';
+                                    if (complianceFilter === 'upcoming') return visit.complianceStatus === 'APPROACHING';
+                                    if (complianceFilter === 'compliant') return visit.complianceStatus === 'COMPLIANT';
+                                    return true;
+                                })
+                                .map(visit => (
+                                    <tr key={visit.id} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3">
+                                            <div className="font-medium text-gray-900">{visit.visitName}</div>
+                                            {visit.daysOverdue > 0 && (
+                                                <div className="text-xs text-red-600 mt-1">
+                                                    {visit.daysOverdue} day{visit.daysOverdue !== 1 ? 's' : ''} overdue
                                                 </div>
-                                                <span className="text-xs text-gray-600 whitespace-nowrap">
-                                                    {Math.round(visit.completionPercentage)}%
-                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="text-sm">
+                                                {visit.visitWindowStart && visit.visitWindowEnd ? (
+                                                    <>
+                                                        <div className="text-gray-900">
+                                                            {new Date(visit.visitWindowStart).toLocaleDateString()} - {new Date(visit.visitWindowEnd).toLocaleDateString()}
+                                                        </div>
+                                                        {visit.actualVisitDate && (
+                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                Actual: {new Date(visit.actualVisitDate).toLocaleDateString()}
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <span className="text-gray-400">No window defined</span>
+                                                )}
                                             </div>
-                                        ) : (
-                                            <span className="text-xs text-gray-400">N/A</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {visit.completionPercentage !== undefined ? (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-[80px]">
+                                                        <div
+                                                            className={`h-2 rounded-full transition-all duration-300 ${visit.completionPercentage === 100 ? 'bg-green-600' :
+                                                                visit.completionPercentage > 0 ? 'bg-yellow-500' :
+                                                                    'bg-gray-400'
+                                                                }`}
+                                                            style={{ width: `${visit.completionPercentage}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="text-xs text-gray-600 whitespace-nowrap">
+                                                        {Math.round(visit.completionPercentage)}%
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">N/A</span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                       ${visit.status === 'complete' ? 'bg-green-100 text-green-800' :
-                                                visit.status === 'incomplete' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-gray-100 text-gray-800'}`}>
-                                            {visit.status === 'complete' ? 'Complete' :
-                                                visit.status === 'incomplete' ? 'Incomplete' : 'Not Started'}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {visit.status === 'complete' ? (
-                                            <Link
-                                                to={`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`}
-                                                className="text-blue-600 hover:text-blue-800"
-                                            >
-                                                View
-                                            </Link>
-                                        ) : visit.status === 'incomplete' ? (
-                                            <Link
-                                                to={`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`}
-                                                className="text-yellow-600 hover:text-yellow-800 font-medium"
-                                            >
-                                                Continue Visit
-                                            </Link>
-                                        ) : (
-                                            <button
-                                                onClick={async () => {
-                                                    console.log('Starting visit:', visit.id);
-                                                    // Call API to update visit status
-                                                    const result = await startVisit(visit.id, 1); // TODO: Get real user ID
-                                                    if (result.success) {
-                                                        console.log('Visit started successfully, navigating...');
-                                                        // Navigate to visit details
-                                                        navigate(`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`);
-                                                    } else {
-                                                        console.error('Failed to start visit:', result.error);
-                                                        alert('Failed to start visit. Please try again.');
-                                                    }
-                                                }}
-                                                className="text-green-600 hover:text-green-800 font-medium hover:underline"
-                                            >
-                                                Start Visit
-                                            </button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
+                                                    visit.status === 'incomplete' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-gray-100 text-gray-800'}`}>
+                                                {visit.status === 'complete' ? 'Complete' :
+                                                    visit.status === 'incomplete' ? 'Incomplete' : 'Not Started'}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {visit.complianceStatus ? (
+                                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getComplianceBadgeClass(visit.complianceStatus)}`}>
+                                                    {getComplianceLabel(visit.complianceStatus)}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">N/A</span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {visit.status === 'complete' ? (
+                                                <Link
+                                                    to={`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`}
+                                                    className="text-blue-600 hover:text-blue-800"
+                                                >
+                                                    View
+                                                </Link>
+                                            ) : visit.status === 'incomplete' ? (
+                                                <Link
+                                                    to={`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`}
+                                                    className="text-yellow-600 hover:text-yellow-800 font-medium"
+                                                >
+                                                    Continue Visit
+                                                </Link>
+                                            ) : (
+                                                <button
+                                                    onClick={async () => {
+                                                        console.log('Starting visit:', visit.id);
+                                                        // Call API to update visit status
+                                                        const result = await startVisit(visit.id, 1); // TODO: Get real user ID
+                                                        if (result.success) {
+                                                            console.log('Visit started successfully, navigating...');
+                                                            // Navigate to visit details
+                                                            navigate(`/datacapture-management/subjects/${subjectId}/visits/${visit.id}`);
+                                                        } else {
+                                                            console.error('Failed to start visit:', result.error);
+                                                            alert('Failed to start visit. Please try again.');
+                                                        }
+                                                    }}
+                                                    className="text-green-600 hover:text-green-800 font-medium hover:underline"
+                                                >
+                                                    Start Visit
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
                         </tbody>
                     </table>
                 ) : (

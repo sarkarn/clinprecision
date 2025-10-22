@@ -1,6 +1,9 @@
 package com.clinprecision.clinopsservice.studyoperation.visit.service;
 
+import com.clinprecision.clinopsservice.studydesign.build.repository.VisitFormRepository;
 import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionRepository;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.entity.StudyFormDataEntity;
+import com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.repository.StudyFormDataRepository;
 import com.clinprecision.clinopsservice.studyoperation.visit.domain.commands.CreateVisitCommand;
 import com.clinprecision.clinopsservice.studyoperation.visit.dto.CreateVisitRequest;
 import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitDto;
@@ -76,6 +79,9 @@ public class PatientVisitService {
     private final CommandGateway commandGateway;
     private final StudyVisitInstanceRepository studyVisitInstanceRepository;
     private final VisitDefinitionRepository visitDefinitionRepository;
+    private final VisitFormRepository visitFormRepository;
+    private final StudyFormDataRepository formDataRepository;
+    private final VisitComplianceService complianceService;
 
     // ==================== Command Operations (Write) ====================
 
@@ -410,7 +416,94 @@ public class PatientVisitService {
             dto.setVisitType("UNSCHEDULED");
         }
         
+        // Calculate form completion percentage
+        calculateFormCompletion(entity, dto);
+        
+        // Add visit window compliance data (Gap #4)
+        dto.setVisitWindowStart(entity.getVisitWindowStart());
+        dto.setVisitWindowEnd(entity.getVisitWindowEnd());
+        dto.setWindowDaysBefore(entity.getWindowDaysBefore());
+        dto.setWindowDaysAfter(entity.getWindowDaysAfter());
+        dto.setActualVisitDate(entity.getActualVisitDate());
+        
+        // Calculate compliance status
+        String complianceStatus = complianceService.calculateComplianceStatus(entity);
+        dto.setComplianceStatus(complianceStatus);
+        
+        // Calculate days overdue
+        long daysOverdue = complianceService.getDaysOverdue(entity);
+        dto.setDaysOverdue(daysOverdue);
+        
         return dto;
+    }
+    
+    /**
+     * Calculate form completion metrics for a visit
+     * 
+     * @param entity Visit instance entity
+     * @param dto VisitDto to populate with completion data
+     */
+    private void calculateFormCompletion(StudyVisitInstanceEntity entity, VisitDto dto) {
+        try {
+            // Get total number of forms for this visit from visit_forms table
+            Long visitDefinitionId = entity.getVisitId();
+            if (visitDefinitionId == null) {
+                // Unscheduled visit - no predefined forms
+                dto.setTotalForms(0);
+                dto.setCompletedForms(0);
+                dto.setCompletionPercentage(0.0);
+                return;
+            }
+            
+            // Count total forms defined for this visit IN THIS BUILD VERSION
+            // CRITICAL FIX: Must filter by buildId to get correct form count for this patient's enrollment version
+            Long buildId = entity.getBuildId();
+            int totalForms;
+            if (buildId != null) {
+                // Use build-aware query (correct approach for versioned protocols)
+                totalForms = (int) visitFormRepository.countByVisitDefinitionIdAndBuildId(visitDefinitionId, buildId);
+            } else {
+                // Fallback for visits without buildId (should not happen in production)
+                totalForms = (int) visitFormRepository.countByVisitDefinitionId(visitDefinitionId);
+                log.warn("Visit instance {} has no buildId - using non-versioned form count (this may be incorrect)", entity.getId());
+            }
+            dto.setTotalForms(totalForms);
+            
+            if (totalForms == 0) {
+                dto.setCompletedForms(0);
+                dto.setCompletionPercentage(0.0);
+                return;
+            }
+            
+            // Count completed forms (status = SUBMITTED or LOCKED)
+            // Get unique forms by formId (not total submissions - a form may have multiple drafts/revisions)
+            Long visitInstanceId = entity.getId();
+            List<StudyFormDataEntity> allForms = formDataRepository.findByVisitIdOrderByCreatedAtDesc(visitInstanceId);
+            
+            // Count DISTINCT formIds with SUBMITTED or LOCKED status
+            int completedCount = (int) allForms.stream()
+                .filter(form -> "SUBMITTED".equals(form.getStatus()) || "LOCKED".equals(form.getStatus()))
+                .map(StudyFormDataEntity::getFormId)  // Get formId
+                .distinct()                            // Count unique forms only
+                .count();
+            
+            dto.setCompletedForms(completedCount);
+            
+            // Calculate percentage
+            double percentage = (double) completedCount / totalForms * 100.0;
+            dto.setCompletionPercentage(Math.round(percentage * 10.0) / 10.0); // Round to 1 decimal place
+            
+            // Debug logging to diagnose percentage calculation issues
+            log.debug("Visit {} form completion: totalForms={}, allSubmissions={}, uniqueCompleted={}, percentage={}%", 
+                visitInstanceId, totalForms, allForms.size(), completedCount, dto.getCompletionPercentage());
+            
+        } catch (Exception e) {
+            log.warn("Error calculating form completion for visit {}: {}", entity.getId(), e.getMessage());
+            // Set defaults on error
+            dto.setTotalForms(0);
+            dto.setCompletedForms(0);
+            dto.setCompletionPercentage(0.0);
+        }
     }
 
     /**

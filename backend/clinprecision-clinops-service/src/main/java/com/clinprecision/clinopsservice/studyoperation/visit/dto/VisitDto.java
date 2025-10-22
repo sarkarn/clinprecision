@@ -24,6 +24,20 @@ public class VisitDto {
     private String createdBy;
     private LocalDateTime createdAt;
     private String notes;
+    
+    // Form completion tracking
+    private Integer totalForms;           // Total number of forms for this visit
+    private Integer completedForms;       // Number of forms with status=SUBMITTED
+    private Double completionPercentage;  // Calculated: (completedForms / totalForms) * 100
+
+    // Visit window compliance tracking (Gap #4)
+    private LocalDate visitWindowStart;    // Earliest acceptable visit date
+    private LocalDate visitWindowEnd;      // Latest acceptable visit date
+    private Integer windowDaysBefore;      // Days before target allowed (from protocol)
+    private Integer windowDaysAfter;       // Days after target allowed (from protocol)
+    private String complianceStatus;       // SCHEDULED, WINDOW_OPEN, ON_TIME, OVERDUE, MISSED, etc.
+    private Long daysOverdue;              // Calculated: days past window_end (negative = days remaining)
+    private LocalDate actualVisitDate;     // Actual date visit was completed
 
     // Default constructor
     public VisitDto() {
@@ -140,5 +154,86 @@ public class VisitDto {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public Integer getTotalForms() {
+        return totalForms;
+    }
+
+    public void setTotalForms(Integer totalForms) {
+        this.totalForms = totalForms;
+    }
+
+    public Integer getCompletedForms() {
+        return completedForms;
+    }
+
+    public void setCompletedForms(Integer completedForms) {
+        this.completedForms = completedForms;
+    }
+
+    public Double getCompletionPercentage() {
+        return completionPercentage;
+    }
+
+    public void setCompletionPercentage(Double completionPercentage) {
+        this.completionPercentage = completionPercentage;
+    }
+
+    // Visit window compliance getters/setters
+    public LocalDate getVisitWindowStart() {
+        return visitWindowStart;
+    }
+
+    public void setVisitWindowStart(LocalDate visitWindowStart) {
+        this.visitWindowStart = visitWindowStart;
+    }
+
+    public LocalDate getVisitWindowEnd() {
+        return visitWindowEnd;
+    }
+
+    public void setVisitWindowEnd(LocalDate visitWindowEnd) {
+        this.visitWindowEnd = visitWindowEnd;
+    }
+
+    public Integer getWindowDaysBefore() {
+        return windowDaysBefore;
+    }
+
+    public void setWindowDaysBefore(Integer windowDaysBefore) {
+        this.windowDaysBefore = windowDaysBefore;
+    }
+
+    public Integer getWindowDaysAfter() {
+        return windowDaysAfter;
+    }
+
+    public void setWindowDaysAfter(Integer windowDaysAfter) {
+        this.windowDaysAfter = windowDaysAfter;
+    }
+
+    public String getComplianceStatus() {
+        return complianceStatus;
+    }
+
+    public void setComplianceStatus(String complianceStatus) {
+        this.complianceStatus = complianceStatus;
+    }
+
+    public Long getDaysOverdue() {
+        return daysOverdue;
+    }
+
+    public void setDaysOverdue(Long daysOverdue) {
+        this.daysOverdue = daysOverdue;
+    }
+
+    public LocalDate getActualVisitDate() {
+        return actualVisitDate;
+    }
+
+    public void setActualVisitDate(LocalDate actualVisitDate) {
+        this.actualVisitDate = actualVisitDate;
     }
 }

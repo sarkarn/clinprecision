@@ -52,6 +52,22 @@ public class StudyVisitInstanceEntity {
     @Column(name = "completion_percentage")
     private Double completionPercentage;
 
+    // Visit window compliance tracking (Gap #4)
+    @Column(name = "visit_window_start")
+    private LocalDate visitWindowStart; // Earliest acceptable visit date
+
+    @Column(name = "visit_window_end")
+    private LocalDate visitWindowEnd; // Latest acceptable visit date
+
+    @Column(name = "window_days_before")
+    private Integer windowDaysBefore; // Days before target allowed (from protocol)
+
+    @Column(name = "window_days_after")
+    private Integer windowDaysAfter; // Days after target allowed (from protocol)
+
+    @Column(name = "compliance_status", length = 50)
+    private String complianceStatus; // SCHEDULED, WINDOW_OPEN, ON_TIME, OVERDUE, MISSED, etc.
+
     @Column(name = "aggregate_uuid", length = 36)
     private String aggregateUuid; // UUID for event sourcing (unscheduled visits)
 
