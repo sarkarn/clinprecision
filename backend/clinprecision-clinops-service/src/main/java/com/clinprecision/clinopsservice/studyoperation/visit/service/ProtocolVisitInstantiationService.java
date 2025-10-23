@@ -197,6 +197,7 @@ public class ProtocolVisitInstantiationService {
     /**
      * Create a visit instance from a visit definition
      * CRITICAL: Now includes buildId for proper protocol versioning
+     * Gap #4 Fix: Populates visit window fields from visit definition
      */
     private StudyVisitInstanceEntity createVisitInstance(
             Long patientId,
@@ -208,6 +209,17 @@ public class ProtocolVisitInstantiationService {
 
         // Calculate visit date from baseline + day offset
         LocalDate visitDate = calculateVisitDate(baselineDate, visitDef.getTimepoint());
+        
+        // Gap #4 Fix: Calculate visit window dates from visit definition
+        // Window configuration comes from protocol design (visit_definitions table)
+        Integer windowBefore = visitDef.getWindowBefore() != null ? visitDef.getWindowBefore() : 0;
+        Integer windowAfter = visitDef.getWindowAfter() != null ? visitDef.getWindowAfter() : 0;
+        
+        LocalDate windowStart = visitDate.minusDays(windowBefore);
+        LocalDate windowEnd = visitDate.plusDays(windowAfter);
+        
+        log.debug("Visit window calculated: visitDate={}, windowBefore={}, windowAfter={}, windowStart={}, windowEnd={}",
+                visitDate, windowBefore, windowAfter, windowStart, windowEnd);
 
         return StudyVisitInstanceEntity.builder()
                 .subjectId(patientId)
@@ -221,6 +233,11 @@ public class ProtocolVisitInstantiationService {
                 .completionPercentage(0.0) // No forms completed yet
                 .aggregateUuid(null) // NULL for protocol visits (not event-sourced)
                 .buildId(buildId) // CRITICAL: Track which build version was used
+                // Gap #4: Visit window compliance fields (copied from visit definition)
+                .visitWindowStart(windowStart)
+                .visitWindowEnd(windowEnd)
+                .windowDaysBefore(windowBefore)
+                .windowDaysAfter(windowAfter)
                 .notes(null)
                 .createdBy(1L) // System user (TODO: get from security context)
                 .build();

@@ -171,6 +171,13 @@ public interface VisitFormRepository extends JpaRepository<VisitFormEntity, Long
      */
     @Query("SELECT vf FROM VisitFormEntity vf WHERE vf.aggregateUuid = :aggregateUuid AND vf.visitUuid = :visitUuid AND vf.isRequired = true AND (vf.isDeleted = false OR vf.isDeleted IS NULL) ORDER BY vf.displayOrder")
     List<VisitFormEntity> findRequiredFormsByVisit(@Param("aggregateUuid") UUID aggregateUuid, @Param("visitUuid") UUID visitUuid);
+    
+    /**
+     * Find forms by visit UUID only (for unscheduled visits)
+     * Used when visit_uuid is populated but visit_definition_id is NULL
+     */
+    @Query("SELECT vf FROM VisitFormEntity vf WHERE vf.visitUuid = :visitUuid AND (vf.isDeleted = false OR vf.isDeleted IS NULL) ORDER BY vf.displayOrder")
+    List<VisitFormEntity> findByVisitUuidOnly(@Param("visitUuid") UUID visitUuid);
 
     // ========== Build-based queries (CRITICAL FIX - Oct 16, 2025) ==========
     

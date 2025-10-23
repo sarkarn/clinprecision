@@ -128,6 +128,13 @@ public class PatientStatusHistoryEntity {
     private String notes;
 
     /**
+     * Optional external record identifier that provides supporting context for this status change
+     * Example: Form data record UUID produced by the study form data service
+     */
+    @Column(name = "related_record_id", length = 100)
+    private String relatedRecordId;
+
+    /**
      * Optional foreign key to patient_enrollments table
      * Used when status change is specific to a particular enrollment
      * Null for global patient status changes

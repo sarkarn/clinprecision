@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
+import java.time.LocalDate;
+
 /**
  * Command to update visit status
  * 
@@ -29,4 +31,6 @@ public class UpdateVisitStatusCommand {
     private Long updatedBy; // User ID who initiated the status change
     
     private String notes; // Optional reason/notes for status change
+
+    private LocalDate actualVisitDate; // Optional actual visit date when marking completed
 }

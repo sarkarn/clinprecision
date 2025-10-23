@@ -1102,7 +1102,7 @@ CREATE TABLE visit_forms (
     assignment_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this form assignment from FormAssignedToVisitEvent',
     visit_uuid VARCHAR(255) NULL COMMENT 'UUID reference to VisitDefinition',
     form_uuid VARCHAR(255) NULL COMMENT 'UUID reference to FormDefinition',
-    visit_definition_id BIGINT NOT NULL,
+    visit_definition_id BIGINT NULL,
     form_definition_id BIGINT NOT NULL,
     is_required BOOLEAN DEFAULT TRUE,
     is_conditional BOOLEAN DEFAULT FALSE,
@@ -1381,6 +1381,7 @@ CREATE TABLE IF NOT EXISTS patient_status_history (
     changed_by VARCHAR(100) NOT NULL COMMENT 'User who performed the status change',
     changed_at TIMESTAMP NOT NULL COMMENT 'Timestamp from event when status actually changed (not when record was created). Important for accurate chronological audit trail.',
     notes TEXT COMMENT 'Optional additional notes about the status change',
+    related_record_id VARCHAR(100) NULL COMMENT 'Optional external record identifier supporting this status change (e.g. screening form data ID)',
     
     -- Optional: Study/Enrollment Context
     enrollment_id BIGINT NULL COMMENT 'Optional FK to patient_enrollments if status change is enrollment-specific',
@@ -1399,6 +1400,7 @@ CREATE TABLE IF NOT EXISTS patient_status_history (
     INDEX idx_patient_status_history_changed_at (changed_at DESC),
     INDEX idx_patient_status_history_new_status (new_status),
     INDEX idx_patient_status_history_changed_by (changed_by),
+    INDEX idx_patient_status_history_related_record_id (related_record_id),
     INDEX idx_patient_status_history_enrollment_id (enrollment_id)
     
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Tracks all patient status transitions with complete audit trail. Each status change generates one record capturing who, when, why, and what changed. Required for FDA 21 CFR Part 11 compliance and regulatory audits.Status flow: REGISTERED → SCREENING → ENROLLED → ACTIVE → COMPLETED/WITHDRAWN';
@@ -1803,6 +1805,126 @@ CREATE TABLE IF NOT EXISTS study_status_computation_log (
     CONSTRAINT fk_status_log_study_id FOREIGN KEY (study_id) REFERENCES studies (id) ON DELETE CASCADE
 );
 
+-- ============================================================================
+-- PROTOCOL DEVIATION TRACKING TABLES
+-- ============================================================================
+-- Purpose: Track protocol deviations for regulatory compliance and quality management
+-- Related to: patients, study_visit_instances, studies
+-- ============================================================================
+
+-- Protocol Deviations table
+CREATE TABLE IF NOT EXISTS protocol_deviations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    
+    -- Core References
+    patient_id BIGINT NOT NULL COMMENT 'Patient who experienced the deviation',
+    study_id BIGINT NOT NULL COMMENT 'Study in which deviation occurred',
+    study_site_id BIGINT NULL COMMENT 'Study site where deviation occurred (site_studies table)',
+    visit_id BIGINT NULL COMMENT 'Visit associated with deviation (if applicable)',
+    
+    -- Deviation Classification
+    deviation_type ENUM(
+        'VISIT_WINDOW',           -- Visit outside protocol window
+        'INCLUSION_EXCLUSION',    -- Eligibility criteria violation
+        'PROCEDURE',              -- Protocol procedure not followed
+        'DOSING',                 -- Incorrect dosing or timing
+        'CONSENT',                -- Consent process deviation
+        'FORM_COMPLETION',        -- Required form not completed
+        'SPECIMEN_HANDLING',      -- Lab/specimen protocol violation
+        'RANDOMIZATION',          -- Randomization process deviation
+        'OTHER'                   -- Other protocol violations
+    ) NOT NULL COMMENT 'Category of protocol deviation',
+    
+    severity ENUM(
+        'MINOR',    -- No impact on subject safety or data integrity
+        'MAJOR',    -- Potential impact on safety/data, requires reporting
+        'CRITICAL'  -- Serious impact on safety/data, immediate action required
+    ) NOT NULL COMMENT 'Severity level of deviation',
+    
+    -- Deviation Details
+    deviation_date DATE NOT NULL COMMENT 'Date when deviation occurred',
+    detected_date DATE NOT NULL COMMENT 'Date when deviation was detected',
+    title VARCHAR(255) NOT NULL COMMENT 'Brief deviation title',
+    description TEXT NOT NULL COMMENT 'Detailed description of what happened',
+    
+    -- Protocol Reference
+    protocol_section VARCHAR(255) NULL COMMENT 'Section of protocol that was deviated from',
+    expected_procedure TEXT NULL COMMENT 'What should have happened per protocol',
+    actual_procedure TEXT NULL COMMENT 'What actually happened',
+    
+    -- Root Cause & Impact
+    root_cause TEXT NULL COMMENT 'Identified root cause of deviation',
+    impact_assessment TEXT NULL COMMENT 'Assessment of impact on subject safety and data integrity',
+    
+    -- Corrective Actions
+    immediate_action TEXT NULL COMMENT 'Immediate action taken when detected',
+    corrective_action TEXT NULL COMMENT 'Corrective action to prevent recurrence',
+    preventive_action TEXT NULL COMMENT 'Preventive measures implemented',
+    
+    -- Resolution
+    deviation_status ENUM(
+        'OPEN',        -- Newly identified, under investigation
+        'UNDER_REVIEW', -- Being reviewed by study team
+        'RESOLVED',    -- Corrective actions completed
+        'CLOSED'       -- Fully documented and closed
+    ) DEFAULT 'OPEN' COMMENT 'Current status of deviation handling',
+    
+    resolved_date DATE NULL COMMENT 'Date when deviation was resolved',
+    closed_date DATE NULL COMMENT 'Date when deviation was officially closed',
+    
+    -- Regulatory Reporting
+    requires_reporting BOOLEAN DEFAULT FALSE COMMENT 'Whether deviation must be reported to sponsor/IRB',
+    reported_to_sponsor BOOLEAN DEFAULT FALSE COMMENT 'Whether reported to sponsor',
+    sponsor_report_date DATE NULL COMMENT 'Date reported to sponsor',
+    reported_to_irb BOOLEAN DEFAULT FALSE COMMENT 'Whether reported to IRB/EC',
+    irb_report_date DATE NULL COMMENT 'Date reported to IRB',
+    
+    -- Audit Trail
+    detected_by VARCHAR(100) NOT NULL COMMENT 'User who detected the deviation',
+    reviewed_by VARCHAR(100) NULL COMMENT 'User who reviewed the deviation',
+    approved_by VARCHAR(100) NULL COMMENT 'User who approved closure',
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Foreign Keys
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
+    FOREIGN KEY (study_site_id) REFERENCES site_studies(id) ON DELETE SET NULL,
+    FOREIGN KEY (visit_id) REFERENCES study_visit_instances(id) ON DELETE SET NULL,
+    
+    -- Indexes for performance
+    INDEX idx_protocol_deviations_patient (patient_id),
+    INDEX idx_protocol_deviations_study (study_id),
+    INDEX idx_protocol_deviations_study_site (study_site_id),
+    INDEX idx_protocol_deviations_visit (visit_id),
+    INDEX idx_protocol_deviations_type (deviation_type),
+    INDEX idx_protocol_deviations_severity (severity),
+    INDEX idx_protocol_deviations_status (deviation_status),
+    INDEX idx_protocol_deviations_date (deviation_date),
+    INDEX idx_protocol_deviations_detected (detected_date),
+    INDEX idx_protocol_deviations_reporting (requires_reporting, reported_to_sponsor, reported_to_irb)
+    
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 
+COMMENT='Tracks protocol deviations for regulatory compliance and quality management. Captures deviations, root causes, corrective actions, and regulatory reporting status.';
+
+-- Deviation Comments/Notes table (for ongoing discussion/documentation)
+CREATE TABLE IF NOT EXISTS protocol_deviation_comments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    deviation_id BIGINT NOT NULL,
+    comment_type ENUM('NOTE', 'INVESTIGATION', 'ACTION', 'REVIEW', 'APPROVAL') NOT NULL,
+    comment_text TEXT NOT NULL,
+    commented_by VARCHAR(100) NOT NULL,
+    commented_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (deviation_id) REFERENCES protocol_deviations(id) ON DELETE CASCADE,
+    
+    INDEX idx_deviation_comments_deviation (deviation_id),
+    INDEX idx_deviation_comments_date (commented_at DESC)
+    
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+COMMENT='Comments and discussion thread for protocol deviations';
+
 
 
 ALTER TABLE study_status COMMENT = 'Lookup table for study lifecycle status values';
@@ -1919,6 +2041,8 @@ CREATE INDEX idx_study_form_data_study_build ON study_form_data(study_id, build_
 CREATE INDEX idx_study_form_data_form_build ON study_form_data(form_id, build_id);
 CREATE INDEX idx_compliance_status ON study_visit_instances(study_id, compliance_status);
 CREATE INDEX idx_window_dates ON study_visit_instances(visit_window_start, visit_window_end);
+
+
 
 
 

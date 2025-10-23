@@ -50,6 +50,12 @@ public class ChangePatientStatusCommand extends BaseCommand {
      */
     private final String notes;
 
+    /**
+     * Optional: Identifier of related record stored in another service (e.g. form submission)
+     * Propagated to the event/history layer for traceability
+     */
+    private final String relatedRecordId;
+
     @Override
     public void validate() {
         super.validate();

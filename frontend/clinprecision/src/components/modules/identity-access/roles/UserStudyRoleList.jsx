@@ -87,7 +87,13 @@ export default function UserStudyRoleList() {
 
         // Filter by role
         if (selectedRole) {
-            filtered = filtered.filter(role => role.roleCode === selectedRole);
+            // selectedRole is role.id (from dropdown)
+            // Find the role object to get its name
+            const selectedRoleObj = roles.find(r => r.id.toString() === selectedRole);
+            if (selectedRoleObj) {
+                // roleCode in UserStudyRoleDto = role.name
+                filtered = filtered.filter(assignment => assignment.roleCode === selectedRoleObj.name);
+            }
         }
 
         // Filter by active status
@@ -101,7 +107,8 @@ export default function UserStudyRoleList() {
             filtered = filtered.filter(role => {
                 const user = users.find(u => u.id === role.userId);
                 const study = studies.find(s => s.id === role.studyId);
-                const roleObj = roles.find(r => r.code === role.roleCode);
+                // roleCode in assignment = role.name, so match by name
+                const roleObj = roles.find(r => r.name === role.roleCode);
 
                 return (
                     (user && (user.email?.toLowerCase().includes(term) ||
@@ -182,7 +189,8 @@ export default function UserStudyRoleList() {
     };
 
     const getRoleName = (roleCode) => {
-        const role = roles.find(r => r.code === roleCode);
+        // roleCode in assignment is actually the role.name
+        const role = roles.find(r => r.name === roleCode);
         return role ? role.name : roleCode;
     };
 
@@ -264,7 +272,7 @@ export default function UserStudyRoleList() {
                         >
                             <option value="">All Roles</option>
                             {roles.map(role => (
-                                <option key={role.code} value={role.code}>
+                                <option key={role.id} value={role.id}>
                                     {role.name}
                                 </option>
                             ))}

@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -57,15 +58,27 @@ public class VisitFormQueryService {
         StudyVisitInstanceEntity visitInstance = visitInstanceRepository.findById(visitInstanceId)
                 .orElseThrow(() -> new RuntimeException("Visit instance not found: " + visitInstanceId));
 
-        log.info("Found visit instance: visitId={}, subjectId={}, visit_definition_id={}, buildId={}", 
+        log.info("Found visit instance: visitId={}, subjectId={}, visit_definition_id={}, buildId={}, aggregateUuid={}", 
                  visitInstance.getId(), visitInstance.getSubjectId(), visitInstance.getVisitId(), 
-                 visitInstance.getBuildId());
+                 visitInstance.getBuildId(), visitInstance.getAggregateUuid());
 
         // Step 2: Check if this is a protocol visit or unscheduled visit
         if (visitInstance.getVisitId() == null) {
-            log.warn("Visit instance {} is an unscheduled visit (visit_id is NULL). No protocol forms assigned.", 
+            log.info("Visit instance {} is an unscheduled visit (visit_id is NULL). Querying forms by visit UUID.", 
                      visitInstanceId);
-            return new ArrayList<>(); // Unscheduled visits don't have pre-defined forms
+            
+            // For unscheduled visits, generate deterministic UUID from visit instance ID
+            // This matches the UUID generation in VisitController POST endpoint
+            String uuidString = String.format("00000000-0000-0000-0000-%012d", visitInstanceId);
+            UUID visitUuid = UUID.fromString(uuidString);
+            List<VisitFormEntity> visitForms = visitFormRepository.findByVisitUuidOnly(visitUuid);
+            
+            log.info("Found {} forms assigned to unscheduled visit {} (UUID: {})", 
+                     visitForms.size(), visitInstanceId, visitUuid);
+            
+            return visitForms.stream()
+                    .map(vf -> mapToDto(vf, visitInstance))
+                    .collect(Collectors.toList());
         }
 
         // CRITICAL: Extract build_id from visit instance

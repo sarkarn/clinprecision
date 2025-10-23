@@ -109,7 +109,8 @@ public class PatientStatusController {
                     newStatus,
                     request.getReason(),
                     request.getChangedBy(),
-                    request.getNotes()
+                    request.getNotes(),
+                    request.getRelatedRecordId()
                 );
             } else {
                 history = patientStatusService.changePatientStatus(
@@ -117,7 +118,8 @@ public class PatientStatusController {
                     newStatus,
                     request.getReason(),
                     request.getChangedBy(),
-                    request.getNotes()
+                    request.getNotes(),
+                    request.getRelatedRecordId()
                 );
             }
             
@@ -636,6 +638,7 @@ public class PatientStatusController {
             .changedAt(entity.getChangedAt())
             .notes(entity.getNotes())
             .eventId(entity.getEventId())
+            .relatedRecordId(entity.getRelatedRecordId())
             .daysSincePreviousChange(null) // Requires previous change entity, calculate in service if needed
             .statusChangeDescription(entity.getStatusChangeDescription())
             .terminalStatus(entity.getNewStatus().isTerminal())

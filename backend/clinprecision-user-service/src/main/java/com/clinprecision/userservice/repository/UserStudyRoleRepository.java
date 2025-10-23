@@ -25,6 +25,16 @@ public interface UserStudyRoleRepository extends JpaRepository<UserStudyRoleEnti
     List<UserStudyRoleEntity> findByUser_Id(Long userId);
     
     /**
+     * Find all user study roles with user and role eagerly fetched to avoid N+1 queries and duplicates.
+     *
+     * @return list of all user study role entities with associations loaded
+     */
+    @Query("SELECT DISTINCT usr FROM UserStudyRoleEntity usr " +
+           "LEFT JOIN FETCH usr.user " +
+           "LEFT JOIN FETCH usr.role")
+    List<UserStudyRoleEntity> findAllWithUserAndRole();
+    
+    /**
      * Find all user roles for a specific study.
      *
      * @param studyId the ID of the study

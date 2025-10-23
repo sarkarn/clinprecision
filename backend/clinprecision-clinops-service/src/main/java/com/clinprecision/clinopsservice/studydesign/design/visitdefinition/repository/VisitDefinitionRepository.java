@@ -148,6 +148,16 @@ public interface VisitDefinitionRepository extends JpaRepository<VisitDefinition
     @Query("SELECT v FROM VisitDefinitionEntity v WHERE v.studyId = :studyId " +
            "AND v.isUnscheduled = true ORDER BY v.visitOrder ASC")
     List<VisitDefinitionEntity> findUnscheduledVisitsByStudyId(@Param("studyId") Long studyId);
+
+    /**
+     * Find visit definition by study and visit code without considering unscheduled flag (case-insensitive).
+     * Provides a fallback for scenarios where visit creation logic references scheduled visit codes.
+     */
+    @Query("SELECT v FROM VisitDefinitionEntity v WHERE v.studyId = :studyId " +
+           "AND LOWER(v.visitCode) = LOWER(:visitCode)")
+    Optional<VisitDefinitionEntity> findByStudyIdAndVisitCodeIgnoreCase(
+            @Param("studyId") Long studyId,
+            @Param("visitCode") String visitCode);
 }
 
 

@@ -7,6 +7,7 @@ import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repos
 import com.clinprecision.clinopsservice.studyoperation.visit.domain.events.VisitCreatedEvent;
 import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
 import com.clinprecision.clinopsservice.studyoperation.visit.repository.StudyVisitInstanceRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.service.VisitComplianceService;
 import org.axonframework.eventhandling.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,13 +52,16 @@ public class VisitProjector {
     private final StudyVisitInstanceRepository studyVisitInstanceRepository;
     private final StudyDatabaseBuildRepository studyDatabaseBuildRepository;
     private final VisitDefinitionRepository visitDefinitionRepository;
+    private final VisitComplianceService visitComplianceService;
     
     public VisitProjector(StudyVisitInstanceRepository studyVisitInstanceRepository,
                          StudyDatabaseBuildRepository studyDatabaseBuildRepository,
-                         VisitDefinitionRepository visitDefinitionRepository) {
+                         VisitDefinitionRepository visitDefinitionRepository,
+                         VisitComplianceService visitComplianceService) {
         this.studyVisitInstanceRepository = studyVisitInstanceRepository;
         this.studyDatabaseBuildRepository = studyDatabaseBuildRepository;
         this.visitDefinitionRepository = visitDefinitionRepository;
+        this.visitComplianceService = visitComplianceService;
     }
     
     /**
@@ -116,6 +120,9 @@ public class VisitProjector {
                 .notes(event.getNotes())
                 .createdBy(event.getCreatedBy()) // User ID who created the visit
                 .build();
+
+            visit.setComplianceStatus(visitComplianceService.calculateComplianceStatus(visit));
+            visit.setWindowStatus(calculateWindowStatus(visit));
             
             // Save to read model
             studyVisitInstanceRepository.save(visit);
@@ -161,25 +168,60 @@ public class VisitProjector {
      * @return Visit definition ID (Long) or null if not found
      */
     private Long lookupUnscheduledVisitDefinitionId(Long studyId, String visitType) {
-        // Map frontend visit type to database visit code
+        String normalizedVisitType = normalizeVisitType(visitType);
+
+        if (normalizedVisitType != null && !normalizedVisitType.isEmpty()) {
+            Optional<VisitDefinitionEntity> directMatch = visitDefinitionRepository
+                .findByStudyIdAndVisitCodeAndIsUnscheduled(studyId, normalizedVisitType);
+
+            if (directMatch.isPresent()) {
+                logger.info("Found unscheduled visit definition: studyId={}, visitCode={}, visitDefId={}",
+                        studyId, normalizedVisitType, directMatch.get().getId());
+                return directMatch.get().getId();
+            }
+        }
+
         String visitCode = mapVisitTypeToCode(visitType);
-        
-        logger.debug("Looking up unscheduled visit definition: studyId={}, visitType={}, visitCode={}", 
-                    studyId, visitType, visitCode);
-        
+
+        logger.debug("Looking up unscheduled visit definition (mapped): studyId={}, originalVisitType={}, visitCode={}",
+                studyId, visitType, visitCode);
+
         Optional<VisitDefinitionEntity> visitDef = visitDefinitionRepository
             .findByStudyIdAndVisitCodeAndIsUnscheduled(studyId, visitCode);
-        
+
         if (visitDef.isPresent()) {
-            logger.info("Found unscheduled visit definition: studyId={}, visitCode={}, visitDefId={}", 
-                       studyId, visitCode, visitDef.get().getId());
+            logger.info("Found unscheduled visit definition after mapping: studyId={}, visitCode={}, visitDefId={}",
+                    studyId, visitCode, visitDef.get().getId());
             return visitDef.get().getId();
-        } else {
-            logger.error("Unscheduled visit definition NOT FOUND: studyId={}, visitType={}, visitCode={}. " +
-                        "This means study build did not create unscheduled visit definitions correctly.",
-                        studyId, visitType, visitCode);
-            return null;
         }
+
+        // Fallback: attempt to resolve scheduled visit definitions so patient activation does not break
+        if (normalizedVisitType != null && !normalizedVisitType.isEmpty()) {
+            Optional<VisitDefinitionEntity> scheduledByCode = visitDefinitionRepository
+                .findByStudyIdAndVisitCodeIgnoreCase(studyId, normalizedVisitType);
+
+            if (scheduledByCode.isPresent()) {
+                logger.warn("Unscheduled visit definition not found for visitType='{}'; falling back to scheduled visit code match id={}.",
+                        visitType, scheduledByCode.get().getId());
+                return scheduledByCode.get().getId();
+            }
+        }
+
+        if (visitType != null && !visitType.trim().isEmpty()) {
+            Optional<VisitDefinitionEntity> scheduledByName = visitDefinitionRepository
+                .findByStudyIdAndNameIgnoreCase(studyId, visitType.trim());
+
+            if (scheduledByName.isPresent()) {
+                logger.warn("Unscheduled visit definition not found for visitType='{}'; falling back to visit name match id={}.",
+                        visitType, scheduledByName.get().getId());
+                return scheduledByName.get().getId();
+            }
+        }
+
+        logger.error("Unscheduled visit definition NOT FOUND: studyId={}, visitType={}, visitCode={}. " +
+                    "This means study build did not create unscheduled visit definitions correctly.",
+                    studyId, visitType, visitCode);
+        return null;
     }
     
     /**
@@ -204,8 +246,9 @@ public class VisitProjector {
             
             StudyVisitInstanceEntity visit = visitOpt.get();
             
-            // Update status
+            // Update status and actual visit date as reported in event
             visit.setVisitStatus(event.getNewStatus());
+            visit.setActualVisitDate(event.getActualVisitDate());
             // Note: updatedBy is tracked in event store, updatedAt is auto-set by @PreUpdate
             
             // Update notes if provided
@@ -216,6 +259,10 @@ public class VisitProjector {
                     : existingNotes + "\n[Status Change by user " + event.getUpdatedBy() + "] " + event.getNotes();
                 visit.setNotes(updatedNotes);
             }
+
+            // Recalculate compliance/window status whenever visit state changes
+            visit.setComplianceStatus(visitComplianceService.calculateComplianceStatus(visit));
+            visit.setWindowStatus(calculateWindowStatus(visit));
             
             // Save updated visit (updatedAt will be auto-set by @PreUpdate)
             studyVisitInstanceRepository.save(visit);
@@ -230,31 +277,59 @@ public class VisitProjector {
         }
     }
 
+    private String calculateWindowStatus(StudyVisitInstanceEntity visit) {
+        if (visit.getActualVisitDate() == null || visit.getVisitWindowStart() == null || visit.getVisitWindowEnd() == null) {
+            return null;
+        }
+
+        if (visit.getActualVisitDate().isBefore(visit.getVisitWindowStart())) {
+            return "EARLY";
+        }
+
+        if (visit.getActualVisitDate().isAfter(visit.getVisitWindowEnd())) {
+            return "LATE";
+        }
+
+        return "ON_TIME";
+    }
+
     /**
      * Map frontend visit type strings to database visit codes
-     * 
+     *
      * Frontend uses descriptive names like "DISCONTINUATION"
      * Database uses standardized codes like "EARLY_TERM"
-     * 
+     *
      * @param visitType Frontend visit type string
      * @return Database visit code
      */
     private String mapVisitTypeToCode(String visitType) {
-        if (visitType == null) {
-            return "UNSCHED_SAFETY"; // Default fallback
+        String normalized = normalizeVisitType(visitType);
+
+        if (normalized == null || normalized.isEmpty()) {
+            return "UNSCHED_SAFETY";
         }
-        
-        // Map frontend types to database codes
-        return switch (visitType.toUpperCase()) {
-            case "DISCONTINUATION", "EARLY_TERMINATION" -> "EARLY_TERM";
-            case "ADVERSE_EVENT", "AE" -> "AE_VISIT";
-            case "SAFETY", "UNSCHEDULED_SAFETY" -> "UNSCHED_SAFETY";
-            case "PROTOCOL_DEVIATION", "DEVIATION" -> "PROTO_DEV";
-            case "FOLLOW_UP", "UNSCHEDULED_FOLLOWUP" -> "UNSCHED_FU";
+
+        return switch (normalized) {
+            case "DISCONTINUATION", "EARLY_TERMINATION", "EARLY_TERM" -> "EARLY_TERM";
+            case "ADVERSE_EVENT", "AE", "AE_VISIT" -> "AE_VISIT";
+            case "SAFETY", "UNSCHEDULED_SAFETY", "UNSCHED_SAFETY" -> "UNSCHED_SAFETY";
+            case "PROTOCOL_DEVIATION", "DEVIATION", "PROTO_DEV" -> "PROTO_DEV";
+            case "FOLLOW_UP", "UNSCHEDULED_FOLLOWUP", "FOLLOWUP", "UNSCHED_FU" -> "UNSCHED_FU";
             default -> {
-                logger.warn("Unknown visit type '{}', using UNSCHED_SAFETY as fallback", visitType);
+                logger.warn("Unknown visit type '{}', using UNSCHED_SAFETY as fallback", normalized);
                 yield "UNSCHED_SAFETY";
             }
         };
+    }
+
+    private String normalizeVisitType(String visitType) {
+        if (visitType == null) {
+            return null;
+        }
+
+        return visitType.trim()
+                .toUpperCase()
+                .replace("-", "_")
+                .replace(" ", "_");
     }
 }

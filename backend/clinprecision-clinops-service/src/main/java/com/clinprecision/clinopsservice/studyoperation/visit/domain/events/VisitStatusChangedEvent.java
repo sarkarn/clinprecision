@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 /**
  * Event indicating visit status has changed
  * 
@@ -33,4 +35,6 @@ public class VisitStatusChangedEvent {
     private String notes; // Optional reason/notes
     
     private Long timestamp; // Event timestamp
+
+    private LocalDate actualVisitDate; // Actual date visit occurred (for COMPLETED status)
 }
