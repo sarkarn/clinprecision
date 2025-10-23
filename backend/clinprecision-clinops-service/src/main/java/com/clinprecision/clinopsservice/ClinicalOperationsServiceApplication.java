@@ -33,6 +33,7 @@ import com.clinprecision.axon.config.AxonConfig;
         "com.clinprecision.clinopsservice.studyoperation.patientenrollment.repository",
         "com.clinprecision.clinopsservice.studyoperation.visit.repository",
         "com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.repository",
+        "com.clinprecision.clinopsservice.studyoperation.protocoldeviation.repository",
         // Common
         "com.clinprecision.common.repository"
 })
@@ -51,6 +52,7 @@ import com.clinprecision.axon.config.AxonConfig;
         "com.clinprecision.clinopsservice.studyoperation.patientenrollment.entity",
         "com.clinprecision.clinopsservice.studyoperation.visit.entity",
         "com.clinprecision.clinopsservice.studyoperation.datacapture.formdata.entity",
+        "com.clinprecision.clinopsservice.studyoperation.protocoldeviation.entity",
         // Common
         "com.clinprecision.common.entity",
         "com.clinprecision.common.entity.clinops",

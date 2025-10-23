@@ -11,6 +11,7 @@ import PatientList from './PatientList';
 import PatientRegistration from './PatientRegistration';
 import PatientDetails from './PatientDetails';
 import DataCaptureDashboard from './DataCaptureDashboard';
+import DeviationDashboard from './deviations/DeviationDashboard';
 
 export default function DataCaptureModule() {
     console.log('[DATA CAPTURE MODULE] Rendering, current pathname:', window.location.pathname);
@@ -19,6 +20,9 @@ export default function DataCaptureModule() {
             <Routes>
                 {/* Default route - Dashboard */}
                 <Route index element={<DataCaptureDashboard />} />
+
+                {/* Protocol Deviation Routes */}
+                <Route path="deviations/dashboard" element={<DeviationDashboard />} />
 
                 {/* Subject Management Routes */}
                 <Route path="subjects" element={<SubjectList />} />

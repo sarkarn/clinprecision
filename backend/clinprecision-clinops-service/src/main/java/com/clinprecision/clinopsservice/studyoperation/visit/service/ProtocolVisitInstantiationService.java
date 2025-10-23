@@ -224,7 +224,7 @@ public class ProtocolVisitInstantiationService {
         return StudyVisitInstanceEntity.builder()
                 .subjectId(patientId)
                 .studyId(studyId)
-                .siteId(siteId)
+                .studySiteId(siteId)
                 .visitId(visitDef.getId()) // FK to visit_definitions
                 .visitDate(visitDate)
                 .actualVisitDate(null) // Not yet completed

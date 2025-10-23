@@ -35,7 +35,7 @@ public class StudyVisitInstanceEntity {
     private Long subjectId;
 
     @Column(name = "site_id")
-    private Long siteId;
+    private Long studySiteId;
 
     @Column(name = "visit_date")
     private LocalDate visitDate;

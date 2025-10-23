@@ -149,7 +149,7 @@ public class PatientVisitService {
                     visitId, // Use the command's UUID
                     visitEntity.getSubjectId(),
                     visitEntity.getStudyId(),
-                    visitEntity.getSiteId(),
+                    visitEntity.getStudySiteId(),
                     visitName, // Visit name from visit_definitions or default
                     visitEntity.getVisitDate(),
                     visitEntity.getVisitStatus(),
@@ -392,7 +392,7 @@ public class PatientVisitService {
                 UUID.nameUUIDFromBytes(entity.getId().toString().getBytes()) : null);
         dto.setPatientId(entity.getSubjectId());
         dto.setStudyId(entity.getStudyId());
-        dto.setSiteId(entity.getSiteId());
+        dto.setSiteId(entity.getStudySiteId());
         dto.setVisitDate(entity.getVisitDate());
         dto.setStatus(entity.getVisitStatus());
         dto.setCreatedAt(entity.getCreatedAt());
@@ -559,7 +559,7 @@ public class PatientVisitService {
                         UUID.fromString(aggregateUuid),
                         visit.getSubjectId(), // Entity has subjectId, not patientId
                         visit.getStudyId(),
-                        visit.getSiteId() != null ? visit.getSiteId() : 0L,
+                        visit.getStudySiteId() != null ? visit.getStudySiteId() : 0L,
                         "UNSCHEDULED", // Legacy scheduled visits will use this type
                         visit.getVisitDate(),
                         visit.getVisitStatus() != null ? visit.getVisitStatus() : "SCHEDULED",
