@@ -323,11 +323,20 @@ public class VisitController {
             Long visitDefinitionId = visitInstance.getVisitId();
             Long buildId = visitInstance.getBuildId();
             
-            // 5. Check if form already assigned
+            // 5. Generate unique visit UUID for unscheduled visits
+            // Use visit instance ID to ensure uniqueness per visit instance
+            UUID visitUuid = null;
+            if (isUnscheduledVisit) {
+                // Create a deterministic UUID based on visit instance ID
+                // This ensures each visit instance has its own unique identifier
+                String uuidString = String.format("00000000-0000-0000-0000-%012d", visitInstanceId);
+                visitUuid = UUID.fromString(uuidString);
+            }
+            
+            // 6. Check if form already assigned
             boolean alreadyExists;
             if (isUnscheduledVisit) {
                 // For unscheduled visits: check by visit_uuid
-                UUID visitUuid = UUID.fromString(visitInstance.getAggregateUuid());
                 final UUID finalVisitUuid = visitUuid;
                 alreadyExists = visitFormRepository.findAll().stream()
                         .anyMatch(vf -> vf.getVisitUuid() != null && 
@@ -347,7 +356,7 @@ public class VisitController {
                         .body(new ErrorResponse("Form already assigned to this visit"));
             }
             
-            // 6. Create visit_forms record
+            // 7. Create visit_forms record
             VisitFormEntity.VisitFormEntityBuilder builder = VisitFormEntity.builder()
                     .formDefinition(form)
                     .isRequired(isRequired)
@@ -358,13 +367,14 @@ public class VisitController {
             
             // Add visit-type-specific fields
             if (isUnscheduledVisit) {
-                // Unscheduled visit: use visit_uuid, leave visit_definition_id NULL
-                UUID visitUuid = UUID.fromString(visitInstance.getAggregateUuid());
-                builder.visitUuid(visitUuid)
+                // Unscheduled visit: use deterministic visit_uuid based on visit instance ID
+                // This ensures forms are unique per visit instance
+                builder.visitUuid(visitUuid)  // visitUuid already calculated above
                        .visitDefinition(null)  // NULL for unscheduled
                        .aggregateUuid(null)
                        .buildId(null);
-                log.info("Creating unscheduled visit form assignment: visit_uuid={}, form={}", visitUuid, formId);
+                log.info("Creating unscheduled visit form assignment: visitInstanceId={}, visit_uuid={}, form={}", 
+                        visitInstanceId, visitUuid, formId);
             } else {
                 // Protocol visit: use visit_definition_id and build_id
                 VisitDefinitionEntity visitDef = visitDefinitionRepository.findById(visitDefinitionId)
@@ -382,7 +392,7 @@ public class VisitController {
             
             log.info("Successfully assigned form {} to visit instance {}", formId, visitInstanceId);
             
-            // 7. Return success response
+            // 8. Return success response
             var response = new java.util.HashMap<String, Object>();
             response.put("success", true);
             response.put("message", "Form assigned successfully");

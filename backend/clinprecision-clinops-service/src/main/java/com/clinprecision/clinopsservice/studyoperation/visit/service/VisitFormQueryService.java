@@ -67,11 +67,14 @@ public class VisitFormQueryService {
             log.info("Visit instance {} is an unscheduled visit (visit_id is NULL). Querying forms by visit UUID.", 
                      visitInstanceId);
             
-            // For unscheduled visits, query by visit_uuid
-            UUID visitUuid = UUID.fromString(visitInstance.getAggregateUuid());
+            // For unscheduled visits, generate deterministic UUID from visit instance ID
+            // This matches the UUID generation in VisitController POST endpoint
+            String uuidString = String.format("00000000-0000-0000-0000-%012d", visitInstanceId);
+            UUID visitUuid = UUID.fromString(uuidString);
             List<VisitFormEntity> visitForms = visitFormRepository.findByVisitUuidOnly(visitUuid);
             
-            log.info("Found {} forms assigned to unscheduled visit UUID {}", visitForms.size(), visitUuid);
+            log.info("Found {} forms assigned to unscheduled visit {} (UUID: {})", 
+                     visitForms.size(), visitInstanceId, visitUuid);
             
             return visitForms.stream()
                     .map(vf -> mapToDto(vf, visitInstance))
