@@ -2,11 +2,19 @@ package com.clinprecision.clinopsservice.studyoperation.visit.controller;
 
 import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity.VisitDefinitionEntity;
 import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionRepository;
+import com.clinprecision.clinopsservice.studydesign.build.entity.VisitFormEntity;
+import com.clinprecision.clinopsservice.studydesign.build.repository.VisitFormRepository;
+import com.clinprecision.clinopsservice.studydesign.design.form.entity.FormDefinitionEntity;
+import com.clinprecision.clinopsservice.studydesign.design.form.repository.FormDefinitionRepository;
 import com.clinprecision.clinopsservice.studyoperation.visit.dto.CreateVisitRequest;
 import com.clinprecision.clinopsservice.studyoperation.visit.dto.UnscheduledVisitTypeDto;
 import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitDto;
 import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitFormDto;
 import com.clinprecision.clinopsservice.studyoperation.visit.dto.VisitResponse;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.VisitEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.repository.VisitRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.repository.StudyVisitInstanceRepository;
 import com.clinprecision.clinopsservice.studyoperation.visit.service.PatientVisitService;
 import com.clinprecision.clinopsservice.studyoperation.visit.service.VisitFormQueryService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -68,6 +77,10 @@ public class VisitController {
     private final PatientVisitService visitService;
     private final VisitFormQueryService visitFormQueryService;
     private final VisitDefinitionRepository visitDefinitionRepository;
+    private final VisitRepository visitRepository;
+    private final StudyVisitInstanceRepository studyVisitInstanceRepository;
+    private final VisitFormRepository visitFormRepository;
+    private final FormDefinitionRepository formDefinitionRepository;
 
     /**
      * Get unscheduled visit definitions for a study
@@ -260,6 +273,136 @@ public class VisitController {
             log.error("REST: Error getting required visit forms", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse("Failed to retrieve required forms: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Assign a form to a visit instance (for unscheduled visits)
+     * POST /api/v1/visits/{visitInstanceId}/forms/{formId}
+     * 
+     * This endpoint assigns forms to visit INSTANCES (operational data), not visit DEFINITIONS (protocol design).
+     * Used primarily for unscheduled visits (SCREENING, AE, DISCONTINUATION) where forms are added post-creation.
+     * 
+     * Creates a record in visit_forms table with:
+     * - visit_uuid: Links to the visit instance UUID
+     * - form_definition_id: The form being assigned
+     * - visit_definition_id: NULL (unscheduled visits don't have definitions)
+     * 
+     * @param visitInstanceId Visit instance Long ID (from study_visit_instances.id)
+     * @param formId Form definition ID to assign
+     * @param options Request body with optional fields (isRequired, displayOrder, instructions)
+     * @return ResponseEntity with created assignment or error
+     */
+    @PostMapping("/{visitInstanceId}/forms/{formId}")
+    public ResponseEntity<?> assignFormToVisitInstance(
+            @PathVariable Long visitInstanceId,
+            @PathVariable Long formId,
+            @RequestBody(required = false) java.util.Map<String, Object> options) {
+        
+        log.info("REST: Assigning form {} to visit instance {}", formId, visitInstanceId);
+        
+        try {
+            // 1. Get the visit instance to validate it exists
+            StudyVisitInstanceEntity visitInstance = studyVisitInstanceRepository.findById(visitInstanceId)
+                    .orElseThrow(() -> new RuntimeException("Visit instance not found: " + visitInstanceId));
+            
+            // 2. Get the form to validate it exists
+            FormDefinitionEntity form = formDefinitionRepository.findById(formId)
+                    .orElseThrow(() -> new RuntimeException("Form not found: " + formId));
+            
+            // 3. Extract options with defaults
+            Boolean isRequired = options != null && options.containsKey("isRequired") 
+                    ? (Boolean) options.get("isRequired") : true;
+            Integer displayOrder = options != null && options.containsKey("displayOrder")
+                    ? ((Number) options.get("displayOrder")).intValue() : 1;
+            String instructions = options != null && options.containsKey("instructions")
+                    ? (String) options.get("instructions") : null;
+            
+            // 4. Determine if this is a protocol visit or unscheduled visit
+            boolean isUnscheduledVisit = (visitInstance.getVisitId() == null);
+            Long visitDefinitionId = visitInstance.getVisitId();
+            Long buildId = visitInstance.getBuildId();
+            
+            // 5. Check if form already assigned
+            boolean alreadyExists;
+            if (isUnscheduledVisit) {
+                // For unscheduled visits: check by visit_uuid
+                UUID visitUuid = UUID.fromString(visitInstance.getAggregateUuid());
+                final UUID finalVisitUuid = visitUuid;
+                alreadyExists = visitFormRepository.findAll().stream()
+                        .anyMatch(vf -> vf.getVisitUuid() != null && 
+                                        vf.getVisitUuid().equals(finalVisitUuid) && 
+                                        vf.getFormDefinition().getId().equals(formId));
+            } else {
+                // For protocol visits: check by visit_definition_id + build_id
+                alreadyExists = visitFormRepository
+                        .findByVisitDefinitionIdAndBuildIdOrderByDisplayOrderAsc(visitDefinitionId, buildId)
+                        .stream()
+                        .anyMatch(vf -> vf.getFormDefinition().getId().equals(formId));
+            }
+            
+            if (alreadyExists) {
+                log.warn("Form {} already assigned to visit instance {}", formId, visitInstanceId);
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(new ErrorResponse("Form already assigned to this visit"));
+            }
+            
+            // 6. Create visit_forms record
+            VisitFormEntity.VisitFormEntityBuilder builder = VisitFormEntity.builder()
+                    .formDefinition(form)
+                    .isRequired(isRequired)
+                    .displayOrder(displayOrder)
+                    .instructions(instructions)
+                    .isConditional(false)
+                    .isDeleted(false);
+            
+            // Add visit-type-specific fields
+            if (isUnscheduledVisit) {
+                // Unscheduled visit: use visit_uuid, leave visit_definition_id NULL
+                UUID visitUuid = UUID.fromString(visitInstance.getAggregateUuid());
+                builder.visitUuid(visitUuid)
+                       .visitDefinition(null)  // NULL for unscheduled
+                       .aggregateUuid(null)
+                       .buildId(null);
+                log.info("Creating unscheduled visit form assignment: visit_uuid={}, form={}", visitUuid, formId);
+            } else {
+                // Protocol visit: use visit_definition_id and build_id
+                VisitDefinitionEntity visitDef = visitDefinitionRepository.findById(visitDefinitionId)
+                        .orElseThrow(() -> new RuntimeException("Visit definition not found: " + visitDefinitionId));
+                builder.visitDefinition(visitDef)
+                       .visitUuid(null)  // NULL for protocol visits
+                       .aggregateUuid(null)
+                       .buildId(buildId);
+                log.info("Creating protocol visit form assignment: visit_definition_id={}, build_id={}, form={}", 
+                        visitDefinitionId, buildId, formId);
+            }
+            
+            VisitFormEntity visitForm = builder.build();
+            VisitFormEntity savedVisitForm = visitFormRepository.save(visitForm);
+            
+            log.info("Successfully assigned form {} to visit instance {}", formId, visitInstanceId);
+            
+            // 7. Return success response
+            var response = new java.util.HashMap<String, Object>();
+            response.put("success", true);
+            response.put("message", "Form assigned successfully");
+            response.put("visitFormId", savedVisitForm.getId());
+            response.put("formId", formId);
+            response.put("formName", form.getName());
+            response.put("visitInstanceId", visitInstanceId);
+            response.put("isUnscheduledVisit", isUnscheduledVisit);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            
+        } catch (RuntimeException e) {
+            log.error("REST: Error assigning form to visit: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("Failed to assign form: " + e.getMessage()));
+                    
+        } catch (Exception e) {
+            log.error("REST: Unexpected error assigning form to visit", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Internal error: " + e.getMessage()));
         }
     }
 

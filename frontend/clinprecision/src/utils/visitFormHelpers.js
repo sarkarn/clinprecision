@@ -8,6 +8,7 @@
  */
 
 import axios from 'axios';
+import ApiService from '../services/ApiService';
 
 /**
  * Create an unscheduled visit and assign forms in a single operation
@@ -54,7 +55,7 @@ export const createUnscheduledVisitWithForms = async (visitData, formIds = []) =
     console.log('Creating unscheduled visit...', visitData);
     
     // Step 1: Create the visit
-    const visitResponse = await axios.post('/api/visits/unscheduled', visitData);
+    const visitResponse = await ApiService.post('/clinops-ws/api/v1/visits/unscheduled', visitData);
     const visitUuid = visitResponse.data.visitId;
     
     console.log('Visit created:', visitUuid);
@@ -69,8 +70,8 @@ export const createUnscheduledVisitWithForms = async (visitData, formIds = []) =
           const formId = typeof formConfig === 'number' ? formConfig : formConfig.id;
           const formSettings = typeof formConfig === 'object' ? formConfig : {};
           
-          return axios.post(
-            `/api/studies/${visitData.studyId}/visits/${visitUuid}/forms/${formId}`,
+          return ApiService.post(
+            `/clinops-ws/api/studies/${visitData.studyId}/visits/${visitUuid}/forms/${formId}`,
             {
               isRequired: formSettings.isRequired !== undefined ? formSettings.isRequired : true,
               isConditional: formSettings.isConditional || false,
@@ -87,8 +88,8 @@ export const createUnscheduledVisitWithForms = async (visitData, formIds = []) =
     }
     
     // Step 3: Fetch complete visit details with forms
-    const fullVisitResponse = await axios.get(
-      `/api/subjects/${visitData.patientId}/visits/${visitUuid}`
+    const fullVisitResponse = await ApiService.get(
+      `/clinops-ws/api/v1/subjects/${visitData.patientId}/visits/${visitUuid}`
     );
     
     console.log('Visit created with forms:', fullVisitResponse.data);
@@ -103,8 +104,7 @@ export const createUnscheduledVisitWithForms = async (visitData, formIds = []) =
 /**
  * Add a single form to an existing visit
  * 
- * @param {number} studyId - Study ID
- * @param {string} visitUuid - Visit UUID
+ * @param {number} visitInstanceId - Visit instance ID (Long primary key, not UUID)
  * @param {number} formId - Form definition ID
  * @param {Object} options - Form configuration
  * @param {boolean} [options.isRequired=true] - Whether form is required
@@ -112,32 +112,27 @@ export const createUnscheduledVisitWithForms = async (visitData, formIds = []) =
  * @param {string} [options.conditionalLogic] - Conditional logic expression
  * @param {number} [options.displayOrder] - Display order (auto-calculated if omitted)
  * @param {string} [options.instructions] - User instructions
- * @param {string} [options.timing='ANY_TIME'] - When form should be completed
  * @returns {Promise<Object>} Assignment response
  * 
  * @example
- * await addFormToVisit(456, 'visit-uuid', 101, {
+ * await addFormToVisit(123, 101, {
  *   isRequired: true,
  *   displayOrder: 1,
- *   timing: 'DURING_VISIT',
  *   instructions: 'Complete during visit'
  * });
  */
-export const addFormToVisit = async (studyId, visitUuid, formId, options = {}) => {
+export const addFormToVisit = async (visitInstanceId, formId, options = {}) => {
   try {
-    const response = await axios.post(
-      `/api/studies/${studyId}/visits/${visitUuid}/forms/${formId}`,
+    const response = await ApiService.post(
+      `/clinops-ws/api/v1/visits/${visitInstanceId}/forms/${formId}`,
       {
         isRequired: options.isRequired !== undefined ? options.isRequired : true,
-        isConditional: options.isConditional || false,
-        conditionalLogic: options.conditionalLogic || null,
         displayOrder: options.displayOrder,
-        instructions: options.instructions || '',
-        timing: options.timing || 'ANY_TIME'
+        instructions: options.instructions || ''
       }
     );
     
-    console.log(`Form ${formId} assigned to visit ${visitUuid}`);
+    console.log(`Form ${formId} assigned to visit instance ${visitInstanceId}`);
     return response.data;
   } catch (error) {
     console.error('Error adding form to visit:', error);
@@ -148,19 +143,18 @@ export const addFormToVisit = async (studyId, visitUuid, formId, options = {}) =
 /**
  * Add multiple forms to an existing visit
  * 
- * @param {number} studyId - Study ID
- * @param {string} visitUuid - Visit UUID
+ * @param {number} visitInstanceId - Visit instance ID (Long primary key)
  * @param {Array<number|Object>} formIds - Array of form IDs or config objects
  * @returns {Promise<Array>} Array of assignment responses
  * 
  * @example
- * await addMultipleFormsToVisit(456, 'visit-uuid', [
+ * await addMultipleFormsToVisit(123, [
  *   { id: 101, isRequired: true },
  *   { id: 102, isRequired: true },
  *   { id: 103, isRequired: false }
  * ]);
  */
-export const addMultipleFormsToVisit = async (studyId, visitUuid, formIds) => {
+export const addMultipleFormsToVisit = async (visitInstanceId, formIds) => {
   try {
     const assignments = await Promise.all(
       formIds.map((formConfig, index) => {
@@ -172,11 +166,11 @@ export const addMultipleFormsToVisit = async (studyId, visitUuid, formIds) => {
           options.displayOrder = index + 1;
         }
         
-        return addFormToVisit(studyId, visitUuid, formId, options);
+        return addFormToVisit(visitInstanceId, formId, options);
       })
     );
     
-    console.log(`${assignments.length} forms assigned to visit ${visitUuid}`);
+    console.log(`${assignments.length} forms assigned to visit instance ${visitInstanceId}`);
     return assignments;
   } catch (error) {
     console.error('Error adding multiple forms to visit:', error);

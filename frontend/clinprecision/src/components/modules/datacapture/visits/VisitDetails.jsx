@@ -2,17 +2,27 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getVisitDetails } from '../../../../services/DataEntryService';
+import FormSelectorModal from './FormSelectorModal';
+import ApiService from '../../../../services/ApiService';
 
 export default function VisitDetails() {
     const { subjectId, visitId } = useParams();
     const [visitDetails, setVisitDetails] = useState(null);
+    const [visitMetadata, setVisitMetadata] = useState(null); // Study ID, UUID, etc.
     const [loading, setLoading] = useState(true);
+    const [showFormSelector, setShowFormSelector] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchVisitDetails = async () => {
             setLoading(true);
             try {
+                // First, fetch visit metadata (studyId, visitUuid, etc.)
+                const metadataResponse = await ApiService.get(`/clinops-ws/api/v1/visits/${visitId}`);
+                console.log('[VISIT DETAILS] Visit metadata:', metadataResponse.data);
+                setVisitMetadata(metadataResponse.data);
+
+                // Then fetch form details
                 const details = await getVisitDetails(subjectId, visitId);
                 setVisitDetails(details);
             } catch (error) {
@@ -24,6 +34,28 @@ export default function VisitDetails() {
 
         fetchVisitDetails();
     }, [subjectId, visitId]);
+
+    /**
+     * Reload visit details after forms are added
+     */
+    const handleFormsAdded = () => {
+        console.log('[VISIT DETAILS] Forms added, reloading visit details...');
+        // Reload visit details to show newly added forms
+        const fetchVisitDetails = async () => {
+            try {
+                // Fetch updated metadata
+                const metadataResponse = await ApiService.get(`/clinops-ws/api/v1/visits/${visitId}`);
+                setVisitMetadata(metadataResponse.data);
+
+                // Fetch updated form details
+                const details = await getVisitDetails(subjectId, visitId);
+                setVisitDetails(details);
+            } catch (error) {
+                console.error('Error reloading visit details:', error);
+            }
+        };
+        fetchVisitDetails();
+    };
 
     /**
      * Get compliance badge styling based on compliance status
@@ -103,10 +135,10 @@ export default function VisitDetails() {
             {/* Visit Window Compliance Panel */}
             {visitDetails.visitWindowStart && visitDetails.visitWindowEnd && (
                 <div className={`mb-6 rounded-lg border-2 p-5 ${visitDetails.complianceStatus === 'PROTOCOL_VIOLATION' ? 'border-red-500 bg-red-50' :
-                        visitDetails.complianceStatus === 'OVERDUE' ? 'border-red-400 bg-red-50' :
-                            visitDetails.complianceStatus === 'APPROACHING' ? 'border-yellow-400 bg-yellow-50' :
-                                visitDetails.complianceStatus === 'COMPLIANT' ? 'border-green-400 bg-green-50' :
-                                    'border-blue-400 bg-blue-50'
+                    visitDetails.complianceStatus === 'OVERDUE' ? 'border-red-400 bg-red-50' :
+                        visitDetails.complianceStatus === 'APPROACHING' ? 'border-yellow-400 bg-yellow-50' :
+                            visitDetails.complianceStatus === 'COMPLIANT' ? 'border-green-400 bg-green-50' :
+                                'border-blue-400 bg-blue-50'
                     }`}>
                     <div className="flex items-start justify-between mb-4">
                         <div>
@@ -300,46 +332,84 @@ export default function VisitDetails() {
                 </div>
 
                 {visitDetails.forms.length === 0 ? (
-                    <p className="text-gray-500">No forms assigned to this visit.</p>
+                    <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p className="mt-2 text-sm text-gray-500">No forms assigned to this visit</p>
+                        <p className="mt-1 text-xs text-gray-400">Add forms to begin data collection</p>
+                        <button
+                            onClick={() => setShowFormSelector(true)}
+                            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center mx-auto"
+                        >
+                            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Forms
+                        </button>
+                    </div>
                 ) : (
-                    <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Form Name</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {visitDetails.forms.map(form => (
-                                <tr key={form.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3">{form.name}</td>
-                                    <td className="px-4 py-3">
-                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(form.status)}`}>
-                                            {getStatusLabel(form.status)}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-gray-500">
-                                        {form.lastUpdated ? new Date(form.lastUpdated).toLocaleString() : 'Not started'}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {form.status === 'complete' ? (
-                                            <Link to={`/datacapture-management/subjects/${subjectId}/visits/${visitId}/forms/${form.id}/view`} className="text-blue-600 hover:text-blue-800 mr-3">
-                                                View
-                                            </Link>
-                                        ) : (
-                                            <Link to={`/datacapture-management/subjects/${subjectId}/visits/${visitId}/forms/${form.id}/entry`} className="text-green-600 hover:text-green-800 mr-3">
-                                                {form.status === 'incomplete' ? 'Continue' : 'Start'}
-                                            </Link>
-                                        )}
-                                    </td>
+                    <div>
+                        <div className="flex justify-end mb-3">
+                            <button
+                                onClick={() => setShowFormSelector(true)}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center text-sm"
+                            >
+                                <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                Add More Forms
+                            </button>
+                        </div>
+                        <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Form Name</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {visitDetails.forms.map(form => (
+                                    <tr key={form.id} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3">{form.name}</td>
+                                        <td className="px-4 py-3">
+                                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(form.status)}`}>
+                                                {getStatusLabel(form.status)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-500">
+                                            {form.lastUpdated ? new Date(form.lastUpdated).toLocaleString() : 'Not started'}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {form.status === 'complete' ? (
+                                                <Link to={`/datacapture-management/subjects/${subjectId}/visits/${visitId}/forms/${form.id}/view`} className="text-blue-600 hover:text-blue-800 mr-3">
+                                                    View
+                                                </Link>
+                                            ) : (
+                                                <Link to={`/datacapture-management/subjects/${subjectId}/visits/${visitId}/forms/${form.id}/entry`} className="text-green-600 hover:text-green-800 mr-3">
+                                                    {form.status === 'incomplete' ? 'Continue' : 'Start'}
+                                                </Link>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
+
+            {/* Form Selector Modal */}
+            <FormSelectorModal
+                isOpen={showFormSelector}
+                onClose={() => setShowFormSelector(false)}
+                studyId={visitMetadata?.studyId}
+                visitInstanceId={parseInt(visitId)}
+                visitType={visitMetadata?.visitType}
+                onFormsAdded={handleFormsAdded}
+            />
         </div>
     );
 }

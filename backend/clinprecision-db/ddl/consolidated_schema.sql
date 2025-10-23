@@ -1102,7 +1102,7 @@ CREATE TABLE visit_forms (
     assignment_uuid VARCHAR(255) NULL COMMENT 'Unique UUID for this form assignment from FormAssignedToVisitEvent',
     visit_uuid VARCHAR(255) NULL COMMENT 'UUID reference to VisitDefinition',
     form_uuid VARCHAR(255) NULL COMMENT 'UUID reference to FormDefinition',
-    visit_definition_id BIGINT NOT NULL,
+    visit_definition_id BIGINT NULL,
     form_definition_id BIGINT NOT NULL,
     is_required BOOLEAN DEFAULT TRUE,
     is_conditional BOOLEAN DEFAULT FALSE,

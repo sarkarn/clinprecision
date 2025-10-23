@@ -114,7 +114,7 @@ public class UserStudyRoleServiceImpl implements UserStudyRoleService {
     @Override
     @Transactional(readOnly = true)
     public List<UserStudyRoleDto> findAll() {
-        List<UserStudyRoleEntity> entities = userStudyRoleRepository.findAll();
+        List<UserStudyRoleEntity> entities = userStudyRoleRepository.findAllWithUserAndRole();
         List<UserStudyRoleDto> dtos = entities.stream()
                 .map(userStudyRoleMapper::entityToDto)
                 .collect(Collectors.toList());
