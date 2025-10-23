@@ -99,6 +99,12 @@ public class PatientStatusHistoryResponse {
      * Links to domain_event_entry table
      */
     private String eventId;
+
+    /**
+     * Optional identifier that points to a related operational record (e.g. screening form data ID)
+     * Enables UI workflows to jump directly to supporting evidence for the status change
+     */
+    private String relatedRecordId;
     
     /**
      * Duration in days since previous status change

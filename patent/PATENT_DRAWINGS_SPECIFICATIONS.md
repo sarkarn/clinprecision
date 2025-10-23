@@ -1,7 +1,7 @@
-# Patent Drawings - Event Sourcing Architecture for Clinical Trials
+# Patent Drawings - Event Sourcing Architecture for Electronic Data Capture Systems
 ## USPTO-Compliant Technical Drawings
 
-**Patent Application**: Event Sourcing Architecture for Clinical Trial Management  
+**Patent Application**: Event Sourcing Architecture for Electronic Data Capture with Integrated Clinical Trial Management  
 **Date**: October 17, 2025  
 **Drawing Standards**: USPTO 37 CFR 1.84
 
@@ -32,15 +32,16 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                   │
-│                   CLINICAL TRIAL MANAGEMENT SYSTEM (100)                         │
+│          ELECTRONIC DATA CAPTURE SYSTEM WITH INTEGRATED CTMS (100)               │
 │                                                                                   │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                   │
 │                                                                                   │
 │   USER INTERFACE (110)                                                           │
 │   ┌─────────────────────────────────────────────────────────────┐               │
-│   │  Study Setup (111)  │  Patient Enrollment (112)              │               │
-│   │  Data Capture (113) │  Reporting (114)                       │               │
+│   │  Study Setup (111)       │  Patient Enrollment (112)         │               │
+│   │  eCRF Data Capture (113) │  Visit Management (114)           │               │
+│   │  Protocol Deviations(115)│  Reporting (116)                  │               │
 │   └───────────────────────────┬─────────────────────────────────┘               │
 │                               │                                                   │
 │                               │ Commands (120)                                    │
@@ -54,10 +55,11 @@
 │   ┌─────────────────────────────────────────────────────────────┐               │
 │   │           EVENT-SOURCED AGGREGATES (140)                     │               │
 │   │                                                               │               │
-│   │   Study Aggregate (141)  │  Patient Aggregate (142)          │               │
-│   │   Visit Aggregate (143)  │  Form Data Aggregate (144)        │               │
+│   │   Form Data Aggregate (141) │  Patient Aggregate (142)       │               │
+│   │   Visit Aggregate (143)     │  Deviation Aggregate (144)     │               │
+│   │   Study Aggregate (145)                                      │               │
 │   │                                                               │               │
-│   │   [Business Logic & Validation]                              │               │
+│   │   [Business Logic & Validation for EDC + Trial Mgmt]         │               │
 │   └───────────────────────────┬─────────────────────────────────┘               │
 │                               │                                                   │
 │                               │ Events (150)                                      │
@@ -69,9 +71,12 @@
 │   │  [event_id | aggregate_id | event_type | event_data |       │               │
 │   │   metadata | timestamp | sequence_number]                    │               │
 │   │                                                               │               │
+│   │  Events: FormDataSubmitted, PatientEnrolled,                 │               │
+│   │         VisitScheduled, DeviationReported                    │               │
+│   │                                                               │               │
 │   │  ► No UPDATE or DELETE operations                            │               │
 │   │  ► Immutable event history                                   │               │
-│   │  ► Complete audit trail                                      │               │
+│   │  ► Complete audit trail for EDC + CTMS data                  │               │
 │   └───────────────────────────┬─────────────────────────────────┘               │
 │                               │                                                   │
 │                               │ Event Stream (170)                                │
@@ -82,43 +87,51 @@
 │   │  EVENT HANDLERS (180)│       │  PROJECTORS (190)    │                       │
 │   │  (Side Effects)      │       │  (Read Models)       │                       │
 │   │                      │       │                      │                       │
-│   │  • Notifications     │       │  • Study Overview    │                       │
-│   │  • Integrations      │       │  • Patient List      │                       │
-│   │  • Workflows         │       │  • Visit Schedule    │                       │
-│   └──────────────────────┘       │  • Audit Reports     │                       │
-│                                   └───────────┬──────────┘                       │
+│   │  • Auto-complete     │       │  • eCRF Form Data    │                       │
+│   │    visit status      │       │  • Patient List      │                       │
+│   │  • Notifications     │       │  • Visit Schedule    │                       │
+│   │  • Integrations      │       │  • Deviation Dash    │                       │
+│   │  • Workflows         │       │  • Audit Reports     │                       │
+│   └──────────────────────┘       └───────────┬──────────┘                       │
 │                                               │                                   │
 │                                               ▼                                   │
 │                                   ┌──────────────────────┐                       │
 │                                   │  READ DATABASE (200) │                       │
 │                                   │  (Optimized Queries) │                       │
+│                                   │  • study_form_data   │                       │
+│                                   │  • patients          │                       │
+│                                   │  • visit_instances   │                       │
+│                                   │  • deviations        │                       │
 │                                   └──────────────────────┘                       │
 │                                                                                   │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
 Reference Numerals:
-100 - Clinical Trial Management System
+100 - Electronic Data Capture System with Integrated CTMS
 110 - User Interface Layer
 111 - Study Setup Module
 112 - Patient Enrollment Module
-113 - Data Capture Module
-114 - Reporting Module
+113 - eCRF Data Capture Module (Primary EDC Function)
+114 - Visit Management Module
+115 - Protocol Deviation Tracking Module
+116 - Reporting Module
 120 - Commands (User Actions)
 130 - Command Gateway
 140 - Event-Sourced Aggregates
-141 - Study Aggregate
+141 - Form Data Aggregate (eCRF submissions)
 142 - Patient Aggregate
 143 - Visit Aggregate
-144 - Form Data Aggregate
-150 - Events
+144 - Protocol Deviation Aggregate
+145 - Study Aggregate
+150 - Events (FormDataSubmitted, PatientEnrolled, etc.)
 160 - Event Store (Append-Only)
 170 - Event Stream
-180 - Event Handlers
+180 - Event Handlers (includes visit auto-completion)
 190 - Projectors
-200 - Read Database
+200 - Read Database (includes EDC and CTMS tables)
 ```
 
-**Figure 1 Description**: System architecture showing event flow from user interface through command gateway to event-sourced aggregates, which generate events stored in append-only event store. Events are consumed by handlers and projectors to create read models.
+**Figure 1 Description**: System architecture showing event flow from user interface (emphasizing eCRF data capture alongside patient enrollment and visit management) through command gateway to event-sourced aggregates (FormData, Patient, Visit, Deviation), which generate events stored in append-only event store. Events are consumed by handlers (e.g., auto-completing visits when all forms submitted) and projectors to create read models for both EDC data (study_form_data) and trial management data (patients, visits, deviations).
 
 ---
 
@@ -153,27 +166,56 @@ Reference Numerals:
 │  }                                                                    │
 │                                                                       │
 ├─────────────────────────────────────────────────────────────────────┤
-│                    EXAMPLE EVENT RECORD                              │
+│                  EXAMPLE EVENT RECORDS (EDC + CTMS)                  │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                       │
-│  event_id:       "550e8400-e29b-41d4-a716-446655440000"             │
-│  aggregate_type: "Study"                                             │
-│  aggregate_id:   "650e8400-e29b-41d4-a716-446655440001"             │
-│  event_type:     "StudyCreatedEvent"                                 │
-│  event_version:  1                                                   │
-│  event_data: {                                                       │
-│    "protocol_number": "PROTO-2025-001",                              │
-│    "organization_id": 123,                                           │
-│    "study_phase": "PHASE_III"                                        │
-│  }                                                                   │
-│  metadata: {                                                         │
-│    "user_id": "12345",                                               │
-│    "user_name": "Dr. Jane Smith",                                    │
-│    "reason": "New hypertension trial",                               │
-│    "ip_address": "192.168.1.100"                                     │
-│  }                                                                   │
-│  occurred_at:    "2025-10-17T14:30:00Z"                              │
-│  sequence_number: 1001                                               │
+│  ┌─── Event 1: FormDataSubmittedEvent (eCRF Data Capture) ────┐    │
+│  │                                                               │    │
+│  │  event_id:       "550e8400-e29b-41d4-a716-446655440000"      │    │
+│  │  aggregate_type: "FormData"                                  │    │
+│  │  aggregate_id:   "750e8400-e29b-41d4-a716-446655440002"      │    │
+│  │  event_type:     "FormDataSubmittedEvent"                    │    │
+│  │  event_version:  1                                           │    │
+│  │  event_data: {                                               │    │
+│  │    "form_id": 101,                                           │    │
+│  │    "subject_id": 42,                                         │    │
+│  │    "visit_id": 28,                                           │    │
+│  │    "build_id": 1002,    ◄── Protocol version                │    │
+│  │    "form_data": { "blood_pressure": "120/80", ... },        │    │
+│  │    "status": "SUBMITTED"                                     │    │
+│  │  }                                                           │    │
+│  │  metadata: {                                                 │    │
+│  │    "user_id": "54321",                                       │    │
+│  │    "user_name": "Site Coordinator",                          │    │
+│  │    "reason": "Routine visit data collection",               │    │
+│  │    "ip_address": "192.168.2.50"                              │    │
+│  │  }                                                           │    │
+│  │  occurred_at:    "2025-10-17T14:30:00Z"                      │    │
+│  │  sequence_number: 1001                                       │    │
+│  └───────────────────────────────────────────────────────────────┘    │
+│                                                                       │
+│  ┌─── Event 2: PatientEnrolledEvent (Trial Management) ────────┐    │
+│  │                                                               │    │
+│  │  event_id:       "650e8400-e29b-41d4-a716-446655440001"      │    │
+│  │  aggregate_type: "Patient"                                   │    │
+│  │  aggregate_id:   "850e8400-e29b-41d4-a716-446655440003"      │    │
+│  │  event_type:     "PatientEnrolledEvent"                      │    │
+│  │  event_version:  1                                           │    │
+│  │  event_data: {                                               │    │
+│  │    "patient_id": 42,                                         │    │
+│  │    "study_id": 123,                                          │    │
+│  │    "enrollment_date": "2025-10-15",                          │    │
+│  │    "build_id": 1002     ◄── Enrolled on protocol v2.0       │    │
+│  │  }                                                           │    │
+│  │  metadata: {                                                 │    │
+│  │    "user_id": "12345",                                       │    │
+│  │    "user_name": "Dr. Jane Smith",                            │    │
+│  │    "reason": "Patient met eligibility criteria",            │    │
+│  │    "ip_address": "192.168.1.100"                             │    │
+│  │  }                                                           │    │
+│  │  occurred_at:    "2025-10-15T09:00:00Z"                      │    │
+│  │  sequence_number: 998                                        │    │
+│  └───────────────────────────────────────────────────────────────┘    │
 │                                                                       │
 │  ► IMMUTABLE - Never updated or deleted                              │
 │  ► Complete audit trail by design                                    │
@@ -200,7 +242,7 @@ Reference Numerals:
 225 - Session ID
 ```
 
-**Figure 2 Description**: Event store structure showing append-only table with immutable events. Each event contains complete audit information (who, what, when, why) enabling automatic audit trail generation without separate audit tables.
+**Figure 2 Description**: Event store structure showing append-only table with immutable events. Examples include FormDataSubmittedEvent (eCRF data capture) and PatientEnrolledEvent (trial management), demonstrating unified event architecture for EDC and CTMS functions. Each event contains complete audit information (who, what, when, why) and build_id for protocol version traceability, enabling automatic audit trail generation without separate audit tables.
 
 ---
 
@@ -301,7 +343,7 @@ Reference Numerals:
 370 - Form Data
 ```
 
-**Figure 3 Description**: Protocol version management showing how build_id propagates from protocol versions through mappings to patient data. Existing patients remain on their enrolled version while new patients use the latest version. No data migration required for protocol amendments.
+**Figure 3 Description**: Protocol version management showing how build_id propagates from protocol versions through visit definitions and visit-form mappings to patient enrollment, visit instances, and finally to eCRF form data submissions. Existing patients remain on their enrolled version (e.g., 3 visits) while new patients use the latest version (e.g., 5 visits with additional forms). All captured eCRF data is tagged with build_id ensuring complete traceability. No data migration required for protocol amendments.
 
 ---
 

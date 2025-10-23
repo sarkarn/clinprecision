@@ -284,6 +284,7 @@ public class PatientEnrollmentProjector {
                     .changedAt(event.getChangedAt() != null ? event.getChangedAt() : LocalDateTime.now())
                     .notes(event.getNotes())
                     .enrollmentId(enrollmentId)
+                    .relatedRecordId(event.getRelatedRecordId())
                     .build();
                 
                 // Save status history

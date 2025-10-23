@@ -199,6 +199,7 @@ public class PatientAggregate {
             .changedAt(LocalDateTime.now())
             .enrollmentId(command.getEnrollmentId())
             .notes(command.getNotes())
+            .relatedRecordId(command.getRelatedRecordId())
             .build());
         
         logger.info("PatientStatusChangedEvent emitted for patient: {}", command.getPatientId());

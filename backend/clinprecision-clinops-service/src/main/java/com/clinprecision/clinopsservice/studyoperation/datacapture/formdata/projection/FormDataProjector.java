@@ -250,10 +250,11 @@ public class FormDataProjector {
                 
                 // Update visit status to COMPLETED
                 boolean updated = patientVisitService.updateVisitStatus(
-                    visitId, 
-                    "COMPLETED", 
-                    updatedBy, 
-                    "Visit auto-completed: all required forms submitted"
+                    visitId,
+                    "COMPLETED",
+                    updatedBy,
+                    "Visit auto-completed: all required forms submitted",
+                    java.time.LocalDate.now()
                 );
                 
                 if (updated) {

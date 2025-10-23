@@ -63,6 +63,12 @@ public class PatientStatusChangedEvent {
      * Optional: Additional context or notes
      */
     private final String notes;
+
+    /**
+     * Optional: Identifier of related record that supports this status change
+     * Example: Screening assessment form data ID
+     */
+    private final String relatedRecordId;
     
     /**
      * Check if this is a valid status transition

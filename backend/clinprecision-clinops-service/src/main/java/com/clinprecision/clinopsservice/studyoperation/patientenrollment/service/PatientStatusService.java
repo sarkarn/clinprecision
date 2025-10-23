@@ -99,7 +99,8 @@ public class PatientStatusService {
      * @param newStatus Target status to transition to
      * @param reason Required reason for the status change
      * @param changedBy User performing the status change
-     * @param notes Optional additional context
+    * @param notes Optional additional context
+    * @param relatedRecordId Optional external record identifier supporting the status change
      * @return The created status history record
      * @throws IllegalArgumentException if validation fails
      * @throws RuntimeException if command processing fails
@@ -109,7 +110,8 @@ public class PatientStatusService {
             PatientStatus newStatus,
             String reason,
             String changedBy,
-            String notes
+            String notes,
+            String relatedRecordId
     ) {
         log.info("Changing patient status: patientId={}, newStatus={}, changedBy={}", 
             patientId, newStatus, changedBy);
@@ -142,12 +144,13 @@ public class PatientStatusService {
         
         // Create and send command
         ChangePatientStatusCommand command = ChangePatientStatusCommand.builder()
-                .patientId(patientUuid)
-                .newStatus(newStatus.name())
-                .reason(reason)
-                .changedBy(changedBy)
-                .notes(notes)
-                .build();
+            .patientId(patientUuid)
+            .newStatus(newStatus.name())
+            .reason(reason)
+            .changedBy(changedBy)
+            .notes(notes)
+            .relatedRecordId(relatedRecordId)
+            .build();
         
         log.info("Sending ChangePatientStatusCommand: {}", command);
         
@@ -196,6 +199,7 @@ public class PatientStatusService {
      * @param reason Required reason for the status change
      * @param changedBy User performing the status change
      * @param notes Optional additional context
+     * @param relatedRecordId Optional external record identifier supporting the status change
      * @return The created status history record
      */
     public PatientStatusHistoryEntity changePatientStatus(
@@ -204,14 +208,15 @@ public class PatientStatusService {
             PatientStatus newStatus,
             String reason,
             String changedBy,
-            String notes
+            String notes,
+            String relatedRecordId
     ) {
         log.info("Changing patient status with enrollment context: patientId={}, enrollmentId={}, newStatus={}", 
             patientId, enrollmentId, newStatus);
         
         // For now, just call the main method
         // In future, we could include enrollmentId in the command
-        return changePatientStatus(patientId, newStatus, reason, changedBy, notes);
+        return changePatientStatus(patientId, newStatus, reason, changedBy, notes, relatedRecordId);
     }
 
     /**

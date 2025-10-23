@@ -523,7 +523,7 @@ public class PatientVisitService {
      * @param notes Optional reason/notes for status change
      * @return true if update succeeded, false otherwise
      */
-    public boolean updateVisitStatus(Long visitInstanceId, String newStatus, Long updatedBy, String notes) {
+    public boolean updateVisitStatus(Long visitInstanceId, String newStatus, Long updatedBy, String notes, LocalDate actualVisitDate) {
         log.info("Updating visit status: visitInstanceId={}, newStatus={}, updatedBy={}",
                    visitInstanceId, newStatus, updatedBy);
         
@@ -575,12 +575,25 @@ public class PatientVisitService {
                 }
             }
             
+            LocalDate normalizedActualVisitDate = actualVisitDate;
+
+            if ("COMPLETED".equalsIgnoreCase(newStatus)) {
+                if (normalizedActualVisitDate == null) {
+                    normalizedActualVisitDate = visit.getActualVisitDate() != null
+                            ? visit.getActualVisitDate()
+                            : LocalDate.now();
+                }
+            } else {
+                normalizedActualVisitDate = null;
+            }
+
             // Send UpdateVisitStatusCommand to aggregate
             commandGateway.sendAndWait(new com.clinprecision.clinopsservice.studyoperation.visit.domain.commands.UpdateVisitStatusCommand(
                 aggregateUuid,
                 newStatus,
                 updatedBy,
-                notes
+                notes,
+                normalizedActualVisitDate
             ));
             
             log.info("Visit status update command sent successfully: visitInstanceId={}, aggregateUuid={}, newStatus={}",

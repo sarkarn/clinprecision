@@ -7,6 +7,7 @@ import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repos
 import com.clinprecision.clinopsservice.studyoperation.visit.domain.events.VisitCreatedEvent;
 import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
 import com.clinprecision.clinopsservice.studyoperation.visit.repository.StudyVisitInstanceRepository;
+import com.clinprecision.clinopsservice.studyoperation.visit.service.VisitComplianceService;
 import org.axonframework.eventhandling.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,13 +52,16 @@ public class VisitProjector {
     private final StudyVisitInstanceRepository studyVisitInstanceRepository;
     private final StudyDatabaseBuildRepository studyDatabaseBuildRepository;
     private final VisitDefinitionRepository visitDefinitionRepository;
+    private final VisitComplianceService visitComplianceService;
     
     public VisitProjector(StudyVisitInstanceRepository studyVisitInstanceRepository,
                          StudyDatabaseBuildRepository studyDatabaseBuildRepository,
-                         VisitDefinitionRepository visitDefinitionRepository) {
+                         VisitDefinitionRepository visitDefinitionRepository,
+                         VisitComplianceService visitComplianceService) {
         this.studyVisitInstanceRepository = studyVisitInstanceRepository;
         this.studyDatabaseBuildRepository = studyDatabaseBuildRepository;
         this.visitDefinitionRepository = visitDefinitionRepository;
+        this.visitComplianceService = visitComplianceService;
     }
     
     /**
@@ -116,6 +120,9 @@ public class VisitProjector {
                 .notes(event.getNotes())
                 .createdBy(event.getCreatedBy()) // User ID who created the visit
                 .build();
+
+            visit.setComplianceStatus(visitComplianceService.calculateComplianceStatus(visit));
+            visit.setWindowStatus(calculateWindowStatus(visit));
             
             // Save to read model
             studyVisitInstanceRepository.save(visit);
@@ -239,8 +246,9 @@ public class VisitProjector {
             
             StudyVisitInstanceEntity visit = visitOpt.get();
             
-            // Update status
+            // Update status and actual visit date as reported in event
             visit.setVisitStatus(event.getNewStatus());
+            visit.setActualVisitDate(event.getActualVisitDate());
             // Note: updatedBy is tracked in event store, updatedAt is auto-set by @PreUpdate
             
             // Update notes if provided
@@ -251,6 +259,10 @@ public class VisitProjector {
                     : existingNotes + "\n[Status Change by user " + event.getUpdatedBy() + "] " + event.getNotes();
                 visit.setNotes(updatedNotes);
             }
+
+            // Recalculate compliance/window status whenever visit state changes
+            visit.setComplianceStatus(visitComplianceService.calculateComplianceStatus(visit));
+            visit.setWindowStatus(calculateWindowStatus(visit));
             
             // Save updated visit (updatedAt will be auto-set by @PreUpdate)
             studyVisitInstanceRepository.save(visit);
@@ -265,12 +277,28 @@ public class VisitProjector {
         }
     }
 
+    private String calculateWindowStatus(StudyVisitInstanceEntity visit) {
+        if (visit.getActualVisitDate() == null || visit.getVisitWindowStart() == null || visit.getVisitWindowEnd() == null) {
+            return null;
+        }
+
+        if (visit.getActualVisitDate().isBefore(visit.getVisitWindowStart())) {
+            return "EARLY";
+        }
+
+        if (visit.getActualVisitDate().isAfter(visit.getVisitWindowEnd())) {
+            return "LATE";
+        }
+
+        return "ON_TIME";
+    }
+
     /**
      * Map frontend visit type strings to database visit codes
-     * 
+     *
      * Frontend uses descriptive names like "DISCONTINUATION"
      * Database uses standardized codes like "EARLY_TERM"
-     * 
+     *
      * @param visitType Frontend visit type string
      * @return Database visit code
      */

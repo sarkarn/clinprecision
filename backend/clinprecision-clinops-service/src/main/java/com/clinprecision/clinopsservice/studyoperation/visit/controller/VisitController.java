@@ -23,6 +23,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -487,11 +489,23 @@ public class VisitController {
                 visitInstanceId, request.getNewStatus(), request.getUpdatedBy());
         
         try {
+            LocalDate actualVisitDate = null;
+            if (request.getActualVisitDate() != null && !request.getActualVisitDate().trim().isEmpty()) {
+                try {
+                    actualVisitDate = LocalDate.parse(request.getActualVisitDate().trim());
+                } catch (DateTimeParseException ex) {
+                    log.warn("REST: Invalid actualVisitDate provided: {}", request.getActualVisitDate());
+                    return ResponseEntity.badRequest()
+                            .body(new ErrorResponse("Invalid actualVisitDate. Expected format: YYYY-MM-DD"));
+                }
+            }
+
             boolean success = visitService.updateVisitStatus(
                 visitInstanceId,
                 request.getNewStatus(),
                 request.getUpdatedBy(),
-                request.getNotes()
+                request.getNotes(),
+                actualVisitDate
             );
             
             if (success) {
@@ -500,7 +514,8 @@ public class VisitController {
                 return ResponseEntity.ok(new StatusUpdateResponse(
                     true,
                     "Visit status updated successfully",
-                    request.getNewStatus()
+                    request.getNewStatus(),
+                    actualVisitDate != null ? actualVisitDate.toString() : null
                 ));
             } else {
                 log.error("REST: Failed to update visit status: visitInstanceId={}", visitInstanceId);
@@ -523,6 +538,7 @@ public class VisitController {
         private String newStatus;
         private Long updatedBy;
         private String notes;
+        private String actualVisitDate;
 
         public String getNewStatus() {
             return newStatus;
@@ -547,6 +563,14 @@ public class VisitController {
         public void setNotes(String notes) {
             this.notes = notes;
         }
+
+        public String getActualVisitDate() {
+            return actualVisitDate;
+        }
+
+        public void setActualVisitDate(String actualVisitDate) {
+            this.actualVisitDate = actualVisitDate;
+        }
     }
 
     /**
@@ -556,11 +580,13 @@ public class VisitController {
         private final Boolean success;
         private final String message;
         private final String newStatus;
+        private final String actualVisitDate;
 
-        public StatusUpdateResponse(Boolean success, String message, String newStatus) {
+        public StatusUpdateResponse(Boolean success, String message, String newStatus, String actualVisitDate) {
             this.success = success;
             this.message = message;
             this.newStatus = newStatus;
+            this.actualVisitDate = actualVisitDate;
         }
 
         public Boolean getSuccess() {
@@ -573,6 +599,10 @@ public class VisitController {
 
         public String getNewStatus() {
             return newStatus;
+        }
+
+        public String getActualVisitDate() {
+            return actualVisitDate;
         }
     }
 

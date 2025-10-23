@@ -55,6 +55,7 @@ public class VisitAggregate {
     private Long createdBy;  // User ID who created the visit
     private LocalDateTime createdAt;
     private String notes;
+    private LocalDate actualVisitDate;
 
     /**
      * Required no-arg constructor for Axon Framework
@@ -156,15 +157,26 @@ public class VisitAggregate {
             logger.warn("Visit status is already {}, skipping update", this.status);
             return;
         }
+
+        LocalDate normalizedActualDate = command.getActualVisitDate();
+
+        if ("COMPLETED".equalsIgnoreCase(command.getNewStatus())) {
+            if (normalizedActualDate == null) {
+                normalizedActualDate = LocalDate.now();
+            }
+        } else {
+            normalizedActualDate = null;
+        }
         
         // Emit domain event
         AggregateLifecycle.apply(new com.clinprecision.clinopsservice.studyoperation.visit.domain.events.VisitStatusChangedEvent(
             command.getAggregateUuid(),
-            this.status, // old status
+            this.status,
             command.getNewStatus(),
             command.getUpdatedBy(),
             command.getNotes(),
-            System.currentTimeMillis()
+            System.currentTimeMillis(),
+            normalizedActualDate
         ));
         
         logger.info("VisitStatusChangedEvent emitted for visitId: {}", this.visitId);
@@ -182,6 +194,7 @@ public class VisitAggregate {
                     this.visitId, event.getOldStatus(), event.getNewStatus());
         
         this.status = event.getNewStatus();
+        this.actualVisitDate = event.getActualVisitDate();
         
         logger.debug("Visit aggregate status updated to: {}", this.status);
     }
@@ -225,5 +238,9 @@ public class VisitAggregate {
 
     public String getNotes() {
         return notes;
+    }
+
+    public LocalDate getActualVisitDate() {
+        return actualVisitDate;
     }
 }

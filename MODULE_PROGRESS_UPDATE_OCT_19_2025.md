@@ -207,6 +207,7 @@
 | 1 | Screening Workflow | ✅ COMPLETE (Basic) | ✅ DONE |
 | 5 | Eligibility Criteria Engine | ✅ COMPLETE (Basic) | ✅ DONE |
 | 7 | Unscheduled Visit UI | ✅ COMPLETE | ✅ DONE |
+| 8 | Protocol Deviation Tracking | 🔄 IN PROGRESS (Schema Complete) | 🟡 MED |
 | 11 | Randomization Engine | ❌ OUT OF SCOPE | N/A |
 
 ### **Actual Remaining Gaps**:
@@ -216,14 +217,14 @@
 | 3 | Visit-Form Association | ✅ COMPLETE | ✅ DONE |
 | 4 | Visit Windows & Compliance | ⏳ Week 3-4 | 🔴 HIGH |
 | 6 | Form Completion Tracking | ✅ COMPLETE | ✅ DONE |
-| 8 | Protocol Deviation Tracking | ⏳ Week 4 | 🟡 MED |
+| 8 | Protocol Deviation Tracking | 🔄 IN PROGRESS (Schema: ✅, Backend: ⏳, Frontend: ⏳) | 🟡 MED |
 | 9 | Visit Status Lifecycle | ✅ COMPLETE | ✅ DONE |
 | 10 | Informed Consent Management | 📋 Future | 🟢 LOW |
 | 12 | SDV (Source Document Verification) | 📋 Future Module | 🟢 LOW |
 
 **Summary**:
 - **Previously**: 4 complete, 8 pending
-- **Now**: 7 complete, 1 out of scope, 4 pending
+- **Now (Oct 23)**: 7 complete, 1 in progress (schema done), 1 out of scope, 3 pending
 
 ---
 
@@ -237,12 +238,18 @@
 - Visit Window Compliance (10 hours) - PLANNED
 - **Total**: 17 hours / ~2-3 days (down from 37 hours)
 
-### **Week 4** (Oct 26 - Nov 1, 2025) - **REVISED**
+### **Week 4** (Oct 26 - Nov 1, 2025) - **REVISED OCT 23**
 - ~~Screening Workflow~~ ✅ COMPLETE
 - ~~Unscheduled Visit UI~~ ✅ COMPLETE
-- Protocol Deviation Tracking (10 hours)
+- **Protocol Deviation Tracking** (10 hours total)
+  - ✅ Database schema (V1.17 migration created - Oct 23)
+  - ⏳ Backend entities, repository, service (3 hours)
+  - ⏳ REST controller & DTOs (2 hours)
+  - ⏳ Frontend DeviationModal component (2 hours)
+  - ⏳ SubjectDetails integration & dashboard (2 hours)
+  - ⏳ Auto-flagging visit window violations (1 hour)
 - Advanced eligibility criteria engine (optional - 8 hours)
-- **Total**: 10-18 hours / ~1-2 days (down from 30 hours)
+- **Total**: 10-18 hours / ~1-2 days (schema already complete)
 
 ---
 

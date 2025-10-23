@@ -82,4 +82,10 @@ public class ChangePatientStatusRequest {
      * If null, status change applies to patient's primary enrollment
      */
     private Long enrollmentId;
+
+    /**
+     * Optional identifier linking this status change to a related record (e.g. screening form ID)
+     * Stored for traceability so downstream services can locate related data artifacts
+     */
+    private String relatedRecordId;
 }
