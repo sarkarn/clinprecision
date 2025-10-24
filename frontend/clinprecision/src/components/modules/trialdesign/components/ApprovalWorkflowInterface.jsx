@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-    CheckCircle, Clock, AlertTriangle, Users, Eye, ArrowRight,
-    MessageSquare, FileCheck, Send, XCircle, ThumbsUp, ThumbsDown,
-    User, Calendar, GitBranch, FileText, Activity
+    CheckCircle, Clock, AlertTriangle,
+    MessageSquare, XCircle, ThumbsUp, ThumbsDown,
+    FileText, Activity
 } from 'lucide-react';
 import { Button } from '../components/UIComponents';
 

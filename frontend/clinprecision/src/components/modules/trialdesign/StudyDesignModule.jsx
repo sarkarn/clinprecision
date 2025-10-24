@@ -18,7 +18,6 @@ import FormVersionHistory from '../../common/forms/FormVersionHistory';
 import FormVersionViewer from '../../common/forms/FormVersionViewer';
 import CRFBuilderIntegration from '../../common/forms/CRFBuilderIntegration';
 import EnhancedDashboardMetrics from './components/EnhancedDashboardMetrics';
-import { useAuth } from '../../login/AuthContext';
 import { useDashboardMetrics } from './hooks/useDashboardMetrics';
 import { useStudyNavigation } from './hooks/useStudyNavigation';
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import StudyFormService from '../../../services/StudyFormService';
 import StudyService from '../../../services/StudyService';
 import { Alert } from './components/UIComponents';

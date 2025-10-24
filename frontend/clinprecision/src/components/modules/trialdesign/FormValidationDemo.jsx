@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Eye, Code, RefreshCw } from 'lucide-react';
+import { Settings, Code, RefreshCw } from 'lucide-react';
 
 // Enhanced form components
 import EnhancedFormField from './components/EnhancedFormField';
@@ -23,12 +23,9 @@ const FormValidationDemo = () => {
     const {
         formData,
         errors,
-        touched,
-        validationStatus,
         isFormValid,
         completionPercentage,
         updateField,
-        validateForm,
         getFieldValidationState,
         getFieldSuggestions,
         handleFieldFocus,

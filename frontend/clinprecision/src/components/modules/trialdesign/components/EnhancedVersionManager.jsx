@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-    GitBranch, Clock, Users, CheckCircle, AlertTriangle,
-    Eye, ArrowRight, ArrowDown, ChevronRight, ChevronDown,
+    GitBranch, Clock, Users, CheckCircle,
+    ChevronRight, ChevronDown,
     Calendar, FileText, Activity
 } from 'lucide-react';
 

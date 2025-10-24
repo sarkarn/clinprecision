@@ -47,28 +47,6 @@ export const useDashboardMetrics = () => {
         return loadMetrics();
     }, [loadMetrics]);
 
-    // Get formatted metrics for display
-    const getFormattedMetrics = useCallback(() => {
-        if (!metrics || loading) {
-            return {
-                activeStudies: loading ? '...' : '–',
-                draftProtocols: loading ? '...' : '–',
-                completedStudies: loading ? '...' : '–',
-                totalAmendments: loading ? '...' : '–'
-            };
-        }
-
-        return {
-            activeStudies: metrics.activeStudies || 0,
-            draftProtocols: metrics.draftProtocols || 0,
-            completedStudies: metrics.completedStudies || 0,
-            totalAmendments: metrics.totalAmendments || 0,
-            studiesByStatus: metrics.studiesByStatus || {},
-            studiesByPhase: metrics.studiesByPhase || {},
-            lastUpdated: metrics.lastUpdated
-        };
-    }, [metrics, loading]);
-
     // Check if data is available and fresh
     const isDataFresh = useCallback(() => {
         if (!metrics?.lastUpdated) return false;

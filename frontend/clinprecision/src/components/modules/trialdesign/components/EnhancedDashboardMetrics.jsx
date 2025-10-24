@@ -7,13 +7,8 @@ import {
     FileText,
     CheckCircle2,
     GitBranch,
-    Clock,
     AlertCircle,
-    Zap,
-    RefreshCw,
-    BarChart3,
-    PieChart,
-    Activity
+    RefreshCw
 } from 'lucide-react';
 import ProgressiveLoader, { LiveIndicator } from './ProgressiveLoader';
 

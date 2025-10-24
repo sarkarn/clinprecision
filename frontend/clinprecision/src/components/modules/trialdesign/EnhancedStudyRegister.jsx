@@ -19,8 +19,6 @@ const EnhancedStudyRegister = () => {
     const {
         formData,
         errors,
-        touched,
-        validationStatus,
         isFormValid,
         completionPercentage,
         updateField,
@@ -86,13 +84,8 @@ const EnhancedStudyRegister = () => {
             // Prepare API data
             const apiFormData = { ...formData };
 
-            // Format dates if needed
-            if (apiFormData.startDate) {
-                apiFormData.startDate = apiFormData.startDate;
-            }
-            if (apiFormData.endDate) {
-                apiFormData.endDate = apiFormData.endDate;
-            }
+            // Dates are already in correct format from form
+            // No additional formatting needed
 
             console.log('Attempting to register study with data:', apiFormData);
 

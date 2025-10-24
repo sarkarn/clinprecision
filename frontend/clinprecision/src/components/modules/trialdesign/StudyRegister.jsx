@@ -71,13 +71,7 @@ const StudyRegister = () => {
             // Handle principalInvestigator and other fields - now using standard field name
             // No need to store in metadata since backend accepts principalInvestigator directly
 
-            // Format dates if needed
-            if (apiFormData.startDate) {
-                apiFormData.startDate = apiFormData.startDate; // Already in YYYY-MM-DD format
-            }
-            if (apiFormData.endDate) {
-                apiFormData.endDate = apiFormData.endDate; // Already in YYYY-MM-DD format
-            }
+            // Dates are already in YYYY-MM-DD format from the input fields
 
             console.log('Attempting to register study with data:', apiFormData);
             console.log('API_PATH being used:', '/study-design-ws/api/studies');
