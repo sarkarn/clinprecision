@@ -1,15 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     CheckCircle2,
     Circle,
-    Clock,
     AlertTriangle,
     ArrowRight,
-    Target,
     Lightbulb,
     HelpCircle,
     ChevronRight,
-    Zap,
     CheckSquare
 } from 'lucide-react';
 
@@ -27,7 +24,6 @@ const WorkflowProgressTracker = ({
     className = ""
 }) => {
     const [showSuggestions, setShowSuggestions] = useState(true);
-    const [validationState, setValidationState] = useState({});
 
     // Calculate overall progress
     const getOverallProgress = () => {

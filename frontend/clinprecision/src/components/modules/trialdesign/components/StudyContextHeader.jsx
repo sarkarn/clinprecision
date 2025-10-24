@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Users, Calendar, FileText, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, FileText, CheckCircle, Clock } from 'lucide-react';
 import { useStudyNavigation } from '../hooks/useStudyNavigation';
 
 /**
@@ -14,7 +14,7 @@ const StudyContextHeader = ({
     progressValue = 0,
     actions = []
 }) => {
-    const { navigateBack, navigateToStudiesList } = useStudyNavigation();
+    const { navigateBack } = useStudyNavigation();
 
     // Default back handler using navigation hook
     const handleBack = () => {

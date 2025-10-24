@@ -7,11 +7,8 @@ import {
     Lightbulb,
     ArrowRight,
     FileText,
-    Users,
     Calendar,
     Link as LinkIcon,
-    Send,
-    HelpCircle,
     Sparkles,
     TrendingUp
 } from 'lucide-react';

@@ -9,9 +9,7 @@ import {
     Calendar,
     FileText,
     Link as LinkIcon,
-    Send,
-    GitBranch,
-    Users
+    Send
 } from 'lucide-react';
 
 /**

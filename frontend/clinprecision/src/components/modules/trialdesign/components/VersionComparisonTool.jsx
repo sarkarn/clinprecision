@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowRight, GitCompare, Eye, EyeOff, Plus, Minus, Edit3, Info, AlertTriangle, CheckCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowRight, GitCompare, Eye, EyeOff, Plus, Minus, Edit3, Info } from 'lucide-react';
 import { Button } from '../components/UIComponents';
 
 /**
