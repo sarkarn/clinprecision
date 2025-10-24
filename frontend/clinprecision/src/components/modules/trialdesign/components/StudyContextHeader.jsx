@@ -155,10 +155,10 @@ const StudyContextHeader = ({
                                         onClick={action.onClick}
                                         disabled={action.disabled}
                                         className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${action.variant === 'primary'
-                                                ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300'
-                                                : action.variant === 'danger'
-                                                    ? 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300'
-                                                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100'
+                                            ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300'
+                                            : action.variant === 'danger'
+                                                ? 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300'
+                                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100'
                                             }`}
                                     >
                                         {action.icon && <action.icon className="w-4 h-4 mr-2" />}

@@ -205,7 +205,7 @@ const PhaseTransitionHelper = ({
                                         <div className="w-24 bg-gray-200 rounded-full h-2">
                                             <div
                                                 className={`h-2 rounded-full ${validationResults.score >= 90 ? 'bg-green-500' :
-                                                        validationResults.score >= 75 ? 'bg-yellow-500' : 'bg-red-500'
+                                                    validationResults.score >= 75 ? 'bg-yellow-500' : 'bg-red-500'
                                                     }`}
                                                 style={{ width: `${validationResults.score}%` }}
                                             ></div>

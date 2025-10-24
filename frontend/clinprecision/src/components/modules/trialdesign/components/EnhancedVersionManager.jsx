@@ -503,7 +503,7 @@ const VersionTimeline = ({
                             <div key={version.id} className="relative flex items-start space-x-4">
                                 {/* Timeline dot */}
                                 <div className={`flex-shrink-0 w-3 h-3 rounded-full border-2 bg-white z-10 ${version.status === 'ACTIVE' ? 'border-green-500' :
-                                        version.status === 'ARCHIVED' ? 'border-gray-400' : 'border-blue-500'
+                                    version.status === 'ARCHIVED' ? 'border-gray-400' : 'border-blue-500'
                                     }`}></div>
 
                                 {/* Version card */}
