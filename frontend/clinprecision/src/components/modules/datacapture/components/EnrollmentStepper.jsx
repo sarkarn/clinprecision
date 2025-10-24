@@ -16,7 +16,7 @@ const STEPS = [
     { id: 3, name: 'Review', schema: completeEnrollmentSchema },
 ];
 
-const EnrollmentStepper = ({ onClose, onSubmit, studies, sites }) => {
+const EnrollmentStepper = ({ onClose, onSubmit, studies }) => {
     const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState({});
 
@@ -73,10 +73,10 @@ const EnrollmentStepper = ({ onClose, onSubmit, studies, sites }) => {
                                 <div className="flex items-center">
                                     <div
                                         className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold ${currentStep > step.id
-                                                ? 'bg-green-500 text-white'
-                                                : currentStep === step.id
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-gray-200 text-gray-600'
+                                            ? 'bg-green-500 text-white'
+                                            : currentStep === step.id
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-gray-200 text-gray-600'
                                             }`}
                                     >
                                         {currentStep > step.id ? (
@@ -106,7 +106,7 @@ const EnrollmentStepper = ({ onClose, onSubmit, studies, sites }) => {
                 <FormProvider {...methods}>
                     <form onSubmit={handleFinalSubmit} className="px-6 py-6">
                         {currentStep === 1 && <DemographicsStep />}
-                        {currentStep === 2 && <StudySiteStep studies={studies} sites={sites} />}
+                        {currentStep === 2 && <StudySiteStep studies={studies} />}
                         {currentStep === 3 && <ReviewStep formData={{ ...formData, ...methods.getValues() }} />}
 
                         {/* Navigation Buttons */}

@@ -1,10 +1,8 @@
-// SubjectList.jsx - Enhanced for Clinical Trial Standards
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getStudies } from '../../../services/StudyService';
 import { getSubjectsByStudy } from '../../../services/SubjectService';
-import { SiteService } from '../../../services/SiteService';
 import ApiService from '../../../services/ApiService';
 import { useStudy } from '../../../hooks/useStudy';
 import { useDebounce } from '../../../hooks/useDebounce';
@@ -29,7 +27,6 @@ const normalizeStatus = (status) => {
 export default function SubjectList() {
     const { selectedStudy, setSelectedStudy } = useStudy();
     const [studies, setStudies] = useState([]);
-    const [sites, setSites] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [allPatients, setAllPatients] = useState([]);
     const [showAllPatients, setShowAllPatients] = useState(false); // Now defaults to false
@@ -91,13 +88,7 @@ export default function SubjectList() {
                 });
 
                 console.log('[SUBJECT LIST] Filtered studies for viewing:', filteredStudies.length);
-                setStudies(studiesData);
-
-                // Fetch all sites
-                console.log('[SUBJECT LIST] Fetching sites...');
-                const sitesData = await SiteService.getAllSites();
-                console.log('[SUBJECT LIST] Sites received:', sitesData);
-                setSites(sitesData);
+                setStudies(filteredStudies); // Use filtered studies, not all studies
 
                 // Check if study was preselected from navigation state (e.g., from dashboard)
                 if (location.state?.preselectedStudy) {
@@ -963,7 +954,6 @@ export default function SubjectList() {
                     onClose={() => setShowEnrollmentModal(false)}
                     onSubmit={handleEnrollmentSubmit}
                     studies={studies}
-                    sites={sites}
                 />
             )}
         </div>

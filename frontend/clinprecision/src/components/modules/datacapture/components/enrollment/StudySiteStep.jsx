@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
+import { SiteService } from '../../../../../services/SiteService';
 
-const StudySiteStep = ({ studies, sites }) => {
+const StudySiteStep = ({ studies }) => {
     const {
         register,
         formState: { errors },
@@ -9,11 +10,50 @@ const StudySiteStep = ({ studies, sites }) => {
     } = useFormContext();
 
     const selectedStudyId = watch('studyId');
+    const [sites, setSites] = useState([]);
+    const [loadingSites, setLoadingSites] = useState(false);
 
-    // Filter sites based on selected study
-    const filteredSites = selectedStudyId
-        ? sites.filter((site) => site.studyId === selectedStudyId)
-        : [];
+    // Fetch sites when study is selected
+    useEffect(() => {
+        const fetchSitesForStudy = async () => {
+            if (!selectedStudyId) {
+                setSites([]);
+                return;
+            }
+
+            setLoadingSites(true);
+            try {
+                // Get site associations for the selected study
+                const associations = await SiteService.getSiteAssociationsForStudy(selectedStudyId);
+                console.log('[StudySiteStep] Site associations for study', selectedStudyId, ':', associations);
+
+                // Filter only ACTIVE sites and map to site data
+                const activeSites = associations
+                    .filter(assoc => assoc.status === 'ACTIVE')
+                    .map(assoc => ({
+                        id: assoc.siteId,
+                        name: assoc.siteName,
+                        siteNumber: assoc.siteNumber,
+                        // Include association details for potential use
+                        associationId: assoc.id,
+                        enrollmentCap: assoc.subjectEnrollmentCap,
+                        enrollmentCount: assoc.subjectEnrollmentCount
+                    }));
+
+                console.log('[StudySiteStep] Active sites for study:', activeSites);
+                setSites(activeSites);
+            } catch (error) {
+                console.error('[StudySiteStep] Error fetching sites for study:', error);
+                setSites([]);
+            } finally {
+                setLoadingSites(false);
+            }
+        };
+
+        fetchSitesForStudy();
+    }, [selectedStudyId]);
+
+    const filteredSites = sites;
 
     return (
         <div className="space-y-6">
@@ -33,14 +73,16 @@ const StudySiteStep = ({ studies, sites }) => {
                     id="studyId"
                     {...register('studyId')}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${errors.studyId
-                            ? 'border-red-500 focus:ring-red-500'
-                            : 'border-gray-300 focus:ring-blue-500'
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 focus:ring-blue-500'
                         }`}
                 >
                     <option value="">Select a study</option>
                     {studies.map((study) => (
-                        <option key={study.studyId} value={study.studyId}>
-                            {study.studyName} ({study.studyProtocolNo})
+                        <option key={study.id} value={study.id}>
+                            {study.protocolNumber ? `${study.protocolNumber} - ` : ''}
+                            {study.title || study.name || 'Untitled Study'}
+                            {study.phase ? ` (${study.phase})` : ''}
                         </option>
                     ))}
                 </select>
@@ -57,18 +99,22 @@ const StudySiteStep = ({ studies, sites }) => {
                 <select
                     id="siteId"
                     {...register('siteId')}
-                    disabled={!selectedStudyId}
+                    disabled={!selectedStudyId || loadingSites}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${errors.siteId
-                            ? 'border-red-500 focus:ring-red-500'
-                            : 'border-gray-300 focus:ring-blue-500'
-                        } ${!selectedStudyId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 focus:ring-blue-500'
+                        } ${!selectedStudyId || loadingSites ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 >
                     <option value="">
-                        {selectedStudyId ? 'Select a site' : 'Please select a study first'}
+                        {loadingSites
+                            ? 'Loading sites...'
+                            : selectedStudyId
+                                ? 'Select a site'
+                                : 'Please select a study first'}
                     </option>
                     {filteredSites.map((site) => (
-                        <option key={site.siteId} value={site.siteId}>
-                            {site.siteName} - {site.siteNo}
+                        <option key={site.id} value={site.id}>
+                            {site.name} - {site.siteNumber}
                         </option>
                     ))}
                 </select>
