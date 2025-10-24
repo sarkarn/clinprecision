@@ -49,7 +49,14 @@ export default function SubjectList() {
 
                 console.log('[SUBJECT LIST] Filtered studies for viewing:', filteredStudies.length);
                 setStudies(filteredStudies);
-                // No automatic selection - user must choose a study
+
+                // Check if study was preselected from navigation state (e.g., from dashboard)
+                if (location.state?.preselectedStudy) {
+                    console.log('[SUBJECT LIST] Preselected study from navigation:', location.state.preselectedStudy);
+                    setSelectedStudy(location.state.preselectedStudy);
+                    // Clear the navigation state to prevent re-selection on refresh
+                    window.history.replaceState({}, document.title);
+                }
             } catch (error) {
                 console.error('[SUBJECT LIST] Error fetching studies:', error);
             }
@@ -71,7 +78,7 @@ export default function SubjectList() {
 
         fetchStudies();
         fetchAllPatients(); // Load all patients on initial page load
-    }, []);
+    }, [location.state]);
 
     useEffect(() => {
         if (!selectedStudy) return;
