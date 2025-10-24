@@ -44,9 +44,6 @@ public class ProtocolDeviationEntity {
     @Column(name = "visit_instance_id")
     private Long visitInstanceId;
 
-    @Column(name = "deviation_number", length = 50)
-    private String deviationNumber;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "deviation_type", nullable = false, length = 50)
     private DeviationType deviationType;
@@ -77,7 +74,7 @@ public class ProtocolDeviationEntity {
     @Column(name = "deviation_date")
     private LocalDate deviationDate;
 
-    @Column(name = "detection_date")
+    @Column(name = "detected_date")
     private LocalDate detectionDate;
 
     @Column(name = "root_cause", columnDefinition = "TEXT")

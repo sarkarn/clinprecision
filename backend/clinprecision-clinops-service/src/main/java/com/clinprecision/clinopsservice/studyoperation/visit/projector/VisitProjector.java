@@ -6,6 +6,7 @@ import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entit
 import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionRepository;
 import com.clinprecision.clinopsservice.studyoperation.visit.domain.events.VisitCreatedEvent;
 import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.VisitStatus;
 import com.clinprecision.clinopsservice.studyoperation.visit.repository.StudyVisitInstanceRepository;
 import com.clinprecision.clinopsservice.studyoperation.visit.service.VisitComplianceService;
 import com.clinprecision.clinopsservice.studyoperation.protocoldeviation.service.ProtocolDeviationService;
@@ -120,7 +121,7 @@ public class VisitProjector {
                 .subjectId(event.getPatientId())
                 .studySiteId(event.getSiteId())
                 .visitDate(event.getVisitDate())
-                .visitStatus(event.getStatus())
+                .visitStatus(VisitStatus.fromString(event.getStatus())) // Convert String to enum
                 .buildId(buildId) // ← CRITICAL FIX: Set build_id for protocol version tracking
                 .aggregateUuid(event.getVisitId().toString()) // Store event UUID
                 .notes(event.getNotes())
@@ -253,7 +254,7 @@ public class VisitProjector {
             StudyVisitInstanceEntity visit = visitOpt.get();
             
             // Update status and actual visit date as reported in event
-            visit.setVisitStatus(event.getNewStatus());
+            visit.setVisitStatus(VisitStatus.fromString(event.getNewStatus())); // Convert String to enum
             visit.setActualVisitDate(event.getActualVisitDate());
             // Note: updatedBy is tracked in event store, updatedAt is auto-set by @PreUpdate
             

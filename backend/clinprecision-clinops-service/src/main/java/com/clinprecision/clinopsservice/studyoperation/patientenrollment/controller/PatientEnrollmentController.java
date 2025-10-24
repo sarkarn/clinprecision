@@ -232,6 +232,60 @@ public class PatientEnrollmentController {
     }
 
     /**
+     * Get enrolled patients by site ID
+     * Returns all patients enrolled at a specific site across all studies
+     * 
+     * @param siteId Site ID to filter patients
+     * @return List of patients enrolled at the specified site
+     */
+    @GetMapping("/site/{siteId}")
+    public ResponseEntity<List<PatientDto>> getPatientsBySite(@PathVariable Long siteId) {
+        
+        log.info("API Request: Get patients for site ID {}", siteId);
+        
+        try {
+            List<PatientDto> results = patientEnrollmentService.getPatientsBySite(siteId);
+            
+            log.info("API Response: Found {} patients for site {}", results.size(), siteId);
+            return ResponseEntity.ok(results);
+            
+        } catch (Exception e) {
+            log.error("Error retrieving patients for site {}: {}", siteId, e.getMessage(), e);
+            throw new RuntimeException("Failed to retrieve patients for site", e);
+        }
+    }
+
+    /**
+     * Get enrolled patients by study AND site (combined filter)
+     * Returns patients enrolled in a specific study at a specific site
+     * Useful for site coordinators viewing their site's patients for a particular study
+     * 
+     * @param studyId Study ID to filter patients
+     * @param siteId Site ID to filter patients
+     * @return List of patients enrolled in both the study and site
+     */
+    @GetMapping("/study/{studyId}/site/{siteId}")
+    public ResponseEntity<List<PatientDto>> getPatientsByStudyAndSite(
+            @PathVariable Long studyId,
+            @PathVariable Long siteId) {
+        
+        log.info("API Request: Get patients for study ID {} at site ID {}", studyId, siteId);
+        
+        try {
+            List<PatientDto> results = patientEnrollmentService.getPatientsByStudyAndSite(studyId, siteId);
+            
+            log.info("API Response: Found {} patients for study {} at site {}", 
+                     results.size(), studyId, siteId);
+            return ResponseEntity.ok(results);
+            
+        } catch (Exception e) {
+            log.error("Error retrieving patients for study {} at site {}: {}", 
+                     studyId, siteId, e.getMessage(), e);
+            throw new RuntimeException("Failed to retrieve patients for study and site", e);
+        }
+    }
+
+    /**
      * Search patients by name
      * 
      * @param searchTerm Search term for patient names

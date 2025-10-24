@@ -43,7 +43,7 @@ public class VisitComplianceService {
         LocalDate windowStart = visit.getVisitWindowStart();
         LocalDate windowEnd = visit.getVisitWindowEnd();
         LocalDate actualDate = visit.getActualVisitDate();
-        String visitStatus = visit.getVisitStatus();
+        String visitStatus = visit.getVisitStatus() != null ? visit.getVisitStatus().name() : null;
         
         // No window configured yet
         if (windowStart == null || windowEnd == null) {
@@ -110,7 +110,7 @@ public class VisitComplianceService {
         }
 
         LocalDate windowEnd = visit.getVisitWindowEnd();
-        String visitStatus = visit.getVisitStatus();
+        String visitStatus = visit.getVisitStatus() != null ? visit.getVisitStatus().name() : null;
 
         // If visit completed, check actual date vs window
         if ("COMPLETED".equals(visitStatus)) {

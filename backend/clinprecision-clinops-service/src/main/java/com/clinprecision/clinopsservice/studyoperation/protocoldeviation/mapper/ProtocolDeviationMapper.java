@@ -26,7 +26,6 @@ public class ProtocolDeviationMapper {
                 .studyId(entity.getStudyId())
                 .studySiteId(entity.getStudySiteId())
                 .visitInstanceId(entity.getVisitInstanceId())
-                .deviationNumber(entity.getDeviationNumber())
                 .deviationType(entity.getDeviationType())
                 .severity(entity.getSeverity())
                 .deviationStatus(entity.getDeviationStatus())

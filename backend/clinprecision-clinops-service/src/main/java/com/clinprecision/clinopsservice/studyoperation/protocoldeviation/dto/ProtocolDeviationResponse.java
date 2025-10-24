@@ -26,7 +26,6 @@ public class ProtocolDeviationResponse {
     private Long studyId;
     private Long studySiteId;
     private Long visitInstanceId;
-    private String deviationNumber;
     private DeviationType deviationType;
     private DeviationSeverity severity;
     private DeviationStatus deviationStatus;

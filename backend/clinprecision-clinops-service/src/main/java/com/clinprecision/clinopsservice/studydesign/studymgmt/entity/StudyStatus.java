@@ -2,6 +2,7 @@ package com.clinprecision.clinopsservice.studydesign.studymgmt.entity;
 
 /**
  * Enumeration for study status values
+ * All values stored as UPPERCASE for consistency across the system
  */
 public enum StudyStatus {
     DRAFT,
@@ -16,13 +17,6 @@ public enum StudyStatus {
     public static StudyStatus fromString(String value) {
         if (value == null) return null;
         return StudyStatus.valueOf(value.toUpperCase());
-    }
-    
-    /**
-     * Convert enum to database string value (lowercase)
-     */
-    public String toDbValue() {
-        return this.name().toLowerCase();
     }
 }
 

@@ -44,7 +44,8 @@ public class StudyVisitInstanceEntity {
     private LocalDate actualVisitDate;
 
     @Column(name = "visit_status", length = 50)
-    private String visitStatus; // SCHEDULED, COMPLETED, MISSED, CANCELLED
+    @Convert(converter = VisitStatusConverter.class)
+    private VisitStatus visitStatus; // SCHEDULED, IN_PROGRESS, COMPLETED, MISSED, CANCELLED, RESCHEDULED
 
     @Column(name = "window_status", length = 50)
     private String windowStatus; // ON_TIME, EARLY, LATE, OUT_OF_WINDOW

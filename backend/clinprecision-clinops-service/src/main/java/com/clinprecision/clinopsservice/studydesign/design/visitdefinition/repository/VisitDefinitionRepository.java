@@ -141,12 +141,15 @@ public interface VisitDefinitionRepository extends JpaRepository<VisitDefinition
     
     /**
      * Find all unscheduled visit definitions for a study
+     * Returns only study-level unscheduled visits (not arm-specific duplicates)
+     * Unscheduled visits should be common to all arms, so we filter by armId IS NULL
      * 
      * @param studyId Study ID
-     * @return List of unscheduled visit definitions ordered by visit_order
+     * @return List of study-level unscheduled visit definitions ordered by visit_order
      */
     @Query("SELECT v FROM VisitDefinitionEntity v WHERE v.studyId = :studyId " +
-           "AND v.isUnscheduled = true ORDER BY v.visitOrder ASC")
+           "AND v.isUnscheduled = true AND v.armId IS NULL " +
+           "ORDER BY v.visitOrder ASC")
     List<VisitDefinitionEntity> findUnscheduledVisitsByStudyId(@Param("studyId") Long studyId);
 
     /**

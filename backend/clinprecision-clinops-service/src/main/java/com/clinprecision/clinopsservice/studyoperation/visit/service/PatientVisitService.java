@@ -152,7 +152,7 @@ public class PatientVisitService {
                     visitEntity.getStudySiteId(),
                     visitName, // Visit name from visit_definitions or default
                     visitEntity.getVisitDate(),
-                    visitEntity.getVisitStatus(),
+                    visitEntity.getVisitStatus() != null ? visitEntity.getVisitStatus().name() : null,
                     null, // createdBy - not stored in study_visit_instances
                     visitEntity.getCreatedAt(),
                     null  // notes - not stored in study_visit_instances yet
@@ -394,7 +394,7 @@ public class PatientVisitService {
         dto.setStudyId(entity.getStudyId());
         dto.setSiteId(entity.getStudySiteId());
         dto.setVisitDate(entity.getVisitDate());
-        dto.setStatus(entity.getVisitStatus());
+        dto.setStatus(entity.getVisitStatus() != null ? entity.getVisitStatus().name() : null);
         dto.setCreatedAt(entity.getCreatedAt());
         
         // Get visit name and type from visit_definitions
@@ -562,7 +562,7 @@ public class PatientVisitService {
                         visit.getStudySiteId() != null ? visit.getStudySiteId() : 0L,
                         "UNSCHEDULED", // Legacy scheduled visits will use this type
                         visit.getVisitDate(),
-                        visit.getVisitStatus() != null ? visit.getVisitStatus() : "SCHEDULED",
+                        visit.getVisitStatus() != null ? visit.getVisitStatus().name() : "SCHEDULED",
                         updatedBy,
                         "Legacy visit migrated to DDD aggregate"
                     ));
