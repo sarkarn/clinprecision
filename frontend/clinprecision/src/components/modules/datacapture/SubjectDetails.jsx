@@ -3,10 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getSubjectById, updateSubjectStatus } from '../../../services/SubjectService';
 import { getPatientVisits } from '../../../services/VisitService';
 import { startVisit } from '../../../services/DataEntryService';
+import ProtocolDeviationService from '../../../services/ProtocolDeviationService';
 import PatientStatusBadge from '../subjectmanagement/components/PatientStatusBadge';
 import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
 import StatusHistoryTimeline from '../subjectmanagement/components/StatusHistoryTimeline';
 import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVisitModal';
+import DeviationModal from './deviations/DeviationModal';
+import DeviationList from './deviations/DeviationList';
 
 /**
  * Normalize backend visit status to frontend format
@@ -74,6 +77,9 @@ export default function SubjectDetails() {
     const [visits, setVisits] = useState([]);
     const [visitsLoading, setVisitsLoading] = useState(false);
     const [complianceFilter, setComplianceFilter] = useState('all'); // 'all', 'overdue', 'upcoming', 'compliant'
+    const [deviations, setDeviations] = useState([]);
+    const [deviationsLoading, setDeviationsLoading] = useState(false);
+    const [showDeviationModal, setShowDeviationModal] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -83,6 +89,7 @@ export default function SubjectDetails() {
     useEffect(() => {
         if (subject?.id) {
             fetchVisits();
+            fetchDeviations();
         }
     }, [subject?.id]);
 
@@ -152,7 +159,33 @@ export default function SubjectDetails() {
         } finally {
             setVisitsLoading(false);
         }
-    }; const handleVisitCreated = (visit) => {
+    };
+
+    const fetchDeviations = async () => {
+        if (!subject?.id) return;
+
+        setDeviationsLoading(true);
+        try {
+            console.log('[SUBJECT DETAILS] Fetching deviations for patient:', subject.id);
+            const deviationsData = await ProtocolDeviationService.getPatientDeviations(subject.id);
+            console.log('[SUBJECT DETAILS] Deviations loaded:', deviationsData);
+            setDeviations(deviationsData || []);
+        } catch (error) {
+            console.error('[SUBJECT DETAILS] Error fetching deviations:', error);
+            setDeviations([]);
+        } finally {
+            setDeviationsLoading(false);
+        }
+    };
+
+    const handleDeviationCreated = (deviation) => {
+        console.log('[SUBJECT DETAILS] Deviation created successfully:', deviation);
+        setShowDeviationModal(false);
+        // Refresh deviations list
+        fetchDeviations();
+    };
+
+    const handleVisitCreated = (visit) => {
         console.log('[SUBJECT DETAILS] Visit created successfully:', visit);
         setShowVisitModal(false);
         // Refresh visits after creation
@@ -388,8 +421,8 @@ export default function SubjectDetails() {
                         <button
                             onClick={() => setComplianceFilter('all')}
                             className={`px-3 py-1 text-sm rounded-md transition-colors ${complianceFilter === 'all'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
                             All Visits ({visits.length})
@@ -397,8 +430,8 @@ export default function SubjectDetails() {
                         <button
                             onClick={() => setComplianceFilter('overdue')}
                             className={`px-3 py-1 text-sm rounded-md transition-colors ${complianceFilter === 'overdue'
-                                    ? 'bg-red-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-red-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
                             ⚠️ Overdue ({visits.filter(v => v.complianceStatus === 'OVERDUE' || v.complianceStatus === 'PROTOCOL_VIOLATION').length})
@@ -406,8 +439,8 @@ export default function SubjectDetails() {
                         <button
                             onClick={() => setComplianceFilter('upcoming')}
                             className={`px-3 py-1 text-sm rounded-md transition-colors ${complianceFilter === 'upcoming'
-                                    ? 'bg-yellow-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-yellow-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
                             Due Soon ({visits.filter(v => v.complianceStatus === 'APPROACHING').length})
@@ -415,8 +448,8 @@ export default function SubjectDetails() {
                         <button
                             onClick={() => setComplianceFilter('compliant')}
                             className={`px-3 py-1 text-sm rounded-md transition-colors ${complianceFilter === 'compliant'
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
                             ✓ Compliant ({visits.filter(v => v.complianceStatus === 'COMPLIANT').length})
@@ -562,6 +595,51 @@ export default function SubjectDetails() {
                 )}
             </div>
 
+            {/* Protocol Deviations Section */}
+            <div className="mb-6">
+                <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-3">
+                        <h4 className="font-medium text-lg">Protocol Deviations</h4>
+                        {deviations.length > 0 && (
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${deviations.some(d => d.severity === 'CRITICAL')
+                                    ? 'bg-red-100 text-red-800'
+                                    : deviations.some(d => d.severity === 'MAJOR')
+                                        ? 'bg-orange-100 text-orange-800'
+                                        : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                {deviations.length} {deviations.length === 1 ? 'Deviation' : 'Deviations'}
+                            </span>
+                        )}
+                        {deviations.filter(d => d.status !== 'CLOSED').length > 0 && (
+                            <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                {deviations.filter(d => d.status !== 'CLOSED').length} Active
+                            </span>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => setShowDeviationModal(true)}
+                        className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    >
+                        + Report Deviation
+                    </button>
+                </div>
+
+                {deviationsLoading ? (
+                    <div className="text-center py-8 bg-gray-50 border border-gray-200 rounded-lg">
+                        <svg className="animate-spin h-8 w-8 mx-auto text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p className="mt-2 text-gray-600">Loading deviations...</p>
+                    </div>
+                ) : (
+                    <DeviationList
+                        deviations={deviations}
+                        showFilters={true}
+                    />
+                )}
+            </div>
+
             {/* Status Change Modal */}
             {showStatusModal && (
                 <StatusChangeModal
@@ -628,6 +706,22 @@ export default function SubjectDetails() {
                     siteId={subject.siteId || 1}
                     visitType={visitType}
                     onVisitCreated={handleVisitCreated}
+                />
+            )}
+
+            {/* Deviation Recording Modal */}
+            {showDeviationModal && subject && (
+                <DeviationModal
+                    isOpen={showDeviationModal}
+                    onClose={() => setShowDeviationModal(false)}
+                    context={{
+                        patientId: subject.id,
+                        studySiteId: subject.studySiteId || subject.studyId, // Need to get correct studySiteId
+                        patientName: `${subject.firstName || ''} ${subject.lastName || ''}`.trim() || subject.subjectId,
+                        studyName: subject.studyName || `Study ${subject.studyId}`,
+                        reportedBy: 'Current User' // TODO: Get from auth context
+                    }}
+                    onDeviationCreated={handleDeviationCreated}
                 />
             )}
         </div>

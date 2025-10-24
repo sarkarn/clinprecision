@@ -298,20 +298,30 @@ const UnscheduledVisitModal = ({
                             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.visitType ? 'border-red-500' : 'border-gray-300'
                                 } ${submitting || showSuccess || loadingVisitTypes ? 'bg-gray-100' : ''}`}
                         >
-                            {loadingVisitTypes ? (
-                                <option value="">Loading visit types...</option>
-                            ) : visitTypes.length > 0 ? (
-                                <>
-                                    <option value="">Select visit type</option>
-                                    {visitTypes.map(vt => (
-                                        <option key={vt.id} value={vt.visitCode}>
-                                            {vt.name}
-                                        </option>
-                                    ))}
-                                </>
-                            ) : (
-                                <option value="">No visit types available</option>
-                            )}
+                            {(() => {
+                                console.log('[VISIT MODAL RENDER] Rendering select. visitTypes.length:', visitTypes.length);
+                                console.log('[VISIT MODAL RENDER] visitTypes:', visitTypes);
+
+                                if (loadingVisitTypes) {
+                                    return <option value="">Loading visit types...</option>;
+                                } else if (visitTypes.length > 0) {
+                                    return (
+                                        <>
+                                            <option value="">Select visit type</option>
+                                            {visitTypes.map((vt, index) => {
+                                                console.log(`[VISIT MODAL RENDER] Rendering option ${index}:`, vt);
+                                                return (
+                                                    <option key={vt.id} value={vt.visitCode}>
+                                                        {vt.name}
+                                                    </option>
+                                                );
+                                            })}
+                                        </>
+                                    );
+                                } else {
+                                    return <option value="">No visit types available</option>;
+                                }
+                            })()}
                         </select>
                         {errors.visitType && (
                             <p className="mt-1 text-sm text-red-600">{errors.visitType}</p>

@@ -6,13 +6,17 @@ import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entit
 import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionRepository;
 import com.clinprecision.clinopsservice.studyoperation.visit.domain.events.VisitCreatedEvent;
 import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.VisitStatus;
 import com.clinprecision.clinopsservice.studyoperation.visit.repository.StudyVisitInstanceRepository;
 import com.clinprecision.clinopsservice.studyoperation.visit.service.VisitComplianceService;
+import com.clinprecision.clinopsservice.studyoperation.protocoldeviation.service.ProtocolDeviationService;
 import org.axonframework.eventhandling.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 /**
@@ -53,15 +57,18 @@ public class VisitProjector {
     private final StudyDatabaseBuildRepository studyDatabaseBuildRepository;
     private final VisitDefinitionRepository visitDefinitionRepository;
     private final VisitComplianceService visitComplianceService;
+    private final ProtocolDeviationService protocolDeviationService;
     
     public VisitProjector(StudyVisitInstanceRepository studyVisitInstanceRepository,
                          StudyDatabaseBuildRepository studyDatabaseBuildRepository,
                          VisitDefinitionRepository visitDefinitionRepository,
-                         VisitComplianceService visitComplianceService) {
+                         VisitComplianceService visitComplianceService,
+                         ProtocolDeviationService protocolDeviationService) {
         this.studyVisitInstanceRepository = studyVisitInstanceRepository;
         this.studyDatabaseBuildRepository = studyDatabaseBuildRepository;
         this.visitDefinitionRepository = visitDefinitionRepository;
         this.visitComplianceService = visitComplianceService;
+        this.protocolDeviationService = protocolDeviationService;
     }
     
     /**
@@ -112,9 +119,9 @@ public class VisitProjector {
                 .studyId(event.getStudyId())
                 .visitId(visitDefinitionId) // ← FIXED: Lookup visit_id instead of NULL
                 .subjectId(event.getPatientId())
-                .siteId(event.getSiteId())
+                .studySiteId(event.getSiteId())
                 .visitDate(event.getVisitDate())
-                .visitStatus(event.getStatus())
+                .visitStatus(VisitStatus.fromString(event.getStatus())) // Convert String to enum
                 .buildId(buildId) // ← CRITICAL FIX: Set build_id for protocol version tracking
                 .aggregateUuid(event.getVisitId().toString()) // Store event UUID
                 .notes(event.getNotes())
@@ -247,7 +254,7 @@ public class VisitProjector {
             StudyVisitInstanceEntity visit = visitOpt.get();
             
             // Update status and actual visit date as reported in event
-            visit.setVisitStatus(event.getNewStatus());
+            visit.setVisitStatus(VisitStatus.fromString(event.getNewStatus())); // Convert String to enum
             visit.setActualVisitDate(event.getActualVisitDate());
             // Note: updatedBy is tracked in event store, updatedAt is auto-set by @PreUpdate
             
@@ -266,6 +273,12 @@ public class VisitProjector {
             
             // Save updated visit (updatedAt will be auto-set by @PreUpdate)
             studyVisitInstanceRepository.save(visit);
+            
+            // AUTO-FLAG VISIT WINDOW VIOLATIONS (Feature #9 - Oct 2025)
+            // When visit status changes to COMPLETED, check if it's outside protocol window
+            if ("COMPLETED".equals(event.getNewStatus()) && isVisitOutsideWindow(visit)) {
+                autoFlagVisitWindowViolation(visit, event.getUpdatedBy());
+            }
             
             logger.info("Visit status updated successfully: id={}, aggregateUuid={}, newStatus={}", 
                        visit.getId(), event.getAggregateUuid(), event.getNewStatus());
@@ -331,5 +344,77 @@ public class VisitProjector {
                 .toUpperCase()
                 .replace("-", "_")
                 .replace(" ", "_");
+    }
+    
+    /**
+     * Check if visit was completed outside protocol-defined visit window
+     * 
+     * @param visit Visit instance
+     * @return true if visit is outside window, false otherwise
+     */
+    private boolean isVisitOutsideWindow(StudyVisitInstanceEntity visit) {
+        // Must have all window data to check
+        if (visit.getActualVisitDate() == null || 
+            visit.getVisitWindowStart() == null || 
+            visit.getVisitWindowEnd() == null) {
+            return false;
+        }
+        
+        // Check if actual visit date is before or after window
+        return visit.getActualVisitDate().isBefore(visit.getVisitWindowStart()) ||
+               visit.getActualVisitDate().isAfter(visit.getVisitWindowEnd());
+    }
+    
+    /**
+     * Auto-flag visit window violation by creating protocol deviation
+     * Called when visit status changes to COMPLETED and visit is outside window
+     * 
+     * @param visit Visit instance that was completed
+     * @param detectedBy User ID who completed the visit (from event)
+     */
+    private void autoFlagVisitWindowViolation(StudyVisitInstanceEntity visit, Long detectedBy) {
+        try {
+            // Calculate days outside window
+            long daysOverdueLong = visitComplianceService.getDaysOverdue(visit);
+            int daysOverdue = (int) daysOverdueLong; // Safe cast for deviation calculation
+            
+            // Determine which expected date to use (early vs late)
+            LocalDate expectedDate = daysOverdue > 0 
+                ? visit.getVisitWindowEnd()   // Late - expected end date
+                : visit.getVisitWindowStart(); // Early - expected start date
+            
+            logger.info("Auto-flagging visit window violation: visitId={}, subjectId={}, daysOverdue={}", 
+                       visit.getId(), visit.getSubjectId(), daysOverdue);
+            
+            // Call protocol deviation service to create deviation
+            protocolDeviationService.recordVisitWindowViolation(
+                visit.getSubjectId(),
+                visit.getStudyId(),
+                visit.getStudySiteId(),
+                visit.getId(),
+                daysOverdue,
+                expectedDate,
+                visit.getActualVisitDate(),
+                detectedBy
+            );
+            
+            logger.info("Visit window violation auto-flagged successfully: visitId={}, severity={}", 
+                       visit.getId(), calculateSeverity(daysOverdue));
+            
+        } catch (Exception e) {
+            // Log error but don't fail the visit status update
+            logger.error("Failed to auto-flag visit window violation for visitId: {}", visit.getId(), e);
+        }
+    }
+    
+    /**
+     * Calculate deviation severity based on days overdue
+     * (Mirrors logic in ProtocolDeviationService for logging)
+     */
+    private String calculateSeverity(int daysOverdue) {
+        int absDays = Math.abs(daysOverdue);
+        if (absDays < 3) return "MINOR";
+        if (absDays <= 7) return "MAJOR";
+        return "CRITICAL";
     }
 }

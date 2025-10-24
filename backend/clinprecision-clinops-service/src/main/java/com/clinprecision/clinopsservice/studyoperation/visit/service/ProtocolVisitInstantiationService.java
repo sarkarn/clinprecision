@@ -3,6 +3,7 @@ package com.clinprecision.clinopsservice.studyoperation.visit.service;
 import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.entity.VisitDefinitionEntity;
 import com.clinprecision.clinopsservice.studydesign.design.visitdefinition.repository.VisitDefinitionRepository;
 import com.clinprecision.clinopsservice.studyoperation.visit.entity.StudyVisitInstanceEntity;
+import com.clinprecision.clinopsservice.studyoperation.visit.entity.VisitStatus;
 import com.clinprecision.clinopsservice.studyoperation.visit.repository.StudyVisitInstanceRepository;
 import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildEntity;
 import com.clinprecision.clinopsservice.studydesign.build.entity.StudyDatabaseBuildStatus;
@@ -224,11 +225,11 @@ public class ProtocolVisitInstantiationService {
         return StudyVisitInstanceEntity.builder()
                 .subjectId(patientId)
                 .studyId(studyId)
-                .siteId(siteId)
+                .studySiteId(siteId)
                 .visitId(visitDef.getId()) // FK to visit_definitions
                 .visitDate(visitDate)
                 .actualVisitDate(null) // Not yet completed
-                .visitStatus("Scheduled") // Initial status
+                .visitStatus(VisitStatus.SCHEDULED) // Initial status (using enum)
                 .windowStatus(null) // Will be calculated by VisitComplianceService
                 .completionPercentage(0.0) // No forms completed yet
                 .aggregateUuid(null) // NULL for protocol visits (not event-sourced)

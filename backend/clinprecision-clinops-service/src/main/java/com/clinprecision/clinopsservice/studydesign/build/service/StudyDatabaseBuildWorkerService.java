@@ -381,6 +381,17 @@ public class StudyDatabaseBuildWorkerService {
             
             // Create a visit definition for each enabled configuration
             for (UnscheduledVisitConfigEntity config : configs) {
+                // CRITICAL FIX: Check if unscheduled visit already exists for this study+visitCode
+                // Prevents duplicate creation if build is run multiple times
+                Optional<VisitDefinitionEntity> existing = visitDefinitionRepository
+                    .findByStudyIdAndVisitCodeAndIsUnscheduled(studyId, config.getVisitCode());
+                
+                if (existing.isPresent()) {
+                    log.debug("Unscheduled visit already exists: study={}, code={}, id={}", 
+                             studyId, config.getVisitCode(), existing.get().getId());
+                    continue; // Skip creation, already exists
+                }
+                
                 VisitDefinitionEntity visitDef = VisitDefinitionEntity.builder()
                     .studyId(studyId)
                     .name(config.getVisitName())

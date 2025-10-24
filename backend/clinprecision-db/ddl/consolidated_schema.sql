@@ -1820,7 +1820,7 @@ CREATE TABLE IF NOT EXISTS protocol_deviations (
     patient_id BIGINT NOT NULL COMMENT 'Patient who experienced the deviation',
     study_id BIGINT NOT NULL COMMENT 'Study in which deviation occurred',
     study_site_id BIGINT NULL COMMENT 'Study site where deviation occurred (site_studies table)',
-    visit_id BIGINT NULL COMMENT 'Visit associated with deviation (if applicable)',
+    visit_instance_id BIGINT NULL COMMENT 'Visit instance associated with deviation (if applicable)',
     
     -- Deviation Classification
     deviation_type ENUM(
@@ -1880,9 +1880,9 @@ CREATE TABLE IF NOT EXISTS protocol_deviations (
     irb_report_date DATE NULL COMMENT 'Date reported to IRB',
     
     -- Audit Trail
-    detected_by VARCHAR(100) NOT NULL COMMENT 'User who detected the deviation',
-    reviewed_by VARCHAR(100) NULL COMMENT 'User who reviewed the deviation',
-    approved_by VARCHAR(100) NULL COMMENT 'User who approved closure',
+    detected_by BIGINT NOT NULL COMMENT 'User ID who detected the deviation',
+    reviewed_by BIGINT NULL COMMENT 'User ID who reviewed the deviation',
+    resolved_by BIGINT NULL COMMENT 'User ID who resolved the deviation',
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1891,13 +1891,13 @@ CREATE TABLE IF NOT EXISTS protocol_deviations (
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
     FOREIGN KEY (study_id) REFERENCES studies(id) ON DELETE CASCADE,
     FOREIGN KEY (study_site_id) REFERENCES site_studies(id) ON DELETE SET NULL,
-    FOREIGN KEY (visit_id) REFERENCES study_visit_instances(id) ON DELETE SET NULL,
+    FOREIGN KEY (visit_instance_id) REFERENCES study_visit_instances(id) ON DELETE SET NULL,
     
     -- Indexes for performance
     INDEX idx_protocol_deviations_patient (patient_id),
     INDEX idx_protocol_deviations_study (study_id),
     INDEX idx_protocol_deviations_study_site (study_site_id),
-    INDEX idx_protocol_deviations_visit (visit_id),
+    INDEX idx_protocol_deviations_visit (visit_instance_id),
     INDEX idx_protocol_deviations_type (deviation_type),
     INDEX idx_protocol_deviations_severity (severity),
     INDEX idx_protocol_deviations_status (deviation_status),
@@ -1914,7 +1914,7 @@ CREATE TABLE IF NOT EXISTS protocol_deviation_comments (
     deviation_id BIGINT NOT NULL,
     comment_type ENUM('NOTE', 'INVESTIGATION', 'ACTION', 'REVIEW', 'APPROVAL') NOT NULL,
     comment_text TEXT NOT NULL,
-    commented_by VARCHAR(100) NOT NULL,
+    commented_by BIGINT NOT NULL COMMENT 'User ID who made the comment',
     commented_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (deviation_id) REFERENCES protocol_deviations(id) ON DELETE CASCADE,

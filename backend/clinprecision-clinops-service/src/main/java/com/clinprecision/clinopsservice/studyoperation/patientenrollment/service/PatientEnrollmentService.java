@@ -199,6 +199,60 @@ public class PatientEnrollmentService {
     }
     
     /**
+     * Get patients enrolled at a specific site
+     * 
+     * @param siteId Site ID (study_site_id) to filter patients
+     * @return List of patients enrolled at the specified site
+     */
+    public List<PatientDto> getPatientsBySite(Long siteId) {
+        log.info("Fetching patients for site: {}", siteId);
+        
+        List<PatientEnrollmentEntity> enrollments = patientEnrollmentRepository.findByStudySiteId(siteId);
+        
+        return enrollments.stream()
+                .map(enrollment -> {
+                    PatientEntity patient = patientRepository.findById(enrollment.getPatientId())
+                            .orElse(null);
+                    if (patient != null) {
+                        return mapToDtoWithEnrollment(patient, enrollment);
+                    }
+                    return null;
+                })
+                .filter(dto -> dto != null)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get patients enrolled in a specific study at a specific site
+     * Useful for site coordinators viewing their site's patients for a study
+     * 
+     * @param studyId Study ID to filter patients
+     * @param siteId Site ID (study_site_id) to filter patients
+     * @return List of patients enrolled in both the study and site
+     */
+    public List<PatientDto> getPatientsByStudyAndSite(Long studyId, Long siteId) {
+        log.info("Fetching patients for study: {} at site: {}", studyId, siteId);
+        
+        // Get all enrollments for the study
+        List<PatientEnrollmentEntity> enrollments = patientEnrollmentRepository.findByStudyId(studyId);
+        
+        // Filter by site
+        return enrollments.stream()
+                .filter(enrollment -> enrollment.getStudySiteId() != null && 
+                                    enrollment.getStudySiteId().equals(siteId))
+                .map(enrollment -> {
+                    PatientEntity patient = patientRepository.findById(enrollment.getPatientId())
+                            .orElse(null);
+                    if (patient != null) {
+                        return mapToDtoWithEnrollment(patient, enrollment);
+                    }
+                    return null;
+                })
+                .filter(dto -> dto != null)
+                .collect(Collectors.toList());
+    }
+    
+    /**
      * Update patient demographics
      * 
      * @param patientId Database ID of the patient to update
