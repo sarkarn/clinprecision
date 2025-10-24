@@ -434,3 +434,8 @@ export const DataEntryService = {
 };
 
 export default DataEntryService;
+
+// Named exports for backward compatibility with legacy imports
+export const getFormDefinition = fetchFormDefinition;
+export const getFormData = fetchFormData;
+export const getVisitDetails = fetchVisitDetails;

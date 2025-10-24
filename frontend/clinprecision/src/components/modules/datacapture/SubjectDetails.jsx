@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getSubjectById, updateSubjectStatus } from '../../../services/SubjectService';
 import { getPatientVisits } from '../../../services/VisitService';
-import { startVisit } from '../../../services/DataEntryService';
-import ProtocolDeviationService from '../../../services/ProtocolDeviationService';
+import { startVisit } from '../../../services/data-capture/DataEntryService';
+import ProtocolDeviationService from '../../../services/quality/ProtocolDeviationService';
 import PatientStatusBadge from '../subjectmanagement/components/PatientStatusBadge';
 import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
 import StatusHistoryTimeline from '../subjectmanagement/components/StatusHistoryTimeline';
@@ -602,10 +602,10 @@ export default function SubjectDetails() {
                         <h4 className="font-medium text-lg">Protocol Deviations</h4>
                         {deviations.length > 0 && (
                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${deviations.some(d => d.severity === 'CRITICAL')
-                                    ? 'bg-red-100 text-red-800'
-                                    : deviations.some(d => d.severity === 'MAJOR')
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : 'bg-yellow-100 text-yellow-800'
+                                ? 'bg-red-100 text-red-800'
+                                : deviations.some(d => d.severity === 'MAJOR')
+                                    ? 'bg-orange-100 text-orange-800'
+                                    : 'bg-yellow-100 text-yellow-800'
                                 }`}>
                                 {deviations.length} {deviations.length === 1 ? 'Deviation' : 'Deviations'}
                             </span>

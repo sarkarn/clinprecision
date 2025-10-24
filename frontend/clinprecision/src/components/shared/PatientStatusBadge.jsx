@@ -1,7 +1,7 @@
 // src/components/shared/PatientStatusBadge.jsx
 import React from 'react';
 import Badge from '../shared/ui/Badge';
-import PatientStatusService from '../../services/PatientStatusService';
+import PatientStatusService from '../../services/data-capture/PatientStatusService';
 
 /**
  * Specialized badge component for patient status display

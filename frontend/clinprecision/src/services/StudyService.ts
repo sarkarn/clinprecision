@@ -397,3 +397,8 @@ const StudyService = {
 };
 
 export default StudyService;
+
+// Named exports for direct function access
+export const getStudies = fetchStudies;
+export const getStudyById = fetchStudyById;
+export const registerStudy = createStudy;

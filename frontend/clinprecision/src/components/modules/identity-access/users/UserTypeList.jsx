@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { UserTypeService } from "../../../../services/UserTypeService";
+import { UserTypeService } from "../../../../services/auth/UserTypeService";
 
 export default function UserTypeList() {
     const [userTypes, setUserTypes] = useState([]);

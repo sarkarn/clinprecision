@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserStudyRoleService } from '../../../../services/UserStudyRoleService';
+import { UserStudyRoleService } from '../../../../services/auth/UserStudyRoleService';
 import { UserService } from '../../../../services/UserService';
 import StudyService from '../../../../services/StudyService';
-import { RoleService } from '../../../../services/RoleService';
+import { RoleService } from '../../../../services/auth/RoleService';
 
 export default function UserStudyRoleBulkAssignment() {
     const navigate = useNavigate();

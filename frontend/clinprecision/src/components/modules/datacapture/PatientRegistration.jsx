@@ -1,7 +1,7 @@
 // PatientRegistration.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PatientEnrollmentService from '../../../services/PatientEnrollmentService';
+import PatientEnrollmentService from '../../../services/data-capture/PatientEnrollmentService';
 
 export default function PatientRegistration() {
     const [formData, setFormData] = useState({

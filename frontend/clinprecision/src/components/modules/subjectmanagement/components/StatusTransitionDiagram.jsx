@@ -1,7 +1,7 @@
 // src/components/modules/subjectmanagement/components/StatusTransitionDiagram.jsx
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
-import PatientStatusService from '../../../../services/PatientStatusService';
+import PatientStatusService from '../../../../services/data-capture/PatientStatusService';
 
 /**
  * Visual workflow diagram showing patient status lifecycle

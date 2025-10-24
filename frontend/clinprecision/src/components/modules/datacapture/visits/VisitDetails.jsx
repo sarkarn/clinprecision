@@ -1,7 +1,7 @@
 // VisitDetails.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getVisitDetails } from '../../../../services/DataEntryService';
+import { getVisitDetails } from '../../../../services/data-capture/DataEntryService';
 import FormSelectorModal from './FormSelectorModal';
 import ApiService from '../../../../services/ApiService';
 

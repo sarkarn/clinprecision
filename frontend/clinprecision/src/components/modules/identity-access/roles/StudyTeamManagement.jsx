@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { UserStudyRoleService } from '../../../../services/UserStudyRoleService';
+import { UserStudyRoleService } from '../../../../services/auth/UserStudyRoleService';
 import StudyService from '../../../../services/StudyService';
 import { UserService } from '../../../../services/UserService';
-import { RoleService } from '../../../../services/RoleService';
+import { RoleService } from '../../../../services/auth/RoleService';
 
 export default function StudyTeamManagement() {
     const { studyId } = useParams();

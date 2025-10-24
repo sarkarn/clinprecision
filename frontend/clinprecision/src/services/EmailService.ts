@@ -199,4 +199,5 @@ export default EmailService;
 
 // Named exports
 export { initializeEmailJS, isEmailJSConfigured };
+export const { sendDemoRequestEmail } = EmailService;
 export type { IEmailService };

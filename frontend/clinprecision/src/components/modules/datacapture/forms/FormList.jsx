@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getVisitDetails } from '../../../../services/DataEntryService';
+import { getVisitDetails } from '../../../../services/data-capture/DataEntryService';
 
 export default function FormList() {
     const { subjectId, visitId } = useParams();

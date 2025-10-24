@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import ProtocolDeviationService from '../../../../services/ProtocolDeviationService';
+import ProtocolDeviationService from '../../../../services/quality/ProtocolDeviationService';
 import { getStudies } from '../../../../services/StudyService';
 
 const DeviationDashboard = () => {

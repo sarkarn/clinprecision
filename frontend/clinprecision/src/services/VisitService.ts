@@ -478,3 +478,8 @@ const VisitService = {
 };
 
 export default VisitService;
+
+// Named exports for direct function access
+export const getPatientVisits = fetchPatientVisits;
+export const getStudyVisits = fetchStudyVisits;
+export const getVisitById = fetchVisitById;

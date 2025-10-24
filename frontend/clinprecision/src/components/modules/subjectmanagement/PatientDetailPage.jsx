@@ -10,8 +10,8 @@ import {
     RefreshCw,
     AlertCircle
 } from 'lucide-react';
-import PatientEnrollmentService from '../../../services/PatientEnrollmentService';
-import PatientStatusService from '../../../services/PatientStatusService';
+import PatientEnrollmentService from '../../../services/data-capture/PatientEnrollmentService';
+import PatientStatusService from '../../../services/data-capture/PatientStatusService';
 import PatientStatusBadge from './components/PatientStatusBadge';
 import PatientStatusHistory from './components/PatientStatusHistory';
 import StatusChangeModal from './components/StatusChangeModal';

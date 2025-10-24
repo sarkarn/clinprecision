@@ -1,7 +1,7 @@
 // PatientList.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PatientEnrollmentService from '../../../services/PatientEnrollmentService';
+import PatientEnrollmentService from '../../../services/data-capture/PatientEnrollmentService';
 
 export default function PatientList() {
     const [patients, setPatients] = useState([]);

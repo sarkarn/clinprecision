@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getFormDefinition, getFormData } from '../../../../services/DataEntryService';
+import { getFormDefinition, getFormData } from '../../../../services/data-capture/DataEntryService';
 
 export default function FormView() {
   const { subjectId, visitId, formId } = useParams();

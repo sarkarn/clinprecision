@@ -1,6 +1,6 @@
 // DeviationList.jsx - Display Protocol Deviations
 import React, { useState } from 'react';
-import ProtocolDeviationService from '../../../../services/ProtocolDeviationService';
+import ProtocolDeviationService from '../../../../services/quality/ProtocolDeviationService';
 
 /**
  * Component for displaying protocol deviations with filtering

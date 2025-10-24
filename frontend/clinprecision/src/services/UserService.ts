@@ -360,3 +360,6 @@ const UserService = {
 };
 
 export default UserService;
+
+// Named export for components using destructured imports
+export { UserService };

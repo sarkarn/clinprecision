@@ -777,3 +777,8 @@ const SubjectService = {
 };
 
 export default SubjectService;
+
+// Named exports for direct function access
+export const getSubjectsByStudy = fetchSubjectsByStudy;
+export const getSubjectById = fetchSubjectById;
+export const getStatusHistory = fetchStatusHistory;

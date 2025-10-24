@@ -9,8 +9,20 @@
  */
 import ApiService from './ApiService';
 import { API_BASE_URL } from '../config';
+import type { Study, EntityStatus } from '../types';
+import type {
+  StudyFilters,
+  StudySearchOptions,
+  StudyAmendment,
+  AmendmentCreateRequest,
+  StudyDashboardData,
+  StudyValidationStatus,
+  ExportFormat,
+  CodeListEndpoints,
+  IStudyServiceModern
+} from '../types/study/StudyModern.types';
 
-export const CODE_LIST_ENDPOINTS = {
+export const CODE_LIST_ENDPOINTS: CodeListEndpoints = {
   REGULATORY_STATUS: `${API_BASE_URL}/clinops-ws/api/studies/lookup/regulatory-statuses`,
   STUDY_PHASE: `${API_BASE_URL}/clinops-ws/api/studies/lookup/phases`,
   STUDY_STATUS: `${API_BASE_URL}/clinops-ws/api/studies/lookup/statuses`,
@@ -22,24 +34,24 @@ const API_PATH = '/clinops-ws/api/studies';
 
 /**
  * Get all studies with optional filtering
- * @param {Object} filters Optional filters for studies
- * @returns {Promise<Array>} Promise that resolves to an array of studies
+ * @param filters Optional filters for studies
+ * @returns Promise that resolves to an array of studies
  */
-export const getStudies = async (filters = {}) => {
+export const getStudies = async (filters: StudyFilters = {}): Promise<Study[]> => {
   try {
     console.log('Fetching studies with filters:', filters);
     
     const queryParams = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '') {
-        queryParams.append(key, value);
+        queryParams.append(key, String(value));
       }
     });
     
     const queryString = queryParams.toString();
     const url = queryString ? `${API_PATH}?${queryString}` : API_PATH;
     
-    const response = await ApiService.get(url);
+    const response = await ApiService.get<Study[]>(url);
     
     if (response?.data && Array.isArray(response.data)) {
       console.log('Found', response.data.length, 'studies');
@@ -55,13 +67,13 @@ export const getStudies = async (filters = {}) => {
 
 /**
  * Get study by ID
- * @param {number} id Study ID
- * @returns {Promise<Object>} Promise that resolves to study object
+ * @param id Study ID
+ * @returns Promise that resolves to study object
  */
-export const getStudyById = async (id) => {
+export const getStudyById = async (id: number): Promise<Study> => {
   try {
     console.log('Fetching study by ID:', id);
-    const response = await ApiService.get(`${API_PATH}/${id}`);
+    const response = await ApiService.get<Study>(`${API_PATH}/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching study by ID:', error);
@@ -71,13 +83,13 @@ export const getStudyById = async (id) => {
 
 /**
  * Create a new study
- * @param {Object} studyData Study data
- * @returns {Promise<Object>} Promise that resolves to created study
+ * @param studyData Study data
+ * @returns Promise that resolves to created study
  */
-export const createStudy = async (studyData) => {
+export const createStudy = async (studyData: Study): Promise<Study> => {
   try {
     console.log('Creating new study:', studyData);
-    const response = await ApiService.post(API_PATH, studyData);
+    const response = await ApiService.post<Study>(API_PATH, studyData);
     return response.data;
   } catch (error) {
     console.error('Error creating study:', error);
@@ -87,14 +99,14 @@ export const createStudy = async (studyData) => {
 
 /**
  * Update an existing study
- * @param {number} id Study ID
- * @param {Object} studyData Updated study data
- * @returns {Promise<Object>} Promise that resolves to updated study
+ * @param id Study ID
+ * @param studyData Updated study data
+ * @returns Promise that resolves to updated study
  */
-export const updateStudy = async (id, studyData) => {
+export const updateStudy = async (id: number, studyData: Study): Promise<Study> => {
   try {
     console.log('Updating study:', id, studyData);
-    const response = await ApiService.put(`${API_PATH}/${id}`, studyData);
+    const response = await ApiService.put<Study>(`${API_PATH}/${id}`, studyData);
     return response.data;
   } catch (error) {
     console.error('Error updating study:', error);
@@ -104,10 +116,10 @@ export const updateStudy = async (id, studyData) => {
 
 /**
  * Delete a study
- * @param {number} id Study ID
- * @returns {Promise} Promise that resolves when study is deleted
+ * @param id Study ID
+ * @returns Promise that resolves when study is deleted
  */
-export const deleteStudy = async (id) => {
+export const deleteStudy = async (id: number): Promise<void> => {
   try {
     console.log('Deleting study:', id);
     await ApiService.delete(`${API_PATH}/${id}`);
@@ -119,18 +131,18 @@ export const deleteStudy = async (id) => {
 
 /**
  * Change study status
- * @param {number} id Study ID
- * @param {string} status New status
- * @param {string} reason Optional reason for status change
- * @returns {Promise<Object>} Promise that resolves to updated study
+ * @param id Study ID
+ * @param status New status
+ * @param reason Optional reason for status change
+ * @returns Promise that resolves to updated study
  */
-export const changeStudyStatus = async (id, status, reason = null) => {
+export const changeStudyStatus = async (id: number, status: EntityStatus, reason: string | null = null): Promise<Study> => {
   try {
     console.log('Changing study status:', id, status, reason);
-    const payload = { status };
+    const payload: any = { status };
     if (reason) payload.reason = reason;
     
-    const response = await ApiService.put(`${API_PATH}/${id}/status`, payload);
+    const response = await ApiService.put<Study>(`${API_PATH}/${id}/status`, payload);
     return response.data;
   } catch (error) {
     console.error('Error changing study status:', error);
@@ -140,13 +152,13 @@ export const changeStudyStatus = async (id, status, reason = null) => {
 
 /**
  * Get study amendments
- * @param {number} studyId Study ID
- * @returns {Promise<Array>} Promise that resolves to array of amendments
+ * @param studyId Study ID
+ * @returns Promise that resolves to array of amendments
  */
-export const getStudyAmendments = async (studyId) => {
+export const getStudyAmendments = async (studyId: number): Promise<StudyAmendment[]> => {
   try {
     console.log('Fetching amendments for study:', studyId);
-    const response = await ApiService.get(`${API_PATH}/${studyId}/amendments`);
+    const response = await ApiService.get<StudyAmendment[]>(`${API_PATH}/${studyId}/amendments`);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching study amendments:', error);
@@ -156,14 +168,14 @@ export const getStudyAmendments = async (studyId) => {
 
 /**
  * Create study amendment
- * @param {number} studyId Study ID
- * @param {Object} amendmentData Amendment data
- * @returns {Promise<Object>} Promise that resolves to created amendment
+ * @param studyId Study ID
+ * @param amendmentData Amendment data
+ * @returns Promise that resolves to created amendment
  */
-export const createStudyAmendment = async (studyId, amendmentData) => {
+export const createStudyAmendment = async (studyId: number, amendmentData: AmendmentCreateRequest): Promise<StudyAmendment> => {
   try {
     console.log('Creating amendment for study:', studyId, amendmentData);
-    const response = await ApiService.post(`${API_PATH}/${studyId}/amendments`, amendmentData);
+    const response = await ApiService.post<StudyAmendment>(`${API_PATH}/${studyId}/amendments`, amendmentData);
     return response.data;
   } catch (error) {
     console.error('Error creating study amendment:', error);
@@ -173,15 +185,15 @@ export const createStudyAmendment = async (studyId, amendmentData) => {
 
 /**
  * Get study dashboard data
- * @param {number} studyId Study ID (optional, for specific study dashboard)
- * @returns {Promise<Object>} Promise that resolves to dashboard data
+ * @param studyId Study ID (optional, for specific study dashboard)
+ * @returns Promise that resolves to dashboard data
  */
-export const getStudyDashboardData = async (studyId = null) => {
+export const getStudyDashboardData = async (studyId: number | null = null): Promise<StudyDashboardData> => {
   try {
     const endpoint = studyId ? `${API_PATH}/${studyId}/dashboard` : `${API_PATH}/dashboard`;
     console.log('Fetching dashboard data from:', endpoint);
     
-    const response = await ApiService.get(endpoint);
+    const response = await ApiService.get<StudyDashboardData>(endpoint);
     return response.data;
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
@@ -191,13 +203,13 @@ export const getStudyDashboardData = async (studyId = null) => {
 
 /**
  * Get study validation status
- * @param {number} studyId Study ID
- * @returns {Promise<Object>} Promise that resolves to validation status
+ * @param studyId Study ID
+ * @returns Promise that resolves to validation status
  */
-export const getStudyValidation = async (studyId) => {
+export const getStudyValidation = async (studyId: number): Promise<StudyValidationStatus> => {
   try {
     console.log('Fetching validation status for study:', studyId);
-    const response = await ApiService.get(`${API_PATH}/${studyId}/validation`);
+    const response = await ApiService.get<StudyValidationStatus>(`${API_PATH}/${studyId}/validation`);
     return response.data;
   } catch (error) {
     console.error('Error fetching study validation:', error);
@@ -207,11 +219,11 @@ export const getStudyValidation = async (studyId) => {
 
 /**
  * Export study data
- * @param {number} studyId Study ID
- * @param {string} format Export format (pdf, csv, json)
- * @returns {Promise<Blob>} Promise that resolves to exported data blob
+ * @param studyId Study ID
+ * @param format Export format (pdf, csv, json)
+ * @returns Promise that resolves to exported data blob
  */
-export const exportStudy = async (studyId, format = 'pdf') => {
+export const exportStudy = async (studyId: number, format: ExportFormat = 'pdf'): Promise<Blob> => {
   try {
     console.log('Exporting study:', studyId, 'in format:', format);
     const response = await ApiService.get(`${API_PATH}/${studyId}/export/${format}`, {
@@ -226,21 +238,21 @@ export const exportStudy = async (studyId, format = 'pdf') => {
 
 /**
  * Search studies
- * @param {string} query Search query
- * @param {Object} options Search options
- * @returns {Promise<Array>} Promise that resolves to search results
+ * @param query Search query
+ * @param options Search options
+ * @returns Promise that resolves to search results
  */
-export const searchStudies = async (query, options = {}) => {
+export const searchStudies = async (query: string, options: StudySearchOptions = {}): Promise<Study[]> => {
   try {
     console.log('Searching studies:', query, options);
     
-    const params = {
+    const params: any = {
       q: query,
       ...options
     };
     
     const queryParams = new URLSearchParams(params);
-    const response = await ApiService.get(`${API_PATH}/search?${queryParams}`);
+    const response = await ApiService.get<Study[]>(`${API_PATH}/search?${queryParams}`);
     
     return response.data || [];
   } catch (error) {
@@ -271,9 +283,9 @@ export const searchStudies = async (query, options = {}) => {
  * Modern helper to get reference data API base URL
  * Used by CodeList hooks for API calls
  */
-export const getCodeListApiUrl = (category) => {
-  if (category && CODE_LIST_ENDPOINTS[category]) {
-    return CODE_LIST_ENDPOINTS[category];
+export const getCodeListApiUrl = (category?: string): string => {
+  if (category && CODE_LIST_ENDPOINTS[category as keyof CodeListEndpoints]) {
+    return CODE_LIST_ENDPOINTS[category as keyof CodeListEndpoints];
   }
 
   // Fallback to legacy reference data base when specific mapping not defined
@@ -283,9 +295,9 @@ export const getCodeListApiUrl = (category) => {
 /**
  * Legacy compatibility function for components not yet migrated
  * @deprecated Use individual CodeList hooks instead
- * @returns {Object} Empty object - forces components to use new hooks
+ * @returns Empty object - forces components to use new hooks
  */
-export const getStudyLookupData = async () => {
+export const getStudyLookupData = async (): Promise<any> => {
   console.warn(`
     ⚠️  getStudyLookupData() is deprecated in Phase 3 Frontend Integration
     
@@ -307,7 +319,7 @@ export const getStudyLookupData = async () => {
   };
 };
 
-export default {
+const StudyServiceModern: IStudyServiceModern = {
   getStudies,
   getStudyById,
   createStudy,
@@ -321,7 +333,7 @@ export default {
   exportStudy,
   searchStudies,
   getCodeListApiUrl,
-  CODE_LIST_ENDPOINTS,
-  // Legacy compatibility
   getStudyLookupData
 };
+
+export default StudyServiceModern;

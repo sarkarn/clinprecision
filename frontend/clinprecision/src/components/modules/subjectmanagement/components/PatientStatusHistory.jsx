@@ -1,7 +1,7 @@
 // src/components/modules/subjectmanagement/components/PatientStatusHistory.jsx
 import React, { useState, useEffect } from 'react';
 import { Clock, User, FileText, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
-import PatientStatusService from '../../../../services/PatientStatusService';
+import PatientStatusService from '../../../../services/data-capture/PatientStatusService';
 import PatientStatusBadge from './PatientStatusBadge';
 
 /**

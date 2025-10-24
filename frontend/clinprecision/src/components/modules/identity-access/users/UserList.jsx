@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserService } from '../../../../services/UserService';
-import { UserTypeService } from '../../../../services/UserTypeService';
+import { UserTypeService } from '../../../../services/auth/UserTypeService';
 import { useAuth } from '../../../login/AuthContext';
 import { Card, CardHeader, CardBody, CardActions, Button, Badge, ListControls, BreadcrumbNavigation } from '../../../shared/ui';
 import { User, Mail, Edit2, Trash2, Plus } from 'lucide-react';

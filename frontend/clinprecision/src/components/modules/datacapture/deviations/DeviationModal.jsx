@@ -1,6 +1,6 @@
 // DeviationModal.jsx - Protocol Deviation Recording
 import React, { useState, useEffect } from 'react';
-import ProtocolDeviationService from '../../../../services/ProtocolDeviationService';
+import ProtocolDeviationService from '../../../../services/quality/ProtocolDeviationService';
 
 /**
  * Modal for recording protocol deviations

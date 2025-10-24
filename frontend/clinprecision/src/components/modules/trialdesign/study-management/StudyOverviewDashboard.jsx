@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import StudyService from '../../../../services/StudyService';
-import StudyDocumentService from '../../../../services/StudyDocumentService';
+import StudyDocumentService from '../../../../services/data-capture/StudyDocumentService';
 import DocumentUploadModal from './DocumentUploadModal';
 import StudyContextHeader from '../components/StudyContextHeader';
 import {

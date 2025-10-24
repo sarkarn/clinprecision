@@ -1,5 +1,16 @@
+// src/services/StudyDatabaseBuildService.ts
 import ApiService from './ApiService';
 import { API_BASE_URL } from '../config';
+import { BuildStatus } from '../types/study/DatabaseBuild.types';
+import type {
+  BuildRequest,
+  ValidationOptions,
+  CompletionData,
+  StudyDatabaseBuild,
+  ValidationResult,
+  ServiceHealthResponse,
+  IStudyDatabaseBuildService
+} from '../types/study/DatabaseBuild.types';
 
 const STUDY_DB_BUILD_API = `${API_BASE_URL}/api/v1/study-database-builds`;
 
@@ -7,19 +18,19 @@ const STUDY_DB_BUILD_API = `${API_BASE_URL}/api/v1/study-database-builds`;
  * Service for managing Study Database Build operations
  * Provides methods for both command (write) and query (read) operations
  */
-class StudyDatabaseBuildService {
+class StudyDatabaseBuildService implements IStudyDatabaseBuildService {
   
   // ==================== COMMAND OPERATIONS ====================
   
   /**
    * Build a study database
    * POST /api/v1/study-database-builds
-   * @param {Object} buildRequest - Build configuration
-   * @returns {Promise<Object>} Created build details
+   * @param buildRequest - Build configuration
+   * @returns Created build details
    */
-  async buildStudyDatabase(buildRequest) {
+  async buildStudyDatabase(buildRequest: BuildRequest): Promise<StudyDatabaseBuild> {
     try {
-      const response = await ApiService.post(STUDY_DB_BUILD_API, buildRequest);
+      const response = await ApiService.post<StudyDatabaseBuild>(STUDY_DB_BUILD_API, buildRequest);
       return response.data;
     } catch (error) {
       console.error('Error building study database:', error);
@@ -30,13 +41,13 @@ class StudyDatabaseBuildService {
   /**
    * Validate a study database
    * POST /api/v1/study-database-builds/{buildRequestId}/validate
-   * @param {string} buildRequestId - Build request identifier
-   * @param {Object} validationOptions - Validation configuration
-   * @returns {Promise<Object>} Validation result
+   * @param buildRequestId - Build request identifier
+   * @param validationOptions - Validation configuration
+   * @returns Validation result
    */
-  async validateStudyDatabase(buildRequestId, validationOptions) {
+  async validateStudyDatabase(buildRequestId: string, validationOptions: ValidationOptions): Promise<ValidationResult> {
     try {
-      const response = await ApiService.post(
+      const response = await ApiService.post<ValidationResult>(
         `${STUDY_DB_BUILD_API}/${buildRequestId}/validate`,
         validationOptions
       );
@@ -50,13 +61,13 @@ class StudyDatabaseBuildService {
   /**
    * Cancel a study database build
    * POST /api/v1/study-database-builds/{buildRequestId}/cancel
-   * @param {string} buildRequestId - Build request identifier
-   * @param {string} cancellationReason - Reason for cancellation
-   * @returns {Promise<Object>} Cancellation result
+   * @param buildRequestId - Build request identifier
+   * @param cancellationReason - Reason for cancellation
+   * @returns Cancellation result
    */
-  async cancelStudyDatabaseBuild(buildRequestId, cancellationReason) {
+  async cancelStudyDatabaseBuild(buildRequestId: string, cancellationReason: string): Promise<StudyDatabaseBuild> {
     try {
-      const response = await ApiService.post(
+      const response = await ApiService.post<StudyDatabaseBuild>(
         `${STUDY_DB_BUILD_API}/${buildRequestId}/cancel`,
         { buildRequestId, cancellationReason }
       );
@@ -70,13 +81,13 @@ class StudyDatabaseBuildService {
   /**
    * Complete a study database build
    * POST /api/v1/study-database-builds/{buildRequestId}/complete
-   * @param {string} buildRequestId - Build request identifier
-   * @param {Object} completionData - Completion details and metrics
-   * @returns {Promise<Object>} Completion result
+   * @param buildRequestId - Build request identifier
+   * @param completionData - Completion details and metrics
+   * @returns Completion result
    */
-  async completeStudyDatabaseBuild(buildRequestId, completionData) {
+  async completeStudyDatabaseBuild(buildRequestId: string, completionData: CompletionData): Promise<StudyDatabaseBuild> {
     try {
-      const response = await ApiService.post(
+      const response = await ApiService.post<StudyDatabaseBuild>(
         `${STUDY_DB_BUILD_API}/${buildRequestId}/complete`,
         completionData
       );
@@ -92,12 +103,12 @@ class StudyDatabaseBuildService {
   /**
    * Get build by ID
    * GET /api/v1/study-database-builds/{id}
-   * @param {number} id - Build ID
-   * @returns {Promise<Object>} Build details
+   * @param id - Build ID
+   * @returns Build details
    */
-  async getBuildById(id) {
+  async getBuildById(id: number): Promise<StudyDatabaseBuild> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/${id}`);
+      const response = await ApiService.get<StudyDatabaseBuild>(`${STUDY_DB_BUILD_API}/${id}`);
       return response.data;
     } catch (error) {
       console.error('Error getting build by ID:', error);
@@ -108,12 +119,12 @@ class StudyDatabaseBuildService {
   /**
    * Get build by UUID
    * GET /api/v1/study-database-builds/uuid/{aggregateUuid}
-   * @param {string} aggregateUuid - Aggregate UUID
-   * @returns {Promise<Object>} Build details
+   * @param aggregateUuid - Aggregate UUID
+   * @returns Build details
    */
-  async getBuildByUuid(aggregateUuid) {
+  async getBuildByUuid(aggregateUuid: string): Promise<StudyDatabaseBuild> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/uuid/${aggregateUuid}`);
+      const response = await ApiService.get<StudyDatabaseBuild>(`${STUDY_DB_BUILD_API}/uuid/${aggregateUuid}`);
       return response.data;
     } catch (error) {
       console.error('Error getting build by UUID:', error);
@@ -124,12 +135,12 @@ class StudyDatabaseBuildService {
   /**
    * Get build by request ID
    * GET /api/v1/study-database-builds/request/{buildRequestId}
-   * @param {string} buildRequestId - Build request identifier
-   * @returns {Promise<Object>} Build details
+   * @param buildRequestId - Build request identifier
+   * @returns Build details
    */
-  async getBuildByRequestId(buildRequestId) {
+  async getBuildByRequestId(buildRequestId: string): Promise<StudyDatabaseBuild> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/request/${buildRequestId}`);
+      const response = await ApiService.get<StudyDatabaseBuild>(`${STUDY_DB_BUILD_API}/request/${buildRequestId}`);
       return response.data;
     } catch (error) {
       console.error('Error getting build by request ID:', error);
@@ -140,12 +151,12 @@ class StudyDatabaseBuildService {
   /**
    * Get all builds for a study
    * GET /api/v1/study-database-builds/study/{studyId}
-   * @param {number} studyId - Study ID
-   * @returns {Promise<Array>} List of builds
+   * @param studyId - Study ID
+   * @returns List of builds
    */
-  async getBuildsByStudyId(studyId) {
+  async getBuildsByStudyId(studyId: number): Promise<StudyDatabaseBuild[]> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/study/${studyId}`);
+      const response = await ApiService.get<StudyDatabaseBuild[]>(`${STUDY_DB_BUILD_API}/study/${studyId}`);
       return response.data;
     } catch (error) {
       console.error('Error getting builds by study ID:', error);
@@ -156,12 +167,12 @@ class StudyDatabaseBuildService {
   /**
    * Get latest build for a study
    * GET /api/v1/study-database-builds/study/{studyId}/latest
-   * @param {number} studyId - Study ID
-   * @returns {Promise<Object>} Latest build details
+   * @param studyId - Study ID
+   * @returns Latest build details
    */
-  async getLatestBuildForStudy(studyId) {
+  async getLatestBuildForStudy(studyId: number): Promise<StudyDatabaseBuild> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/study/${studyId}/latest`);
+      const response = await ApiService.get<StudyDatabaseBuild>(`${STUDY_DB_BUILD_API}/study/${studyId}/latest`);
       return response.data;
     } catch (error) {
       console.error('Error getting latest build for study:', error);
@@ -172,12 +183,12 @@ class StudyDatabaseBuildService {
   /**
    * Get builds by status
    * GET /api/v1/study-database-builds/status/{status}
-   * @param {string} status - Build status (IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
-   * @returns {Promise<Array>} List of builds
+   * @param status - Build status (IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
+   * @returns List of builds
    */
-  async getBuildsByStatus(status) {
+  async getBuildsByStatus(status: BuildStatus): Promise<StudyDatabaseBuild[]> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/status/${status}`);
+      const response = await ApiService.get<StudyDatabaseBuild[]>(`${STUDY_DB_BUILD_API}/status/${status}`);
       return response.data;
     } catch (error) {
       console.error('Error getting builds by status:', error);
@@ -188,11 +199,11 @@ class StudyDatabaseBuildService {
   /**
    * Get in-progress builds
    * GET /api/v1/study-database-builds/in-progress
-   * @returns {Promise<Array>} List of in-progress builds
+   * @returns List of in-progress builds
    */
-  async getInProgressBuilds() {
+  async getInProgressBuilds(): Promise<StudyDatabaseBuild[]> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/in-progress`);
+      const response = await ApiService.get<StudyDatabaseBuild[]>(`${STUDY_DB_BUILD_API}/in-progress`);
       return response.data;
     } catch (error) {
       console.error('Error getting in-progress builds:', error);
@@ -203,11 +214,11 @@ class StudyDatabaseBuildService {
   /**
    * Get failed builds
    * GET /api/v1/study-database-builds/failed
-   * @returns {Promise<Array>} List of failed builds
+   * @returns List of failed builds
    */
-  async getFailedBuilds() {
+  async getFailedBuilds(): Promise<StudyDatabaseBuild[]> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/failed`);
+      const response = await ApiService.get<StudyDatabaseBuild[]>(`${STUDY_DB_BUILD_API}/failed`);
       return response.data;
     } catch (error) {
       console.error('Error getting failed builds:', error);
@@ -218,11 +229,11 @@ class StudyDatabaseBuildService {
   /**
    * Get cancelled builds
    * GET /api/v1/study-database-builds/cancelled
-   * @returns {Promise<Array>} List of cancelled builds
+   * @returns List of cancelled builds
    */
-  async getCancelledBuilds() {
+  async getCancelledBuilds(): Promise<StudyDatabaseBuild[]> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/cancelled`);
+      const response = await ApiService.get<StudyDatabaseBuild[]>(`${STUDY_DB_BUILD_API}/cancelled`);
       return response.data;
     } catch (error) {
       console.error('Error getting cancelled builds:', error);
@@ -233,12 +244,12 @@ class StudyDatabaseBuildService {
   /**
    * Get recent builds
    * GET /api/v1/study-database-builds/recent?days=7
-   * @param {number} days - Number of days to look back (default: 7)
-   * @returns {Promise<Array>} List of recent builds
+   * @param days - Number of days to look back (default: 7)
+   * @returns List of recent builds
    */
-  async getRecentBuilds(days = 7) {
+  async getRecentBuilds(days: number = 7): Promise<StudyDatabaseBuild[]> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/recent?days=${days}`);
+      const response = await ApiService.get<StudyDatabaseBuild[]>(`${STUDY_DB_BUILD_API}/recent?days=${days}`);
       return response.data;
     } catch (error) {
       console.error('Error getting recent builds:', error);
@@ -249,12 +260,12 @@ class StudyDatabaseBuildService {
   /**
    * Get builds by user
    * GET /api/v1/study-database-builds/user/{userId}
-   * @param {number} userId - User ID
-   * @returns {Promise<Array>} List of builds requested by user
+   * @param userId - User ID
+   * @returns List of builds requested by user
    */
-  async getBuildsByUserId(userId) {
+  async getBuildsByUserId(userId: number): Promise<StudyDatabaseBuild[]> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/user/${userId}`);
+      const response = await ApiService.get<StudyDatabaseBuild[]>(`${STUDY_DB_BUILD_API}/user/${userId}`);
       return response.data;
     } catch (error) {
       console.error('Error getting builds by user:', error);
@@ -265,12 +276,12 @@ class StudyDatabaseBuildService {
   /**
    * Check if study has active build
    * GET /api/v1/study-database-builds/study/{studyId}/has-active
-   * @param {number} studyId - Study ID
-   * @returns {Promise<boolean>} True if study has active build
+   * @param studyId - Study ID
+   * @returns True if study has active build
    */
-  async hasActiveBuild(studyId) {
+  async hasActiveBuild(studyId: number): Promise<boolean> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/study/${studyId}/has-active`);
+      const response = await ApiService.get<{ hasActiveBuild: boolean }>(`${STUDY_DB_BUILD_API}/study/${studyId}/has-active`);
       return response.data.hasActiveBuild;
     } catch (error) {
       console.error('Error checking for active build:', error);
@@ -281,12 +292,12 @@ class StudyDatabaseBuildService {
   /**
    * Get build count for study
    * GET /api/v1/study-database-builds/study/{studyId}/count
-   * @param {number} studyId - Study ID
-   * @returns {Promise<number>} Number of builds for study
+   * @param studyId - Study ID
+   * @returns Number of builds for study
    */
-  async getBuildCountForStudy(studyId) {
+  async getBuildCountForStudy(studyId: number): Promise<number> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/study/${studyId}/count`);
+      const response = await ApiService.get<{ count: number }>(`${STUDY_DB_BUILD_API}/study/${studyId}/count`);
       return response.data.count;
     } catch (error) {
       console.error('Error getting build count for study:', error);
@@ -297,11 +308,11 @@ class StudyDatabaseBuildService {
   /**
    * Health check endpoint
    * GET /api/v1/study-database-builds/health
-   * @returns {Promise<Object>} Service health status
+   * @returns Service health status
    */
-  async healthCheck() {
+  async healthCheck(): Promise<ServiceHealthResponse> {
     try {
-      const response = await ApiService.get(`${STUDY_DB_BUILD_API}/health`);
+      const response = await ApiService.get<ServiceHealthResponse>(`${STUDY_DB_BUILD_API}/health`);
       return response.data;
     } catch (error) {
       console.error('Error checking service health:', error);
@@ -313,10 +324,10 @@ class StudyDatabaseBuildService {
   
   /**
    * Handle API errors with user-friendly messages
-   * @param {Error} error - Error object
-   * @returns {Error} Formatted error
+   * @param error - Error object
+   * @returns Formatted error
    */
-  handleError(error) {
+  handleError(error: any): Error {
     if (error.response) {
       // Server responded with error
       const message = error.response.data?.message || error.response.statusText || 'An error occurred';
@@ -334,10 +345,10 @@ class StudyDatabaseBuildService {
   
   /**
    * Format build duration from seconds to human-readable string
-   * @param {number} seconds - Duration in seconds
-   * @returns {string} Formatted duration
+   * @param seconds - Duration in seconds
+   * @returns Formatted duration
    */
-  formatDuration(seconds) {
+  formatDuration(seconds: number): string {
     if (!seconds || seconds < 0) return 'N/A';
     
     const hours = Math.floor(seconds / 3600);
@@ -355,30 +366,29 @@ class StudyDatabaseBuildService {
   
   /**
    * Get status badge color based on build status
-   * @param {string} status - Build status
-   * @returns {string} Tailwind color class
+   * @param status - Build status
+   * @returns Tailwind color class
    */
-  getStatusColor(status) {
-    const colorMap = {
-      'IN_PROGRESS': 'blue',
-      'COMPLETED': 'green',
-      'FAILED': 'red',
-      'CANCELLED': 'gray'
+  getStatusColor(status: BuildStatus): string {
+    const colorMap: Record<BuildStatus, string> = {
+      [BuildStatus.IN_PROGRESS]: 'blue',
+      [BuildStatus.COMPLETED]: 'green',
+      [BuildStatus.FAILED]: 'red',
+      [BuildStatus.CANCELLED]: 'gray'
     };
     return colorMap[status] || 'gray';
   }
   
   /**
    * Calculate build progress percentage
-   * @param {Object} build - Build object
-   * @returns {number} Progress percentage (0-100)
+   * @param build - Build object
+   * @returns Progress percentage (0-100)
    */
-  calculateProgress(build) {
-    if (build.buildStatus === 'COMPLETED') return 100;
-    if (build.buildStatus === 'FAILED' || build.buildStatus === 'CANCELLED') return 0;
+  calculateProgress(build: StudyDatabaseBuild): number {
+    if (build.buildStatus === BuildStatus.COMPLETED) return 100;
+    if (build.buildStatus === BuildStatus.FAILED || build.buildStatus === BuildStatus.CANCELLED) return 0;
     
     // Simple heuristic based on available metrics
-    const totalSteps = 100;
     const formsWeight = 30;
     const tablesWeight = 30;
     const rulesWeight = 40;

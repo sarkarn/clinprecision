@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import FormVersionService from '../../../services/FormVersionService';
+import FormVersionService from '../../../services/data-capture/FormVersionService';
 import FormService from '../../../services/FormService';
-import StudyFormService from '../../../services/StudyFormService';
+import StudyFormService from '../../../services/data-capture/StudyFormService';
 
 const FormVersionHistory = () => {
     const { formId, studyId } = useParams();

@@ -440,3 +440,6 @@ const OrganizationService = {
 };
 
 export default OrganizationService;
+
+// Named export for components using destructured imports
+export { OrganizationService };

@@ -667,3 +667,6 @@ const UserStudyRoleService = {
 };
 
 export default UserStudyRoleService;
+
+// Named export for components using destructured imports
+export { UserStudyRoleService };

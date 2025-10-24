@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Settings, Table, List, ChevronDown, ChevronUp, Eye, Edit3 } from 'lucide-react';
 import FormService from '../../../services/FormService';
-import StudyFormService from '../../../services/StudyFormService';
-import FormVersionService from '../../../services/FormVersionService';
+import StudyFormService from '../../../services/data-capture/StudyFormService';
+import FormVersionService from '../../../services/data-capture/FormVersionService';
 import ApiService from '../../../services/ApiService';
 import { Alert } from '../../modules/trialdesign/components/UIComponents';
 

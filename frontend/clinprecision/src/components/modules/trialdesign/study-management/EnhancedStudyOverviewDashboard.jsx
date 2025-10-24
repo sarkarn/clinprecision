@@ -1,7 +1,7 @@
 // src/components/modules/trialdesign/study-management/EnhancedStudyOverviewDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import StudyService from '../../../../services/StudyService';
-import StudyDocumentService from '../../../../services/StudyDocumentService';
+import StudyDocumentService from '../../../../services/data-capture/StudyDocumentService';
 import { useStatusSynchronization } from '../../../../hooks/useStatusSynchronization';
 import DocumentUploadModal from './DocumentUploadModal';
 import StudyContextHeader from '../components/StudyContextHeader';
@@ -489,9 +489,9 @@ const EnhancedStudyOverviewDashboard = ({
                             }`}>
                             <div className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full ${notification.type === 'error' ? 'bg-red-500' :
-                                        notification.type === 'status' ? 'bg-green-500' :
-                                            notification.type === 'version' ? 'bg-purple-500' :
-                                                'bg-blue-500'
+                                    notification.type === 'status' ? 'bg-green-500' :
+                                        notification.type === 'version' ? 'bg-purple-500' :
+                                            'bg-blue-500'
                                     }`} />
                                 <span className="text-sm text-blue-900">{notification.message}</span>
                             </div>

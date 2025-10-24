@@ -1,7 +1,7 @@
 // src/components/modules/trialdesign/study-management/DocumentUploadModal.jsx
 import React, { useState } from 'react';
 import { X, Upload, FileText, AlertCircle } from 'lucide-react';
-import StudyDocumentService from '../../../../services/StudyDocumentService';
+import StudyDocumentService from '../../../../services/data-capture/StudyDocumentService';
 
 /**
  * Modal for uploading documents to a study

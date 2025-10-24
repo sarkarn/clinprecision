@@ -1,5 +1,6 @@
-// src/services/StudyOrganizationService.js
+// src/services/StudyOrganizationService.ts
 import ApiService from './ApiService';
+import type { Organization, IStudyOrganizationService } from '../types/study/StudyOrganization.types';
 
 /**
  * Study-specific Organization Service
@@ -19,16 +20,16 @@ import ApiService from './ApiService';
  * - GET /clinops-ws/api/organizations → OrganizationProxyController.getAllOrganizations()
  * - GET /clinops-ws/api/organizations/{id} → OrganizationProxyController.getOrganizationById()
  */
-export const StudyOrganizationService = {
+export const StudyOrganizationService: IStudyOrganizationService = {
   /**
    * Get all organizations for Study dropdowns
    * Proxied through clinops-service for Study module consistency
    * 
-   * @returns {Promise} - Promise with organizations data
+   * @returns Promise with organizations data
    */
-  getAllOrganizations: async () => {
+  getAllOrganizations: async (): Promise<Organization[]> => {
     try {
-      const response = await ApiService.get('/clinops-ws/api/organizations');
+      const response = await ApiService.get<Organization[]>('/clinops-ws/api/organizations');
       return response.data;
     } catch (error) {
       console.error("Error fetching organizations for study:", error);
@@ -40,12 +41,12 @@ export const StudyOrganizationService = {
    * Get a specific organization by ID for Study context
    * Proxied through clinops-service for Study module consistency
    * 
-   * @param {string} id - Organization ID
-   * @returns {Promise} - Promise with organization data
+   * @param id - Organization ID
+   * @returns Promise with organization data
    */
-  getOrganizationById: async (id) => {
+  getOrganizationById: async (id: string): Promise<Organization> => {
     try {
-      const response = await ApiService.get(`/clinops-ws/api/organizations/${id}`);
+      const response = await ApiService.get<Organization>(`/clinops-ws/api/organizations/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching organization ${id} for study:`, error);

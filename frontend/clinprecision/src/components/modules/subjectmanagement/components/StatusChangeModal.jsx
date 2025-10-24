@@ -1,7 +1,7 @@
 // src/components/modules/subjectmanagement/components/StatusChangeModal.jsx
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
-import PatientStatusService from '../../../../services/PatientStatusService';
+import PatientStatusService from '../../../../services/data-capture/PatientStatusService';
 import { useAuth } from '../../../login/AuthContext';
 
 /**

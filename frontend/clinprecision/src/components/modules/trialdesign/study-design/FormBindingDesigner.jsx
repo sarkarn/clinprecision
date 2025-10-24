@@ -4,7 +4,7 @@ import { FileText, Eye, Link, Unlink, Settings, Search, Filter } from 'lucide-re
 import { Alert, Button } from '../components/UIComponents';
 import VisitDefinitionService from '../../../../services/VisitDefinitionService';
 import StudyService from '../../../../services/StudyService';
-import StudyFormService from '../../../../services/StudyFormService';
+import StudyFormService from '../../../../services/data-capture/StudyFormService';
 import StudyDesignService from '../../../../services/StudyDesignService';
 
 // Helper function to get field count from form

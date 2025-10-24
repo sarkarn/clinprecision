@@ -678,3 +678,6 @@ const SiteService = {
 };
 
 export default SiteService;
+
+// Named export for components using destructured imports
+export { SiteService };
