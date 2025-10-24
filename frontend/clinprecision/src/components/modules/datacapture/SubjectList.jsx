@@ -1,9 +1,15 @@
 // SubjectList.jsx - Enhanced for Clinical Trial Standards
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { getStudies } from '../../../services/StudyService';
 import { getSubjectsByStudy } from '../../../services/SubjectService';
 import ApiService from '../../../services/ApiService';
+import { useStudy } from '../../../hooks/useStudy';
+import { useDebounce } from '../../../hooks/useDebounce';
+import StudySelector from './components/StudySelector';
+import SubjectFilters from './components/SubjectFilters';
+import SubjectCard from './components/SubjectCard';
 import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
 import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVisitModal';
 import WithdrawalModal from '../subjectmanagement/components/WithdrawalModal';
@@ -19,8 +25,8 @@ const normalizeStatus = (status) => {
 };
 
 export default function SubjectList() {
+    const { selectedStudy, setSelectedStudy } = useStudy();
     const [studies, setStudies] = useState([]);
-    const [selectedStudy, setSelectedStudy] = useState('');
     const [subjects, setSubjects] = useState([]);
     const [allPatients, setAllPatients] = useState([]);
     const [showAllPatients, setShowAllPatients] = useState(false); // Now defaults to false
@@ -34,6 +40,9 @@ export default function SubjectList() {
     const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
 
     // Filters and sorting state
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const [statusFilter, setStatusFilter] = useState('');
     const [siteFilter, setSiteFilter] = useState('');
     const [sortField, setSortField] = useState('');
@@ -69,7 +78,7 @@ export default function SubjectList() {
                 });
 
                 console.log('[SUBJECT LIST] Filtered studies for viewing:', filteredStudies.length);
-                setStudies(filteredStudies);
+                setStudies(studiesData);
 
                 // Check if study was preselected from navigation state (e.g., from dashboard)
                 if (location.state?.preselectedStudy) {
@@ -77,14 +86,8 @@ export default function SubjectList() {
                     setSelectedStudy(location.state.preselectedStudy);
                     // Clear the navigation state to prevent re-selection on refresh
                     window.history.replaceState({}, document.title);
-                } else {
-                    // Try to restore from localStorage
-                    const savedStudy = localStorage.getItem('clinprecision_selectedStudy');
-                    if (savedStudy && filteredStudies.some(s => s.id.toString() === savedStudy)) {
-                        console.log('[SUBJECT LIST] Restored study from localStorage:', savedStudy);
-                        setSelectedStudy(savedStudy);
-                    }
                 }
+                // Note: localStorage restoration now handled by StudyContext
             } catch (error) {
                 console.error('[SUBJECT LIST] Error fetching studies:', error);
             }
@@ -97,8 +100,7 @@ export default function SubjectList() {
     useEffect(() => {
         if (!selectedStudy) return;
 
-        // Persist study selection to localStorage
-        localStorage.setItem('clinprecision_selectedStudy', selectedStudy);
+        // Note: Persistence now handled by StudyContext
 
         const fetchSubjects = async () => {
             console.log('[SUBJECT LIST] Fetching subjects for study ID:', selectedStudy);
@@ -118,6 +120,15 @@ export default function SubjectList() {
         fetchSubjects();
     }, [selectedStudy]);
 
+    // Persist search term to URL
+    useEffect(() => {
+        if (debouncedSearchTerm) {
+            setSearchParams({ search: debouncedSearchTerm });
+        } else {
+            setSearchParams({});
+        }
+    }, [debouncedSearchTerm, setSearchParams]);
+
     const handleEditSubject = (subjectId) => {
         // Navigate to subject edit page
         navigate(`${basePath}/subjects/${subjectId}/edit`);
@@ -126,7 +137,7 @@ export default function SubjectList() {
     const handleWithdrawSubject = (subject) => {
         // Open specialized withdrawal modal
         if (normalizeStatus(subject.status) === 'WITHDRAWN') {
-            alert('This subject has already been withdrawn.');
+            toast.error('This subject has already been withdrawn.');
             return;
         }
         setSelectedPatient(subject);
@@ -141,6 +152,9 @@ export default function SubjectList() {
         setSelectedPatient(null);
         setPreselectedStatus(null);
 
+        // Show success toast
+        toast.success('Subject status updated successfully');
+
         // Re-fetch all patients to reflect status changes (scoped by study for HIPAA compliance)
         if (showAllPatients && selectedStudy) {
             try {
@@ -152,6 +166,7 @@ export default function SubjectList() {
                 }
             } catch (error) {
                 console.error('[SUBJECT LIST] Error refreshing patient registry:', error);
+                toast.error('Failed to refresh patient registry');
             }
         }
 
@@ -163,6 +178,7 @@ export default function SubjectList() {
                 setSubjects(subjectsData);
             } catch (error) {
                 console.error('[SUBJECT LIST] Error refreshing subjects:', error);
+                toast.error('Failed to refresh subjects');
             } finally {
                 setLoading(false);
             }
@@ -174,6 +190,9 @@ export default function SubjectList() {
         setShowVisitModal(false);
         setSelectedPatient(null);
         setPreselectedStatus(null);
+
+        // Show success toast
+        toast.success('Visit created successfully');
 
         // Refresh data after visit creation (scoped by study for HIPAA/CFR Part 11 compliance)
         if (showAllPatients && selectedStudy) {
@@ -214,6 +233,18 @@ export default function SubjectList() {
     // Filter and sort subjects
     const getFilteredAndSortedSubjects = () => {
         let filtered = [...subjects];
+
+        // Apply search filter
+        if (debouncedSearchTerm) {
+            const searchLower = debouncedSearchTerm.toLowerCase();
+            filtered = filtered.filter(s =>
+                s.subjectId?.toLowerCase().includes(searchLower) ||
+                s.firstName?.toLowerCase().includes(searchLower) ||
+                s.lastName?.toLowerCase().includes(searchLower) ||
+                s.siteId?.toString().includes(searchLower) ||
+                s.status?.toLowerCase().includes(searchLower)
+            );
+        }
 
         // Apply status filter (normalized for case-insensitive comparisons)
         if (statusFilter) {
@@ -328,362 +359,296 @@ export default function SubjectList() {
                 </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow mb-6">
-                <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select Study Protocol
-                        {studies.length > 0 && <span className="text-green-600 ml-2">({studies.length} active studies)</span>}
-                    </label>
-                    <p className="text-xs text-gray-500 mb-2">
-                        Showing only studies with status PUBLISHED, APPROVED, or ACTIVE
-                    </p>
-                    <select
-                        value={selectedStudy}
-                        onChange={(e) => setSelectedStudy(e.target.value)}
-                        className="border border-gray-300 rounded-md w-full px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                        <option value="">-- Select a Study Protocol --</option>
-                        {studies.length === 0 ? (
-                            <option value="" disabled>No active studies available</option>
-                        ) : (
-                            studies.map(study => (
-                                <option key={study.id} value={study.id}>
-                                    {study.protocolNumber ? `${study.protocolNumber} - ` : ''}
-                                    {study.title || study.name || 'Untitled Study'}
-                                    {study.phase ? ` (${study.phase})` : ''}
-                                </option>
-                            ))
-                        )}
-                    </select>
-                    {studies.length === 0 && (
-                        <p className="text-xs text-amber-600 mt-1">
-                            No studies available for viewing subjects. Studies must be PUBLISHED, APPROVED, or ACTIVE.
-                        </p>
+            <StudySelector studies={studies} className="mb-6" />
+
+            {/* Subject Summary Statistics - Reflects Patient Lifecycle */}
+            {selectedStudy && subjects.length > 0 && (
+                <div className="bg-white p-6 rounded-lg shadow mb-6">
+                    {/* Filters and Actions Bar */}
+                    <SubjectFilters
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        statusFilter={statusFilter}
+                        onStatusFilterChange={setStatusFilter}
+                        siteFilter={siteFilter}
+                        onSiteFilterChange={setSiteFilter}
+                        availableSites={availableSites}
+                        showLegend={showLegend}
+                        onToggleLegend={() => setShowLegend(!showLegend)}
+                        filteredCount={filteredSubjects.length}
+                        totalCount={subjects.length}
+                        hasActiveFilters={!!(statusFilter || siteFilter || sortField || searchTerm)}
+                        onClearFilters={() => {
+                            setSearchTerm('');
+                            setStatusFilter('');
+                            setSiteFilter('');
+                            setSortField('');
+                            setSortDirection('asc');
+                        }}
+                    />
+
+                    {/* Status Legend */}
+                    {showLegend && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                            <h5 className="text-xs font-semibold text-gray-700 mb-2">Status Definitions</h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {statusDefinitions.map(def => (
+                                    <div key={def.status} className="flex items-start space-x-2">
+                                        <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${def.color} whitespace-nowrap`}>
+                                            {def.status}
+                                        </span>
+                                        <span className="text-xs text-gray-600 flex-1">
+                                            {def.description}
+                                            {def.requiresAction && <span className="ml-1 text-orange-600 font-medium">⚠️</span>}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Summary Statistics */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-600">{subjects.length}</div>
+                            <div className="text-sm text-gray-600">Total</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-yellow-600">
+                                {subjects.filter(s => ['REGISTERED', 'SCREENING'].includes(normalizeStatus(s.status))).length}
+                            </div>
+                            <div className="text-sm text-gray-600">Pre-Enrollment</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">
+                                {subjects.filter(s => ['ENROLLED', 'ACTIVE'].includes(normalizeStatus(s.status))).length}
+                            </div>
+                            <div className="text-sm text-gray-600">Active</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-gray-600">
+                                {subjects.filter(s => ['COMPLETED', 'WITHDRAWN', 'SCREEN FAILED'].includes(normalizeStatus(s.status))).length}
+                            </div>
+                            <div className="text-sm text-gray-600">Completed/Discontinued</div>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="text-center py-4">Loading subjects...</div>
+                    ) : !selectedStudy ? (
+                        <div className="text-center py-8">
+                            <div className="text-gray-500 mb-4">
+                                Please select a study protocol from the dropdown above to view enrolled subjects.
+                            </div>
+                        </div>
+                    ) : subjects.length === 0 ? (
+                        <div className="text-center py-4">
+                            <div className="text-gray-500 mb-4">
+                                No subjects enrolled in this study yet.
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Desktop Table View - Hidden on mobile */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th
+                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                                onClick={() => handleSort('subjectId')}
+                                            >
+                                                <div className="flex items-center">
+                                                    Subject ID
+                                                    <SortIcon field="subjectId" />
+                                                </div>
+                                            </th>
+                                            <th
+                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                                onClick={() => handleSort('patientNumber')}
+                                            >
+                                                <div className="flex items-center">
+                                                    Patient Number
+                                                    <SortIcon field="patientNumber" />
+                                                </div>
+                                            </th>
+                                            <th
+                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                                onClick={() => handleSort('status')}
+                                            >
+                                                <div className="flex items-center">
+                                                    Status
+                                                    <SortIcon field="status" />
+                                                </div>
+                                            </th>
+                                            <th
+                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                                onClick={() => handleSort('enrollmentDate')}
+                                            >
+                                                <div className="flex items-center">
+                                                    Enrollment Date
+                                                    <SortIcon field="enrollmentDate" />
+                                                </div>
+                                            </th>
+                                            <th
+                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                                onClick={() => handleSort('siteId')}
+                                            >
+                                                <div className="flex items-center">
+                                                    Site
+                                                    <SortIcon field="siteId" />
+                                                </div>
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {filteredSubjects.map(subject => (
+                                            <tr key={subject.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex flex-col">
+                                                        <Link
+                                                            to={`${basePath}/subjects/${subject.id}`}
+                                                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                                        >
+                                                            {subject.subjectId}
+                                                        </Link>
+                                                        <span className="text-xs text-gray-500">Screening #{subject.subjectId}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                    <div className="flex flex-col">
+                                                        <span>{subject.patientNumber || 'N/A'}</span>
+                                                        {subject.firstName && subject.lastName && (
+                                                            <span className="text-xs text-gray-400">Initials: {subject.firstName.charAt(0)}{subject.lastName.charAt(0)}</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                ${normalizeStatus(subject.status) === 'REGISTERED' ? 'bg-gray-100 text-gray-800' :
+                                                            normalizeStatus(subject.status) === 'SCREENING' ? 'bg-yellow-100 text-yellow-800' :
+                                                                normalizeStatus(subject.status) === 'ENROLLED' ? 'bg-blue-100 text-blue-800' :
+                                                                    normalizeStatus(subject.status) === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                                                                        normalizeStatus(subject.status) === 'COMPLETED' ? 'bg-purple-100 text-purple-800' :
+                                                                            normalizeStatus(subject.status) === 'WITHDRAWN' ? 'bg-red-100 text-red-800' :
+                                                                                normalizeStatus(subject.status) === 'SCREEN FAILED' ? 'bg-red-100 text-red-800' :
+                                                                                    'bg-gray-100 text-gray-800'}`}>
+                                                        {subject.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    {subject.enrollmentDate ? new Date(subject.enrollmentDate).toLocaleDateString() : 'N/A'}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    {subject.siteId ? `Site ${subject.siteId}` : 'N/A'}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                    <div className="flex space-x-3 items-center">
+                                                        <Link
+                                                            to={`${basePath}/subjects/${subject.id}`}
+                                                            className="text-indigo-600 hover:text-indigo-900 flex items-center"
+                                                            title="View subject details"
+                                                        >
+                                                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                            </svg>
+                                                            View
+                                                        </Link>
+
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedPatient(subject);
+                                                                setPreselectedStatus(null);
+                                                                setShowStatusModal(true);
+                                                            }}
+                                                            className="text-blue-600 hover:text-blue-900 flex items-center"
+                                                            title="Change subject status"
+                                                        >
+                                                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                                            </svg>
+                                                            Status
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => handleEditSubject(subject.id)}
+                                                            className="text-gray-600 hover:text-gray-900 flex items-center"
+                                                            title="Edit subject details"
+                                                        >
+                                                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
+                                                            Edit
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => handleWithdrawSubject(subject)}
+                                                            className={`flex items-center ${normalizeStatus(subject.status) === 'WITHDRAWN'
+                                                                ? 'text-gray-400 cursor-not-allowed'
+                                                                : 'text-red-600 hover:text-red-900'
+                                                                }`}
+                                                            disabled={normalizeStatus(subject.status) === 'WITHDRAWN'}
+                                                            title={
+                                                                normalizeStatus(subject.status) === 'WITHDRAWN'
+                                                                    ? 'Subject already withdrawn'
+                                                                    : 'Withdraw subject from study'
+                                                            }
+                                                        >
+                                                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                            Withdraw
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedPatient(subject);
+                                                                setVisitType('UNSCHEDULED');
+                                                                setShowVisitModal(true);
+                                                            }}
+                                                            className="text-purple-600 hover:text-purple-900 flex items-center"
+                                                            title="Add unscheduled visit"
+                                                        >
+                                                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            Visit
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile Card View - Hidden on desktop */}
+                            <div className="md:hidden space-y-4">
+                                {filteredSubjects.map(subject => (
+                                    <SubjectCard
+                                        key={subject.id}
+                                        subject={subject}
+                                        onChangeStatus={(s) => {
+                                            setSelectedPatient(s);
+                                            setPreselectedStatus(null);
+                                            setShowStatusModal(true);
+                                        }}
+                                        onStartVisit={(s) => {
+                                            setSelectedPatient(s);
+                                            setVisitType('UNSCHEDULED');
+                                            setShowVisitModal(true);
+                                        }}
+                                        onWithdraw={handleWithdrawSubject}
+                                        basePath={basePath}
+                                    />
+                                ))}
+                            </div>
+                        </>
                     )}
                 </div>
-
-                {/* Subject Summary Statistics - Reflects Patient Lifecycle */}
-                {selectedStudy && subjects.length > 0 && (
-                    <>
-                        {/* Filters and Actions Bar */}
-                        <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="flex flex-wrap items-center gap-3">
-                                {/* Status Filter */}
-                                <div className="flex-1 min-w-[200px]">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Filter by Status</label>
-                                    <select
-                                        value={statusFilter}
-                                        onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="">All Statuses</option>
-                                        <option value="REQUIRES_ACTION">⚠️ Requires Action</option>
-                                        <option value="">---</option>
-                                        <option value="Registered">Registered</option>
-                                        <option value="Screening">Screening</option>
-                                        <option value="Enrolled">Enrolled</option>
-                                        <option value="Active">Active</option>
-                                        <option value="Completed">Completed</option>
-                                        <option value="Withdrawn">Withdrawn</option>
-                                        <option value="Screen Failed">Screen Failed</option>
-                                    </select>
-                                </div>
-
-                                {/* Site Filter */}
-                                {availableSites.length > 1 && (
-                                    <div className="flex-1 min-w-[200px]">
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Filter by Site</label>
-                                        <select
-                                            value={siteFilter}
-                                            onChange={(e) => setSiteFilter(e.target.value)}
-                                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            <option value="">All Sites</option>
-                                            {availableSites.map(site => (
-                                                <option key={site} value={site}>Site {site}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
-
-                                {/* Legend Toggle */}
-                                <div className="flex items-end">
-                                    <button
-                                        onClick={() => setShowLegend(!showLegend)}
-                                        className="px-3 py-2 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 flex items-center"
-                                    >
-                                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        {showLegend ? 'Hide' : 'Show'} Legend
-                                    </button>
-                                </div>
-
-                                {/* Clear Filters */}
-                                {(statusFilter || siteFilter || sortField) && (
-                                    <div className="flex items-end">
-                                        <button
-                                            onClick={() => {
-                                                setStatusFilter('');
-                                                setSiteFilter('');
-                                                setSortField('');
-                                                setSortDirection('asc');
-                                            }}
-                                            className="px-3 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded flex items-center"
-                                        >
-                                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                            Clear Filters
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* Results Count */}
-                                <div className="ml-auto text-sm text-gray-600">
-                                    Showing {filteredSubjects.length} of {subjects.length} subjects
-                                </div>
-                            </div>
-
-                            {/* Status Legend */}
-                            {showLegend && (
-                                <div className="mt-4 pt-4 border-t border-gray-200">
-                                    <h5 className="text-xs font-semibold text-gray-700 mb-2">Status Definitions</h5>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                                        {statusDefinitions.map(def => (
-                                            <div key={def.status} className="flex items-start space-x-2">
-                                                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${def.color} whitespace-nowrap`}>
-                                                    {def.status}
-                                                </span>
-                                                <span className="text-xs text-gray-600 flex-1">
-                                                    {def.description}
-                                                    {def.requiresAction && <span className="ml-1 text-orange-600 font-medium">⚠️</span>}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Summary Statistics */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-blue-600">{subjects.length}</div>
-                                <div className="text-sm text-gray-600">Total</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-yellow-600">
-                                    {subjects.filter(s => ['REGISTERED', 'SCREENING'].includes(normalizeStatus(s.status))).length}
-                                </div>
-                                <div className="text-sm text-gray-600">Pre-Enrollment</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-green-600">
-                                    {subjects.filter(s => ['ENROLLED', 'ACTIVE'].includes(normalizeStatus(s.status))).length}
-                                </div>
-                                <div className="text-sm text-gray-600">Active</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-gray-600">
-                                    {subjects.filter(s => ['COMPLETED', 'WITHDRAWN', 'SCREEN FAILED'].includes(normalizeStatus(s.status))).length}
-                                </div>
-                                <div className="text-sm text-gray-600">Completed/Discontinued</div>
-                            </div>
-                        </div>
-                    </>
-                )}
-
-                {loading ? (
-                    <div className="text-center py-4">Loading subjects...</div>
-                ) : !selectedStudy ? (
-                    <div className="text-center py-8">
-                        <div className="text-gray-500 mb-4">
-                            Please select a study protocol from the dropdown above to view enrolled subjects.
-                        </div>
-                    </div>
-                ) : subjects.length === 0 ? (
-                    <div className="text-center py-4">
-                        <div className="text-gray-500 mb-4">
-                            No subjects enrolled in this study yet.
-                        </div>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th
-                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                        onClick={() => handleSort('subjectId')}
-                                    >
-                                        <div className="flex items-center">
-                                            Subject ID
-                                            <SortIcon field="subjectId" />
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                        onClick={() => handleSort('patientNumber')}
-                                    >
-                                        <div className="flex items-center">
-                                            Patient Number
-                                            <SortIcon field="patientNumber" />
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                        onClick={() => handleSort('status')}
-                                    >
-                                        <div className="flex items-center">
-                                            Status
-                                            <SortIcon field="status" />
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                        onClick={() => handleSort('enrollmentDate')}
-                                    >
-                                        <div className="flex items-center">
-                                            Enrollment Date
-                                            <SortIcon field="enrollmentDate" />
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                        onClick={() => handleSort('siteId')}
-                                    >
-                                        <div className="flex items-center">
-                                            Site
-                                            <SortIcon field="siteId" />
-                                        </div>
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredSubjects.map(subject => (
-                                    <tr key={subject.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex flex-col">
-                                                <Link
-                                                    to={`${basePath}/subjects/${subject.id}`}
-                                                    className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                                                >
-                                                    {subject.subjectId}
-                                                </Link>
-                                                <span className="text-xs text-gray-500">Screening #{subject.subjectId}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            <div className="flex flex-col">
-                                                <span>{subject.patientNumber || 'N/A'}</span>
-                                                {subject.firstName && subject.lastName && (
-                                                    <span className="text-xs text-gray-400">Initials: {subject.firstName.charAt(0)}{subject.lastName.charAt(0)}</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                ${normalizeStatus(subject.status) === 'REGISTERED' ? 'bg-gray-100 text-gray-800' :
-                                                    normalizeStatus(subject.status) === 'SCREENING' ? 'bg-yellow-100 text-yellow-800' :
-                                                        normalizeStatus(subject.status) === 'ENROLLED' ? 'bg-blue-100 text-blue-800' :
-                                                            normalizeStatus(subject.status) === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                                                                normalizeStatus(subject.status) === 'COMPLETED' ? 'bg-purple-100 text-purple-800' :
-                                                                    normalizeStatus(subject.status) === 'WITHDRAWN' ? 'bg-red-100 text-red-800' :
-                                                                        normalizeStatus(subject.status) === 'SCREEN FAILED' ? 'bg-red-100 text-red-800' :
-                                                                            'bg-gray-100 text-gray-800'}`}>
-                                                {subject.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {subject.enrollmentDate ? new Date(subject.enrollmentDate).toLocaleDateString() : 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {subject.siteId ? `Site ${subject.siteId}` : 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div className="flex space-x-3 items-center">
-                                                <Link
-                                                    to={`${basePath}/subjects/${subject.id}`}
-                                                    className="text-indigo-600 hover:text-indigo-900 flex items-center"
-                                                    title="View subject details"
-                                                >
-                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                    </svg>
-                                                    View
-                                                </Link>
-
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedPatient(subject);
-                                                        setPreselectedStatus(null);
-                                                        setShowStatusModal(true);
-                                                    }}
-                                                    className="text-blue-600 hover:text-blue-900 flex items-center"
-                                                    title="Change subject status"
-                                                >
-                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                                    </svg>
-                                                    Status
-                                                </button>
-
-                                                <button
-                                                    onClick={() => handleEditSubject(subject.id)}
-                                                    className="text-gray-600 hover:text-gray-900 flex items-center"
-                                                    title="Edit subject details"
-                                                >
-                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                    </svg>
-                                                    Edit
-                                                </button>
-
-                                                <button
-                                                    onClick={() => handleWithdrawSubject(subject)}
-                                                    className={`flex items-center ${normalizeStatus(subject.status) === 'WITHDRAWN'
-                                                        ? 'text-gray-400 cursor-not-allowed'
-                                                        : 'text-red-600 hover:text-red-900'
-                                                        }`}
-                                                    disabled={normalizeStatus(subject.status) === 'WITHDRAWN'}
-                                                    title={
-                                                        normalizeStatus(subject.status) === 'WITHDRAWN'
-                                                            ? 'Subject already withdrawn'
-                                                            : 'Withdraw subject from study'
-                                                    }
-                                                >
-                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                    Withdraw
-                                                </button>
-
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedPatient(subject);
-                                                        setVisitType('UNSCHEDULED');
-                                                        setShowVisitModal(true);
-                                                    }}
-                                                    className="text-purple-600 hover:text-purple-900 flex items-center"
-                                                    title="Add unscheduled visit"
-                                                >
-                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    Visit
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
+            )}
 
             {/* Patient Registry Section - Gated Behind Explicit Action */}
             {selectedStudy && (
