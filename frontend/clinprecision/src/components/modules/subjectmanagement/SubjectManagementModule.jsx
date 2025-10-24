@@ -3,7 +3,6 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import SubjectManagementDashboard from './SubjectManagementDashboard';
 import SubjectList from '../datacapture/SubjectList';
-import SubjectEnrollment from '../datacapture/SubjectEnrollment';
 import SubjectDetails from '../datacapture/SubjectDetails';
 import SubjectEdit from '../datacapture/SubjectEdit';
 
@@ -16,7 +15,6 @@ export default function SubjectManagementModule() {
 
                 {/* Subject Management Routes */}
                 <Route path="subjects" element={<SubjectList />} />
-                <Route path="enroll" element={<SubjectEnrollment />} />
                 <Route path="subjects/:subjectId" element={<SubjectDetails />} />
                 <Route path="subjects/:subjectId/edit" element={<SubjectEdit />} />
             </Routes>

@@ -343,8 +343,9 @@ export default function PatientList() {
                                                     View Details
                                                 </button>
                                                 <button
-                                                    onClick={() => navigate(`/datacapture-management/patients/${patient.id}/enroll`)}
+                                                    onClick={() => navigate('/datacapture-management/subjects', { state: { openEnrollment: true } })}
                                                     className="text-green-600 hover:text-green-900"
+                                                    title="Open enrollment wizard"
                                                 >
                                                     Enroll in Study
                                                 </button>

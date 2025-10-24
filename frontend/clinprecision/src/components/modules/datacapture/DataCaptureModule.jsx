@@ -1,7 +1,6 @@
 // DataCaptureModule.jsx
 import { Routes, Route } from 'react-router-dom';
 import SubjectList from './SubjectList';
-import SubjectEnrollment from './SubjectEnrollment';
 import SubjectDetails from './SubjectDetails';
 import SubjectEdit from './SubjectEdit';
 import FormEntry from './forms/FormEntry';
@@ -26,7 +25,6 @@ export default function DataCaptureModule() {
 
                 {/* Subject Management Routes */}
                 <Route path="subjects" element={<SubjectList />} />
-                <Route path="enroll" element={<SubjectEnrollment />} />
                 <Route path="subjects/:subjectId" element={<SubjectDetails />} />
                 <Route path="subjects/:subjectId/edit" element={<SubjectEdit />} />
                 <Route path="subjects/:subjectId/visits/:visitId" element={<VisitDetails />} />
@@ -37,7 +35,6 @@ export default function DataCaptureModule() {
                 <Route path="patients" element={<PatientList />} />
                 <Route path="patients/register" element={<PatientRegistration />} />
                 <Route path="patients/:patientId" element={<PatientDetails />} />
-                <Route path="patients/:patientId/enroll" element={<SubjectEnrollment />} />
             </Routes>
         </div>
     );

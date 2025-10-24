@@ -60,7 +60,7 @@ export default function SubjectManagementDashboard() {
 
                     {/* Enroll New Subject Card */}
                     <button
-                        onClick={() => navigate('/subject-management/enroll')}
+                        onClick={() => navigate('/subject-management/subjects', { state: { openEnrollment: true } })}
                         className="group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
                     >
                         {/* Gradient accent */}

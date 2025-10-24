@@ -62,7 +62,7 @@ export default function DataCaptureDashboard() {
             ] : null,
             actions: [
                 { label: 'View All Subjects', action: () => navigate('/datacapture-management/subjects'), variant: 'primary' },
-                { label: 'Enroll New Subject', action: () => navigate('/datacapture-management/enroll'), variant: 'secondary' }
+                { label: 'Enroll New Subject', action: () => navigate('/datacapture-management/subjects', { state: { openEnrollment: true } }), variant: 'secondary' }
             ],
             bgColor: 'bg-blue-50',
             borderColor: 'border-blue-200',
@@ -195,8 +195,8 @@ export default function DataCaptureDashboard() {
                                         key={actionIndex}
                                         onClick={action.action}
                                         className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${action.variant === 'primary'
-                                                ? `${card.bgColor.replace('bg-', 'bg-').replace('-50', '-600')} text-white hover:shadow-md ${card.bgColor.replace('bg-', 'hover:bg-').replace('-50', '-700')}`
-                                                : `border-2 ${card.borderColor} text-gray-700 hover:bg-gray-50`
+                                            ? `${card.bgColor.replace('bg-', 'bg-').replace('-50', '-600')} text-white hover:shadow-md ${card.bgColor.replace('bg-', 'hover:bg-').replace('-50', '-700')}`
+                                            : `border-2 ${card.borderColor} text-gray-700 hover:bg-gray-50`
                                             }`}
                                     >
                                         {action.label}
@@ -243,8 +243,8 @@ export default function DataCaptureDashboard() {
                                         <p className="text-xs text-gray-500 mb-2">{study.protocolNumber}</p>
                                     </div>
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${study.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                                            study.status === 'RECRUITING' ? 'bg-blue-100 text-blue-800' :
-                                                'bg-yellow-100 text-yellow-800'
+                                        study.status === 'RECRUITING' ? 'bg-blue-100 text-blue-800' :
+                                            'bg-yellow-100 text-yellow-800'
                                         }`}>
                                         {study.status}
                                     </span>

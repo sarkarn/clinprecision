@@ -4,12 +4,14 @@ import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-do
 import toast from 'react-hot-toast';
 import { getStudies } from '../../../services/StudyService';
 import { getSubjectsByStudy } from '../../../services/SubjectService';
+import { SiteService } from '../../../services/SiteService';
 import ApiService from '../../../services/ApiService';
 import { useStudy } from '../../../hooks/useStudy';
 import { useDebounce } from '../../../hooks/useDebounce';
 import StudySelector from './components/StudySelector';
 import SubjectFilters from './components/SubjectFilters';
 import SubjectCard from './components/SubjectCard';
+import EnrollmentStepper from './components/EnrollmentStepper';
 import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
 import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVisitModal';
 import WithdrawalModal from '../subjectmanagement/components/WithdrawalModal';
@@ -27,6 +29,7 @@ const normalizeStatus = (status) => {
 export default function SubjectList() {
     const { selectedStudy, setSelectedStudy } = useStudy();
     const [studies, setStudies] = useState([]);
+    const [sites, setSites] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [allPatients, setAllPatients] = useState([]);
     const [showAllPatients, setShowAllPatients] = useState(false); // Now defaults to false
@@ -38,6 +41,7 @@ export default function SubjectList() {
     const [showVisitModal, setShowVisitModal] = useState(false);
     const [visitType, setVisitType] = useState(null);
     const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+    const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
 
     // Filters and sorting state
     const [searchParams, setSearchParams] = useSearchParams();
@@ -55,6 +59,15 @@ export default function SubjectList() {
     // Detect which module we're in based on the current path
     const isSubjectManagementModule = location.pathname.startsWith('/subject-management');
     const basePath = isSubjectManagementModule ? '/subject-management' : '/datacapture-management';
+
+    // Check if enrollment modal should be auto-opened
+    useEffect(() => {
+        if (location.state?.openEnrollment) {
+            setShowEnrollmentModal(true);
+            // Clear the state to prevent re-opening on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     useEffect(() => {
         const fetchStudies = async () => {
@@ -79,6 +92,12 @@ export default function SubjectList() {
 
                 console.log('[SUBJECT LIST] Filtered studies for viewing:', filteredStudies.length);
                 setStudies(studiesData);
+
+                // Fetch all sites
+                console.log('[SUBJECT LIST] Fetching sites...');
+                const sitesData = await SiteService.getAllSites();
+                console.log('[SUBJECT LIST] Sites received:', sitesData);
+                setSites(sitesData);
 
                 // Check if study was preselected from navigation state (e.g., from dashboard)
                 if (location.state?.preselectedStudy) {
@@ -142,6 +161,44 @@ export default function SubjectList() {
         }
         setSelectedPatient(subject);
         setShowWithdrawalModal(true);
+    };
+
+    const handleEnrollmentSubmit = async (enrollmentData) => {
+        try {
+            // Format data for API
+            const payload = {
+                subjectId: enrollmentData.subjectId,
+                studyId: enrollmentData.studyId,
+                siteId: enrollmentData.siteId,
+                dateOfBirth: enrollmentData.dateOfBirth,
+                gender: enrollmentData.gender,
+                phoneNumber: enrollmentData.phoneNumber,
+                status: 'Registered',
+                enrollmentDate: new Date().toISOString(),
+            };
+
+            console.log('[SUBJECT LIST] Enrolling subject:', payload);
+
+            // Call API to enroll subject
+            const response = await ApiService.post('/clinops-ws/api/v1/subjects', payload);
+
+            console.log('[SUBJECT LIST] Enrollment successful:', response);
+
+            // Close modal
+            setShowEnrollmentModal(false);
+
+            // Show success toast
+            toast.success(`Subject ${enrollmentData.subjectId} enrolled successfully`);
+
+            // Refresh subjects list
+            if (selectedStudy) {
+                const subjectsData = await getSubjectsByStudy(selectedStudy);
+                setSubjects(subjectsData);
+            }
+        } catch (error) {
+            console.error('[SUBJECT LIST] Error enrolling subject:', error);
+            toast.error(error.response?.data?.message || 'Failed to enroll subject');
+        }
     };
 
     const handleStatusChanged = async (result) => {
@@ -348,7 +405,7 @@ export default function SubjectList() {
                 </div>
                 <div className="flex space-x-2">
                     <button
-                        onClick={() => navigate('/subject-management/enroll')}
+                        onClick={() => setShowEnrollmentModal(true)}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center"
                     >
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -897,6 +954,16 @@ export default function SubjectList() {
                     patientName={`${selectedPatient.firstName || ''} ${selectedPatient.lastName || ''}`.trim() || `Patient ${selectedPatient.id}`}
                     currentStatus={selectedPatient.status}
                     onWithdrawalComplete={handleStatusChanged}
+                />
+            )}
+
+            {/* Enrollment Stepper Modal */}
+            {showEnrollmentModal && (
+                <EnrollmentStepper
+                    onClose={() => setShowEnrollmentModal(false)}
+                    onSubmit={handleEnrollmentSubmit}
+                    studies={studies}
+                    sites={sites}
                 />
             )}
         </div>

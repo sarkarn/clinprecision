@@ -152,8 +152,9 @@ export default function PatientDetails() {
                     </div>
                     <div className="flex space-x-3">
                         <button
-                            onClick={() => navigate(`/datacapture-management/patients/${patient.id}/enroll`)}
+                            onClick={() => navigate('/datacapture-management/subjects', { state: { openEnrollment: true } })}
                             className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            title="Open enrollment wizard"
                         >
                             Enroll in Study
                         </button>
@@ -315,8 +316,9 @@ export default function PatientDetails() {
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-medium text-gray-900">Study Enrollments</h2>
                     <button
-                        onClick={() => navigate(`/datacapture-management/patients/${patient.id}/enroll`)}
+                        onClick={() => navigate('/datacapture-management/subjects', { state: { openEnrollment: true } })}
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        title="Open enrollment wizard"
                     >
                         Enroll in New Study
                     </button>
