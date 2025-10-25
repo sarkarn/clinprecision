@@ -2,24 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import FormService from '../../../../services/FormService';
 
-const FormTemplateManagement = () => {
-    const [forms, setForms] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+interface FormTemplate {
+    id: number | string;
+    name: string;
+    description?: string;
+    category?: string;
+    version?: string;
+    status?: string;
+    usageCount?: number;
+    updatedAt?: string;
+}
+
+const FormTemplateManagement: React.FC = () => {
+    const [forms, setForms] = useState<FormTemplate[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchFormTemplates();
     }, []);
 
-    const fetchFormTemplates = async () => {
+    const fetchFormTemplates = async (): Promise<void> => {
         try {
             setLoading(true);
             setError(null);
 
             // Fetch global form templates from Admin Service
             const formsData = await FormService.getForms();
-            setForms(formsData);
+            setForms(formsData as any);
             setLoading(false);
         } catch (err) {
             setError('Failed to load form templates');
@@ -28,37 +39,37 @@ const FormTemplateManagement = () => {
         }
     };
 
-    const handleDeleteForm = async (formId) => {
+    const handleDeleteForm = async (formId: number | string): Promise<void> => {
         if (window.confirm('Are you sure you want to delete this form template? This action cannot be undone.')) {
             try {
-                await FormService.deleteForm(formId);
+                await FormService.deleteForm(formId as any);
                 // Remove form from the list
                 setForms(forms.filter(form => form.id !== formId));
                 alert('Form template deleted successfully');
-            } catch (err) {
+            } catch (err: any) {
                 alert(`Error deleting form template: ${err.message || 'Unknown error'}`);
                 console.error('Error deleting form template:', err);
             }
         }
     };
 
-    const handleCreateForm = () => {
+    const handleCreateForm = (): void => {
         navigate('/user-management/form-templates/builder');
     };
 
-    const handleEditForm = (formId) => {
+    const handleEditForm = (formId: number | string): void => {
         navigate(`/user-management/form-templates/builder/${formId}`);
     };
 
-    const handlePreviewForm = (formId) => {
+    const handlePreviewForm = (formId: number | string): void => {
         navigate(`/user-management/form-templates/preview/${formId}`);
     };
 
-    const handleFormVersions = (formId) => {
+    const handleFormVersions = (formId: number | string): void => {
         navigate(`/user-management/form-templates/${formId}/versions`);
     };
 
-    const getStatusBadgeClass = (status) => {
+    const getStatusBadgeClass = (status?: string): string => {
         switch (status?.toLowerCase()) {
             case 'published':
                 return 'bg-green-100 text-green-800';

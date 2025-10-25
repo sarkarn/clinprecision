@@ -4,21 +4,56 @@ import StudyFormService from '../../../services/data-capture/StudyFormService';
 import StudyService from '../../../services/StudyService';
 import { Alert } from './components/UIComponents';
 
-const StudyFormList = () => {
-    const { studyId } = useParams();
-    const [study, setStudy] = useState(null);
-    const [forms, setForms] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-    const [availableTemplates, setAvailableTemplates] = useState([]);
-    const [templatesLoading, setTemplatesLoading] = useState(false);
+interface Study {
+    id: number | string;
+    name: string;
+    protocol: string;
+    phase: string;
+    status: string;
+}
+
+interface StudyForm {
+    id: number | string;
+    name: string;
+    description?: string;
+    formType?: string;
+    version: string;
+    isLatestVersion?: boolean;
+    status: string;
+    isLocked?: boolean;
+    templateId?: number | string;
+    updatedAt?: string;
+}
+
+interface Template {
+    id: number | string;
+    name: string;
+    type: string;
+    description: string;
+    version: string;
+    status: string;
+}
+
+interface AlertMessage {
+    title: string;
+    message: string;
+}
+
+const StudyFormList: React.FC = () => {
+    const { studyId } = useParams<{ studyId: string }>();
+    const [study, setStudy] = useState<Study | null>(null);
+    const [forms, setForms] = useState<StudyForm[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [showTemplateSelector, setShowTemplateSelector] = useState<boolean>(false);
+    const [availableTemplates, setAvailableTemplates] = useState<Template[]>([]);
+    const [templatesLoading, setTemplatesLoading] = useState<boolean>(false);
 
     // Success message state
-    const [successMessage, setSuccessMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState<AlertMessage | null>(null);
 
     // Error message state  
-    const [errorMessage, setErrorMessage] = useState(null);
+    const [errorMessage, setErrorMessage] = useState<AlertMessage | null>(null);
 
     const navigate = useNavigate();
 
@@ -31,20 +66,20 @@ const StudyFormList = () => {
         }
     }, [studyId]);
 
-    const fetchStudyAndForms = async () => {
+    const fetchStudyAndForms = async (): Promise<void> => {
         try {
             setLoading(true);
             setError(null);
 
             // Fetch study information
             try {
-                const studyData = await StudyService.getStudyById(studyId);
-                setStudy(studyData);
+                const studyData = await StudyService.getStudyById(studyId as any);
+                setStudy(studyData as any);
             } catch (studyError) {
                 // Fallback to mock study data if service fails
                 console.warn('Using mock study data:', studyError);
                 setStudy({
-                    id: studyId,
+                    id: studyId!,
                     name: 'Clinical Trial Study',
                     protocol: `STUDY-${studyId}`,
                     phase: 'Phase III',
@@ -53,21 +88,21 @@ const StudyFormList = () => {
             }
 
             // Fetch study-specific forms
-            const formsData = await StudyFormService.getFormsByStudy(studyId);
-            setForms(formsData);
+            const formsData = await StudyFormService.getFormsByStudy(studyId as any);
+            setForms(Array.isArray(formsData) ? formsData as any : []);
             setLoading(false);
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to load study forms');
             setLoading(false);
             console.error('Error fetching study forms:', err);
         }
     };
 
-    const fetchTemplates = async () => {
+    const fetchTemplates = async (): Promise<void> => {
         try {
             setTemplatesLoading(true);
             const templates = await StudyFormService.getAvailableTemplates();
-            setAvailableTemplates(templates);
+            setAvailableTemplates(Array.isArray(templates) ? templates as any : []);
         } catch (err) {
             console.error('Error fetching templates:', err);
             setAvailableTemplates([]);
@@ -76,10 +111,10 @@ const StudyFormList = () => {
         }
     };
 
-    const handleDeleteForm = async (formId) => {
+    const handleDeleteForm = async (formId: number | string): Promise<void> => {
         if (window.confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
             try {
-                await StudyFormService.deleteStudyForm(formId);
+                await StudyFormService.deleteStudyForm(formId as any);
                 setForms(forms.filter(form => form.id !== formId));
                 setSuccessMessage({
                     title: 'Success',
@@ -90,7 +125,7 @@ const StudyFormList = () => {
                 setTimeout(() => {
                     setSuccessMessage(null);
                 }, 3000);
-            } catch (err) {
+            } catch (err: any) {
                 setErrorMessage({
                     title: 'Error',
                     message: `Error deleting form: ${err.message || 'Unknown error'}`
@@ -100,24 +135,24 @@ const StudyFormList = () => {
         }
     };
 
-    const handleCreateForm = () => {
+    const handleCreateForm = (): void => {
         navigate(`/study-design/study/${studyId}/forms/builder`);
     };
 
-    const handleCreateFromTemplate = () => {
+    const handleCreateFromTemplate = (): void => {
         setShowTemplateSelector(true);
         if (availableTemplates.length === 0) {
             fetchTemplates();
         }
     };
 
-    const handleTemplateSelection = async (template) => {
+    const handleTemplateSelection = async (template: Template): Promise<void> => {
         try {
             const formName = `${template.name} - ${study?.name || 'Study'} Version`;
 
             const newForm = await StudyFormService.createStudyFormFromTemplate(
-                studyId,
-                template.id,
+                studyId as any,
+                template.id as any,
                 formName
             );
 
@@ -134,7 +169,7 @@ const StudyFormList = () => {
                 setSuccessMessage(null);
                 navigate(`/study-design/study/${studyId}/forms/builder/${newForm.id}`);
             }, 3000);
-        } catch (err) {
+        } catch (err: any) {
             setErrorMessage({
                 title: 'Error',
                 message: `Error creating form from template: ${err.message || 'Unknown error'}`
@@ -143,19 +178,19 @@ const StudyFormList = () => {
         }
     };
 
-    const handleEditForm = (formId) => {
+    const handleEditForm = (formId: number | string): void => {
         navigate(`/study-design/study/${studyId}/forms/builder/${formId}`);
     };
 
-    const handlePreviewForm = (formId) => {
+    const handlePreviewForm = (formId: number | string): void => {
         navigate(`/study-design/study/${studyId}/forms/builder/${formId}`);
     };
 
-    const handleFormVersions = (formId) => {
+    const handleFormVersions = (formId: number | string): void => {
         navigate(`/study-design/study/${studyId}/forms/${formId}/versions`);
     };
 
-    const getStatusBadgeClass = (status) => {
+    const getStatusBadgeClass = (status?: string): string => {
         switch (status?.toLowerCase()) {
             case 'published':
                 return 'bg-green-100 text-green-800';
@@ -170,7 +205,7 @@ const StudyFormList = () => {
         }
     };
 
-    const getFormTypeColor = (type) => {
+    const getFormTypeColor = (type?: string): string => {
         switch (type?.toLowerCase()) {
             case 'screening':
                 return 'bg-purple-100 text-purple-800';

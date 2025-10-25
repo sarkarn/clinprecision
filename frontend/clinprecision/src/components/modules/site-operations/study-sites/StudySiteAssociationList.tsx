@@ -9,13 +9,43 @@ import { SiteService } from '../../../../services/SiteService';
 import { SiteService as StudySiteService } from '../../../../services/SiteService';
 import StudyService from '../../../../services/StudyService';
 
-export default function StudySiteAssociationList() {
-    const [associations, setAssociations] = useState([]);
-    const [filteredAssociations, setFilteredAssociations] = useState([]);
-    const [sites, setSites] = useState([]);
-    const [studies, setStudies] = useState([]);
+interface Site {
+    id: number | string;
+    name: string;
+    siteNumber: string;
+}
+
+interface Study {
+    id: number | string;
+    protocolNumber?: string;
+    title?: string;
+    name?: string;
+}
+
+interface Association {
+    id: number | string;
+    siteId?: number | string;
+    studyId: string | number;
+    siteName?: string;
+    siteNumber?: string;
+    studyName?: string;
+    status: string;
+    createdAt?: string;
+}
+
+interface NotificationState {
+    show: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+}
+
+const StudySiteAssociationList: React.FC = () => {
+    const [associations, setAssociations] = useState<Association[]>([]);
+    const [filteredAssociations, setFilteredAssociations] = useState<Association[]>([]);
+    const [sites, setSites] = useState<Site[]>([]);
+    const [studies, setStudies] = useState<Study[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Filters
     const [selectedSite, setSelectedSite] = useState('');
@@ -28,11 +58,11 @@ export default function StudySiteAssociationList() {
     const [itemsPerPage] = useState(10);
 
     // Selection for bulk operations
-    const [selectedItems, setSelectedItems] = useState([]);
+    const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
     const [showBulkActions, setShowBulkActions] = useState(false);
 
     // Notification
-    const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+    const [notification, setNotification] = useState<NotificationState>({ show: false, message: '', type: 'success' });
 
     useEffect(() => {
         loadData();
@@ -61,20 +91,20 @@ export default function StudySiteAssociationList() {
             console.log('Loaded studies:', studiesData.length);
             console.log('Studies data structure:', studiesData.map(s => ({ id: s.id, name: s.name, title: s.title, protocolNumber: s.protocolNumber })));
 
-            setSites(sitesData);
-            setStudies(studiesData);
+            setSites(sitesData as any);
+            setStudies(studiesData as any);
 
             // Load associations for all sites
-            const allAssociations = [];
-            for (const site of sitesData) {
+            const allAssociations: Association[] = [];
+            for (const site of sitesData as any) {
                 try {
                     const siteAssociations = await StudySiteService.getStudyAssociationsForSite(site.id);
-                    const enrichedAssociations = siteAssociations.map(assoc => {
+                    const enrichedAssociations = (siteAssociations as any).map((assoc: any) => {
                         // Convert studyId to number for proper comparison
                         const studyIdAsNumber = Number(assoc.studyId);
 
                         // Find study by ID (primary match) or fallback to protocol number
-                        const matchedStudy = studiesData.find(s =>
+                        const matchedStudy = (studiesData as any).find((s: any) =>
                             s.id === studyIdAsNumber ||
                             s.id === assoc.studyId ||
                             s.protocolNumber === assoc.studyId?.toString()
@@ -88,11 +118,11 @@ export default function StudySiteAssociationList() {
 
                         return {
                             ...assoc,
-                            siteId: site.id, // Add site ID for backend calls
+                            siteId: site.id,
                             siteName: site.name,
                             siteNumber: site.siteNumber,
                             studyName: matchedStudy?.title || matchedStudy?.name || `Study ID: ${assoc.studyId}`
-                        };
+                        } as Association;
                     });
                     allAssociations.push(...enrichedAssociations);
                 } catch (error) {
@@ -134,30 +164,30 @@ export default function StudySiteAssociationList() {
             filtered = filtered.filter(assoc =>
                 assoc.siteName?.toLowerCase().includes(term) ||
                 assoc.siteNumber?.toLowerCase().includes(term) ||
-                assoc.studyId?.toLowerCase().includes(term) ||
+                assoc.studyId?.toString().toLowerCase().includes(term) ||
                 assoc.studyName?.toLowerCase().includes(term)
             );
         }
 
         setFilteredAssociations(filtered);
-        setCurrentPage(1); // Reset to first page when filtering
+        setCurrentPage(1);
     };
 
-    const handleActivateAssociation = async (association) => {
+    const handleActivateAssociation = async (association: Association) => {
         const reason = prompt('Please enter a reason for activation:');
         if (!reason) return;
 
         try {
-            await StudySiteService.activateSiteForStudy(association.siteId, association.studyId, { reason });
+            await StudySiteService.activateSiteForStudy(association.siteId as any, association.studyId, { reason } as any);
             showNotification('Study site association activated successfully!', 'success');
-            loadData(); // Refresh data
+            loadData();
         } catch (error) {
             console.error('Error activating association:', error);
             showNotification('Failed to activate study site association', 'error');
         }
     };
 
-    const handleRemoveAssociation = async (association) => {
+    const handleRemoveAssociation = async (association: Association) => {
         const reason = prompt('Please enter a reason for removal:');
         if (!reason) return;
 
@@ -166,24 +196,24 @@ export default function StudySiteAssociationList() {
         }
 
         try {
-            await StudySiteService.removeSiteStudyAssociation(association.siteId, association.studyId, reason);
+            await StudySiteService.removeSiteStudyAssociation(association.siteId as any, association.studyId as any, reason);
             showNotification('Study site association removed successfully!', 'success');
-            loadData(); // Refresh data
+            loadData();
         } catch (error) {
             console.error('Error removing association:', error);
             showNotification('Failed to remove study site association', 'error');
         }
     };
 
-    const showNotification = (message, type = 'success') => {
+    const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
         setNotification({ show: true, message, type });
         setTimeout(() => {
             setNotification({ show: false, message: '', type: 'success' });
         }, 3000);
     };
 
-    const getStatusBadge = (status) => {
-        const statusConfig = {
+    const getStatusBadge = (status: string) => {
+        const statusConfig: Record<string, { bg: string; text: string; border: string; icon: any }> = {
             ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200', icon: CheckCircle },
             PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200', icon: Clock },
             INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200', icon: XCircle }
@@ -200,7 +230,7 @@ export default function StudySiteAssociationList() {
         );
     };
 
-    const handleSelectAll = (checked) => {
+    const handleSelectAll = (checked: boolean) => {
         if (checked) {
             const currentPageItems = getCurrentPageItems().map(item => item.id);
             setSelectedItems(currentPageItems);
@@ -209,7 +239,7 @@ export default function StudySiteAssociationList() {
         }
     };
 
-    const handleSelectItem = (itemId, checked) => {
+    const handleSelectItem = (itemId: string | number, checked: boolean) => {
         if (checked) {
             setSelectedItems([...selectedItems, itemId]);
         } else {
@@ -638,4 +668,6 @@ export default function StudySiteAssociationList() {
             )}
         </div>
     );
-}
+};
+
+export default StudySiteAssociationList;

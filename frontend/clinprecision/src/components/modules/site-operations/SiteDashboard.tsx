@@ -3,14 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardBody, Badge } from '../../shared/ui';
 import { Hospital, Link2, MapPin, CheckCircle } from 'lucide-react';
 
+interface QuickAction {
+    title: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    path: string;
+    color: string;
+    count: number | null;
+    disabled?: boolean;
+}
+
 /**
  * Site Operations Dashboard
  * Central hub for clinical site and study-site association management
  */
-const SiteDashboard = () => {
+const SiteDashboard: React.FC = () => {
     const navigate = useNavigate();
 
-    const quickActions = [
+    const quickActions: QuickAction[] = [
         {
             title: 'Clinical Sites',
             description: 'Manage research sites and facilities',
@@ -52,7 +62,7 @@ const SiteDashboard = () => {
                         <p className="text-gray-600">Manage clinical sites and their study associations</p>
                     </div>
                 </div>
-                <Badge variant="amber" size="sm">SITES</Badge>
+                <Badge {...({ variant: "amber", size: "sm" } as any)}>SITES</Badge>
             </div>
 
             {/* Quick Actions Grid */}
@@ -78,7 +88,7 @@ const SiteDashboard = () => {
                                             <h4 className="text-lg font-semibold text-gray-900 mb-1">
                                                 {action.title}
                                                 {action.disabled && (
-                                                    <Badge variant="neutral" size="sm" className="ml-2">Coming Soon</Badge>
+                                                    <Badge {...({ variant: "neutral", size: "sm", className: "ml-2" } as any)}>Coming Soon</Badge>
                                                 )}
                                             </h4>
                                             <p className="text-sm text-gray-600">
@@ -86,7 +96,7 @@ const SiteDashboard = () => {
                                             </p>
                                             {action.count !== null && (
                                                 <div className="mt-2">
-                                                    <Badge variant="neutral" size="sm">
+                                                    <Badge {...({ variant: "neutral", size: "sm" } as any)}>
                                                         {action.count} items
                                                     </Badge>
                                                 </div>
@@ -121,7 +131,7 @@ const SiteDashboard = () => {
                                 <p className="text-sm text-gray-600">Active Sites</p>
                                 <p className="text-2xl font-bold text-gray-900 mt-1">--</p>
                             </div>
-                            <Badge variant="success" className="self-start">Active</Badge>
+                            <Badge {...({ variant: "success", className: "self-start" } as any)}>Active</Badge>
                         </div>
                     </CardBody>
                 </Card>

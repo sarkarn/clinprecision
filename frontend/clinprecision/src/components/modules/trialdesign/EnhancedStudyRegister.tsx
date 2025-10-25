@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StudyService from '../../../services/StudyService';
 import { StudyOrganizationService } from '../../../services/StudyOrganizationService';
@@ -6,14 +6,37 @@ import { StudyOrganizationService } from '../../../services/StudyOrganizationSer
 // Enhanced form components
 import EnhancedFormField from './components/EnhancedFormField';
 import FormProgressIndicator from './components/FormProgressIndicator';
-import { useEnhancedFormValidation } from './hooks/useEnhancedFormValidation';
+import { useEnhancedFormValidation, ValidationMode } from './hooks/useEnhancedFormValidation';
 import { formValidationConfigs } from './utils/validationUtils';
 
-const EnhancedStudyRegister = () => {
+interface Organization {
+    id: number | string;
+    name: string;
+}
+
+interface OrganizationRole {
+    organizationId: number | string;
+    role: string;
+}
+
+interface StudyFormData {
+    name: string;
+    phase: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    sponsor: string;
+    principalInvestigator: string;
+    description: string;
+    protocolNumber: string;
+    organizations: OrganizationRole[];
+}
+
+const EnhancedStudyRegister: React.FC = () => {
     const navigate = useNavigate();
-    const [availableOrganizations, setAvailableOrganizations] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [submitError, setSubmitError] = useState(null);
+    const [availableOrganizations, setAvailableOrganizations] = useState<Organization[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     // Enhanced form validation
     const {
@@ -47,7 +70,7 @@ const EnhancedStudyRegister = () => {
 
     useEffect(() => {
         // Fetch organizations for selection
-        const fetchOrgs = async () => {
+        const fetchOrgs = async (): Promise<void> => {
             try {
                 const orgs = await StudyOrganizationService.getAllOrganizations();
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
@@ -58,8 +81,8 @@ const EnhancedStudyRegister = () => {
         fetchOrgs();
     }, []);
 
-    const handleOrgRoleChange = (orgId, role) => {
-        const currentOrgs = formData.organizations || [];
+    const handleOrgRoleChange = (orgId: number | string, role: string): void => {
+        const currentOrgs = (formData.organizations || []) as OrganizationRole[];
         const orgs = currentOrgs.filter(o => o.organizationId !== orgId);
         if (role) {
             orgs.push({ organizationId: orgId, role });
@@ -67,7 +90,7 @@ const EnhancedStudyRegister = () => {
         updateField('organizations', orgs);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         setLoading(true);
         setSubmitError(null);
@@ -89,28 +112,28 @@ const EnhancedStudyRegister = () => {
 
             console.log('Attempting to register study with data:', apiFormData);
 
-            const response = await StudyService.registerStudy(apiFormData);
+            const response = await StudyService.registerStudy(apiFormData as any);
             console.log('Study registration successful:', response);
             setLoading(false);
 
             // Navigate to the study list after successful registration
             navigate('/study-design/studies');
-        } catch (err) {
+        } catch (err: any) {
             console.error('Study registration error:', err);
             setSubmitError(err.message || 'Failed to register study');
             setLoading(false);
         }
     };
 
-    const calculateRequiredFieldsCompleted = () => {
+    const calculateRequiredFieldsCompleted = (): number => {
         const requiredFields = ['name', 'phase'];
         return requiredFields.filter(field =>
-            formData[field] && formData[field].toString().trim() !== ''
+            (formData as any)[field] && (formData as any)[field].toString().trim() !== ''
         ).length;
     };
 
     const totalErrors = Object.values(errors).filter(error => error).length;
-    const fieldValidationStates = {};
+    const fieldValidationStates: Record<string, any> = {};
 
     // Prepare field validation states for progress indicator
     Object.keys(formData).forEach(fieldName => {
@@ -132,7 +155,7 @@ const EnhancedStudyRegister = () => {
                     <label className="text-sm text-gray-600">Validation Mode:</label>
                     <select
                         value={validationMode}
-                        onChange={(e) => setValidationMode(e.target.value)}
+                        onChange={(e) => setValidationMode(e.target.value as ValidationMode)}
                         className="text-sm border border-gray-300 rounded px-2 py-1"
                     >
                         <option value="progressive">Progressive</option>
@@ -172,7 +195,7 @@ const EnhancedStudyRegister = () => {
                         error={getFieldValidationState('name').error}
                         touched={getFieldValidationState('name').isTouched}
                         required
-                        validationMode={validationMode}
+                        validationMode={validationMode === 'progressive' ? 'realtime' : validationMode as any}
                         validateAsYouType={validationMode === 'realtime'}
                         suggestions={getFieldSuggestions('name')}
                         helpText="Enter a descriptive name for your clinical study"
@@ -210,7 +233,7 @@ const EnhancedStudyRegister = () => {
                         onBlur={() => handleFieldBlur('protocolNumber')}
                         error={getFieldValidationState('protocolNumber').error}
                         touched={getFieldValidationState('protocolNumber').isTouched}
-                        validationMode={validationMode}
+                        validationMode={validationMode === 'progressive' ? 'realtime' : validationMode as any}
                         validateAsYouType={validationMode === 'realtime'}
                         suggestions={getFieldSuggestions('protocolNumber')}
                         helpText="Unique protocol identifier (uppercase letters, numbers, and hyphens only)"
@@ -301,7 +324,7 @@ const EnhancedStudyRegister = () => {
                         error={getFieldValidationState('description').error}
                         touched={getFieldValidationState('description').isTouched}
                         rows={4}
-                        validationMode={validationMode}
+                        validationMode={validationMode === 'progressive' ? 'realtime' : validationMode as any}
                         validateAsYouType={validationMode === 'realtime'}
                         helpText="Detailed description of the study objectives and methodology"
                         placeholder="Provide a comprehensive description of the study..."
@@ -320,7 +343,7 @@ const EnhancedStudyRegister = () => {
                             <div key={org.id} className="flex items-center space-x-2">
                                 <span className="w-48 inline-block">{org.name}</span>
                                 <select
-                                    value={formData.organizations.find(o => o.organizationId === org.id)?.role || ''}
+                                    value={(formData.organizations as OrganizationRole[]).find(o => o.organizationId === org.id)?.role || ''}
                                     onChange={e => handleOrgRoleChange(org.id, e.target.value)}
                                     className="border border-gray-300 rounded-md px-2 py-1"
                                 >

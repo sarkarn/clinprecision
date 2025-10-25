@@ -1,50 +1,76 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 import SiteService from '../../../../services/SiteService';
 import StudyService from '../../../../services/StudyService';
 
-export default function StudySiteAssociationForm() {
-    const navigate = useNavigate();
-    const { id } = useParams(); // association ID for edit mode
+interface Site {
+    id: number | string;
+    name: string;
+    siteNumber: string;
+}
 
-    const [sites, setSites] = useState([]);
-    const [studies, setStudies] = useState([]);
-    const [selectedSiteId, setSelectedSiteId] = useState('');
-    const [selectedStudyId, setSelectedStudyId] = useState('');
-    const [reason, setReason] = useState('Initial site onboarding to study');
-    const [enrollmentCap, setEnrollmentCap] = useState('');
-    const [enrollmentCount, setEnrollmentCount] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [notice, setNotice] = useState(null);
-    const [isEditMode, setIsEditMode] = useState(false);
-    const [existingAssociation, setExistingAssociation] = useState(null);
+interface Study {
+    id: number | string;
+    protocolNumber?: string;
+    title?: string;
+    name?: string;
+}
+
+interface Association {
+    id: number | string;
+    siteId: number | string;
+    studyId: number | string;
+    siteName?: string;
+    siteNumber?: string;
+    subjectEnrollmentCap?: number;
+    subjectEnrollmentCount?: number;
+}
+
+interface AvailableStudy {
+    key: string;
+    label: string;
+}
+
+export default function StudySiteAssociationForm(): React.ReactElement {
+    const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>(); // association ID for edit mode
+
+    const [sites, setSites] = useState<Site[]>([]);
+    const [studies, setStudies] = useState<Study[]>([]);
+    const [selectedSiteId, setSelectedSiteId] = useState<string>('');
+    const [selectedStudyId, setSelectedStudyId] = useState<string>('');
+    const [reason, setReason] = useState<string>('Initial site onboarding to study');
+    const [enrollmentCap, setEnrollmentCap] = useState<string>('');
+    const [enrollmentCount, setEnrollmentCount] = useState<string>('');
+    const [submitting, setSubmitting] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
+    const [isEditMode, setIsEditMode] = useState<boolean>(false);
+    const [existingAssociation, setExistingAssociation] = useState<Association | null>(null);
 
     useEffect(() => {
-        const load = async () => {
+        const load = async (): Promise<void> => {
             try {
                 setLoading(true);
                 setError(null);
-                const [siteList, studyList] = await Promise.all([
-                    SiteService.getAllSites(),
-                    StudyService.getStudies()
-                ]);
-                setSites(siteList || []);
-                setStudies(studyList || []);
-
-                // If id is present, we're in edit mode - find the association
+      const [siteList, studyList] = await Promise.all([
+        SiteService.getAllSites(),
+        StudyService.getStudies()
+      ]);
+      setSites(siteList as any || []);
+      setStudies(studyList as any || []);                // If id is present, we're in edit mode - find the association
                 if (id) {
                     setIsEditMode(true);
                     setReason('Updating study site association');
 
                     // Load all associations to find the one we need
-                    const allAssociations = [];
+                    const allAssociations: Association[] = [];
                     for (const site of siteList) {
                         try {
-                            const siteAssociations = await SiteService.getStudyAssociationsForSite(site.id);
-                            const enrichedAssociations = siteAssociations.map(assoc => ({
+                            const siteAssociations = await SiteService.getStudyAssociationsForSite(site.id as any);
+                            const enrichedAssociations = siteAssociations.map((assoc: any) => ({
                                 ...assoc,
                                 siteId: site.id,
                                 siteName: site.name,
@@ -66,14 +92,14 @@ export default function StudySiteAssociationForm() {
                         setExistingAssociation(association);
                         setSelectedSiteId(String(association.siteId));
                         setSelectedStudyId(String(association.studyId));
-                        setEnrollmentCap(association.subjectEnrollmentCap || '');
-                        setEnrollmentCount(association.subjectEnrollmentCount || '');
+                        setEnrollmentCap(association.subjectEnrollmentCap ? String(association.subjectEnrollmentCap) : '');
+                        setEnrollmentCount(association.subjectEnrollmentCount ? String(association.subjectEnrollmentCount) : '');
                     } else {
                         console.error('Association not found. Searched ID:', id, 'Available IDs:', allAssociations.map(a => a.id));
                         setError(`Association with ID ${id} not found`);
                     }
                 }
-            } catch (e) {
+            } catch (e: any) {
                 console.error('Failed to load form data', e);
                 setError('Failed to load sites or studies');
             } finally {
@@ -88,7 +114,7 @@ export default function StudySiteAssociationForm() {
         return [];
     }, [selectedSiteId]);
 
-    const availableStudies = useMemo(() => {
+    const availableStudies = useMemo((): AvailableStudy[] => {
         if (!Array.isArray(studies)) return [];
         // Use numeric study.id as the association key; display protocolNumber for readability
         return studies.map(s => ({
@@ -97,17 +123,17 @@ export default function StudySiteAssociationForm() {
         })).filter(s => !associatedStudyIdsForSelectedSite.includes(s.key));
     }, [studies, associatedStudyIdsForSelectedSite]);
 
-    const validate = () => {
-        const errs = [];
+    const validate = (): string[] => {
+        const errs: string[] = [];
         if (!selectedSiteId) errs.push('Please select a site');
         if (!selectedStudyId) errs.push('Please select a study');
         if (!reason || reason.trim().length < 4) errs.push('Please provide a brief reason (min 4 chars)');
 
         // Validate enrollment numbers if provided
-        if (enrollmentCap && (isNaN(enrollmentCap) || Number(enrollmentCap) < 0)) {
+        if (enrollmentCap && (isNaN(Number(enrollmentCap)) || Number(enrollmentCap) < 0)) {
             errs.push('Enrollment cap must be a positive number');
         }
-        if (enrollmentCount && (isNaN(enrollmentCount) || Number(enrollmentCount) < 0)) {
+        if (enrollmentCount && (isNaN(Number(enrollmentCount)) || Number(enrollmentCount) < 0)) {
             errs.push('Enrollment count must be a positive number');
         }
         if (enrollmentCap && enrollmentCount && Number(enrollmentCount) > Number(enrollmentCap)) {
@@ -117,7 +143,7 @@ export default function StudySiteAssociationForm() {
         return errs;
     };
 
-    const onSubmit = async (e) => {
+    const onSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         const errs = validate();
         if (errs.length) {
@@ -136,23 +162,23 @@ export default function StudySiteAssociationForm() {
                     subjectEnrollmentCount: enrollmentCount ? Number(enrollmentCount) : null
                 };
                 await SiteService.updateSiteStudyAssociation(
-                    Number(selectedSiteId),
+                    selectedSiteId as any,
                     Number(selectedStudyId),
-                    updateData
+                    updateData as any
                 );
                 setNotice('Association updated successfully');
             } else {
                 // Create new association
                 await SiteService.associateSiteWithStudy(
-                    Number(selectedSiteId),
-                    { studyId: Number(selectedStudyId), reason }
+                    selectedSiteId as any,
+                    { studyId: Number(selectedStudyId), reason } as any
                 );
                 setNotice('Association created successfully');
             }
 
             // small delay for UX, then go back to list
             setTimeout(() => navigate('/site-operations/study-sites'), 600);
-        } catch (e) {
+        } catch (e: any) {
             console.error(`${isEditMode ? 'Update' : 'Create'} association failed`, e);
             setError(e?.response?.data || e.message || `Failed to ${isEditMode ? 'update' : 'create'} association`);
         } finally {
@@ -201,7 +227,7 @@ export default function StudySiteAssociationForm() {
                         <select
                             className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             value={selectedSiteId}
-                            onChange={e => setSelectedSiteId(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedSiteId(e.target.value)}
                             disabled={isEditMode}
                         >
                             <option value="">Select a site...</option>
@@ -219,7 +245,7 @@ export default function StudySiteAssociationForm() {
                         <select
                             className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             value={selectedStudyId}
-                            onChange={e => setSelectedStudyId(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedStudyId(e.target.value)}
                             disabled={isEditMode}
                         >
                             <option value="">Select a study...</option>
@@ -243,7 +269,7 @@ export default function StudySiteAssociationForm() {
                                     className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     placeholder="Maximum number of subjects"
                                     value={enrollmentCap}
-                                    onChange={e => setEnrollmentCap(e.target.value)}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setEnrollmentCap(e.target.value)}
                                     min="0"
                                 />
                                 <p className="mt-1 text-sm text-gray-500">Leave blank for no limit</p>
@@ -258,7 +284,7 @@ export default function StudySiteAssociationForm() {
                                     className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     placeholder="Current number of enrolled subjects"
                                     value={enrollmentCount}
-                                    onChange={e => setEnrollmentCount(e.target.value)}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setEnrollmentCount(e.target.value)}
                                     min="0"
                                 />
                                 <p className="mt-1 text-sm text-gray-500">Current enrollment status</p>
@@ -273,7 +299,7 @@ export default function StudySiteAssociationForm() {
                             rows={3}
                             placeholder={isEditMode ? "Provide a reason for this update" : "Provide an audit reason for this association"}
                             value={reason}
-                            onChange={e => setReason(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
                         />
                     </div>
 

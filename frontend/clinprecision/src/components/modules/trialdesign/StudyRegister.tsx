@@ -1,12 +1,34 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StudyService from '../../../services/StudyService';
 import { StudyOrganizationService } from '../../../services/StudyOrganizationService';
 
-const StudyRegister = () => {
+interface Organization {
+    id: number | string;
+    name: string;
+}
+
+interface OrganizationRole {
+    organizationId: number | string;
+    role: string;
+}
+
+interface StudyFormData {
+    name: string;
+    phase: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    sponsor: string;
+    principalInvestigator: string;
+    description: string;
+    protocolNumber: string;
+    organizations: OrganizationRole[];
+}
+
+const StudyRegister: React.FC = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<StudyFormData>({
         name: '',
         phase: '',
         status: 'draft',
@@ -18,13 +40,13 @@ const StudyRegister = () => {
         protocolNumber: '',
         organizations: [] // { organizationId, role }
     });
-    const [availableOrganizations, setAvailableOrganizations] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [availableOrganizations, setAvailableOrganizations] = useState<Organization[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         // Fetch organizations for selection
-        const fetchOrgs = async () => {
+        const fetchOrgs = async (): Promise<void> => {
             try {
                 const orgs = await StudyOrganizationService.getAllOrganizations();
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
@@ -35,7 +57,7 @@ const StudyRegister = () => {
         fetchOrgs();
     }, []);
 
-    const handleChange = (e) => {
+    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>): void => {
         const { name, value } = e.target;
         setFormData({
             ...formData,
@@ -44,7 +66,7 @@ const StudyRegister = () => {
     };
 
     // Handle organization-role assignment
-    const handleOrgRoleChange = (orgId, role) => {
+    const handleOrgRoleChange = (orgId: number | string, role: string): void => {
         setFormData(prev => {
             const orgs = prev.organizations.filter(o => o.organizationId !== orgId);
             if (role) {
@@ -54,7 +76,7 @@ const StudyRegister = () => {
         });
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         setLoading(true);
         setError(null);
@@ -77,13 +99,13 @@ const StudyRegister = () => {
             console.log('API_PATH being used:', '/study-design-ws/api/studies');
 
             try {
-                const response = await StudyService.registerStudy(apiFormData);
+                const response = await StudyService.registerStudy(apiFormData as any);
                 console.log('Study registration successful:', response);
                 setLoading(false);
 
                 // Navigate to the study list or edit page after successful registration
                 navigate('/study-design/studies');
-            } catch (apiError) {
+            } catch (apiError: any) {
                 console.error('API Error details:', apiError);
                 console.error('Error response:', apiError.response ? {
                     status: apiError.response.status,
@@ -95,7 +117,7 @@ const StudyRegister = () => {
 
                 throw new Error(`API Error: ${apiError.response?.status} ${apiError.response?.statusText || ''} - ${apiError.message}`);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Study registration error details:', err);
             setError(err.message || 'Failed to register study');
             setLoading(false);
@@ -238,7 +260,7 @@ const StudyRegister = () => {
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
-                        rows="4"
+                        rows={4}
                         className="border border-gray-300 rounded-md w-full px-3 py-2"
                     ></textarea>
                 </div>

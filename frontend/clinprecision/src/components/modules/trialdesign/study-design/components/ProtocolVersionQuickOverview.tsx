@@ -2,22 +2,29 @@ import React from 'react';
 import ProtocolVersionPanel from '../protocol-version/ProtocolVersionPanel';
 import useProtocolVersioning from '../../hooks/useProtocolVersioning';
 
+interface ProtocolVersionQuickOverviewProps {
+    studyId: string | number;
+    studyName: string;
+    onManageVersions?: () => void;
+    className?: string;
+}
+
 /**
  * Protocol Version Quick Overview Component
  * Compact version display for dashboard sidebars or overview panels
  */
-const ProtocolVersionQuickOverview = ({
+const ProtocolVersionQuickOverview: React.FC<ProtocolVersionQuickOverviewProps> = ({
     studyId,
     studyName,
     onManageVersions,
     className = ""
 }) => {
-    const protocolVersioning = useProtocolVersioning(studyId);
+    const protocolVersioning = useProtocolVersioning(String(studyId)) as any;
 
     return (
         <div className={`bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}>
             <ProtocolVersionPanel
-                studyId={studyId}
+                studyId={String(studyId)}
                 studyName={studyName}
                 currentProtocolVersion={protocolVersioning.currentVersion}
                 protocolVersions={protocolVersioning.versions}
@@ -27,7 +34,7 @@ const ProtocolVersionQuickOverview = ({
                     onManageVersions?.();
                 }}
                 onManageVersions={onManageVersions}
-                onEditVersion={(versionId) => {
+                onEditVersion={(versionId: any) => {
                     protocolVersioning.setEditingVersion(versionId);
                     onManageVersions?.();
                 }}

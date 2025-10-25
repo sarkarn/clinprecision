@@ -2,12 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import FormService from '../../../services/FormService';
 
-const FormList = () => {
-    const { studyId } = useParams();
-    const [study, setStudy] = useState(null);
-    const [forms, setForms] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+interface Study {
+    id: string | number;
+    name: string;
+    protocol: string;
+    phase: string;
+    status: string;
+}
+
+interface Form {
+    id: string | number;
+    name: string;
+    description?: string;
+    type: string;
+    version: string | number;
+    status: string;
+    binding?: string;
+    visits?: string[];
+    updatedAt?: string;
+}
+
+const FormList: React.FC = () => {
+    const { studyId } = useParams<{ studyId: string }>();
+    const [study, setStudy] = useState<Study | null>(null);
+    const [forms, setForms] = useState<Form[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -18,13 +38,13 @@ const FormList = () => {
         }
     }, [studyId]);
 
-    const fetchStudyAndForms = async () => {
+    const fetchStudyAndForms = async (): Promise<void> => {
         try {
             setLoading(true);
 
             // Mock study data
-            const mockStudy = {
-                id: studyId,
+            const mockStudy: Study = {
+                id: studyId!,
                 name: 'Phase III Oncology Trial - Advanced NSCLC',
                 protocol: 'ONCO-2024-001',
                 phase: 'Phase III',
@@ -42,12 +62,12 @@ const FormList = () => {
         }
     };
 
-    const fetchForms = async () => {
+    const fetchForms = async (): Promise<void> => {
         try {
             setLoading(true);
             setError(null);
 
-            let formsData;
+            let formsData: any[];
             if (studyId) {
                 // Fetch study-specific forms
                 formsData = await FormService.getFormsByStudy(studyId);
@@ -65,43 +85,43 @@ const FormList = () => {
         }
     };
 
-    const handleDeleteForm = async (formId) => {
+    const handleDeleteForm = async (formId: string | number): Promise<void> => {
         if (window.confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
             try {
-                await FormService.deleteForm(formId);
+                await FormService.deleteForm(String(formId));
 
                 // Remove form from the list
                 setForms(forms.filter(form => form.id !== formId));
                 alert('Form deleted successfully');
-            } catch (err) {
+            } catch (err: any) {
                 alert(`Error deleting form: ${err.message || 'Unknown error'}`);
                 console.error('Error deleting form:', err);
             }
         }
     };
 
-    const handleCreateForm = () => {
+    const handleCreateForm = (): void => {
         const baseRoute = studyId ? `/study-design/study/${studyId}/forms/builder` : '/study-design/forms/builder';
         navigate(baseRoute);
     };
 
-    const handleEditForm = (formId) => {
+    const handleEditForm = (formId: string | number): void => {
         const baseRoute = studyId ? `/study-design/study/${studyId}/forms/builder/${formId}` : `/study-design/forms/builder/${formId}`;
         navigate(baseRoute);
     };
 
-    const handlePreviewForm = (formId) => {
+    const handlePreviewForm = (formId: string | number): void => {
         // For now, use the CRFBuilder which has preview functionality
         const baseRoute = studyId ? `/study-design/study/${studyId}/forms/builder/${formId}` : `/study-design/forms/builder/${formId}`;
         navigate(baseRoute);
     };
 
-    const handleFormVersions = (formId) => {
+    const handleFormVersions = (formId: string | number): void => {
         const baseRoute = studyId ? `/study-design/study/${studyId}/forms/${formId}/versions` : `/study-design/forms/${formId}/versions`;
         navigate(baseRoute);
     };
 
-    const getStatusBadgeClass = (status) => {
+    const getStatusBadgeClass = (status?: string): string => {
         switch (status?.toLowerCase()) {
             case 'published':
                 return 'bg-green-100 text-green-800';

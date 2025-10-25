@@ -5,13 +5,18 @@ import BuildMetricsCard from './components/BuildMetricsCard';
 import BuildStudyDatabaseModal from './components/BuildStudyDatabaseModal';
 import { useStudyDatabaseBuilds } from './hooks/useStudyDatabaseBuilds';
 
+interface Study {
+    id: number | string;
+    name: string;
+}
+
 /**
  * Main page for Study Database Build management
  * Provides overview of all database builds with metrics and actions
  */
-const StudyDatabaseBuildPage = () => {
-    const [showBuildModal, setShowBuildModal] = useState(false);
-    const [selectedStudy, setSelectedStudy] = useState(null);
+const StudyDatabaseBuildPage: React.FC = () => {
+    const [showBuildModal, setShowBuildModal] = useState<boolean>(false);
+    const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
 
     const {
         builds,
@@ -28,7 +33,7 @@ const StudyDatabaseBuildPage = () => {
     /**
      * Handle successful build creation
      */
-    const handleBuildSuccess = () => {
+    const handleBuildSuccess = (): void => {
         setShowBuildModal(false);
         setSelectedStudy(null);
         refreshBuilds();
@@ -37,7 +42,7 @@ const StudyDatabaseBuildPage = () => {
     /**
      * Open build modal with optional pre-selected study
      */
-    const handleBuildDatabase = (study = null) => {
+    const handleBuildDatabase = (study: Study | null = null): void => {
         setSelectedStudy(study);
         setShowBuildModal(true);
     };
@@ -136,7 +141,7 @@ const StudyDatabaseBuildPage = () => {
                                     Unable to connect to server
                                 </h3>
                                 <p className="mt-1 text-sm text-yellow-700">
-                                    {error.message || 'Please check if the backend service is running and try again.'}
+                                    {(error as any)?.message || 'Please check if the backend service is running and try again.'}
                                 </p>
                                 <p className="mt-1 text-xs text-yellow-600">
                                     Expected endpoint: http://localhost:8083/api/v1/study-database-builds (via API Gateway)
@@ -158,9 +163,9 @@ const StudyDatabaseBuildPage = () => {
                     <StudyDatabaseBuildList
                         builds={builds}
                         loading={loading}
-                        error={error}
+                        error={error as any}
                         onRefresh={refreshBuilds}
-                        onBuildDatabase={handleBuildDatabase}
+                        onBuildDatabase={handleBuildDatabase as any}
                     />
                 </div>
 
@@ -173,7 +178,7 @@ const StudyDatabaseBuildPage = () => {
                             setSelectedStudy(null);
                         }}
                         onSuccess={handleBuildSuccess}
-                        selectedStudy={selectedStudy}
+                        selectedStudy={selectedStudy as any}
                     />
                 )}
             </div>

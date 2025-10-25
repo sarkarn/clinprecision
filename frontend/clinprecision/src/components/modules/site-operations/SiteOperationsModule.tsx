@@ -10,7 +10,7 @@ import StudySiteAssociationForm from './study-sites/StudySiteAssociationForm';
  * Site Operations Module Router
  * Handles clinical site management and study-site associations
  */
-const SiteOperationsModule = () => {
+const SiteOperationsModule: React.FC = () => {
     return (
         <Routes>
             <Route path="/" element={<SiteDashboard />} />

@@ -1,36 +1,95 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import StudyService from '../../../services/StudyService';
 import FormService from '../../../services/FormService';
 import VisitDefinitionService from '../../../services/VisitDefinitionService';
 
-const StudyEditPage = () => {
-    const { studyId } = useParams();
+interface CRF {
+    id: number | string;
+    name: string;
+    description?: string;
+    formDefinition?: string;
+    isActive?: boolean;
+    type?: string;
+    formType?: string;
+    studyId?: number | string;
+    isNew?: boolean;
+    isModified?: boolean;
+    isNewAssociation?: boolean;
+    isHandled?: boolean;
+    fields?: string;
+}
+
+interface Visit {
+    id?: number;
+    tempId?: number;
+    name: string;
+    timepoint: string;
+    description?: string;
+    crfs?: CRF[];
+    isNew?: boolean;
+    isModified?: boolean;
+    crfsToDelete?: (number | string)[];
+    crfsToAssociate?: (number | string)[];
+}
+
+interface Arm {
+    id?: number;
+    name: string;
+    description?: string;
+    visits?: Visit[];
+    isDeleted?: boolean;
+    visitsToDelete?: number[];
+}
+
+interface Study {
+    id: number | string;
+    name: string;
+    phase?: string;
+    status?: string;
+    plannedStartDate?: string;
+    plannedEndDate?: string;
+    sponsor?: string;
+    principalInvestigator?: string;
+    arms?: Arm[];
+}
+
+interface AvailableForm {
+    id: number | string;
+    name: string;
+    formType?: string;
+    description?: string;
+}
+
+interface CurrentVisitContext {
+    armIndex: number;
+    visitIndex: number;
+    crfIndex?: number;
+    crf?: CRF;
+    mode: 'edit' | 'view' | 'create';
+}
+
+const StudyEditPage: React.FC = () => {
+    const { studyId } = useParams<{ studyId: string }>();
     const navigate = useNavigate();
-    const [study, setStudy] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState('details');
-    const [arms, setArms] = useState([]);
-    const [isCRFBuilderOpen, setIsCRFBuilderOpen] = useState(false);
-    const [currentVisit, setCurrentVisit] = useState(null);
-    const [availableForms, setAvailableForms] = useState([]);
-    const [formLoading, setFormLoading] = useState(false);
+    const [study, setStudy] = useState<Study | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<string>('details');
+    const [arms, setArms] = useState<Arm[]>([]);
+    const [isCRFBuilderOpen, setIsCRFBuilderOpen] = useState<boolean>(false);
+    const [currentVisit, setCurrentVisit] = useState<CurrentVisitContext | null>(null);
+    const [availableForms, setAvailableForms] = useState<AvailableForm[]>([]);
+    const [formLoading, setFormLoading] = useState<boolean>(false);
 
     useEffect(() => {
-        const fetchStudy = async () => {
+        const fetchStudy = async (): Promise<void> => {
             try {
-                const studyData = await StudyService.getStudyById(studyId);
-                setStudy(studyData);
+                const studyData = await StudyService.getStudyById(studyId as any);
+                setStudy(studyData as any);
 
-                // Get study arms
-                try {
-                    const armsData = await StudyService.getStudyArms(studyId);
-                    setArms(armsData || []);
-                } catch (armsError) {
-                    console.warn("Could not fetch study arms:", armsError);
-                    setArms(studyData.arms || []);
-                }
+                // Get study arms from study data
+                setArms((studyData as any).arms || []);
 
                 setLoading(false);
             } catch (err) {
@@ -40,11 +99,11 @@ const StudyEditPage = () => {
             }
         };
 
-        const fetchAvailableForms = async () => {
+        const fetchAvailableForms = async (): Promise<void> => {
             setFormLoading(true);
             try {
                 const forms = await FormService.getForms();
-                setAvailableForms(forms || []);
+                setAvailableForms(Array.isArray(forms) ? forms as any : []);
             } catch (err) {
                 console.error("Error fetching available forms:", err);
             } finally {
@@ -58,15 +117,15 @@ const StudyEditPage = () => {
         }
     }, [studyId]);
 
-    const handleStudyChange = (e) => {
+    const handleStudyChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>): void => {
         const { name, value } = e.target;
         setStudy({
-            ...study,
+            ...study!,
             [name]: value
         });
     };
 
-    const handleSaveStudy = async (e) => {
+    const handleSaveStudy = async (e?: FormEvent<HTMLFormElement>): Promise<void> => {
         if (e) e.preventDefault();
 
         // Show a saving indicator
@@ -80,9 +139,9 @@ const StudyEditPage = () => {
             console.log("Attempting to update study details...");
             try {
                 // Use the standard updateStudy method
-                await StudyService.updateStudy(studyId, study);
+                await StudyService.updateStudy(studyId as any, study as any);
                 console.log("Study details updated successfully");
-            } catch (err) {
+            } catch (err: any) {
                 console.error("All study detail update methods failed:", err);
                 // If all update methods fail, show error and stop processing
                 setLoading(false);
@@ -94,15 +153,17 @@ const StudyEditPage = () => {
             for (const arm of arms) {
                 if (arm.isDeleted) continue; // Skip deleted arms
 
-                let armId = arm.id;                // Create or update arm
+                let armId = arm.id;
+
+                // Create or update arm
                 if (!armId) {
                     // For new arms, create them
-                    const armData = {
+                    const armData: any = {
                         name: arm.name,
                         description: arm.description,
                         studyId: studyId
                     };
-                    const newArm = await StudyService.createStudyArm(studyId, armData);
+                    const newArm = await (StudyService as any).createStudyArm(studyId as any, armData);
                     armId = newArm.id;
                     // Update local arm with server-assigned ID
                     const armIndex = arms.findIndex(a => a === arm);
@@ -111,13 +172,13 @@ const StudyEditPage = () => {
                     }
                 } else {
                     // For existing arms, update them
-                    const armData = {
+                    const armData: any = {
                         id: armId,
                         name: arm.name,
                         description: arm.description,
                         studyId: studyId
                     };
-                    await StudyService.updateStudyArm(studyId, armId, armData);
+                    await (StudyService as any).updateStudyArm(studyId as any, armId as any, armData);
                 }
 
                 // 3. Process visits for this arm
@@ -127,26 +188,26 @@ const StudyEditPage = () => {
 
                         // Create new visits
                         if (visit.isNew) {
-                            const visitData = {
+                            const visitData: any = {
                                 name: visit.name,
                                 timepoint: visit.timepoint,
                                 description: visit.description,
                                 armId: armId  // Include arm reference
                             };
-                            const newVisit = await VisitDefinitionService.createVisit(studyId, armId, visitData);
+                            const newVisit = await VisitDefinitionService.createVisit(studyId as any, visitData);
                             visitId = newVisit.id;
                             visit.id = visitId; // Update with server ID
                             visit.isNew = false;
                         }
                         // Update modified visits
                         else if (visit.isModified) {
-                            const visitData = {
+                            const visitData: any = {
                                 name: visit.name,
                                 timepoint: visit.timepoint,
                                 description: visit.description,
                                 armId: armId  // Include arm reference
                             };
-                            await VisitDefinitionService.updateVisit(studyId, visitId, visitData);
+                            await VisitDefinitionService.updateVisit(studyId as any, visitId as any, visitData);
                             visit.isModified = false;
                         }
 
@@ -156,7 +217,7 @@ const StudyEditPage = () => {
                                 // Create new CRFs
                                 if (crf.isNew) {
                                     try {
-                                        const crfData = {
+                                        const crfData: any = {
                                             name: crf.name || 'New CRF',
                                             description: crf.description || '',
                                             formDefinition: crf.formDefinition || '{}',
@@ -170,7 +231,7 @@ const StudyEditPage = () => {
                                         crf.id = newCrf.id; // Update with server ID
 
                                         // Associate with visit
-                                        await FormService.associateFormWithVisit(studyId, visitId, newCrf.id);
+                                        await FormService.associateFormWithVisit(studyId as any, visitId as any, newCrf.id as any);
                                         crf.isNew = false;
                                     } catch (crfError) {
                                         console.error("Failed to create or associate CRF:", crfError);
@@ -185,7 +246,7 @@ const StudyEditPage = () => {
                                 // Update modified CRFs
                                 else if (crf.isModified) {
                                     try {
-                                        const crfData = {
+                                        const crfData: any = {
                                             name: crf.name || 'Updated CRF',
                                             description: crf.description || '',
                                             formType: crf.formType || crf.type || 'custom',
@@ -197,7 +258,7 @@ const StudyEditPage = () => {
                                             crfData.formDefinition = crf.formDefinition;
                                         }
 
-                                        await FormService.updateForm(crf.id, crfData);
+                                        await FormService.updateForm(crf.id as any, crfData);
                                         crf.isModified = false;
                                     } catch (crfError) {
                                         console.error("Failed to update CRF:", crfError);
@@ -209,7 +270,7 @@ const StudyEditPage = () => {
                                 // Create new associations
                                 else if (crf.isNewAssociation) {
                                     try {
-                                        await FormService.associateFormWithVisit(studyId, visitId, crf.id);
+                                        await FormService.associateFormWithVisit(studyId as any, visitId as any, crf.id as any);
                                         crf.isNewAssociation = false;
                                     } catch (assocError) {
                                         console.error("Failed to associate CRF with visit:", assocError);
@@ -224,7 +285,7 @@ const StudyEditPage = () => {
                             if (visit.crfsToDelete && visit.crfsToDelete.length > 0) {
                                 for (const crfId of visit.crfsToDelete) {
                                     try {
-                                        await FormService.removeFormFromVisit(studyId, visitId, crfId);
+                                        await FormService.removeFormFromVisit(studyId as any, visitId as any, crfId as any);
                                     } catch (deleteError) {
                                         console.error(`Failed to remove CRF ${crfId} from visit ${visitId}:`, deleteError);
                                         // Continue with other deletions even if one fails
@@ -238,7 +299,7 @@ const StudyEditPage = () => {
                     // Process visit deletions
                     if (arm.visitsToDelete && arm.visitsToDelete.length > 0) {
                         for (const visitId of arm.visitsToDelete) {
-                            await VisitDefinitionService.deleteVisit(studyId, visitId);
+                            await VisitDefinitionService.deleteVisit(studyId as any, String(visitId));
                         }
                         arm.visitsToDelete = [];
                     }
@@ -249,7 +310,7 @@ const StudyEditPage = () => {
             alert('Study changes saved successfully!');
 
             // Reset all tracking flags
-            const cleanedArms = JSON.parse(JSON.stringify(arms));
+            const cleanedArms = JSON.parse(JSON.stringify(arms)) as Arm[];
             cleanedArms.forEach(arm => {
                 delete arm.visitsToDelete;
                 if (arm.visits) {
@@ -275,13 +336,15 @@ const StudyEditPage = () => {
 
             // Optionally navigate away
             // navigate('/study-design/list');
-        } catch (error) {
+        } catch (error: any) {
             setLoading(false);
             alert(`Error saving study: ${error.message || 'Unknown error'}. Some changes may not have been saved.`);
             console.error("Error in handleSaveStudy:", error);
         }
-    }; const addArm = () => {
-        const newArm = {
+    };
+
+    const addArm = (): void => {
+        const newArm: Arm = {
             name: `Arm ${arms.length + 1}`,
             description: '',
             visits: []
@@ -289,7 +352,7 @@ const StudyEditPage = () => {
         setArms([...arms, newArm]);
     };
 
-    const updateArm = (index, field, value) => {
+    const updateArm = (index: number, field: keyof Arm, value: string): void => {
         const updatedArms = [...arms];
         updatedArms[index] = {
             ...updatedArms[index],
@@ -298,15 +361,15 @@ const StudyEditPage = () => {
         setArms(updatedArms);
     };
 
-    const deleteArm = async (index) => {
+    const deleteArm = async (index: number): Promise<void> => {
         if (window.confirm('Are you sure you want to delete this arm?')) {
             const arm = arms[index];
 
             // Delete from server if it has an ID
             if (arm.id) {
                 try {
-                    await StudyService.deleteStudyArm(studyId, arm.id);
-                } catch (error) {
+                    await (StudyService as any).deleteStudyArm(studyId as any, arm.id as any);
+                } catch (error: any) {
                     console.error("Error deleting arm:", error);
                     alert(`Error deleting arm: ${error.message || 'Unknown error'}`);
                     return;
@@ -325,20 +388,20 @@ const StudyEditPage = () => {
         }
     };
 
-    const addVisit = (armIndex) => {
+    const addVisit = (armIndex: number): void => {
         const updatedArms = [...arms];
         const arm = updatedArms[armIndex];
 
         // Generate a temporary ID for the new visit (negative to distinguish from server IDs)
         const tempId = -Math.floor(Math.random() * 1000000);
 
-        const newVisit = {
-            tempId: tempId, // Add a temporary ID
+        const newVisit: Visit = {
+            tempId: tempId,
             name: `Visit ${(arm.visits || []).length + 1}`,
             timepoint: '0',
             description: '',
             crfs: [],
-            isNew: true // Flag to indicate this is a new visit not yet saved to the server
+            isNew: true
         };
 
         // Initialize visits array if it doesn't exist
@@ -348,13 +411,13 @@ const StudyEditPage = () => {
         setArms(updatedArms);
     };
 
-    const updateVisit = (armIndex, visitIndex, field, value) => {
+    const updateVisit = (armIndex: number, visitIndex: number, field: keyof Visit, value: string): void => {
         const updatedArms = [...arms];
         const arm = updatedArms[armIndex];
-        const visit = arm.visits[visitIndex];
+        const visit = arm.visits![visitIndex];
 
         // Update the field in memory
-        visit[field] = value;
+        (visit as any)[field] = value;
 
         // Mark the visit as modified if it's not a new visit
         if (!visit.isNew && !visit.isModified) {
@@ -364,11 +427,11 @@ const StudyEditPage = () => {
         setArms(updatedArms);
     };
 
-    const deleteVisit = (armIndex, visitIndex) => {
+    const deleteVisit = (armIndex: number, visitIndex: number): void => {
         if (window.confirm('Are you sure you want to delete this visit?')) {
             const updatedArms = [...arms];
             const arm = updatedArms[armIndex];
-            const visit = arm.visits[visitIndex];
+            const visit = arm.visits![visitIndex];
 
             // If it's an existing visit (has a real ID), mark it for deletion
             if (visit.id && !visit.isNew) {
@@ -380,15 +443,15 @@ const StudyEditPage = () => {
             }
 
             // Remove from UI immediately
-            arm.visits = arm.visits.filter((_, i) => i !== visitIndex);
+            arm.visits = arm.visits!.filter((_, i) => i !== visitIndex);
             setArms(updatedArms);
         }
     };
 
-    const addCRF = (armIndex, visitIndex) => {
+    const addCRF = (armIndex: number, visitIndex: number): void => {
         const updatedArms = [...arms];
         const tempId = `temp-crf-${Date.now()}`;
-        const newCRF = {
+        const newCRF: CRF = {
             id: tempId,
             name: '',
             description: '',
@@ -400,43 +463,43 @@ const StudyEditPage = () => {
             formType: 'custom'
         };
 
-        if (!updatedArms[armIndex].visits[visitIndex].crfs) {
-            updatedArms[armIndex].visits[visitIndex].crfs = [];
+        if (!updatedArms[armIndex].visits![visitIndex].crfs) {
+            updatedArms[armIndex].visits![visitIndex].crfs = [];
         }
 
-        updatedArms[armIndex].visits[visitIndex].crfs.push(newCRF);
+        updatedArms[armIndex].visits![visitIndex].crfs!.push(newCRF);
         setArms(updatedArms);
 
         // Open the CRF builder with the newly created CRF
-        const crfIndex = updatedArms[armIndex].visits[visitIndex].crfs.length - 1;
+        const crfIndex = updatedArms[armIndex].visits![visitIndex].crfs!.length - 1;
         setCurrentVisit({ armIndex, visitIndex, crfIndex, crf: newCRF, mode: 'edit' });
         setIsCRFBuilderOpen(true);
     };
 
-    const handleCRFSave = (newCRF) => {
+    const handleCRFSave = (newCRF: CRF): void => {
         const updatedArms = [...arms];
-        const { armIndex, visitIndex, crfIndex, mode } = currentVisit;
+        const { armIndex, visitIndex, crfIndex, mode } = currentVisit!;
         const arm = updatedArms[armIndex];
-        const visit = arm.visits[visitIndex];
+        const visit = arm.visits![visitIndex];
 
         if (mode === 'edit' && crfIndex !== undefined) {
             // Update existing CRF
-            const crf = visit.crfs[crfIndex];
-            const updatedCRF = {
+            const crf = visit.crfs![crfIndex];
+            const updatedCRF: CRF = {
                 ...crf,
                 ...newCRF,
-                isModified: !crf.isNew // Mark as modified if it's not a new CRF
+                isModified: !crf.isNew
             };
 
-            visit.crfs[crfIndex] = updatedCRF;
+            visit.crfs![crfIndex] = updatedCRF;
         } else {
-            // Add new CRF (this path should no longer be reached with the updated addCRF method)
+            // Add new CRF
             if (!visit.crfs) {
                 visit.crfs = [];
             }
 
             const tempId = `temp-crf-${Date.now()}`;
-            const newCRFWithId = {
+            const newCRFWithId: CRF = {
                 ...newCRF,
                 id: tempId,
                 isNew: true,
@@ -451,13 +514,13 @@ const StudyEditPage = () => {
         setIsCRFBuilderOpen(false);
     };
 
-    const updateCRF = (armIndex, visitIndex, crfIndex, field, value) => {
+    const updateCRF = (armIndex: number, visitIndex: number, crfIndex: number, field: keyof CRF, value: string): void => {
         const updatedArms = [...arms];
         const arm = updatedArms[armIndex];
-        const visit = arm.visits[visitIndex];
-        const crf = visit.crfs[crfIndex];
+        const visit = arm.visits![visitIndex];
+        const crf = visit.crfs![crfIndex];
 
-        const updatedCRF = {
+        const updatedCRF: CRF = {
             ...crf,
             [field]: value
         };
@@ -472,16 +535,16 @@ const StudyEditPage = () => {
             updatedCRF.isModified = true;
         }
 
-        visit.crfs[crfIndex] = updatedCRF;
+        visit.crfs![crfIndex] = updatedCRF;
         setArms(updatedArms);
     };
 
-    const deleteCRF = (armIndex, visitIndex, crfIndex) => {
+    const deleteCRF = (armIndex: number, visitIndex: number, crfIndex: number): void => {
         if (window.confirm('Are you sure you want to delete this CRF?')) {
             const updatedArms = [...arms];
             const arm = updatedArms[armIndex];
-            const visit = arm.visits[visitIndex];
-            const crf = visit.crfs[crfIndex];
+            const visit = arm.visits![visitIndex];
+            const crf = visit.crfs![crfIndex];
 
             // If it's an existing CRF (has a real ID, not a temp ID), mark it for deletion
             if (crf.id && !crf.isNew) {
@@ -493,18 +556,18 @@ const StudyEditPage = () => {
             }
 
             // Remove from UI immediately
-            visit.crfs = visit.crfs.filter((_, i) => i !== crfIndex);
+            visit.crfs = visit.crfs!.filter((_, i) => i !== crfIndex);
             setArms(updatedArms);
         }
     };
 
-    const associateExistingForm = (armIndex, visitIndex, formId) => {
+    const associateExistingForm = (armIndex: number, visitIndex: number, formId: string): void => {
         const updatedArms = [...arms];
         const arm = updatedArms[armIndex];
-        const visit = arm.visits[visitIndex];
+        const visit = arm.visits![visitIndex];
 
         // Find the form in available forms
-        const form = availableForms.find(f => f.id === formId);
+        const form = availableForms.find(f => String(f.id) === formId);
         if (!form) {
             alert('Selected form not found');
             return;
@@ -520,8 +583,8 @@ const StudyEditPage = () => {
         if (!visit.crfs) visit.crfs = [];
 
         // Add a copy of the form with an association flag
-        const formCopy = {
-            ...form,
+        const formCopy: CRF = {
+            ...(form as any),
             isNewAssociation: true
         };
 
@@ -797,7 +860,7 @@ const StudyEditPage = () => {
                                                                     >
                                                                         <option value="">Add Existing Form...</option>
                                                                         {availableForms.map(form => (
-                                                                            <option key={form.id} value={form.id}>
+                                                                            <option key={form.id} value={String(form.id)}>
                                                                                 {form.name}
                                                                             </option>
                                                                         ))}
@@ -880,8 +943,7 @@ const StudyEditPage = () => {
                                                                                         <div className="flex space-x-2">
                                                                                             <button
                                                                                                 onClick={() => {
-                                                                                                    // Set the current CRF for editing
-                                                                                                    const crf = visit.crfs[crfIndex];
+                                                                                                    const crf = visit.crfs![crfIndex];
                                                                                                     setCurrentVisit({ armIndex, visitIndex, crfIndex, crf, mode: 'edit' });
                                                                                                     setIsCRFBuilderOpen(true);
                                                                                                 }}
@@ -892,8 +954,7 @@ const StudyEditPage = () => {
                                                                                             </button>
                                                                                             <button
                                                                                                 onClick={() => {
-                                                                                                    // View the CRF in read-only mode
-                                                                                                    const crf = visit.crfs[crfIndex];
+                                                                                                    const crf = visit.crfs![crfIndex];
                                                                                                     setCurrentVisit({ armIndex, visitIndex, crfIndex, crf, mode: 'view' });
                                                                                                     setIsCRFBuilderOpen(true);
                                                                                                 }}
@@ -930,7 +991,7 @@ const StudyEditPage = () => {
 
                     <div className="flex justify-end mt-6">
                         <button
-                            onClick={handleSaveStudy}
+                            onClick={() => handleSaveStudy()}
                             className="bg-blue-600 text-white px-4 py-2 rounded"
                         >
                             Save All Changes

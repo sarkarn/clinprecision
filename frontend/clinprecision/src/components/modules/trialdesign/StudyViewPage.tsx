@@ -1,18 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getStudyById } from '../../../services/StudyService';
+import { Study } from '../../../types';
 
-const StudyViewPage = () => {
-    const { studyId } = useParams();
-    const [study, setStudy] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState('details');
+interface CRF {
+    id?: string | number;
+    name: string;
+    type: string;
+    description?: string;
+}
+
+interface Visit {
+    id?: string | number;
+    name: string;
+    timepoint: number;
+    description?: string;
+    crfs?: CRF[];
+}
+
+interface StudyArm {
+    id?: string | number;
+    name: string;
+    description?: string;
+    visits?: Visit[];
+}
+
+type TabType = 'details' | 'arms';
+
+const StudyViewPage: React.FC = () => {
+    const { studyId } = useParams<{ studyId: string }>();
+    const [study, setStudy] = useState<Study | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<TabType>('details');
 
     useEffect(() => {
-        const fetchStudy = async () => {
+        const fetchStudy = async (): Promise<void> => {
             try {
-                const studyData = await getStudyById(studyId);
+                const studyData = await getStudyById(studyId!);
                 setStudy(studyData);
                 setLoading(false);
             } catch (err) {
@@ -30,6 +55,21 @@ const StudyViewPage = () => {
     if (loading) return <div className="text-center py-4">Loading study...</div>;
     if (error) return <div className="text-red-500 py-4">{error}</div>;
     if (!study) return <div className="text-center py-4">Study not found</div>;
+
+    const getStatusColor = (status: string): string => {
+        switch (status) {
+            case 'Active':
+                return 'bg-green-100 text-green-800';
+            case 'Completed':
+                return 'bg-blue-100 text-blue-800';
+            case 'Recruiting':
+                return 'bg-purple-100 text-purple-800';
+            case 'On Hold':
+                return 'bg-yellow-100 text-yellow-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
 
     return (
         <div className="bg-white shadow rounded-lg p-6">
@@ -96,12 +136,7 @@ const StudyViewPage = () => {
                             Status
                         </label>
                         <div className="bg-gray-50 border border-gray-300 rounded-md w-full p-2 text-gray-700">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                ${study.status === 'Active' ? 'bg-green-100 text-green-800' :
-                                    study.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                                        study.status === 'Recruiting' ? 'bg-purple-100 text-purple-800' :
-                                            study.status === 'On Hold' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-gray-100 text-gray-800'}`}>
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(study.status)}`}>
                                 {study.status}
                             </span>
                         </div>

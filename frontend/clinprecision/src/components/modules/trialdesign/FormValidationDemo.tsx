@@ -5,19 +5,45 @@ import { Settings, Code, RefreshCw } from 'lucide-react';
 import EnhancedFormField from './components/EnhancedFormField';
 import FormField from './components/FormField';
 import FormProgressIndicator, { StepProgressIndicator } from './components/FormProgressIndicator';
-import { useEnhancedFormValidation } from './hooks/useEnhancedFormValidation';
+import { useEnhancedFormValidation, ValidationMode } from './hooks/useEnhancedFormValidation';
 import { formValidationConfigs } from './utils/validationUtils';
 
 // Import enhanced styles
 import './styles/enhanced-form-validation.css';
 
+type DemoMode = 'basic' | 'enhanced' | 'comparison';
+
+interface DemoFormData {
+    studyName: string;
+    protocolNumber: string;
+    phase: string;
+    sponsor: string;
+    principalInvestigator: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    email: string;
+}
+
+interface WizardStep {
+    id: string;
+    title: string;
+}
+
+interface StepValidationStates {
+    basic: { isValid: boolean };
+    timeline: { isValid: boolean };
+    personnel: { isValid: boolean };
+    review: { isValid: boolean };
+}
+
 /**
  * Form Validation Demo - Showcases enhanced form validation features
  * This component demonstrates the improvements made to form validation and user feedback
  */
-const FormValidationDemo = () => {
-    const [demoMode, setDemoMode] = useState('enhanced'); // 'basic', 'enhanced', 'comparison'
-    const [showCode, setShowCode] = useState(false);
+const FormValidationDemo: React.FC = () => {
+    const [demoMode, setDemoMode] = useState<DemoMode>('enhanced');
+    const [showCode, setShowCode] = useState<boolean>(false);
 
     // Enhanced form validation for study registration
     const {
@@ -33,7 +59,7 @@ const FormValidationDemo = () => {
         validationMode,
         setValidationMode,
         resetForm
-    } = useEnhancedFormValidation(
+    } = useEnhancedFormValidation<DemoFormData>(
         {
             studyName: '',
             protocolNumber: '',
@@ -46,14 +72,14 @@ const FormValidationDemo = () => {
             email: ''
         },
         {
-            ...formValidationConfigs.studyRegistration,
+            ...(formValidationConfigs.studyRegistration as any),
             rules: {
-                ...formValidationConfigs.studyRegistration.rules,
+                ...(formValidationConfigs.studyRegistration as any).rules,
                 email: {
                     required: 'Email is required',
                     pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                     message: 'Please enter a valid email address',
-                    async: async (value) => {
+                    async: async (value: string) => {
                         // Simulate async validation
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         if (value.includes('test@')) {
@@ -66,28 +92,34 @@ const FormValidationDemo = () => {
         }
     );
 
-    const wizardSteps = [
+    const wizardSteps: WizardStep[] = [
         { id: 'basic', title: 'Basic Info' },
         { id: 'timeline', title: 'Timeline' },
         { id: 'personnel', title: 'Personnel' },
         { id: 'review', title: 'Review' }
     ];
 
-    const [currentStep, setCurrentStep] = useState(0);
+    const [currentStep, setCurrentStep] = useState<number>(0);
 
-    const calculateRequiredFieldsCompleted = () => {
-        const requiredFields = ['studyName', 'phase', 'sponsor', 'principalInvestigator'];
+    const calculateRequiredFieldsCompleted = (): number => {
+        const requiredFields: (keyof DemoFormData)[] = ['studyName', 'phase', 'sponsor', 'principalInvestigator'];
         return requiredFields.filter(field =>
             formData[field] && formData[field].toString().trim() !== ''
         ).length;
     };
 
     const totalErrors = Object.values(errors).filter(error => error).length;
-    const fieldValidationStates = {};
+    const fieldValidationStates: Record<string, any> = {};
 
     // Prepare field validation states for progress indicator
     Object.keys(formData).forEach(fieldName => {
         fieldValidationStates[fieldName] = getFieldValidationState(fieldName);
+    });
+
+    // Create touched object from validation states
+    const touched: Record<string, boolean> = {};
+    Object.keys(formData).forEach(fieldName => {
+        touched[fieldName] = getFieldValidationState(fieldName).isTouched;
     });
 
     const renderDemoControls = () => (
@@ -102,7 +134,7 @@ const FormValidationDemo = () => {
                     <label className="block text-xs text-gray-600 mb-1">Demo Mode</label>
                     <select
                         value={demoMode}
-                        onChange={(e) => setDemoMode(e.target.value)}
+                        onChange={(e) => setDemoMode(e.target.value as DemoMode)}
                         className="w-full text-sm border border-gray-300 rounded px-2 py-1"
                     >
                         <option value="basic">Basic Validation</option>
@@ -115,7 +147,7 @@ const FormValidationDemo = () => {
                     <label className="block text-xs text-gray-600 mb-1">Validation Mode</label>
                     <select
                         value={validationMode}
-                        onChange={(e) => setValidationMode(e.target.value)}
+                        onChange={(e) => setValidationMode(e.target.value as ValidationMode)}
                         className="w-full text-sm border border-gray-300 rounded px-2 py-1"
                     >
                         <option value="progressive">Progressive</option>
@@ -214,9 +246,9 @@ const FormValidationDemo = () => {
                 steps={wizardSteps}
                 currentStep={currentStep}
                 stepValidationStates={{
-                    basic: { isValid: formData.studyName && formData.phase },
-                    timeline: { isValid: formData.startDate && formData.endDate },
-                    personnel: { isValid: formData.principalInvestigator },
+                    basic: { isValid: !!(formData.studyName && formData.phase) },
+                    timeline: { isValid: !!(formData.startDate && formData.endDate) },
+                    personnel: { isValid: !!formData.principalInvestigator },
                     review: { isValid: isFormValid }
                 }}
             />
@@ -232,7 +264,7 @@ const FormValidationDemo = () => {
                     error={getFieldValidationState('studyName').error}
                     touched={getFieldValidationState('studyName').isTouched}
                     required
-                    validationMode={validationMode}
+                    validationMode={validationMode === 'progressive' ? 'realtime' : validationMode as any}
                     validateAsYouType={validationMode === 'realtime'}
                     suggestions={getFieldSuggestions('studyName')}
                     helpText="Enter a descriptive name for your clinical study"
@@ -248,7 +280,7 @@ const FormValidationDemo = () => {
                     onBlur={() => handleFieldBlur('protocolNumber')}
                     error={getFieldValidationState('protocolNumber').error}
                     touched={getFieldValidationState('protocolNumber').isTouched}
-                    validationMode={validationMode}
+                    validationMode={validationMode === 'progressive' ? 'realtime' : validationMode as any}
                     validateAsYouType={validationMode === 'realtime'}
                     suggestions={getFieldSuggestions('protocolNumber')}
                     helpText="Unique protocol identifier (format: ABC-2024-001)"
@@ -286,7 +318,7 @@ const FormValidationDemo = () => {
                     error={getFieldValidationState('email').error}
                     touched={getFieldValidationState('email').isTouched}
                     required
-                    validationMode={validationMode}
+                    validationMode={validationMode === 'progressive' ? 'realtime' : validationMode as any}
                     validateAsYouType={validationMode === 'realtime'}
                     helpText="Contact email (try typing 'test@example.com' to see async validation)"
                     placeholder="user@example.com"
@@ -340,7 +372,7 @@ const FormValidationDemo = () => {
                 error={getFieldValidationState('description').error}
                 touched={getFieldValidationState('description').isTouched}
                 rows={4}
-                validationMode={validationMode}
+                validationMode={validationMode === 'progressive' ? 'realtime' : validationMode as any}
                 validateAsYouType={validationMode === 'realtime'}
                 helpText="Detailed description of study objectives and methodology"
             />
