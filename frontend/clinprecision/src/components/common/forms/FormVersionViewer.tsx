@@ -1,27 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import FormVersionService from '../../../services/data-capture/FormVersionService';
+import FormVersionService, { FormVersion } from '../../../services/data-capture/FormVersionService';
 import FormService from '../../../services/FormService';
 import StudyFormService from '../../../services/data-capture/StudyFormService';
 
-const FormVersionViewer = () => {
-    const { formId, versionId, studyId } = useParams();
-    const [formVersion, setFormVersion] = useState(null);
-    const [form, setForm] = useState(null);
+interface FormData {
+    id?: string | number;
+    name: string;
+    [key: string]: any;
+}
+
+interface FieldOption {
+    label?: string;
+    value: string;
+}
+
+interface FormField {
+    type?: string;
+    name?: string;
+    label?: string;
+    fieldType?: string;
+    required?: boolean;
+    description?: string;
+    options?: FieldOption[];
+    fields?: FormStructureItem[];
+}
+
+interface FormStructureItem extends FormField {
+    [key: string]: any;
+}
+
+const FormVersionViewer: React.FC = () => {
+    const { formId, versionId, studyId } = useParams<{ formId: string; versionId: string; studyId?: string }>();
+    const [formVersion, setFormVersion] = useState<FormVersion | null>(null);
+    const [form, setForm] = useState<FormData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Determine if we're in study context or global form context
     const isStudyContext = !!studyId;
 
     useEffect(() => {
         const fetchFormVersionDetails = async () => {
+            if (!formId || !versionId) return;
+
             try {
                 setLoading(true);
 
                 // Fetch the form details using appropriate service
-                const formData = isStudyContext
-                    ? await StudyFormService.getStudyFormById(formId)
+                const formData: any = isStudyContext
+                    ? await StudyFormService.getStudyFormById(parseInt(formId))
                     : await FormService.getFormById(formId);
                 setForm(formData);
 
@@ -37,17 +65,11 @@ const FormVersionViewer = () => {
             }
         };
 
-        if (formId && versionId) {
-            fetchFormVersionDetails();
-        }
+        fetchFormVersionDetails();
     }, [formId, versionId, studyId, isStudyContext]);
 
-    if (loading) return <div className="text-center py-4">Loading form version details...</div>;
-    if (error) return <div className="text-red-500 py-4">{error}</div>;
-    if (!formVersion) return <div className="text-center py-4">Form version not found</div>;
-
     // Helper function to render form fields recursively
-    const renderFormStructure = (structure) => {
+    const renderFormStructure = (structure: FormStructureItem[]): React.ReactElement | null => {
         if (!structure) return null;
 
         return (
@@ -85,6 +107,10 @@ const FormVersionViewer = () => {
             </div>
         );
     };
+
+    if (loading) return <div className="text-center py-4">Loading form version details...</div>;
+    if (error) return <div className="text-red-500 py-4">{error}</div>;
+    if (!formVersion) return <div className="text-center py-4">Form version not found</div>;
 
     return (
         <div className="bg-white shadow rounded-lg p-6">
@@ -139,7 +165,7 @@ const FormVersionViewer = () => {
 
             {formVersion.structure ? (
                 <div className="border rounded-md p-4">
-                    {renderFormStructure(formVersion.structure)}
+                    {renderFormStructure(formVersion.structure as any)}
                 </div>
             ) : (
                 <div className="text-gray-500 italic">
@@ -158,7 +184,7 @@ const FormVersionViewer = () => {
                     Back to Version History
                 </Link>
 
-                {!formVersion.isActive && (
+                {!formVersion.isActive && formId && versionId && (
                     <button
                         className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded"
                         onClick={async () => {
@@ -166,10 +192,11 @@ const FormVersionViewer = () => {
                                 try {
                                     await FormVersionService.setActiveFormVersion(formId, versionId);
                                     // Update the local state to reflect the change
-                                    setFormVersion(prev => ({ ...prev, isActive: true }));
+                                    setFormVersion(prev => prev ? { ...prev, isActive: true } : null);
                                     alert('Version set as active successfully');
                                 } catch (err) {
-                                    alert(`Error setting active version: ${err.message || 'Unknown error'}`);
+                                    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+                                    alert(`Error setting active version: ${errorMessage}`);
                                     console.error(err);
                                 }
                             }

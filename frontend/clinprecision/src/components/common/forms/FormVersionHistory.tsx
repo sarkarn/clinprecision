@@ -1,30 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import FormVersionService from '../../../services/data-capture/FormVersionService';
+import FormVersionService, { FormVersion, VersionComparisonResult } from '../../../services/data-capture/FormVersionService';
 import FormService from '../../../services/FormService';
 import StudyFormService from '../../../services/data-capture/StudyFormService';
 
-const FormVersionHistory = () => {
-    const { formId, studyId } = useParams();
-    const [form, setForm] = useState(null);
-    const [versions, setVersions] = useState([]);
+interface FormData {
+    id?: string | number;
+    name: string;
+    [key: string]: any;
+}
+
+const FormVersionHistory: React.FC = () => {
+    const { formId, studyId } = useParams<{ formId: string; studyId?: string }>();
+    const [form, setForm] = useState<FormData | null>(null);
+    const [versions, setVersions] = useState<FormVersion[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [selectedVersions, setSelectedVersions] = useState([]);
-    const [comparison, setComparison] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
+    const [comparison, setComparison] = useState<VersionComparisonResult | null>(null);
 
     // Determine if we're in study context or global form context
     const isStudyContext = !!studyId;
-    const formService = isStudyContext ? StudyFormService : FormService;
 
     useEffect(() => {
         const fetchFormAndVersions = async () => {
+            if (!formId) return;
+
             try {
                 setLoading(true);
 
                 // Fetch form details using appropriate service
-                const formData = isStudyContext
-                    ? await StudyFormService.getStudyFormById(formId)
+                const formData: any = isStudyContext
+                    ? await StudyFormService.getStudyFormById(parseInt(formId))
                     : await FormService.getFormById(formId);
                 setForm(formData);
 
@@ -40,12 +47,10 @@ const FormVersionHistory = () => {
             }
         };
 
-        if (formId) {
-            fetchFormAndVersions();
-        }
+        fetchFormAndVersions();
     }, [formId, studyId, isStudyContext]);
 
-    const handleSelectVersion = (versionId) => {
+    const handleSelectVersion = (versionId: string) => {
         setSelectedVersions(prev => {
             // If already selected, remove it
             if (prev.includes(versionId)) {
@@ -63,7 +68,7 @@ const FormVersionHistory = () => {
     };
 
     const handleCompareVersions = async () => {
-        if (selectedVersions.length !== 2) {
+        if (!formId || selectedVersions.length !== 2) {
             alert('Please select exactly 2 versions to compare');
             return;
         }
@@ -76,12 +81,15 @@ const FormVersionHistory = () => {
             );
             setComparison(comparisonData);
         } catch (err) {
-            alert(`Error comparing versions: ${err.message || 'Unknown error'}`);
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            alert(`Error comparing versions: ${errorMessage}`);
             console.error(err);
         }
     };
 
-    const handleSetActiveVersion = async (versionId) => {
+    const handleSetActiveVersion = async (versionId: string) => {
+        if (!formId) return;
+
         if (window.confirm('Are you sure you want to set this as the active version? This may affect any studies using this form.')) {
             try {
                 await FormVersionService.setActiveFormVersion(formId, versionId);
@@ -92,7 +100,8 @@ const FormVersionHistory = () => {
 
                 alert('Version activated successfully');
             } catch (err) {
-                alert(`Error setting active version: ${err.message || 'Unknown error'}`);
+                const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+                alert(`Error setting active version: ${errorMessage}`);
                 console.error(err);
             }
         }
@@ -161,18 +170,18 @@ const FormVersionHistory = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                         {versions.length === 0 ? (
                             <tr>
-                                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                                     No versions found for this form
                                 </td>
                             </tr>
                         ) : (
                             versions.map((version) => (
-                                <tr key={version.id} className={version.isActive ? 'bg-blue-50' : 'hover:bg-gray-50'}>
+                                <tr key={version.versionId} className={version.isActive ? 'bg-blue-50' : 'hover:bg-gray-50'}>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <input
                                             type="checkbox"
-                                            checked={selectedVersions.includes(version.id)}
-                                            onChange={() => handleSelectVersion(version.id)}
+                                            checked={selectedVersions.includes(version.versionId)}
+                                            onChange={() => handleSelectVersion(version.versionId)}
                                             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                         />
                                     </td>
@@ -205,8 +214,8 @@ const FormVersionHistory = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <Link
                                             to={isStudyContext
-                                                ? `/study-design/study/${studyId}/forms/${formId}/versions/${version.id}/view`
-                                                : `/study-design/forms/${formId}/versions/${version.id}/view`
+                                                ? `/study-design/study/${studyId}/forms/${formId}/versions/${version.versionId}/view`
+                                                : `/study-design/forms/${formId}/versions/${version.versionId}/view`
                                             }
                                             className="text-blue-600 hover:text-blue-900 mr-4"
                                         >
@@ -214,7 +223,7 @@ const FormVersionHistory = () => {
                                         </Link>
                                         {!version.isActive && (
                                             <button
-                                                onClick={() => handleSetActiveVersion(version.id)}
+                                                onClick={() => handleSetActiveVersion(version.versionId)}
                                                 className="text-green-600 hover:text-green-900"
                                             >
                                                 Set Active
@@ -235,21 +244,21 @@ const FormVersionHistory = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="border rounded-md p-4">
                             <h4 className="font-medium text-sm mb-2">
-                                Version {versions.find(v => v.id === selectedVersions[0])?.version}
+                                Version {versions.find(v => v.versionId === selectedVersions[0])?.version}
                             </h4>
                             <div className="text-sm">
-                                <div><span className="font-medium">Fields:</span> {comparison.version1.fieldCount}</div>
-                                <div><span className="font-medium">Field Groups:</span> {comparison.version1.groupCount}</div>
+                                <div><span className="font-medium">Fields:</span> {comparison.version1.structure?.sections.reduce((acc, s) => acc + s.fields.length, 0) || 0}</div>
+                                <div><span className="font-medium">Sections:</span> {comparison.version1.structure?.sections.length || 0}</div>
                                 <div><span className="font-medium">Created:</span> {new Date(comparison.version1.createdAt).toLocaleString()}</div>
                             </div>
                         </div>
                         <div className="border rounded-md p-4">
                             <h4 className="font-medium text-sm mb-2">
-                                Version {versions.find(v => v.id === selectedVersions[1])?.version}
+                                Version {versions.find(v => v.versionId === selectedVersions[1])?.version}
                             </h4>
                             <div className="text-sm">
-                                <div><span className="font-medium">Fields:</span> {comparison.version2.fieldCount}</div>
-                                <div><span className="font-medium">Field Groups:</span> {comparison.version2.groupCount}</div>
+                                <div><span className="font-medium">Fields:</span> {comparison.version2.structure?.sections.reduce((acc, s) => acc + s.fields.length, 0) || 0}</div>
+                                <div><span className="font-medium">Sections:</span> {comparison.version2.structure?.sections.length || 0}</div>
                                 <div><span className="font-medium">Created:</span> {new Date(comparison.version2.createdAt).toLocaleString()}</div>
                             </div>
                         </div>
@@ -257,7 +266,7 @@ const FormVersionHistory = () => {
                     <div className="mt-4 border rounded-md p-4">
                         <h4 className="font-medium text-sm mb-2">Changes</h4>
                         <ul className="list-disc pl-5 text-sm">
-                            {comparison.changes.map((change, index) => (
+                            {comparison.differences.map((change, index) => (
                                 <li key={index} className="mb-1">
                                     <span className={
                                         change.type === 'added' ? 'text-green-600' :
@@ -268,7 +277,7 @@ const FormVersionHistory = () => {
                                     </span>
                                 </li>
                             ))}
-                            {comparison.changes.length === 0 && (
+                            {comparison.differences.length === 0 && (
                                 <li className="text-gray-500">No changes detected between these versions</li>
                             )}
                         </ul>
