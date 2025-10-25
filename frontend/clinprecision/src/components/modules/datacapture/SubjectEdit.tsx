@@ -1,12 +1,73 @@
-// SubjectEdit.jsx - Edit Subject/Patient Information
+/**
+ * SubjectEdit Component
+ * 
+ * Edit Subject/Patient Information
+ * Handles demographic and enrollment data updates
+ * 
+ * Updated: October 2025
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getSubjectById } from '../../../services/SubjectService';
 import ApiService from '../../../services/ApiService';
 import { getStudies } from '../../../services/StudyService';
 
-export default function SubjectEdit() {
-    const { subjectId } = useParams();
+interface Study {
+    id: number;
+    title?: string;
+    name?: string;
+    status?: string;
+}
+
+interface StudyArm {
+    id: number;
+    name: string;
+}
+
+interface StudySite {
+    id: number;
+    siteId?: number;
+    siteName?: string;
+    status?: string;
+}
+
+interface Subject {
+    id: number;
+    subjectId: string;
+    firstName?: string;
+    middleName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    phoneNumber?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    studyId?: number;
+    armId?: number;
+    treatmentArmId?: number;
+    siteId?: number;
+    enrollmentDate?: string;
+    enrollmentId?: number;
+}
+
+interface FormData {
+    firstName: string;
+    middleName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    dateOfBirth: string;
+    gender: string;
+    studyId: string;
+    armId: string;
+    siteId: string;
+    subjectId: string;
+    enrollmentDate: string;
+}
+
+const SubjectEdit: React.FC = () => {
+    const { subjectId } = useParams<{ subjectId: string }>();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -16,14 +77,14 @@ export default function SubjectEdit() {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [subject, setSubject] = useState(null);
-    const [studies, setStudies] = useState([]);
-    const [studyArms, setStudyArms] = useState([]);
-    const [studySites, setStudySites] = useState([]);
+    const [subject, setSubject] = useState<Subject | null>(null);
+    const [studies, setStudies] = useState<Study[]>([]);
+    const [studyArms, setStudyArms] = useState<StudyArm[]>([]);
+    const [studySites, setStudySites] = useState<StudySite[]>([]);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         firstName: '',
         middleName: '',
         lastName: '',
@@ -57,7 +118,7 @@ export default function SubjectEdit() {
     const fetchSubjectDetails = async () => {
         try {
             setLoading(true);
-            const subjectData = await getSubjectById(subjectId);
+            const subjectData = await getSubjectById(subjectId!) as any;
             setSubject(subjectData);
 
             console.log('Loaded subject data:', subjectData);
@@ -90,9 +151,9 @@ export default function SubjectEdit() {
 
     const fetchStudies = async () => {
         try {
-            const studiesData = await getStudies();
+            const studiesData = await getStudies() as any;
             // Filter for studies that are published/approved/active
-            const filteredStudies = studiesData.filter(study => {
+            const filteredStudies = studiesData.filter((study: Study) => {
                 const status = study.status?.toUpperCase();
                 return status === 'PUBLISHED' || status === 'APPROVED' || status === 'ACTIVE';
             });
@@ -102,9 +163,9 @@ export default function SubjectEdit() {
         }
     };
 
-    const fetchStudyArms = async (studyId) => {
+    const fetchStudyArms = async (studyId: string) => {
         try {
-            const response = await ApiService.get(`/study-ws/api/v1/studies/${studyId}/arms`);
+            const response = await ApiService.get(`/study-ws/api/v1/studies/${studyId}/arms`) as any;
             setStudyArms(response.data || []);
         } catch (error) {
             console.error('Error fetching study arms:', error);
@@ -112,11 +173,11 @@ export default function SubjectEdit() {
         }
     };
 
-    const fetchStudySites = async (studyId) => {
+    const fetchStudySites = async (studyId: string) => {
         try {
             // Updated to use clinops-ws endpoint that now exists
-            const response = await ApiService.get(`/clinops-ws/api/v1/patients/site-studies/study/${studyId}`);
-            const activeSites = (response.data || []).filter(ss => ss.status === 'ACTIVE');
+            const response = await ApiService.get(`/clinops-ws/api/v1/patients/site-studies/study/${studyId}`) as any;
+            const activeSites = (response.data || []).filter((ss: StudySite) => ss.status === 'ACTIVE');
             setStudySites(activeSites);
         } catch (error) {
             console.error('Error fetching study sites:', error);
@@ -124,7 +185,7 @@ export default function SubjectEdit() {
         }
     };
 
-    const handleChange = (e) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         console.log(`Field changed: ${name} = ${value}`);
 
@@ -144,7 +205,7 @@ export default function SubjectEdit() {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
         setSaving(true);
@@ -171,13 +232,13 @@ export default function SubjectEdit() {
             };
 
             console.log('Updating patient with data:', patientUpdateData);
-            await ApiService.put(`/clinops-ws/api/v1/patients/${subject.id}`, patientUpdateData);
+            await ApiService.put(`/clinops-ws/api/v1/patients/${subject!.id}`, patientUpdateData as any) as any;
 
             // Update enrollment information if study/arm/site changed
-            if (subject.enrollmentId && (
-                formData.studyId !== subject.studyId ||
-                formData.armId !== subject.armId ||
-                formData.siteId !== subject.siteId
+            if (subject!.enrollmentId && (
+                formData.studyId !== subject!.studyId?.toString() ||
+                formData.armId !== subject!.armId?.toString() ||
+                formData.siteId !== subject!.siteId?.toString()
             )) {
                 const enrollmentUpdateData = {
                     studyId: parseInt(formData.studyId),
@@ -187,7 +248,7 @@ export default function SubjectEdit() {
                 };
 
                 console.log('Updating enrollment with data:', enrollmentUpdateData);
-                await ApiService.put(`/clinops-ws/api/v1/patient-enrollment/${subject.enrollmentId}`, enrollmentUpdateData);
+                await ApiService.put(`/clinops-ws/api/v1/patient-enrollment/${subject!.enrollmentId}`, enrollmentUpdateData as any) as any;
             }
 
             setSuccess(true);
@@ -197,7 +258,7 @@ export default function SubjectEdit() {
                 navigate(`${basePath}/subjects/${subjectId}`);
             }, 1500);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating subject:', error);
             setError(error.message || 'Failed to update subject. Please try again.');
             setSaving(false);
@@ -533,4 +594,6 @@ export default function SubjectEdit() {
             </form>
         </div>
     );
-}
+};
+
+export default SubjectEdit;

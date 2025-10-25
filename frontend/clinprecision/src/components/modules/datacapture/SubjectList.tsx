@@ -1,42 +1,106 @@
+/**
+ * SubjectList Component
+ * 
+ * Comprehensive subject management with study filtering, search, and workflows
+ * Includes enrollment stepper, status changes, visits, and withdrawal management
+ * 
+ * Updated: October 2025
+ * Aligned with clinical research subject management workflow
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getStudies } from '../../../services/StudyService';
 import { getSubjectsByStudy } from '../../../services/SubjectService';
 import ApiService from '../../../services/ApiService';
+// @ts-ignore - Custom hooks to be converted
 import { useStudy } from '../../../hooks/useStudy';
+// @ts-ignore - Custom hooks to be converted
 import { useDebounce } from '../../../hooks/useDebounce';
+// @ts-ignore - Component to be converted
 import StudySelector from './components/StudySelector';
+// @ts-ignore - Component to be converted
 import SubjectFilters from './components/SubjectFilters';
+// @ts-ignore - Component to be converted
 import SubjectCard from './components/SubjectCard';
+// @ts-ignore - Component to be converted
 import EnrollmentStepper from './components/EnrollmentStepper';
+// @ts-ignore - Component to be converted
 import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
+// @ts-ignore - Component to be converted
 import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVisitModal';
+// @ts-ignore - Component to be converted
 import WithdrawalModal from '../subjectmanagement/components/WithdrawalModal';
+
+interface Study {
+    id: number;
+    title?: string;
+    name?: string;
+    protocolNumber: string;
+    status: string;
+}
+
+interface Subject {
+    id: number;
+    subjectId: string;
+    patientNumber?: string;
+    firstName?: string;
+    lastName?: string;
+    status: string;
+    enrollmentDate?: string;
+    siteId?: number;
+    studyId?: number;
+}
+
+interface Patient {
+    id: number;
+    screeningNumber?: string;
+    patientNumber: string;
+    firstName?: string;
+    lastName?: string;
+    status: string;
+    studyId?: number;
+    createdAt?: string;
+}
+
+interface EnrollmentData {
+    subjectId: string;
+    studyId: number;
+    siteId: number;
+    dateOfBirth: string;
+    gender: string;
+    phoneNumber?: string;
+}
+
+interface StatusDef {
+    status: string;
+    color: string;
+    description: string;
+    requiresAction?: boolean;
+}
 
 /**
  * Normalize status strings for case-insensitive comparisons
  * Backend returns mixed-case values ('Withdrawn' vs 'WITHDRAWN')
- * @param {string} status - The status value to normalize
- * @returns {string} Uppercase normalized status
  */
-const normalizeStatus = (status) => {
+const normalizeStatus = (status: string): string => {
     return status ? status.trim().toUpperCase() : '';
 };
 
-export default function SubjectList() {
+const SubjectList: React.FC = () => {
     const { selectedStudy, setSelectedStudy } = useStudy();
-    const [studies, setStudies] = useState([]);
-    const [subjects, setSubjects] = useState([]);
-    const [allPatients, setAllPatients] = useState([]);
-    const [showAllPatients, setShowAllPatients] = useState(false); // Now defaults to false
+    const [studies, setStudies] = useState<Study[]>([]);
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [allPatients, setAllPatients] = useState<Patient[]>([]);
+    const [showAllPatients, setShowAllPatients] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [loadingPatients, setLoadingPatients] = useState(false); // Separate loading state for patient registry
+    const [loadingPatients, setLoadingPatients] = useState(false);
     const [showStatusModal, setShowStatusModal] = useState(false);
-    const [selectedPatient, setSelectedPatient] = useState(null);
-    const [preselectedStatus, setPreselectedStatus] = useState(null);
+    const [selectedPatient, setSelectedPatient] = useState<Subject | Patient | null>(null);
+    const [preselectedStatus, setPreselectedStatus] = useState<string | null>(null);
     const [showVisitModal, setShowVisitModal] = useState(false);
-    const [visitType, setVisitType] = useState(null);
+    const [visitType, setVisitType] = useState<string | null>(null);
     const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
     const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
 
@@ -47,7 +111,7 @@ export default function SubjectList() {
     const [statusFilter, setStatusFilter] = useState('');
     const [siteFilter, setSiteFilter] = useState('');
     const [sortField, setSortField] = useState('');
-    const [sortDirection, setSortDirection] = useState('asc');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [showLegend, setShowLegend] = useState(false);
 
     const navigate = useNavigate();
@@ -70,55 +134,41 @@ export default function SubjectList() {
         const fetchStudies = async () => {
             try {
                 console.log('[SUBJECT LIST] Fetching studies...');
-                const studiesData = await getStudies();
+                const studiesData = await getStudies() as any;
                 console.log('[SUBJECT LIST] Studies received:', studiesData);
-                console.log('[SUBJECT LIST] Number of studies:', studiesData.length);
-
-                if (studiesData.length > 0) {
-                    console.log('[SUBJECT LIST] First study:', studiesData[0]);
-                    console.log('[SUBJECT LIST] First study title:', studiesData[0].title);
-                    console.log('[SUBJECT LIST] First study name:', studiesData[0].name);
-                }
 
                 // Filter for studies that are ready to have subjects viewed
-                // Only PUBLISHED, APPROVED, or ACTIVE studies should be shown
-                const filteredStudies = studiesData.filter(study => {
+                const filteredStudies = studiesData.filter((study: Study) => {
                     const status = study.status?.toUpperCase();
                     return status === 'PUBLISHED' || status === 'APPROVED' || status === 'ACTIVE';
                 });
 
                 console.log('[SUBJECT LIST] Filtered studies for viewing:', filteredStudies.length);
-                setStudies(filteredStudies); // Use filtered studies, not all studies
+                setStudies(filteredStudies);
 
-                // Check if study was preselected from navigation state (e.g., from dashboard)
+                // Check if study was preselected from navigation state
                 if (location.state?.preselectedStudy) {
                     console.log('[SUBJECT LIST] Preselected study from navigation:', location.state.preselectedStudy);
                     setSelectedStudy(location.state.preselectedStudy);
-                    // Clear the navigation state to prevent re-selection on refresh
                     window.history.replaceState({}, document.title);
                 }
-                // Note: localStorage restoration now handled by StudyContext
             } catch (error) {
                 console.error('[SUBJECT LIST] Error fetching studies:', error);
             }
         };
 
         fetchStudies();
-        // REMOVED: fetchAllPatients() - PHI security issue, now gated behind explicit user action
     }, [location.state]);
 
     useEffect(() => {
         if (!selectedStudy) return;
 
-        // Note: Persistence now handled by StudyContext
-
         const fetchSubjects = async () => {
             console.log('[SUBJECT LIST] Fetching subjects for study ID:', selectedStudy);
             setLoading(true);
             try {
-                const subjectsData = await getSubjectsByStudy(selectedStudy);
-                console.log('[SUBJECT LIST] Subjects received for study', selectedStudy, ':', subjectsData);
-                console.log('[SUBJECT LIST] Number of subjects:', subjectsData.length);
+                const subjectsData = await getSubjectsByStudy(selectedStudy) as any;
+                console.log('[SUBJECT LIST] Subjects received:', subjectsData.length);
                 setSubjects(subjectsData);
             } catch (error) {
                 console.error('[SUBJECT LIST] Error fetching subjects:', error);
@@ -139,13 +189,11 @@ export default function SubjectList() {
         }
     }, [debouncedSearchTerm, setSearchParams]);
 
-    const handleEditSubject = (subjectId) => {
-        // Navigate to subject edit page
+    const handleEditSubject = (subjectId: number) => {
         navigate(`${basePath}/subjects/${subjectId}/edit`);
     };
 
-    const handleWithdrawSubject = (subject) => {
-        // Open specialized withdrawal modal
+    const handleWithdrawSubject = (subject: Subject) => {
         if (normalizeStatus(subject.status) === 'WITHDRAWN') {
             toast.error('This subject has already been withdrawn.');
             return;
@@ -154,62 +202,45 @@ export default function SubjectList() {
         setShowWithdrawalModal(true);
     };
 
-    const handleEnrollmentSubmit = async (enrollmentData) => {
+    const handleEnrollmentSubmit = async (enrollmentData: EnrollmentData) => {
         try {
-            // Format data for API
             const payload = {
-                subjectId: enrollmentData.subjectId,
-                studyId: enrollmentData.studyId,
-                siteId: enrollmentData.siteId,
-                dateOfBirth: enrollmentData.dateOfBirth,
-                gender: enrollmentData.gender,
-                phoneNumber: enrollmentData.phoneNumber,
+                ...enrollmentData,
                 status: 'Registered',
                 enrollmentDate: new Date().toISOString(),
             };
 
             console.log('[SUBJECT LIST] Enrolling subject:', payload);
-
-            // Call API to enroll subject
-            const response = await ApiService.post('/clinops-ws/api/v1/subjects', payload);
-
+            const response = await ApiService.post('/clinops-ws/api/v1/subjects', payload) as any;
             console.log('[SUBJECT LIST] Enrollment successful:', response);
 
-            // Close modal
             setShowEnrollmentModal(false);
-
-            // Show success toast
             toast.success(`Subject ${enrollmentData.subjectId} enrolled successfully`);
 
-            // Refresh subjects list
             if (selectedStudy) {
-                const subjectsData = await getSubjectsByStudy(selectedStudy);
+                const subjectsData = await getSubjectsByStudy(selectedStudy) as any;
                 setSubjects(subjectsData);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('[SUBJECT LIST] Error enrolling subject:', error);
             toast.error(error.response?.data?.message || 'Failed to enroll subject');
         }
     };
 
-    const handleStatusChanged = async (result) => {
+    const handleStatusChanged = async (result: any) => {
         console.log('[SUBJECT LIST] Status changed, result:', result);
 
-        // Close status modal
         setShowStatusModal(false);
         setSelectedPatient(null);
         setPreselectedStatus(null);
 
-        // Show success toast
         toast.success('Subject status updated successfully');
 
-        // Re-fetch all patients to reflect status changes (scoped by study for HIPAA compliance)
+        // Re-fetch patients if registry is shown
         if (showAllPatients && selectedStudy) {
             try {
-                console.log('[SUBJECT LIST] Refreshing patient registry for study:', selectedStudy);
-                const response = await ApiService.get(`/clinops-ws/api/v1/patients?studyId=${selectedStudy}`);
+                const response = await ApiService.get(`/clinops-ws/api/v1/patients?studyId=${selectedStudy}`) as any;
                 if (response?.data) {
-                    console.log('[SUBJECT LIST] Refreshed patients after status change (study-scoped)');
                     setAllPatients(response.data);
                 }
             } catch (error) {
@@ -218,11 +249,11 @@ export default function SubjectList() {
             }
         }
 
-        // Re-fetch subjects for the current study if one is selected
+        // Re-fetch subjects
         if (selectedStudy) {
             setLoading(true);
             try {
-                const subjectsData = await getSubjectsByStudy(selectedStudy);
+                const subjectsData = await getSubjectsByStudy(selectedStudy) as any;
                 setSubjects(subjectsData);
             } catch (error) {
                 console.error('[SUBJECT LIST] Error refreshing subjects:', error);
@@ -233,19 +264,18 @@ export default function SubjectList() {
         }
     };
 
-    const handleVisitCreated = async (visit) => {
+    const handleVisitCreated = async (visit: any) => {
         console.log('[SUBJECT LIST] Visit created successfully:', visit);
         setShowVisitModal(false);
         setSelectedPatient(null);
         setPreselectedStatus(null);
 
-        // Show success toast
         toast.success('Visit created successfully');
 
-        // Refresh data after visit creation (scoped by study for HIPAA/CFR Part 11 compliance)
+        // Refresh data
         if (showAllPatients && selectedStudy) {
             try {
-                const response = await ApiService.get(`/clinops-ws/api/v1/patients?studyId=${selectedStudy}`);
+                const response = await ApiService.get(`/clinops-ws/api/v1/patients?studyId=${selectedStudy}`) as any;
                 if (response?.data) {
                     setAllPatients(response.data);
                 }
@@ -256,7 +286,7 @@ export default function SubjectList() {
 
         if (selectedStudy) {
             try {
-                const subjectsData = await getSubjectsByStudy(selectedStudy);
+                const subjectsData = await getSubjectsByStudy(selectedStudy) as any;
                 setSubjects(subjectsData);
             } catch (error) {
                 console.error('[SUBJECT LIST] Error refreshing subjects:', error);
@@ -265,10 +295,10 @@ export default function SubjectList() {
     };
 
     // Get unique sites from subjects
-    const availableSites = [...new Set(subjects.map(s => s.siteId).filter(Boolean))];
+    const availableSites = [...new Set(subjects.map(s => s.siteId).filter(Boolean))].map(String);
 
     // Status definitions for legend
-    const statusDefinitions = [
+    const statusDefinitions: StatusDef[] = [
         { status: 'Registered', color: 'bg-gray-100 text-gray-800', description: 'Patient registered, not yet screening' },
         { status: 'Screening', color: 'bg-yellow-100 text-yellow-800', description: 'Undergoing eligibility assessment', requiresAction: true },
         { status: 'Enrolled', color: 'bg-blue-100 text-blue-800', description: 'Enrolled in study' },
@@ -294,7 +324,7 @@ export default function SubjectList() {
             );
         }
 
-        // Apply status filter (normalized for case-insensitive comparisons)
+        // Apply status filter
         if (statusFilter) {
             if (statusFilter === 'REQUIRES_ACTION') {
                 filtered = filtered.filter(s =>
@@ -312,7 +342,7 @@ export default function SubjectList() {
 
         // Apply sorting
         if (sortField) {
-            filtered.sort((a, b) => {
+            filtered.sort((a: any, b: any) => {
                 let aVal = a[sortField];
                 let bVal = b[sortField];
 
@@ -340,7 +370,7 @@ export default function SubjectList() {
     const filteredSubjects = getFilteredAndSortedSubjects();
 
     // Handle column sort
-    const handleSort = (field) => {
+    const handleSort = (field: string) => {
         if (sortField === field) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
         } else {
@@ -349,7 +379,7 @@ export default function SubjectList() {
         }
     };
 
-    const SortIcon = ({ field }) => {
+    const SortIcon: React.FC<{ field: string }> = ({ field }) => {
         if (sortField !== field) {
             return (
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -407,9 +437,9 @@ export default function SubjectList() {
                 </div>
             </div>
 
-            <StudySelector studies={studies} className="mb-6" />
+            <StudySelector studies={studies} className="mb-6" {...{} as any} />
 
-            {/* Subject Summary Statistics - Reflects Patient Lifecycle */}
+            {/* Subject Summary Statistics */}
             {selectedStudy && subjects.length > 0 && (
                 <div className="bg-white p-6 rounded-lg shadow mb-6">
                     {/* Filters and Actions Bar */}
@@ -433,6 +463,7 @@ export default function SubjectList() {
                             setSortField('');
                             setSortDirection('asc');
                         }}
+                        {...{} as any}
                     />
 
                     {/* Status Legend */}
@@ -497,7 +528,7 @@ export default function SubjectList() {
                         </div>
                     ) : (
                         <>
-                            {/* Desktop Table View - Hidden on mobile */}
+                            {/* Desktop Table View */}
                             <div className="hidden md:block overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
@@ -672,18 +703,18 @@ export default function SubjectList() {
                                 </table>
                             </div>
 
-                            {/* Mobile Card View - Hidden on desktop */}
+                            {/* Mobile Card View */}
                             <div className="md:hidden space-y-4">
                                 {filteredSubjects.map(subject => (
                                     <SubjectCard
                                         key={subject.id}
-                                        subject={subject}
-                                        onChangeStatus={(s) => {
+                                        subject={subject as any}
+                                        onChangeStatus={(s: any) => {
                                             setSelectedPatient(s);
                                             setPreselectedStatus(null);
                                             setShowStatusModal(true);
                                         }}
-                                        onStartVisit={(s) => {
+                                        onStartVisit={(s: any) => {
                                             setSelectedPatient(s);
                                             setVisitType('UNSCHEDULED');
                                             setShowVisitModal(true);
@@ -698,7 +729,7 @@ export default function SubjectList() {
                 </div>
             )}
 
-            {/* Patient Registry Section - Gated Behind Explicit Action */}
+            {/* Patient Registry Section */}
             {selectedStudy && (
                 <div className="bg-white p-6 rounded-lg shadow mb-6">
                     <div className="flex justify-between items-center mb-4">
@@ -709,13 +740,12 @@ export default function SubjectList() {
                         <button
                             onClick={async () => {
                                 if (!showAllPatients) {
-                                    // Fetch patients only when explicitly requested (scoped by study for HIPAA/CFR Part 11 compliance)
                                     setLoadingPatients(true);
                                     try {
                                         console.log('[SUBJECT LIST] Fetching patient registry for study:', selectedStudy);
-                                        const response = await ApiService.get(`/clinops-ws/api/v1/patients?studyId=${selectedStudy}`);
+                                        const response = await ApiService.get(`/clinops-ws/api/v1/patients?studyId=${selectedStudy}`) as any;
                                         if (response?.data) {
-                                            console.log('[SUBJECT LIST] Patient registry loaded (study-scoped):', response.data.length);
+                                            console.log('[SUBJECT LIST] Patient registry loaded:', response.data.length);
                                             setAllPatients(response.data);
                                         }
                                     } catch (error) {
@@ -853,7 +883,7 @@ export default function SubjectList() {
                                                             </button>
 
                                                             <button
-                                                                onClick={() => handleWithdrawSubject(patient)}
+                                                                onClick={() => handleWithdrawSubject(patient as any)}
                                                                 className={`flex items-center ${normalizeStatus(patient.status) === 'WITHDRAWN'
                                                                     ? 'text-gray-400 cursor-not-allowed'
                                                                     : 'text-red-600 hover:text-red-900'
@@ -898,7 +928,7 @@ export default function SubjectList() {
                 </div>
             )}
 
-            {/* Status Change Modal for Withdrawal */}
+            {/* Status Change Modal */}
             {showStatusModal && selectedPatient && (
                 <StatusChangeModal
                     isOpen={showStatusModal}
@@ -908,8 +938,8 @@ export default function SubjectList() {
                         setPreselectedStatus(null);
                     }}
                     patientId={selectedPatient.id}
-                    patientName={`${selectedPatient.firstName || ''} ${selectedPatient.lastName || ''}`.trim() || `Patient ${selectedPatient.id}`}
-                    currentStatus={selectedPatient.status}
+                    patientName={`${(selectedPatient as any).firstName || ''} ${(selectedPatient as any).lastName || ''}`.trim() || `Patient ${selectedPatient.id}`}
+                    currentStatus={(selectedPatient as any).status}
                     preselectedStatus={preselectedStatus}
                     onStatusChanged={handleStatusChanged}
                 />
@@ -925,15 +955,15 @@ export default function SubjectList() {
                         setVisitType(null);
                     }}
                     patientId={selectedPatient.id}
-                    patientName={`${selectedPatient.firstName || ''} ${selectedPatient.lastName || ''}`.trim() || `Patient ${selectedPatient.id}`}
-                    studyId={selectedPatient.studyId || (selectedStudy ? parseInt(selectedStudy) : null)}
-                    siteId={selectedPatient.siteId || 1}
+                    patientName={`${(selectedPatient as any).firstName || ''} ${(selectedPatient as any).lastName || ''}`.trim() || `Patient ${selectedPatient.id}`}
+                    studyId={(selectedPatient as any).studyId || (selectedStudy ? parseInt(selectedStudy as any) : null)}
+                    siteId={(selectedPatient as any).siteId || 1}
                     visitType={visitType}
                     onVisitCreated={handleVisitCreated}
                 />
             )}
 
-            {/* Withdrawal Modal - Enhanced for Regulatory Compliance */}
+            {/* Withdrawal Modal */}
             {showWithdrawalModal && selectedPatient && (
                 <WithdrawalModal
                     isOpen={showWithdrawalModal}
@@ -942,8 +972,8 @@ export default function SubjectList() {
                         setSelectedPatient(null);
                     }}
                     patientId={selectedPatient.id}
-                    patientName={`${selectedPatient.firstName || ''} ${selectedPatient.lastName || ''}`.trim() || `Patient ${selectedPatient.id}`}
-                    currentStatus={selectedPatient.status}
+                    patientName={`${(selectedPatient as any).firstName || ''} ${(selectedPatient as any).lastName || ''}`.trim() || `Patient ${selectedPatient.id}`}
+                    currentStatus={(selectedPatient as any).status}
                     onWithdrawalComplete={handleStatusChanged}
                 />
             )}
@@ -958,4 +988,6 @@ export default function SubjectList() {
             )}
         </div>
     );
-}
+};
+
+export default SubjectList;

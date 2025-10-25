@@ -1,18 +1,63 @@
-// SubjectEnrollment.jsx
-// EDC Blinding Compliance: Treatment arm selection removed from enrollment
-// Randomization is handled by external IWRS/RTSM system, not during patient registration
-// See: EDC_BLINDING_ARCHITECTURE_DECISION.md
+/**
+ * SubjectEnrollment Component
+ * 
+ * EDC Blinding Compliance: Treatment arm selection removed from enrollment
+ * Randomization is handled by external IWRS/RTSM system, not during patient registration
+ * See: EDC_BLINDING_ARCHITECTURE_DECISION.md
+ * 
+ * Updated: October 2025
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStudies } from '../../../services/StudyService';
 import { enrollSubject } from '../../../services/SubjectService';
 import { SiteService } from '../../../services/SiteService';
 
-export default function SubjectEnrollment() {
-    const [studies, setStudies] = useState([]);
+interface Study {
+    id: number;
+    title?: string;
+    name?: string;
+    studyStatus?: {
+        code: string;
+    };
+    status?: string;
+}
+
+interface SiteOption {
+    siteId: string;
+    label: string;
+}
+
+interface SiteAssociation {
+    id: number;
+    status?: string | { name?: string; status?: string };
+    siteNumber?: string;
+    site_num?: string;
+    siteCode?: string;
+    siteName?: string;
+    site_name?: string;
+    name?: string;
+    __status?: string;
+}
+
+interface FormData {
+    subjectId: string;
+    studyId: string;
+    siteId: string;
+    enrollmentDate: string;
+    status: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+}
+
+const SubjectEnrollment: React.FC = () => {
+    const [studies, setStudies] = useState<Study[]>([]);
     const [selectedStudy, setSelectedStudy] = useState('');
-    const [studySites, setStudySites] = useState([]);
-    const [formData, setFormData] = useState({
+    const [studySites, setStudySites] = useState<SiteOption[]>([]);
+    const [formData, setFormData] = useState<FormData>({
         subjectId: '',
         studyId: '',
         siteId: '',
@@ -24,7 +69,7 @@ export default function SubjectEnrollment() {
         phone: ''
     });
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -33,11 +78,11 @@ export default function SubjectEnrollment() {
         const fetchStudies = async () => {
             try {
                 setError(null);
-                const studiesData = await getStudies();
+                const studiesData = await getStudies() as any;
 
                 // Filter to show only studies ready for enrollment (PUBLISHED or ACTIVE)
                 // Similar to DB Build form which filters for APPROVED/ACTIVE studies
-                const enrollmentReadyStudies = (studiesData || []).filter(study => {
+                const enrollmentReadyStudies = (studiesData || []).filter((study: Study) => {
                     const status = study.studyStatus?.code || study.status;
                     // Allow PUBLISHED (officially published) or ACTIVE (actively enrolling)
                     return status === 'PUBLISHED' || status === 'ACTIVE' || status === 'APPROVED';
@@ -72,9 +117,9 @@ export default function SubjectEnrollment() {
                 // See: EDC_BLINDING_ARCHITECTURE_DECISION.md
 
                 // Fetch site-study associations and populate dropdown
-                const associations = await SiteService.getSiteAssociationsForStudy(selectedStudy);
+                const associations = await SiteService.getSiteAssociationsForStudy(selectedStudy) as any;
                 console.log('[SubjectEnrollment] Associations API raw:', associations);
-                const assocList = Array.isArray(associations) ? associations : [];
+                const assocList: SiteAssociation[] = Array.isArray(associations) ? associations : [];
 
                 // Normalize status and pick ACTIVE; if none active, fall back to all
                 const normalized = assocList.map(a => {
@@ -83,7 +128,7 @@ export default function SubjectEnrollment() {
                     let statusStr = '';
                     if (rawStatus && typeof rawStatus === 'object') {
                         // Common enum serialization shape { name: 'ACTIVE', ... } or { status: 'ACTIVE' }
-                        statusStr = (rawStatus.name || rawStatus.status || '').toString();
+                        statusStr = ((rawStatus as any).name || (rawStatus as any).status || '').toString();
                     } else {
                         statusStr = (rawStatus ?? '').toString();
                     }
@@ -133,7 +178,7 @@ export default function SubjectEnrollment() {
         fetchStudyDependentData();
     }, [selectedStudy]);
 
-    const handleChange = (e) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
 
         if (name === 'studyId') {
@@ -143,7 +188,7 @@ export default function SubjectEnrollment() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
@@ -170,10 +215,10 @@ export default function SubjectEnrollment() {
             }
 
             // Enroll subject
-            const result = await enrollSubject(formData);
+            const result = await enrollSubject(formData as any) as any;
             console.log('Subject enrolled successfully:', result);
             navigate(`/subject-management/subjects/${result.id}`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error enrolling subject:', error);
             setError(error.message || 'Failed to enroll subject.');
             setLoading(false);
@@ -372,4 +417,6 @@ export default function SubjectEnrollment() {
             </form>
         </div>
     );
-}
+};
+
+export default SubjectEnrollment;
