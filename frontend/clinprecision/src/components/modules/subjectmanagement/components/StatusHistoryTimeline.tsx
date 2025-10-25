@@ -2,21 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { getStatusHistory } from '../../../../services/SubjectService';
 import PatientStatusBadge from './PatientStatusBadge';
 
+interface StatusHistoryItem {
+    id: number;
+    newStatus: string;
+    previousStatus?: string;
+    reason?: string;
+    changedBy?: string;
+    changedAt: string;
+    notes?: string;
+}
+
+interface StatusHistoryTimelineProps {
+    patientId: number | string;
+    onClose?: () => void;
+}
+
 /**
  * StatusHistoryTimeline Component
  * 
  * Displays a timeline of all status changes for a patient
  * Shows audit trail with timestamps, reasons, and who made changes
- * 
- * @param {Object} props
- * @param {number|string} props.patientId - The patient ID
- * @param {Function} props.onClose - Optional callback when closing
  */
-export default function StatusHistoryTimeline({ patientId, onClose }) {
-    const [history, setHistory] = useState([]);
+const StatusHistoryTimeline: React.FC<StatusHistoryTimelineProps> = ({ patientId, onClose }) => {
+    const [history, setHistory] = useState<StatusHistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [expandedItems, setExpandedItems] = useState(new Set());
+    const [error, setError] = useState<string | null>(null);
+    const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
     const [filterStatus, setFilterStatus] = useState('ALL');
 
     useEffect(() => {
@@ -27,9 +38,9 @@ export default function StatusHistoryTimeline({ patientId, onClose }) {
         setLoading(true);
         setError(null);
         try {
-            const data = await getStatusHistory(patientId);
+            const data = await getStatusHistory(String(patientId)) as any;
             setHistory(data);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error fetching status history:', err);
             setError('Failed to load status history. Please try again.');
         } finally {
@@ -37,7 +48,7 @@ export default function StatusHistoryTimeline({ patientId, onClose }) {
         }
     };
 
-    const toggleExpand = (itemId) => {
+    const toggleExpand = (itemId: number) => {
         const newExpanded = new Set(expandedItems);
         if (newExpanded.has(itemId)) {
             newExpanded.delete(itemId);
@@ -47,7 +58,7 @@ export default function StatusHistoryTimeline({ patientId, onClose }) {
         setExpandedItems(newExpanded);
     };
 
-    const formatDate = (dateString) => {
+    const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
@@ -166,13 +177,13 @@ export default function StatusHistoryTimeline({ patientId, onClose }) {
                                                     <div className="flex items-center space-x-2 mb-2">
                                                         {item.previousStatus && (
                                                             <>
-                                                                <PatientStatusBadge status={item.previousStatus} size="sm" />
+                                                                <PatientStatusBadge {...({ status: item.previousStatus, size: "sm" } as any)} />
                                                                 <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                                                                 </svg>
                                                             </>
                                                         )}
-                                                        <PatientStatusBadge status={item.newStatus} size="sm" />
+                                                        <PatientStatusBadge {...({ status: item.newStatus, size: "sm" } as any)} />
                                                     </div>
 
                                                     <div className="text-sm text-gray-600 space-y-1">
@@ -244,4 +255,6 @@ export default function StatusHistoryTimeline({ patientId, onClose }) {
             </div>
         </div>
     );
-}
+};
+
+export default StatusHistoryTimeline;

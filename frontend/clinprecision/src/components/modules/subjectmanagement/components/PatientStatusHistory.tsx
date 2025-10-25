@@ -1,8 +1,24 @@
-// src/components/modules/subjectmanagement/components/PatientStatusHistory.jsx
+// src/components/modules/subjectmanagement/components/PatientStatusHistory.tsx
 import React, { useState, useEffect } from 'react';
 import { Clock, User, FileText, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
 import PatientStatusService from '../../../../services/data-capture/PatientStatusService';
 import PatientStatusBadge from './PatientStatusBadge';
+
+interface StatusHistoryItem {
+    id?: number | string;
+    newStatus: string;
+    changedAt: string;
+    changedBy: string;
+    reason: string;
+    notes?: string;
+}
+
+interface PatientStatusHistoryProps {
+    patientId: string | number;
+    className?: string;
+    autoRefresh?: boolean;
+    refreshInterval?: number;
+}
 
 /**
  * Timeline component displaying patient status change history
@@ -22,16 +38,16 @@ import PatientStatusBadge from './PatientStatusBadge';
  * @param {boolean} autoRefresh - Enable auto-refresh (default: false)
  * @param {number} refreshInterval - Refresh interval in ms (default: 60000)
  */
-const PatientStatusHistory = ({
+const PatientStatusHistory: React.FC<PatientStatusHistoryProps> = ({
     patientId,
     className = '',
     autoRefresh = false,
     refreshInterval = 60000
 }) => {
-    const [history, setHistory] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [refreshing, setRefreshing] = useState(false);
+    const [history, setHistory] = useState<StatusHistoryItem[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [refreshing, setRefreshing] = useState<boolean>(false);
 
     /**
      * Load status history from API
@@ -46,9 +62,9 @@ const PatientStatusHistory = ({
         setError(null);
 
         try {
-            const data = await PatientStatusService.getPatientStatusHistory(patientId);
+            const data = await PatientStatusService.getPatientStatusHistory(Number(patientId)) as any;
             setHistory(data);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error loading status history:', err);
             setError(err.message || 'Failed to load status history');
         } finally {
@@ -82,12 +98,12 @@ const PatientStatusHistory = ({
     /**
      * Format date/time for display
      */
-    const formatDateTime = (timestamp) => {
+    const formatDateTime = (timestamp: string): string => {
         if (!timestamp) return 'N/A';
 
         const date = new Date(timestamp);
         const now = new Date();
-        const diffMs = now - date;
+        const diffMs = now.getTime() - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
@@ -116,11 +132,11 @@ const PatientStatusHistory = ({
     /**
      * Calculate days since status change
      */
-    const getDaysSince = (timestamp) => {
+    const getDaysSince = (timestamp: string): number | null => {
         if (!timestamp) return null;
         const date = new Date(timestamp);
         const now = new Date();
-        const diffMs = now - date;
+        const diffMs = now.getTime() - date.getTime();
         const days = Math.floor(diffMs / 86400000);
         return days;
     };
@@ -128,12 +144,12 @@ const PatientStatusHistory = ({
     /**
      * Get icon for status
      */
-    const getStatusIcon = (status, isCurrent) => {
+    const getStatusIcon = (status: string, isCurrent: boolean): React.ReactElement => {
         if (isCurrent) {
             return <CheckCircle className="w-5 h-5 text-green-500" />;
         }
 
-        const iconMap = {
+        const iconMap: Record<string, React.ReactElement> = {
             'REGISTERED': <Clock className="w-5 h-5 text-blue-500" />,
             'SCREENING': <Clock className="w-5 h-5 text-yellow-500" />,
             'ENROLLED': <CheckCircle className="w-5 h-5 text-green-500" />,
@@ -249,7 +265,7 @@ const PatientStatusHistory = ({
                                         {/* Status and Badge */}
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
-                                                <PatientStatusBadge status={item.newStatus} size="md" />
+                                                <PatientStatusBadge {...({ status: item.newStatus, size: "md" } as any)} />
                                                 {isCurrent && (
                                                     <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded">
                                                         Current

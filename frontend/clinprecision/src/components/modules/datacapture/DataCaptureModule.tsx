@@ -1,4 +1,4 @@
-// DataCaptureModule.jsx
+import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import SubjectList from './SubjectList';
 import SubjectDetails from './SubjectDetails';
@@ -12,7 +12,7 @@ import PatientDetails from './PatientDetails';
 import DataCaptureDashboard from './DataCaptureDashboard';
 import DeviationDashboard from './deviations/DeviationDashboard';
 
-export default function DataCaptureModule() {
+const DataCaptureModule: React.FC = () => {
     console.log('[DATA CAPTURE MODULE] Rendering, current pathname:', window.location.pathname);
     return (
         <div className="container mx-auto px-4 pb-4">
@@ -38,4 +38,6 @@ export default function DataCaptureModule() {
             </Routes>
         </div>
     );
-}
+};
+
+export default DataCaptureModule;

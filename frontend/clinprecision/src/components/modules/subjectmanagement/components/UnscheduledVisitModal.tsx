@@ -1,7 +1,41 @@
-// src/components/modules/subjectmanagement/components/UnscheduledVisitModal.jsx
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, Calendar, FileText } from 'lucide-react';
 import VisitService, { getVisitTypeLabel, VISIT_TYPES } from '../../../../services/VisitService';
+
+interface VisitType {
+    id: number;
+    visitCode: string;
+    name: string;
+}
+
+interface FormData {
+    visitType: string;
+    visitDate: string;
+    notes: string;
+    createdBy: string;
+}
+
+interface Errors {
+    visitType?: string;
+    visitDate?: string;
+    createdBy?: string;
+}
+
+interface CreatedVisit {
+    visitId: number;
+    [key: string]: any;
+}
+
+interface UnscheduledVisitModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    patientId: number;
+    patientName: string;
+    studyId: number;
+    siteId: number;
+    visitType?: string;
+    onVisitCreated?: (visit: CreatedVisit) => void;
+}
 
 /**
  * Modal for creating unscheduled visits
@@ -14,22 +48,8 @@ import VisitService, { getVisitTypeLabel, VISIT_TYPES } from '../../../../servic
  * - Success/error feedback
  * - Auto-closes on success
  * - Optional callback to trigger form collection
- * 
- * Usage:
- * After patient status change, prompt user:
- * "Status changed successfully. Would you like to create a [visit type] visit?"
- * If yes, show this modal
- * 
- * @param {boolean} isOpen - Modal visibility
- * @param {function} onClose - Close handler
- * @param {number} patientId - Patient database ID
- * @param {string} patientName - Patient full name for display
- * @param {number} studyId - Study ID
- * @param {number} siteId - Site ID
- * @param {string} visitType - Pre-selected visit type (SCREENING, ENROLLMENT, etc.)
- * @param {function} onVisitCreated - Callback after successful visit creation (receives visit response)
  */
-const UnscheduledVisitModal = ({
+const UnscheduledVisitModal: React.FC<UnscheduledVisitModalProps> = ({
     isOpen,
     onClose,
     patientId,
@@ -40,23 +60,23 @@ const UnscheduledVisitModal = ({
     onVisitCreated
 }) => {
     // Form state
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         visitType: visitType,
-        visitDate: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD
+        visitDate: new Date().toISOString().split('T')[0],
         notes: '',
-        createdBy: '' // User ID from localStorage (set in useEffect)
+        createdBy: ''
     });
 
     // UI state
     const [submitting, setSubmitting] = useState(false);
-    const [errors, setErrors] = useState({});
+    const [errors, setErrors] = useState<Errors>({});
     const [showSuccess, setShowSuccess] = useState(false);
     const [showError, setShowError] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
-    const [createdVisit, setCreatedVisit] = useState(null);
+    const [createdVisit, setCreatedVisit] = useState<CreatedVisit | null>(null);
 
     // Dynamic visit types from backend
-    const [visitTypes, setVisitTypes] = useState([]);
+    const [visitTypes, setVisitTypes] = useState<VisitType[]>([]);
     const [loadingVisitTypes, setLoadingVisitTypes] = useState(false);
 
     /**
@@ -66,11 +86,11 @@ const UnscheduledVisitModal = ({
         if (isOpen && studyId) {
             setLoadingVisitTypes(true);
             VisitService.getUnscheduledVisitTypes(studyId)
-                .then(types => {
+                .then((types: any) => {
                     console.log('Loaded visit types:', types);
                     setVisitTypes(types);
                 })
-                .catch(error => {
+                .catch((error: any) => {
                     console.error('Failed to load visit types:', error);
                     setErrorMessage('Failed to load visit types: ' + error.message);
                     setShowError(true);
@@ -86,8 +106,7 @@ const UnscheduledVisitModal = ({
      */
     useEffect(() => {
         if (isOpen) {
-            // Get logged-in user ID from localStorage
-            const userId = localStorage.getItem('userId') || '1'; // Default to user 1 if not found
+            const userId = localStorage.getItem('userId') || '1';
 
             setFormData({
                 visitType: visitType,
@@ -104,11 +123,10 @@ const UnscheduledVisitModal = ({
     /**
      * Handle input changes
      */
-    const handleInputChange = (field, value) => {
+    const handleInputChange = (field: keyof FormData, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
 
-        // Clear field error when user types
-        if (errors[field]) {
+        if (errors[field as keyof Errors]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
         }
     };
@@ -116,8 +134,8 @@ const UnscheduledVisitModal = ({
     /**
      * Validate form data
      */
-    const validateForm = () => {
-        const newErrors = {};
+    const validateForm = (): boolean => {
+        const newErrors: Errors = {};
 
         if (!formData.visitType) {
             newErrors.visitType = 'Visit type is required';
@@ -126,7 +144,6 @@ const UnscheduledVisitModal = ({
         if (!formData.visitDate) {
             newErrors.visitDate = 'Visit date is required';
         } else {
-            // Check if date is in future (more than 7 days ahead)
             const selectedDate = new Date(formData.visitDate);
             const today = new Date();
             const sevenDaysFromNow = new Date();
@@ -147,9 +164,8 @@ const UnscheduledVisitModal = ({
 
     /**
      * Handle form submission
-     * Creates unscheduled visit via API
      */
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -161,38 +177,34 @@ const UnscheduledVisitModal = ({
         setErrorMessage('');
 
         try {
-            // Prepare visit data
             const visitData = {
                 patientId: patientId,
                 studyId: studyId,
                 siteId: siteId,
                 visitType: formData.visitType,
                 visitDate: formData.visitDate,
-                createdBy: parseInt(formData.createdBy, 10), // Convert to number (Long in backend)
+                createdBy: formData.createdBy,
                 notes: formData.notes.trim() || null
-            };
+            } as any;
 
             console.log('[VISIT MODAL] Creating visit:', visitData);
 
-            // Call API to create visit
-            const result = await VisitService.createUnscheduledVisit(visitData);
+            const result = await VisitService.createUnscheduledVisit(visitData) as any;
 
             console.log('[VISIT MODAL] Visit created successfully:', result);
 
             setCreatedVisit(result);
             setShowSuccess(true);
 
-            // Notify parent component
             if (onVisitCreated) {
                 onVisitCreated(result);
             }
 
-            // Auto-close after 2 seconds
             setTimeout(() => {
                 handleClose();
             }, 2000);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('[VISIT MODAL] Error creating visit:', error);
             setErrorMessage(
                 error.response?.data?.error ||

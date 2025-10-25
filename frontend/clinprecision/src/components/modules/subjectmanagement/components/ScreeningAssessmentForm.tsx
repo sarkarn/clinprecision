@@ -1,19 +1,46 @@
-// ScreeningAssessmentForm.jsx - Quick screening assessment for status change
+// ScreeningAssessmentForm.tsx - Quick screening assessment for status change
 import React, { useState } from 'react';
 import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+
+interface Assessment {
+    meetsAgeRequirement: string | null;
+    hasRequiredDiagnosis: string | null;
+    noExclusionCriteria: string | null;
+    informedConsentObtained: string | null;
+    screenId: string;
+    screeningDate: string;
+    assessedBy: string;
+    notes: string;
+}
+
+interface AssessmentResult extends Assessment {
+    isEligible: boolean;
+    eligibilityStatus: string;
+}
+
+interface ScreeningAssessmentFormProps {
+    onComplete: (data: AssessmentResult) => void;
+    onCancel: () => void;
+    patientId: string | number;
+    patientName?: string;
+}
+
+interface Errors {
+    [key: string]: string;
+}
 
 /**
  * Screening Assessment Form
  * Shown when changing patient status to SCREENING
  * Captures basic eligibility criteria
  */
-const ScreeningAssessmentForm = ({
+const ScreeningAssessmentForm: React.FC<ScreeningAssessmentFormProps> = ({
     onComplete,
     onCancel,
     patientId,
     patientName
 }) => {
-    const [assessment, setAssessment] = useState({
+    const [assessment, setAssessment] = useState<Assessment>({
         // Basic eligibility checks
         meetsAgeRequirement: null,
         hasRequiredDiagnosis: null,
@@ -27,17 +54,17 @@ const ScreeningAssessmentForm = ({
         notes: ''
     });
 
-    const [errors, setErrors] = useState({});
+    const [errors, setErrors] = useState<Errors>({});
 
-    const handleChange = (field, value) => {
+    const handleChange = (field: keyof Assessment, value: string | null) => {
         setAssessment(prev => ({ ...prev, [field]: value }));
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
         }
     };
 
-    const validate = () => {
-        const newErrors = {};
+    const validate = (): boolean => {
+        const newErrors: Errors = {};
 
         // All eligibility questions must be answered
         if (assessment.meetsAgeRequirement === null) {
@@ -84,7 +111,7 @@ const ScreeningAssessmentForm = ({
         });
     };
 
-    const renderYesNoField = (field, label, error) => (
+    const renderYesNoField = (field: keyof Assessment, label: string, error?: string) => (
         <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
                 {label} <span className="text-red-500">*</span>
@@ -120,7 +147,7 @@ const ScreeningAssessmentForm = ({
     );
 
     // Calculate eligibility status for preview
-    const getEligibilityPreview = () => {
+    const getEligibilityPreview = (): boolean | null => {
         if (assessment.meetsAgeRequirement === null ||
             assessment.hasRequiredDiagnosis === null ||
             assessment.noExclusionCriteria === null ||

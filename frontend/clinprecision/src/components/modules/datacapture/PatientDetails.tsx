@@ -1,13 +1,48 @@
-// PatientDetails.jsx
+/**
+ * PatientDetails Component
+ * 
+ * Patient detail view with demographic and system information
+ * Provides enrollment and edit capabilities
+ * 
+ * Updated: October 2025
+ * Aligned with patient detail workflow
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PatientEnrollmentService from '../../../services/data-capture/PatientEnrollmentService';
 
-export default function PatientDetails() {
-    const { patientId } = useParams();
-    const [patient, setPatient] = useState(null);
+interface Patient {
+    id: number;
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    dateOfBirth: string;
+    gender: string;
+    phoneNumber?: string;
+    email?: string;
+    status: string;
+    patientNumber?: string;
+    aggregateUuid?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    createdBy?: string;
+}
+
+interface FormattedPatient {
+    displayName: string;
+    displayAge: string;
+    displayGender: string;
+    displayStatus: string;
+    displayDateOfBirth: string;
+    hasContactInfo: boolean;
+}
+
+const PatientDetails: React.FC = () => {
+    const { patientId } = useParams<{ patientId: string }>();
+    const [patient, setPatient] = useState<Patient | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -21,12 +56,12 @@ export default function PatientDetails() {
             setLoading(true);
             console.log('[PATIENT_DETAILS] Loading patient:', patientId);
 
-            const patientData = await PatientEnrollmentService.getPatientById(patientId);
+            const patientData = await PatientEnrollmentService.getPatientById(patientId as any) as any;
 
             console.log('[PATIENT_DETAILS] Loaded patient data:', patientData);
             setPatient(patientData);
             setError(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error('[PATIENT_DETAILS] Error loading patient:', error);
             if (error.response && error.response.status === 404) {
                 setError('Patient not found.');
@@ -38,12 +73,12 @@ export default function PatientDetails() {
         }
     };
 
-    const formatPatient = (patientData) => {
-        return PatientEnrollmentService.formatPatientForDisplay(patientData);
+    const formatPatient = (patientData: Patient): FormattedPatient => {
+        return PatientEnrollmentService.formatPatientForDisplay(patientData as any) as any;
     };
 
-    const getStatusBadgeClass = (status) => {
-        const statusClasses = {
+    const getStatusBadgeClass = (status: string): string => {
+        const statusClasses: Record<string, string> = {
             REGISTERED: 'bg-blue-100 text-blue-800',
             SCREENING: 'bg-yellow-100 text-yellow-800',
             ENROLLED: 'bg-green-100 text-green-800',
@@ -53,8 +88,8 @@ export default function PatientDetails() {
         return statusClasses[status] || 'bg-gray-100 text-gray-800';
     };
 
-    const getGenderBadgeClass = (gender) => {
-        const genderClasses = {
+    const getGenderBadgeClass = (gender: string): string => {
+        const genderClasses: Record<string, string> = {
             MALE: 'bg-blue-50 text-blue-700 border border-blue-200',
             FEMALE: 'bg-pink-50 text-pink-700 border border-pink-200',
             OTHER: 'bg-gray-50 text-gray-700 border border-gray-200'
@@ -336,4 +371,6 @@ export default function PatientDetails() {
             </div>
         </div>
     );
-}
+};
+
+export default PatientDetails;

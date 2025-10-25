@@ -1,17 +1,55 @@
-// PatientList.jsx
-import React, { useState, useEffect } from 'react';
+/**
+ * PatientList Component
+ * 
+ * Patient list with filters, search, and statistics
+ * Manages patient registry with enrollment capabilities
+ * 
+ * Updated: October 2025
+ * Aligned with patient management workflow
+ */
+
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PatientEnrollmentService from '../../../services/data-capture/PatientEnrollmentService';
 
-export default function PatientList() {
-    const [patients, setPatients] = useState([]);
-    const [filteredPatients, setFilteredPatients] = useState([]);
+interface Patient {
+    id: number;
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    dateOfBirth: string;
+    gender: string;
+    phoneNumber?: string;
+    email?: string;
+    status: string;
+    patientNumber?: string;
+    createdAt?: string;
+}
+
+interface PatientStats {
+    totalPatients: number;
+    enrolledPatients: number;
+    screeningPatients: number;
+    completedPatients: number;
+}
+
+interface FormattedPatient {
+    displayName: string;
+    displayAge: string;
+    displayGender: string;
+    displayStatus: string;
+    hasContactInfo: boolean;
+}
+
+const PatientList: React.FC = () => {
+    const [patients, setPatients] = useState<Patient[]>([]);
+    const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [selectedGender, setSelectedGender] = useState('');
-    const [statistics, setStatistics] = useState(null);
+    const [statistics, setStatistics] = useState<PatientStats | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -29,12 +67,12 @@ export default function PatientList() {
             setLoading(true);
             console.log('[PATIENT_LIST] Loading patients...');
 
-            const patientsData = await PatientEnrollmentService.getAllPatients();
+            const patientsData = await PatientEnrollmentService.getAllPatients() as any;
 
             console.log('[PATIENT_LIST] Loaded patients:', patientsData.length);
             setPatients(patientsData);
             setError(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error('[PATIENT_LIST] Error loading patients:', error);
             setError('Failed to load patients. Please try again.');
         } finally {
@@ -44,7 +82,7 @@ export default function PatientList() {
 
     const loadStatistics = async () => {
         try {
-            const stats = await PatientEnrollmentService.getPatientStatistics();
+            const stats = await PatientEnrollmentService.getPatientStatistics(undefined as any) as any;
             setStatistics(stats);
         } catch (error) {
             console.error('[PATIENT_LIST] Error loading statistics:', error);
@@ -57,17 +95,17 @@ export default function PatientList() {
 
         // Apply search filter
         if (searchTerm.trim()) {
-            filtered = PatientEnrollmentService.filterPatients(filtered, { name: searchTerm });
+            filtered = PatientEnrollmentService.filterPatients(filtered as any, { name: searchTerm } as any) as any;
         }
 
         // Apply status filter
         if (selectedStatus) {
-            filtered = PatientEnrollmentService.filterPatients(filtered, { status: selectedStatus });
+            filtered = PatientEnrollmentService.filterPatients(filtered as any, { status: selectedStatus } as any) as any;
         }
 
         // Apply gender filter
         if (selectedGender) {
-            filtered = PatientEnrollmentService.filterPatients(filtered, { gender: selectedGender });
+            filtered = PatientEnrollmentService.filterPatients(filtered as any, { gender: selectedGender } as any) as any;
         }
 
         setFilteredPatients(filtered);
@@ -81,7 +119,7 @@ export default function PatientList() {
 
         try {
             setLoading(true);
-            const searchResults = await PatientEnrollmentService.searchPatientsByName(searchTerm);
+            const searchResults = await PatientEnrollmentService.searchPatientsByName(searchTerm) as any;
             setFilteredPatients(searchResults);
         } catch (error) {
             console.error('[PATIENT_LIST] Error searching patients:', error);
@@ -91,12 +129,12 @@ export default function PatientList() {
         }
     };
 
-    const formatPatient = (patient) => {
-        return PatientEnrollmentService.formatPatientForDisplay(patient);
+    const formatPatient = (patient: Patient): FormattedPatient => {
+        return PatientEnrollmentService.formatPatientForDisplay(patient as any) as any;
     };
 
-    const getStatusBadgeClass = (status) => {
-        const statusClasses = {
+    const getStatusBadgeClass = (status: string): string => {
+        const statusClasses: Record<string, string> = {
             REGISTERED: 'bg-blue-100 text-blue-800',
             SCREENING: 'bg-yellow-100 text-yellow-800',
             ENROLLED: 'bg-green-100 text-green-800',
@@ -106,8 +144,8 @@ export default function PatientList() {
         return statusClasses[status] || 'bg-gray-100 text-gray-800';
     };
 
-    const getGenderBadgeClass = (gender) => {
-        const genderClasses = {
+    const getGenderBadgeClass = (gender: string): string => {
+        const genderClasses: Record<string, string> = {
             MALE: 'bg-blue-50 text-blue-700',
             FEMALE: 'bg-pink-50 text-pink-700',
             OTHER: 'bg-gray-50 text-gray-700'
@@ -178,7 +216,7 @@ export default function PatientList() {
                                 type="text"
                                 placeholder="Search patients by name..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
@@ -193,7 +231,7 @@ export default function PatientList() {
                     <div>
                         <select
                             value={selectedStatus}
-                            onChange={(e) => setSelectedStatus(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedStatus(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                             <option value="">All Statuses</option>
@@ -208,7 +246,7 @@ export default function PatientList() {
                     <div>
                         <select
                             value={selectedGender}
-                            onChange={(e) => setSelectedGender(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedGender(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                             <option value="">All Genders</option>
@@ -335,7 +373,7 @@ export default function PatientList() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {patient.createdAt ? new Date(patient.createdAt).toLocaleDateString() : 'Unknown'}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <button
                                                     onClick={() => navigate(`/datacapture-management/patients/${patient.id}`)}
                                                     className="text-blue-600 hover:text-blue-900 mr-3"
@@ -360,4 +398,6 @@ export default function PatientList() {
             </div>
         </div>
     );
-}
+};
+
+export default PatientList;

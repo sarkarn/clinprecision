@@ -1,4 +1,4 @@
-// src/components/modules/subjectmanagement/PatientDetailPage.jsx
+// src/components/modules/subjectmanagement/PatientDetailPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -17,6 +17,30 @@ import PatientStatusHistory from './components/PatientStatusHistory';
 import StatusChangeModal from './components/StatusChangeModal';
 import Button from '../../shared/ui/Button';
 
+interface Patient {
+    id: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender?: string;
+    contactNumber?: string;
+    email?: string;
+    studyName?: string;
+}
+
+interface CurrentStatus {
+    newStatus: string;
+    changedAt: string;
+    changedBy: string;
+}
+
+interface StatusSummary {
+    currentStatus: string;
+    totalChanges?: number;
+    history?: any[];
+    averageDaysPerStatus?: number;
+}
+
 /**
  * Patient Detail Page
  * 
@@ -29,17 +53,17 @@ import Button from '../../shared/ui/Button';
  * - Status summary card
  * - Loading and error states
  */
-const PatientDetailPage = () => {
-    const { id } = useParams();
+const PatientDetailPage: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const [patient, setPatient] = useState(null);
-    const [currentStatus, setCurrentStatus] = useState(null);
-    const [statusSummary, setStatusSummary] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [showStatusModal, setShowStatusModal] = useState(false);
-    const [refreshKey, setRefreshKey] = useState(0);
+    const [patient, setPatient] = useState<Patient | null>(null);
+    const [currentStatus, setCurrentStatus] = useState<CurrentStatus | null>(null);
+    const [statusSummary, setStatusSummary] = useState<StatusSummary | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
+    const [refreshKey, setRefreshKey] = useState<number>(0);
 
     /**
      * Load patient data on mount
@@ -59,12 +83,12 @@ const PatientDetailPage = () => {
 
         try {
             // Load patient enrollment data
-            const patientData = await PatientEnrollmentService.getPatientById(id);
+            const patientData = await PatientEnrollmentService.getPatientById(Number(id)) as any;
             setPatient(patientData);
 
             // Load current status
             try {
-                const status = await PatientStatusService.getCurrentPatientStatus(id);
+                const status = await PatientStatusService.getCurrentPatientStatus(Number(id)) as any;
                 setCurrentStatus(status);
             } catch (statusError) {
                 console.log('No status found for patient');
@@ -73,14 +97,14 @@ const PatientDetailPage = () => {
 
             // Load status summary
             try {
-                const summary = await PatientStatusService.getPatientStatusSummary(id);
+                const summary = await PatientStatusService.getPatientStatusSummary(Number(id)) as any;
                 setStatusSummary(summary);
             } catch (summaryError) {
                 console.log('Could not load status summary');
                 setStatusSummary(null);
             }
 
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error loading patient data:', err);
             setError(err.message || 'Failed to load patient data');
         } finally {
@@ -106,12 +130,12 @@ const PatientDetailPage = () => {
     /**
      * Calculate days in current status
      */
-    const getDaysInCurrentStatus = () => {
+    const getDaysInCurrentStatus = (): number | null => {
         if (!currentStatus || !currentStatus.changedAt) return null;
 
         const statusDate = new Date(currentStatus.changedAt);
         const now = new Date();
-        const diffMs = now - statusDate;
+        const diffMs = now.getTime() - statusDate.getTime();
         const days = Math.floor(diffMs / 86400000);
         return days;
     };
@@ -119,7 +143,7 @@ const PatientDetailPage = () => {
     /**
      * Format date for display
      */
-    const formatDate = (dateString) => {
+    const formatDate = (dateString: string | undefined): string => {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
@@ -153,10 +177,10 @@ const PatientDetailPage = () => {
                                 <h3 className="text-lg font-medium text-red-800">Error Loading Patient</h3>
                                 <p className="mt-2 text-sm text-red-700">{error}</p>
                                 <div className="mt-4 flex gap-3">
-                                    <Button onClick={loadPatientData} variant="secondary" size="sm">
+                                    <Button {...({ onClick: loadPatientData, variant: "secondary", size: "sm" } as any)}>
                                         Try Again
                                     </Button>
-                                    <Button onClick={() => navigate('/subject-management')} variant="ghost" size="sm">
+                                    <Button {...({ onClick: () => navigate('/subject-management'), variant: "ghost", size: "sm" } as any)}>
                                         Back to Dashboard
                                     </Button>
                                 </div>
@@ -179,7 +203,7 @@ const PatientDetailPage = () => {
                         <p className="text-gray-600 mb-6">
                             No patient found with ID: {id}
                         </p>
-                        <Button onClick={() => navigate('/subject-management')} variant="primary">
+                        <Button {...({ onClick: () => navigate('/subject-management'), variant: "primary" } as any)}>
                             Back to Dashboard
                         </Button>
                     </div>
@@ -211,7 +235,7 @@ const PatientDetailPage = () => {
                                 <p className="text-sm text-gray-600">Patient ID: {patient.id}</p>
                             </div>
                         </div>
-                        <Button onClick={handleChangeStatus} variant="primary">
+                        <Button {...({ onClick: handleChangeStatus, variant: "primary" } as any)}>
                             Change Status
                         </Button>
                     </div>
@@ -228,7 +252,7 @@ const PatientDetailPage = () => {
                             <div>
                                 <p className="text-sm text-gray-600 mb-2">Current Status</p>
                                 {currentStatus ? (
-                                    <PatientStatusBadge status={currentStatus.newStatus} size="lg" />
+                                    <PatientStatusBadge {...({ status: currentStatus.newStatus, size: "lg" } as any)} />
                                 ) : (
                                     <span className="text-gray-500 text-sm">No status recorded</span>
                                 )}
@@ -337,8 +361,7 @@ const PatientDetailPage = () => {
                                     <div className="text-sm text-blue-700 mb-1">Current Status</div>
                                     <div className="flex items-center justify-between">
                                         <PatientStatusBadge
-                                            status={statusSummary.currentStatus}
-                                            size="md"
+                                            {...({ status: statusSummary.currentStatus, size: "md" } as any)}
                                         />
                                         <div className="text-right">
                                             <div className="text-xs text-blue-600">Duration</div>
@@ -377,8 +400,7 @@ const PatientDetailPage = () => {
 
                 {/* Status History Timeline */}
                 <PatientStatusHistory
-                    patientId={id}
-                    autoRefresh={false}
+                    {...({ patientId: id, autoRefresh: false } as any)}
                 />
 
             </div>
@@ -386,12 +408,14 @@ const PatientDetailPage = () => {
             {/* Status Change Modal */}
             {showStatusModal && currentStatus && (
                 <StatusChangeModal
-                    isOpen={showStatusModal}
-                    onClose={() => setShowStatusModal(false)}
-                    patientId={patient.id}
-                    patientName={`${patient.firstName} ${patient.lastName}`}
-                    currentStatus={currentStatus.newStatus}
-                    onStatusChanged={handleStatusChanged}
+                    {...({
+                        isOpen: showStatusModal,
+                        onClose: () => setShowStatusModal(false),
+                        patientId: patient.id,
+                        patientName: `${patient.firstName} ${patient.lastName}`,
+                        currentStatus: currentStatus.newStatus,
+                        onStatusChanged: handleStatusChanged
+                    } as any)}
                 />
             )}
 

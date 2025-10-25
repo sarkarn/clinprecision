@@ -1,7 +1,24 @@
-// src/components/modules/subjectmanagement/components/StatusTransitionDiagram.jsx
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
 import PatientStatusService from '../../../../services/data-capture/PatientStatusService';
+
+interface TransitionData {
+    fromStatus: string;
+    toStatus: string;
+    transitionCount: number;
+}
+
+interface StatusLifecycleItem {
+    status: string;
+}
+
+interface StatusTransitionDiagramProps {
+    patientId?: number;
+    currentStatus?: string;
+    onStatusClick?: (patientId: number, status: string) => void;
+    className?: string;
+    showStats?: boolean;
+}
 
 /**
  * Visual workflow diagram showing patient status lifecycle
@@ -15,26 +32,20 @@ import PatientStatusService from '../../../../services/data-capture/PatientStatu
  * - Transition statistics from API
  * - Loading and error states
  * - Responsive design
- * 
- * @param {number} patientId - (Optional) Patient ID to highlight current status
- * @param {string} currentStatus - (Optional) Current patient status to highlight
- * @param {function} onStatusClick - Callback when status box is clicked (patientId, status)
- * @param {string} className - Additional CSS classes
- * @param {boolean} showStats - Show transition statistics (default: true)
  */
-const StatusTransitionDiagram = ({
+const StatusTransitionDiagram: React.FC<StatusTransitionDiagramProps> = ({
     patientId,
     currentStatus,
     onStatusClick,
     className = '',
     showStats = true
 }) => {
-    const [transitionSummary, setTransitionSummary] = useState([]);
+    const [transitionSummary, setTransitionSummary] = useState<TransitionData[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Status lifecycle order
-    const statusLifecycle = PatientStatusService.getStatusLifecycle();
+    const statusLifecycle: StatusLifecycleItem[] = PatientStatusService.getStatusLifecycle();
 
     /**
      * Load transition statistics
@@ -55,9 +66,9 @@ const StatusTransitionDiagram = ({
         setError(null);
 
         try {
-            const data = await PatientStatusService.getStatusTransitionSummary();
+            const data = await PatientStatusService.getStatusTransitionSummary() as any;
             setTransitionSummary(data);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error loading transition stats:', err);
             setError(err.message || 'Failed to load transition statistics');
         } finally {
@@ -68,7 +79,7 @@ const StatusTransitionDiagram = ({
     /**
      * Get transition data between two statuses
      */
-    const getTransitionData = (fromStatus, toStatus) => {
+    const getTransitionData = (fromStatus: string, toStatus: string): TransitionData | null => {
         if (!transitionSummary || transitionSummary.length === 0) {
             return null;
         }
@@ -77,13 +88,13 @@ const StatusTransitionDiagram = ({
             t => t.fromStatus === fromStatus && t.toStatus === toStatus
         );
 
-        return transition;
+        return transition || null;
     };
 
     /**
      * Calculate conversion rate percentage
      */
-    const calculateConversionRate = (fromStatus, toStatus) => {
+    const calculateConversionRate = (fromStatus: string, toStatus: string): string | null => {
         const transition = getTransitionData(fromStatus, toStatus);
 
         if (!transition || !transition.transitionCount) {
@@ -104,7 +115,7 @@ const StatusTransitionDiagram = ({
     /**
      * Get status box color classes
      */
-    const getStatusColorClasses = (status, isCurrentStatus) => {
+    const getStatusColorClasses = (status: string | StatusLifecycleItem, isCurrentStatus: boolean): string => {
         const baseClasses = "transition-all duration-200";
 
         // Handle both string and object formats
@@ -114,7 +125,7 @@ const StatusTransitionDiagram = ({
             return `${baseClasses} bg-gradient-to-br from-green-500 to-green-600 text-white ring-4 ring-green-200 shadow-lg scale-105`;
         }
 
-        const colorMap = {
+        const colorMap: Record<string, string> = {
             'REGISTERED': 'bg-gradient-to-br from-blue-100 to-blue-200 text-blue-800 hover:from-blue-200 hover:to-blue-300',
             'SCREENING': 'bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-800 hover:from-yellow-200 hover:to-yellow-300',
             'ENROLLED': 'bg-gradient-to-br from-green-100 to-green-200 text-green-800 hover:from-green-200 hover:to-green-300',
@@ -129,7 +140,7 @@ const StatusTransitionDiagram = ({
     /**
      * Handle status box click
      */
-    const handleStatusClick = (status) => {
+    const handleStatusClick = (status: string) => {
         if (onStatusClick && patientId) {
             onStatusClick(patientId, status);
         }
@@ -138,7 +149,7 @@ const StatusTransitionDiagram = ({
     /**
      * Format status for display
      */
-    const formatStatus = (status) => {
+    const formatStatus = (status: string | StatusLifecycleItem): string => {
         return PatientStatusService.formatStatus(status);
     };
 
@@ -206,14 +217,14 @@ const StatusTransitionDiagram = ({
                         const isClickable = onStatusClick && patientId;
                         const nextStatusObj = statusLifecycle[index + 1];
                         const nextStatus = nextStatusObj ? (nextStatusObj.status || nextStatusObj) : null;
-                        const conversionRate = nextStatus ? calculateConversionRate(status, nextStatus) : null;
+                        const conversionRate = nextStatus ? calculateConversionRate(status as string, nextStatus as string) : null;
 
                         return (
-                            <React.Fragment key={status}>
+                            <React.Fragment key={status as string}>
 
                                 {/* Status Box */}
                                 <div
-                                    onClick={() => isClickable && handleStatusClick(status)}
+                                    onClick={() => isClickable && handleStatusClick(status as string)}
                                     className={`
                     px-6 py-4 rounded-lg font-semibold text-center min-w-[140px]
                     ${getStatusColorClasses(status, isCurrentStatus)}

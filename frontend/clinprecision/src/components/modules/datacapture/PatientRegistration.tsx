@@ -1,10 +1,38 @@
-// PatientRegistration.jsx
-import React, { useState } from 'react';
+/**
+ * PatientRegistration Component
+ * 
+ * Patient registration form for initial demographic data collection
+ * Validates and submits patient information to enrollment service
+ * 
+ * Updated: October 2025
+ * Aligned with patient enrollment workflow
+ */
+
+import React, { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PatientEnrollmentService from '../../../services/data-capture/PatientEnrollmentService';
 
-export default function PatientRegistration() {
-    const [formData, setFormData] = useState({
+interface FormData {
+    firstName: string;
+    middleName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender: string;
+    phoneNumber: string;
+    email: string;
+}
+
+interface GenderOption {
+    value: string;
+    label: string;
+}
+
+interface RegistrationResult {
+    id: number;
+}
+
+const PatientRegistration: React.FC = () => {
+    const [formData, setFormData] = useState<FormData>({
         firstName: '',
         middleName: '',
         lastName: '',
@@ -14,12 +42,12 @@ export default function PatientRegistration() {
         email: ''
     });
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [validationErrors, setValidationErrors] = useState([]);
+    const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const navigate = useNavigate();
 
-    const handleChange = (e) => {
+    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
 
@@ -29,7 +57,7 @@ export default function PatientRegistration() {
         if (success) setSuccess(false);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
@@ -38,7 +66,7 @@ export default function PatientRegistration() {
 
         try {
             // Validate form data
-            const validation = PatientEnrollmentService.validatePatientData(formData);
+            const validation = PatientEnrollmentService.validatePatientData(formData as any) as any;
 
             if (!validation.isValid) {
                 setValidationErrors(validation.errors);
@@ -49,7 +77,7 @@ export default function PatientRegistration() {
             console.log('[PATIENT_REGISTRATION] Submitting patient data:', formData);
 
             // Register patient
-            const result = await PatientEnrollmentService.registerPatient(formData);
+            const result = await PatientEnrollmentService.registerPatient(formData as any) as any as RegistrationResult;
 
             console.log('[PATIENT_REGISTRATION] Patient registered successfully:', result);
 
@@ -60,7 +88,7 @@ export default function PatientRegistration() {
                 navigate(`/datacapture-management/patients/${result.id}`);
             }, 2000);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('[PATIENT_REGISTRATION] Error registering patient:', error);
 
             if (error.response && error.response.data && error.response.data.message) {
@@ -75,7 +103,7 @@ export default function PatientRegistration() {
         }
     };
 
-    const genderOptions = [
+    const genderOptions: GenderOption[] = [
         { value: '', label: 'Select Gender' },
         { value: 'MALE', label: 'Male' },
         { value: 'FEMALE', label: 'Female' },
@@ -305,4 +333,6 @@ export default function PatientRegistration() {
             </form>
         </div>
     );
-}
+};
+
+export default PatientRegistration;

@@ -1,8 +1,29 @@
-// src/components/modules/subjectmanagement/components/StatusChangeModal.jsx
+// src/components/modules/subjectmanagement/components/StatusChangeModal.tsx
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import PatientStatusService from '../../../../services/data-capture/PatientStatusService';
 import { useAuth } from '../../../login/AuthContext';
+
+interface FormData {
+    newStatus: string;
+    reason: string;
+    notes: string;
+    changedBy: string;
+}
+
+interface Errors {
+    [key: string]: string;
+}
+
+interface StatusChangeModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    patientId: string | number;
+    patientName: string;
+    currentStatus: string;
+    preselectedStatus?: string;
+    onStatusChanged?: (result: any) => void;
+}
 
 /**
  * Modal for changing patient status
@@ -23,7 +44,7 @@ import { useAuth } from '../../../login/AuthContext';
  * @param {string} currentStatus - Current patient status
  * @param {function} onStatusChanged - Callback after successful status change
  */
-const StatusChangeModal = ({
+const StatusChangeModal: React.FC<StatusChangeModalProps> = ({
     isOpen,
     onClose,
     patientId,
@@ -36,7 +57,7 @@ const StatusChangeModal = ({
     const { user } = useAuth();
 
     // Form state
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         newStatus: preselectedStatus || '',
         reason: '',
         notes: '',
@@ -44,13 +65,13 @@ const StatusChangeModal = ({
     });
 
     // UI state
-    const [validTransitions, setValidTransitions] = useState([]);
-    const [loadingTransitions, setLoadingTransitions] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [errors, setErrors] = useState({});
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [showError, setShowError] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
+    const [validTransitions, setValidTransitions] = useState<string[]>([]);
+    const [loadingTransitions, setLoadingTransitions] = useState<boolean>(false);
+    const [submitting, setSubmitting] = useState<boolean>(false);
+    const [errors, setErrors] = useState<Errors>({});
+    const [showSuccess, setShowSuccess] = useState<boolean>(false);
+    const [showError, setShowError] = useState<boolean>(false);
+    const [errorMessage, setErrorMessage] = useState<string>('');
 
     /**
      * Load valid status transitions when modal opens
@@ -61,7 +82,7 @@ const StatusChangeModal = ({
 
             // Auto-populate from AuthContext (Option C: Hybrid Approach)
             // Priority: email > name > userId > fallback
-            const currentUser = user?.email || user?.name || user?.userId || 'Unknown User';
+            const currentUser = (user as any)?.email || (user as any)?.name || (user as any)?.userId || 'Unknown User';
 
             setFormData(prev => ({
                 ...prev,
@@ -77,7 +98,7 @@ const StatusChangeModal = ({
     const loadValidTransitions = async () => {
         setLoadingTransitions(true);
         try {
-            const transitions = await PatientStatusService.getValidStatusTransitions(patientId);
+            const transitions = await PatientStatusService.getValidStatusTransitions(Number(patientId)) as any;
             setValidTransitions(transitions);
 
             // Auto-select first transition if only one option
@@ -96,7 +117,7 @@ const StatusChangeModal = ({
     /**
      * Handle input changes
      */
-    const handleInputChange = (field, value) => {
+    const handleInputChange = (field: keyof FormData, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
 
         // Clear field error when user types
@@ -108,8 +129,8 @@ const StatusChangeModal = ({
     /**
      * Validate form data
      */
-    const validateForm = () => {
-        const newErrors = {};
+    const validateForm = (): boolean => {
+        const newErrors: Errors = {};
 
         if (!formData.newStatus) {
             newErrors.newStatus = 'Please select a new status';
@@ -134,7 +155,7 @@ const StatusChangeModal = ({
      * Simple status change - no form data collection
      * Forms will be collected via unscheduled visits
      */
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -152,10 +173,10 @@ const StatusChangeModal = ({
                 reason: formData.reason.trim(),
                 changedBy: formData.changedBy.trim(),
                 notes: formData.notes.trim() || null
-            };
+            } as any;
 
             // Call API to change status
-            const result = await PatientStatusService.changePatientStatus(patientId, statusChangeData);
+            const result = await PatientStatusService.changePatientStatus(Number(patientId), statusChangeData) as any;
 
             console.log('Status changed successfully:', result);
 
@@ -172,7 +193,7 @@ const StatusChangeModal = ({
                 handleClose();
             }, 2000);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error changing status:', error);
             setErrorMessage(error.message || 'Failed to change patient status. Please try again.');
             setShowError(true);
@@ -201,8 +222,8 @@ const StatusChangeModal = ({
     /**
      * Get status badge color class
      */
-    const getStatusColorClass = (status) => {
-        const colorMap = {
+    const getStatusColorClass = (status: string): string => {
+        const colorMap: Record<string, string> = {
             'REGISTERED': 'bg-blue-100 text-blue-800',
             'SCREENING': 'bg-yellow-100 text-yellow-800',
             'ENROLLED': 'bg-green-100 text-green-800',
@@ -216,7 +237,7 @@ const StatusChangeModal = ({
     /**
      * Format status for display
      */
-    const formatStatus = (status) => {
+    const formatStatus = (status: string): string => {
         if (!status) return '';
         return status.charAt(0) + status.slice(1).toLowerCase();
     };

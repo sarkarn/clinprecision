@@ -13,9 +13,51 @@ import { useNavigate } from 'react-router-dom';
 import PatientEnrollmentService from '../../../services/data-capture/PatientEnrollmentService';
 import { getStudies } from '../../../services/StudyService';
 
-export default function DataCaptureDashboard() {
-    const [patientStats, setPatientStats] = useState(null);
-    const [activeStudies, setActiveStudies] = useState([]);
+interface PatientStats {
+    totalPatients: number;
+    enrolledPatients: number;
+    screeningPatients: number;
+    completedPatients: number;
+}
+
+interface Study {
+    id: number;
+    title?: string;
+    name?: string;
+    protocolNumber: string;
+    status: string;
+    phase?: string;
+    enrolledSubjects?: number;
+    plannedSubjects?: number;
+    targetEnrollment?: number;
+}
+
+interface QuickAction {
+    label: string;
+    action: () => void;
+    variant: 'primary' | 'secondary';
+}
+
+interface StatItem {
+    value: number;
+    label: string;
+    color: string;
+}
+
+interface QuickActionCard {
+    title: string;
+    description: string;
+    icon: React.ReactElement;
+    stats: StatItem[] | null;
+    actions: QuickAction[];
+    bgColor: string;
+    borderColor: string;
+    iconColor: string;
+}
+
+const DataCaptureDashboard: React.FC = () => {
+    const [patientStats, setPatientStats] = useState<PatientStats | null>(null);
+    const [activeStudies, setActiveStudies] = useState<Study[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -27,14 +69,11 @@ export default function DataCaptureDashboard() {
         try {
             setLoading(true);
 
-            // Load patient statistics
-            const stats = await PatientEnrollmentService.getPatientStatistics();
+            const stats = await PatientEnrollmentService.getPatientStatistics(undefined as any) as any;
             setPatientStats(stats);
 
-            // Load active studies
-            const studies = await getStudies();
-            // Filter for active/recruiting studies
-            const active = studies.filter(s =>
+            const studies = await getStudies() as any;
+            const active = studies.filter((s: Study) =>
                 s.status === 'ACTIVE' || s.status === 'RECRUITING' || s.status === 'PUBLISHED'
             );
             setActiveStudies(active);
@@ -46,7 +85,7 @@ export default function DataCaptureDashboard() {
         }
     };
 
-    const quickActionCards = [
+    const quickActionCards: QuickActionCard[] = [
         {
             title: 'Subject Management',
             description: 'Enroll subjects, manage demographics, and track status',
@@ -325,4 +364,6 @@ export default function DataCaptureDashboard() {
             </div>
         </div>
     );
-}
+};
+
+export default DataCaptureDashboard;

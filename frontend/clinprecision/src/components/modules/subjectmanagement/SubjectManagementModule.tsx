@@ -1,4 +1,4 @@
-// SubjectManagementModule.jsx
+// SubjectManagementModule.tsx
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import SubjectManagementDashboard from './SubjectManagementDashboard';
@@ -6,7 +6,7 @@ import SubjectList from '../datacapture/SubjectList';
 import SubjectDetails from '../datacapture/SubjectDetails';
 import SubjectEdit from '../datacapture/SubjectEdit';
 
-export default function SubjectManagementModule() {
+const SubjectManagementModule: React.FC = () => {
     return (
         <div className="container mx-auto px-4 pb-4">
             <Routes>
@@ -20,4 +20,6 @@ export default function SubjectManagementModule() {
             </Routes>
         </div>
     );
-}
+};
+
+export default SubjectManagementModule;

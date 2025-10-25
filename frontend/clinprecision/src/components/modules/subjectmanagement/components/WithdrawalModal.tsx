@@ -1,8 +1,58 @@
-// src/components/modules/subjectmanagement/components/WithdrawalModal.jsx
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, Upload, FileText } from 'lucide-react';
 import PatientStatusService from '../../../../services/data-capture/PatientStatusService';
 import { useAuth } from '../../../login/AuthContext';
+
+interface WithdrawalReason {
+    code: string;
+    label: string;
+    requiresDetail: boolean;
+}
+
+interface FormData {
+    reasonCode: string;
+    reasonDetail: string;
+    effectiveDate: string;
+    notes: string;
+    changedBy: string;
+}
+
+interface Errors {
+    reasonCode?: string;
+    reasonDetail?: string;
+    effectiveDate?: string;
+    changedBy?: string;
+    file?: string;
+}
+
+interface FilePreview {
+    name: string;
+    size: string;
+    type: string;
+}
+
+interface AuditTrail {
+    patientId: number;
+    patientName: string;
+    previousStatus: string;
+    newStatus: string;
+    reasonCode: string;
+    reasonLabel: string;
+    effectiveDate: string;
+    changedBy: string;
+    changedAt: string;
+    hasDocument: boolean;
+    documentName: string | null;
+}
+
+interface WithdrawalModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    patientId: number;
+    patientName: string;
+    currentStatus: string;
+    onWithdrawalComplete?: (result: any) => void;
+}
 
 /**
  * Specialized modal for subject withdrawal
@@ -15,15 +65,8 @@ import { useAuth } from '../../../login/AuthContext';
  * - Optional document upload
  * - Audit trail display after completion
  * - Client-side validation
- * 
- * @param {boolean} isOpen - Modal visibility
- * @param {function} onClose - Close handler
- * @param {number} patientId - Patient database ID
- * @param {string} patientName - Patient full name for display
- * @param {string} currentStatus - Current patient status
- * @param {function} onWithdrawalComplete - Callback after successful withdrawal
  */
-const WithdrawalModal = ({
+const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
     isOpen,
     onClose,
     patientId,
@@ -34,7 +77,7 @@ const WithdrawalModal = ({
     const { user } = useAuth();
 
     // Withdrawal reason codes per ICH E6(R2) guidance
-    const WITHDRAWAL_REASONS = [
+    const WITHDRAWAL_REASONS: WithdrawalReason[] = [
         { code: 'ADVERSE_EVENT', label: 'Adverse Event', requiresDetail: true },
         { code: 'LACK_EFFICACY', label: 'Lack of Efficacy', requiresDetail: false },
         { code: 'PROTOCOL_VIOLATION', label: 'Protocol Violation', requiresDetail: true },
@@ -48,7 +91,7 @@ const WithdrawalModal = ({
     ];
 
     // Form state
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         reasonCode: '',
         reasonDetail: '',
         effectiveDate: '',
@@ -57,25 +100,24 @@ const WithdrawalModal = ({
     });
 
     // File upload state
-    const [uploadedFile, setUploadedFile] = useState(null);
-    const [filePreview, setFilePreview] = useState(null);
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+    const [filePreview, setFilePreview] = useState<FilePreview | null>(null);
 
     // UI state
     const [submitting, setSubmitting] = useState(false);
-    const [errors, setErrors] = useState({});
+    const [errors, setErrors] = useState<Errors>({});
     const [showSuccess, setShowSuccess] = useState(false);
     const [showError, setShowError] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
-    const [auditTrail, setAuditTrail] = useState(null);
+    const [auditTrail, setAuditTrail] = useState<AuditTrail | null>(null);
 
     /**
      * Initialize form when modal opens
      */
     useEffect(() => {
         if (isOpen && patientId) {
-            const currentUser = user?.email || user?.name || user?.userId || 'Unknown User';
+            const currentUser = user?.email || user?.name || (user as any)?.userId || 'Unknown User';
 
-            // Default effective date to today
             const today = new Date().toISOString().split('T')[0];
 
             setFormData({
@@ -94,11 +136,10 @@ const WithdrawalModal = ({
     /**
      * Handle input changes
      */
-    const handleInputChange = (field, value) => {
+    const handleInputChange = (field: keyof FormData, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
 
-        // Clear field error when user types
-        if (errors[field]) {
+        if (errors[field as keyof Errors]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
         }
     };
@@ -106,17 +147,15 @@ const WithdrawalModal = ({
     /**
      * Handle file upload
      */
-    const handleFileUpload = (e) => {
-        const file = e.target.files[0];
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validate file size (max 10MB)
         if (file.size > 10 * 1024 * 1024) {
             setErrors(prev => ({ ...prev, file: 'File size must be less than 10MB' }));
             return;
         }
 
-        // Validate file type (PDF, DOC, DOCX, TXT)
         const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
         if (!allowedTypes.includes(file.type)) {
             setErrors(prev => ({ ...prev, file: 'Only PDF, DOC, DOCX, and TXT files are allowed' }));
@@ -130,7 +169,6 @@ const WithdrawalModal = ({
             type: file.type
         });
 
-        // Clear file error
         if (errors.file) {
             setErrors(prev => ({ ...prev, file: '' }));
         }
@@ -139,8 +177,8 @@ const WithdrawalModal = ({
     /**
      * Validate form data
      */
-    const validateForm = () => {
-        const newErrors = {};
+    const validateForm = (): boolean => {
+        const newErrors: Errors = {};
 
         if (!formData.reasonCode) {
             newErrors.reasonCode = 'Withdrawal reason is required';
@@ -174,7 +212,7 @@ const WithdrawalModal = ({
     /**
      * Handle form submission
      */
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -186,7 +224,6 @@ const WithdrawalModal = ({
         setErrorMessage('');
 
         try {
-            // Prepare withdrawal data with enhanced metadata
             const withdrawalData = {
                 newStatus: 'WITHDRAWN',
                 reason: `${WITHDRAWAL_REASONS.find(r => r.code === formData.reasonCode)?.label || 'Unknown'}${formData.reasonDetail ? `: ${formData.reasonDetail}` : ''}`,
@@ -198,48 +235,41 @@ const WithdrawalModal = ({
                     hasDocument: !!uploadedFile,
                     documentName: uploadedFile?.name || null
                 }
-            };
+            } as any;
 
-            // Call API to change status to WITHDRAWN
-            const result = await PatientStatusService.changePatientStatus(patientId, withdrawalData);
+            const result = await PatientStatusService.changePatientStatus(patientId, withdrawalData) as any;
 
             console.log('[WITHDRAWAL] Status changed successfully:', result);
 
-            // TODO: Upload document if present (requires backend endpoint)
             if (uploadedFile) {
                 console.log('[WITHDRAWAL] Document upload pending:', uploadedFile.name);
-                // await uploadWithdrawalDocument(patientId, result.statusChangeId, uploadedFile);
             }
 
-            // Build audit trail summary
             setAuditTrail({
                 patientId,
                 patientName,
                 previousStatus: currentStatus,
                 newStatus: 'WITHDRAWN',
                 reasonCode: formData.reasonCode,
-                reasonLabel: WITHDRAWAL_REASONS.find(r => r.code === formData.reasonCode)?.label,
+                reasonLabel: WITHDRAWAL_REASONS.find(r => r.code === formData.reasonCode)?.label || '',
                 effectiveDate: formData.effectiveDate,
                 changedBy: formData.changedBy,
                 changedAt: new Date().toISOString(),
                 hasDocument: !!uploadedFile,
-                documentName: uploadedFile?.name
+                documentName: uploadedFile?.name || null
             });
 
-            // Show success message
             setShowSuccess(true);
 
-            // Call success callback
             if (onWithdrawalComplete) {
                 onWithdrawalComplete(result);
             }
 
-            // Close modal after 3 seconds to allow audit trail review
             setTimeout(() => {
                 handleClose();
             }, 3000);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('[WITHDRAWAL] Error processing withdrawal:', error);
             setErrorMessage(error.message || 'Failed to process withdrawal. Please try again.');
             setShowError(true);

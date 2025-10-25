@@ -1,8 +1,8 @@
-// SubjectManagementDashboard.jsx - Enhanced Professional Design
+// SubjectManagementDashboard.tsx - Enhanced Professional Design
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function SubjectManagementDashboard() {
+const SubjectManagementDashboard: React.FC = () => {
     const navigate = useNavigate();
 
     return (
@@ -146,4 +146,6 @@ export default function SubjectManagementDashboard() {
             </div>
         </div>
     );
-}
+};
+
+export default SubjectManagementDashboard;
