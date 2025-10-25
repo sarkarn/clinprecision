@@ -1,6 +1,22 @@
-// src/components/modules/datacapture/components/SubjectFilters.jsx
+// SubjectFilters.tsx - Subject List Filter Controls
 import React from 'react';
-import { useDebounce } from '../../../../hooks/useDebounce';
+
+// Type definitions
+interface SubjectFiltersProps {
+    statusFilter: string;
+    onStatusFilterChange: (value: string) => void;
+    siteFilter: string;
+    onSiteFilterChange: (value: string) => void;
+    searchTerm: string;
+    onSearchChange: (value: string) => void;
+    availableSites?: string[];
+    showLegend: boolean;
+    onToggleLegend: () => void;
+    filteredCount: number;
+    totalCount: number;
+    onClearFilters: () => void;
+    hasActiveFilters: boolean;
+}
 
 /**
  * SubjectFilters Component
@@ -14,23 +30,8 @@ import { useDebounce } from '../../../../hooks/useDebounce';
  * - URL query param persistence for search
  * - Results count display
  * - Clear all filters button
- * 
- * Contract:
- * @param {string} statusFilter - Current status filter value
- * @param {Function} onStatusFilterChange - Callback when status filter changes
- * @param {string} siteFilter - Current site filter value
- * @param {Function} onSiteFilterChange - Callback when site filter changes
- * @param {string} searchTerm - Current search term
- * @param {Function} onSearchChange - Callback when search changes
- * @param {Array} availableSites - List of available site IDs
- * @param {boolean} showLegend - Whether legend is visible
- * @param {Function} onToggleLegend - Callback to toggle legend
- * @param {number} filteredCount - Number of filtered subjects
- * @param {number} totalCount - Total number of subjects
- * @param {Function} onClearFilters - Callback to clear all filters
- * @param {boolean} hasActiveFilters - Whether any filters are active
  */
-const SubjectFilters = ({
+const SubjectFilters: React.FC<SubjectFiltersProps> = ({
     statusFilter,
     onStatusFilterChange,
     siteFilter,

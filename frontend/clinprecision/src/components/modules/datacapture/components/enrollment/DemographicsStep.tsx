@@ -1,8 +1,9 @@
+// DemographicsStep.tsx - Demographics Information Entry Step
 import React from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { IMaskInput } from 'react-imask';
 
-const DemographicsStep = () => {
+const DemographicsStep: React.FC = () => {
     const {
         register,
         formState: { errors },
@@ -34,7 +35,7 @@ const DemographicsStep = () => {
                     placeholder="e.g., SUBJ-001"
                 />
                 {errors.subjectId && (
-                    <p className="mt-1 text-sm text-red-600">{errors.subjectId.message}</p>
+                    <p className="mt-1 text-sm text-red-600">{errors.subjectId.message as string}</p>
                 )}
             </div>
 
@@ -53,7 +54,7 @@ const DemographicsStep = () => {
                         }`}
                 />
                 {errors.dateOfBirth && (
-                    <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth.message}</p>
+                    <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth.message as string}</p>
                 )}
                 <p className="mt-1 text-xs text-gray-500">Subject must be at least 18 years old</p>
             </div>
@@ -77,7 +78,7 @@ const DemographicsStep = () => {
                     <option value="Other">Other</option>
                 </select>
                 {errors.gender && (
-                    <p className="mt-1 text-sm text-red-600">{errors.gender.message}</p>
+                    <p className="mt-1 text-sm text-red-600">{errors.gender.message as string}</p>
                 )}
             </div>
 
@@ -104,7 +105,7 @@ const DemographicsStep = () => {
                     )}
                 />
                 {errors.phoneNumber && (
-                    <p className="mt-1 text-sm text-red-600">{errors.phoneNumber.message}</p>
+                    <p className="mt-1 text-sm text-red-600">{errors.phoneNumber.message as string}</p>
                 )}
             </div>
         </div>

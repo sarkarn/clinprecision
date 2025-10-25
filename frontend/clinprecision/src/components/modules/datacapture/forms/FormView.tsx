@@ -1,12 +1,39 @@
+// FormView.tsx - Read-only Form Data Display
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getFormDefinition, getFormData } from '../../../../services/data-capture/DataEntryService';
 
-export default function FormView() {
-    const { subjectId, visitId, formId } = useParams();
-    const [formDefinition, setFormDefinition] = useState(null);
-    const [formData, setFormData] = useState({});
-    const [loading, setLoading] = useState(true);
+// Type definitions
+interface FieldMetadata {
+    required?: boolean;
+    units?: string;
+    description?: string;
+    options?: Array<{ value: string; label: string }>;
+}
+
+interface FormField {
+    id: string;
+    label: string;
+    type: string;
+    metadata?: FieldMetadata;
+}
+
+interface FormDefinition {
+    name: string;
+    description: string;
+    fields: FormField[];
+}
+
+interface FormDataType {
+    [key: string]: any;
+    lastUpdated?: string;
+}
+
+const FormView: React.FC = () => {
+    const { subjectId, visitId, formId } = useParams<{ subjectId: string; visitId: string; formId: string }>();
+    const [formDefinition, setFormDefinition] = useState<FormDefinition | null>(null);
+    const [formData, setFormData] = useState<FormDataType>({});
+    const [loading, setLoading] = useState<boolean>(true);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -14,13 +41,13 @@ export default function FormView() {
             setLoading(true);
             try {
                 // Get the form definition (fields, metadata, etc.)
-                const definition = await getFormDefinition(formId);
+                const definition = await getFormDefinition(formId!) as any;
                 setFormDefinition(definition);
 
                 // Get form data
-                const data = await getFormData(subjectId, visitId, formId);
+                const data = await getFormData(subjectId!, visitId!, formId!) as any;
                 setFormData(data || {});
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Error fetching form data:', error);
             } finally {
                 setLoading(false);
@@ -30,7 +57,7 @@ export default function FormView() {
         fetchFormData();
     }, [subjectId, visitId, formId]);
 
-    const renderFieldValue = (field) => {
+    const renderFieldValue = (field: FormField): JSX.Element => {
         const value = formData[field.id];
 
         if (value === undefined || value === null || value === '') {
@@ -171,4 +198,6 @@ export default function FormView() {
             </div>
         </div>
     );
-}
+};
+
+export default FormView;

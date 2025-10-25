@@ -1,3 +1,4 @@
+// EnrollmentStepper.tsx - Multi-Step Enrollment Wizard
 import React, { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -10,15 +11,36 @@ import {
     completeEnrollmentSchema,
 } from '../validation/enrollmentSchema';
 
-const STEPS = [
+// Type definitions
+interface Study {
+    id: number;
+    protocolNumber?: string;
+    title?: string;
+    name?: string;
+    phase?: string;
+}
+
+interface StepConfig {
+    id: number;
+    name: string;
+    schema: any;
+}
+
+interface EnrollmentStepperProps {
+    onClose: () => void;
+    onSubmit: (data: any) => void;
+    studies: Study[];
+}
+
+const STEPS: StepConfig[] = [
     { id: 1, name: 'Demographics', schema: demographicsSchema },
     { id: 2, name: 'Study & Site', schema: studySiteSchema },
     { id: 3, name: 'Review', schema: completeEnrollmentSchema },
 ];
 
-const EnrollmentStepper = ({ onClose, onSubmit, studies }) => {
-    const [currentStep, setCurrentStep] = useState(1);
-    const [formData, setFormData] = useState({});
+const EnrollmentStepper: React.FC<EnrollmentStepperProps> = ({ onClose, onSubmit, studies }) => {
+    const [currentStep, setCurrentStep] = useState<number>(1);
+    const [formData, setFormData] = useState<any>({});
 
     const methods = useForm({
         resolver: yupResolver(STEPS[currentStep - 1].schema),

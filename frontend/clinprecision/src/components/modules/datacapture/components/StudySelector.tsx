@@ -1,6 +1,22 @@
-// src/components/modules/datacapture/components/StudySelector.jsx
+// StudySelector.tsx - Study Protocol Selection Dropdown
 import React from 'react';
 import { useStudy } from '../../../../hooks/useStudy';
+
+// Type definitions
+interface Study {
+    id: number;
+    protocolNumber?: string;
+    title?: string;
+    name?: string;
+    phase?: string;
+    status?: string;
+}
+
+interface StudySelectorProps {
+    studies?: Study[];
+    onStudyChange?: (studyId: string) => void;
+    className?: string;
+}
 
 /**
  * StudySelector Component
@@ -13,13 +29,12 @@ import { useStudy } from '../../../../hooks/useStudy';
  * - Displays protocol number, title, and phase
  * - Auto-persists selection to localStorage via context
  * - Shows active study count
- * 
- * Contract:
- * @param {Array} studies - Array of study objects from API
- * @param {Function} onStudyChange - Optional callback for additional logic (deprecated, prefer context)
- * @param {string} className - Additional CSS classes for container
  */
-const StudySelector = ({ studies = [], onStudyChange, className = '' }) => {
+const StudySelector: React.FC<StudySelectorProps> = ({ 
+    studies = [], 
+    onStudyChange, 
+    className = '' 
+}) => {
     const { selectedStudy, setSelectedStudy } = useStudy();
 
     // Filter for viewable studies (PUBLISHED, APPROVED, ACTIVE)
@@ -28,7 +43,7 @@ const StudySelector = ({ studies = [], onStudyChange, className = '' }) => {
         return status === 'PUBLISHED' || status === 'APPROVED' || status === 'ACTIVE';
     });
 
-    const handleStudyChange = (e) => {
+    const handleStudyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const studyId = e.target.value;
         setSelectedStudy(studyId || null);
 

@@ -1,8 +1,31 @@
+// StudySiteStep.tsx - Study and Site Selection Step
 import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { SiteService } from '../../../../../services/SiteService';
 
-const StudySiteStep = ({ studies }) => {
+// Type definitions
+interface Study {
+    id: number;
+    protocolNumber?: string;
+    title?: string;
+    name?: string;
+    phase?: string;
+}
+
+interface Site {
+    id: number;
+    name: string;
+    siteNumber: string;
+    associationId: number;
+    enrollmentCap?: number;
+    enrollmentCount?: number;
+}
+
+interface StudySiteStepProps {
+    studies: Study[];
+}
+
+const StudySiteStep: React.FC<StudySiteStepProps> = ({ studies }) => {
     const {
         register,
         formState: { errors },
@@ -10,8 +33,8 @@ const StudySiteStep = ({ studies }) => {
     } = useFormContext();
 
     const selectedStudyId = watch('studyId');
-    const [sites, setSites] = useState([]);
-    const [loadingSites, setLoadingSites] = useState(false);
+    const [sites, setSites] = useState<Site[]>([]);
+    const [loadingSites, setLoadingSites] = useState<boolean>(false);
 
     // Fetch sites when study is selected
     useEffect(() => {
@@ -24,13 +47,13 @@ const StudySiteStep = ({ studies }) => {
             setLoadingSites(true);
             try {
                 // Get site associations for the selected study
-                const associations = await SiteService.getSiteAssociationsForStudy(selectedStudyId);
+                const associations = await SiteService.getSiteAssociationsForStudy(selectedStudyId) as any;
                 console.log('[StudySiteStep] Site associations for study', selectedStudyId, ':', associations);
 
                 // Filter only ACTIVE sites and map to site data
                 const activeSites = associations
-                    .filter(assoc => assoc.status === 'ACTIVE')
-                    .map(assoc => ({
+                    .filter((assoc: any) => assoc.status === 'ACTIVE')
+                    .map((assoc: any) => ({
                         id: assoc.siteId,
                         name: assoc.siteName,
                         siteNumber: assoc.siteNumber,
@@ -42,7 +65,7 @@ const StudySiteStep = ({ studies }) => {
 
                 console.log('[StudySiteStep] Active sites for study:', activeSites);
                 setSites(activeSites);
-            } catch (error) {
+            } catch (error: any) {
                 console.error('[StudySiteStep] Error fetching sites for study:', error);
                 setSites([]);
             } finally {
@@ -87,7 +110,7 @@ const StudySiteStep = ({ studies }) => {
                     ))}
                 </select>
                 {errors.studyId && (
-                    <p className="mt-1 text-sm text-red-600">{errors.studyId.message}</p>
+                    <p className="mt-1 text-sm text-red-600">{errors.studyId.message as string}</p>
                 )}
             </div>
 
@@ -119,7 +142,7 @@ const StudySiteStep = ({ studies }) => {
                     ))}
                 </select>
                 {errors.siteId && (
-                    <p className="mt-1 text-sm text-red-600">{errors.siteId.message}</p>
+                    <p className="mt-1 text-sm text-red-600">{errors.siteId.message as string}</p>
                 )}
                 {selectedStudyId && filteredSites.length === 0 && (
                     <p className="mt-1 text-sm text-amber-600">

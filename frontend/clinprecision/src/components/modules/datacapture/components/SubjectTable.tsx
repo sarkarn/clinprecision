@@ -1,14 +1,34 @@
+// SubjectTable.tsx - Virtualized Subject Table
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FixedSizeList } from 'react-window';
+import { FixedSizeList, ListChildComponentProps } from 'react-window';
 import { Eye, Edit, Activity, Calendar, AlertCircle } from 'lucide-react';
 import PatientStatusBadge from '../../../shared/PatientStatusBadge';
+
+// Type definitions
+interface Subject {
+    subjectNumber: string;
+    initials?: string;
+    studySiteNumber?: string;
+    status: string;
+    enrollmentDate?: string;
+    patientUuid: string;
+}
+
+interface SubjectTableProps {
+    subjects: Subject[];
+    onViewVisits: (subject: Subject) => void;
+    onChangeStatus: (subject: Subject) => void;
+    onStartVisit: (subject: Subject) => void;
+    onWithdraw: (subject: Subject) => void;
+    tableHeight?: number;
+}
 
 /**
  * SubjectTable - Virtualized table component for large subject lists
  * Uses react-window for performance optimization
  */
-const SubjectTable = ({
+const SubjectTable: React.FC<SubjectTableProps> = ({
     subjects,
     onViewVisits,
     onChangeStatus,
@@ -19,7 +39,7 @@ const SubjectTable = ({
     const navigate = useNavigate();
 
     // Row renderer for react-window
-    const Row = ({ index, style }) => {
+    const Row = ({ index, style }: ListChildComponentProps) => {
         const subject = subjects[index];
         const isWithdrawn = subject.status === 'withdrawn';
 
@@ -42,6 +62,7 @@ const SubjectTable = ({
 
                 {/* Current Status */}
                 <div className="px-6 py-4 w-1/6 flex-shrink-0">
+                    {/* @ts-ignore - PatientStatusBadge prop types */}
                     <PatientStatusBadge status={subject.status} />
                 </div>
 

@@ -1,7 +1,20 @@
+// ReviewStep.tsx - Final Review and Confirmation Step
 import React from 'react';
 
-const ReviewStep = ({ formData }) => {
-    const formatDate = (dateString) => {
+// Type definitions
+interface ReviewStepProps {
+    formData: {
+        subjectId?: string;
+        dateOfBirth?: string;
+        gender?: string;
+        phoneNumber?: string;
+        studyId?: number;
+        siteId?: number;
+    };
+}
+
+const ReviewStep: React.FC<ReviewStepProps> = ({ formData }) => {
+    const formatDate = (dateString: string | undefined): string => {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {

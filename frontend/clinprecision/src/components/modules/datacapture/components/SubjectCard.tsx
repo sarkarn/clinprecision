@@ -1,13 +1,38 @@
+// SubjectCard.tsx - Mobile/Tablet Card View for Subjects
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, Edit, Activity, Calendar, AlertCircle } from 'lucide-react';
 import PatientStatusBadge from '../../../shared/PatientStatusBadge';
 
+// Type definitions
+interface Subject {
+    subjectNumber: string;
+    initials?: string;
+    studySiteNumber?: string;
+    status?: string;
+    enrollmentDate?: string;
+    patientUuid: string;
+}
+
+interface SubjectCardProps {
+    subject: Subject;
+    onChangeStatus: (subject: Subject) => void;
+    onStartVisit: (subject: Subject) => void;
+    onWithdraw: (subject: Subject) => void;
+    basePath: string;
+}
+
 /**
  * SubjectCard - Responsive card layout for mobile/tablet views
  * Provides the same functionality as table rows in a card format
  */
-const SubjectCard = ({ subject, onChangeStatus, onStartVisit, onWithdraw, basePath }) => {
+const SubjectCard: React.FC<SubjectCardProps> = ({ 
+    subject, 
+    onChangeStatus, 
+    onStartVisit, 
+    onWithdraw, 
+    basePath 
+}) => {
     const navigate = useNavigate();
     const isWithdrawn = subject.status?.toUpperCase() === 'WITHDRAWN';
 
@@ -26,6 +51,7 @@ const SubjectCard = ({ subject, onChangeStatus, onStartVisit, onWithdraw, basePa
                         {subject.initials || 'No initials'}
                     </div>
                 </div>
+                {/* @ts-ignore - PatientStatusBadge prop types */}
                 <PatientStatusBadge status={subject.status} />
             </div>
 
