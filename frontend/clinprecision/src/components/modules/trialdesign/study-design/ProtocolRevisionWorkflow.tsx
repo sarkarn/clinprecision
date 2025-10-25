@@ -6,28 +6,135 @@ import EnhancedVersionManager from '../components/EnhancedVersionManager';
 import VersionComparisonTool from '../components/VersionComparisonTool';
 import ApprovalWorkflowInterface from '../components/ApprovalWorkflowInterface';
 
+// Type definitions
+interface ProposedChange {
+    section: string;
+    type?: string;
+    description: string;
+    justification: string;
+    impactLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
+}
+
+interface StudyData {
+    id: string | number;
+    name: string;
+    currentVersion: string;
+    state: string;
+    lastPublished: string;
+    nextVersionNumber: string;
+    subjectsEnrolled?: number;
+}
+
+interface ProtocolVersion {
+    id: string;
+    version: string;
+    status: 'ACTIVE' | 'ARCHIVED' | 'DRAFT';
+    type: string;
+    title: string;
+    summary: string;
+    createdBy: string;
+    createdDate: string;
+    approvedDate: string;
+    publishedDate: string;
+    subjectsEnrolled: number;
+    changes: ProposedChange[];
+}
+
+interface PendingRevision {
+    id: string;
+    title: string;
+    type: string;
+    status: string;
+    description: string;
+    requestedBy: string;
+    requestedDate: string;
+    targetVersion: string;
+    estimatedImpact: string;
+    proposedChanges: ProposedChange[];
+}
+
+interface PendingRevisionsProps {
+    revisions: PendingRevision[];
+    onSubmit: (revisionId: string) => Promise<void>;
+    onApprove: (revisionId: string) => Promise<void>;
+    onView: (revision: PendingRevision) => void;
+}
+
+interface VersionHistoryProps {
+    versions: ProtocolVersion[];
+    selectedVersion: ProtocolVersion | null;
+    onSelectVersion: (version: ProtocolVersion) => void;
+    getVersionStatusColor: (status: string) => string;
+    getRevisionTypeColor: (type: string) => string;
+}
+
+interface VersionDetailsProps {
+    version: ProtocolVersion;
+    getRevisionTypeColor: (type: string) => string;
+    getVersionStatusColor: (status: string) => string;
+}
+
+interface RevisionDetailsPanelProps {
+    revision: PendingRevision;
+    onClose: () => void;
+    onSubmit: (revisionId: string) => Promise<void>;
+    onApprove: (revisionId: string) => Promise<void>;
+    getRevisionTypeColor: (type: string) => string;
+}
+
+interface CreateRevisionModalProps {
+    onClose: () => void;
+    onCreate: (revisionData: RevisionFormData) => Promise<void>;
+    nextVersion: string;
+    onTypeChange: (type: string) => void;
+}
+
+interface RevisionFormData {
+    title: string;
+    type: string;
+    description: string;
+    estimatedImpact: string;
+    proposedChanges: ProposedChange[];
+}
+
+interface RevisionType {
+    value: string;
+    label: string;
+    description: string;
+}
+
+interface ImpactLevel {
+    value: string;
+    label: string;
+}
+
+interface CurrentUser {
+    name: string;
+    role: string;
+}
+
 /**
  * Protocol Revision Workflow Component
  * Manages study protocol amendments and versioning
  */
-const ProtocolRevisionWorkflow = () => {
-    const { studyId } = useParams();
+const ProtocolRevisionWorkflow: React.FC = () => {
+    const { studyId } = useParams<{ studyId: string }>();
     const navigate = useNavigate();
 
     // State management
-    const [study, setStudy] = useState(null);
-    const [versions, setVersions] = useState([]);
-    const [pendingRevisions, setPendingRevisions] = useState([]);
-    const [selectedVersion, setSelectedVersion] = useState(null);
-    const [activeRevision, setActiveRevision] = useState(null);
-    const [revisionType, setRevisionType] = useState('AMENDMENT'); // AMENDMENT, ADMINISTRATIVE_CHANGE
+    const [study, setStudy] = useState<StudyData | null>(null);
+    const [versions, setVersions] = useState<ProtocolVersion[]>([]);
+    const [pendingRevisions, setPendingRevisions] = useState<PendingRevision[]>([]);
+    const [selectedVersion, setSelectedVersion] = useState<ProtocolVersion | null>(null);
+    const [activeRevision, setActiveRevision] = useState<PendingRevision | null>(null);
+    const [revisionType, setRevisionType] = useState<string>('AMENDMENT');
     const [showCreateRevision, setShowCreateRevision] = useState(false);
     const [showVersionComparison, setShowVersionComparison] = useState(false);
     const [showApprovalWorkflow, setShowApprovalWorkflow] = useState(false);
-    const [selectedVersionsForComparison, setSelectedVersionsForComparison] = useState([]);
-    const [viewMode, setViewMode] = useState('enhanced'); // 'enhanced', 'classic'
+    const [selectedVersionsForComparison, setSelectedVersionsForComparison] = useState<ProtocolVersion[]>([]);
+    const [viewMode, setViewMode] = useState<'enhanced' | 'classic'>('enhanced');
     const [loading, setLoading] = useState(true);
-    const [errors, setErrors] = useState([]);
+    const [errors, setErrors] = useState<string[]>([]);
 
     // Load study data
     useEffect(() => {
@@ -41,7 +148,7 @@ const ProtocolRevisionWorkflow = () => {
             // Mock data - replace with actual API call
             const mockData = {
                 study: {
-                    id: studyId,
+                    id: studyId || '',
                     name: 'Phase III Oncology Trial - Advanced NSCLC',
                     currentVersion: '2.1',
                     state: 'PUBLISHED',
@@ -52,7 +159,7 @@ const ProtocolRevisionWorkflow = () => {
                     {
                         id: 'V1.0',
                         version: '1.0',
-                        status: 'ARCHIVED',
+                        status: 'ARCHIVED' as const,
                         type: 'ORIGINAL',
                         title: 'Initial Protocol',
                         summary: 'Original study protocol',
@@ -66,7 +173,7 @@ const ProtocolRevisionWorkflow = () => {
                     {
                         id: 'V1.1',
                         version: '1.1',
-                        status: 'ARCHIVED',
+                        status: 'ARCHIVED' as const,
                         type: 'ADMINISTRATIVE_CHANGE',
                         title: 'Administrative Update',
                         summary: 'Updated contact information and minor text corrections',
@@ -93,7 +200,7 @@ const ProtocolRevisionWorkflow = () => {
                     {
                         id: 'V2.0',
                         version: '2.0',
-                        status: 'ARCHIVED',
+                        status: 'ARCHIVED' as const,
                         type: 'SUBSTANTIAL_AMENDMENT',
                         title: 'Major Protocol Amendment',
                         summary: 'Modified primary endpoint and added biomarker substudy',
@@ -108,28 +215,28 @@ const ProtocolRevisionWorkflow = () => {
                                 type: 'SUBSTANTIAL',
                                 description: 'Changed from overall survival to progression-free survival',
                                 justification: 'Updated FDA guidance and interim analysis results',
-                                impactLevel: 'HIGH'
+                                impactLevel: 'HIGH' as const
                             },
                             {
                                 section: 'Study Procedures',
                                 type: 'SUBSTANTIAL',
                                 description: 'Added mandatory tumor biopsy at baseline and progression',
                                 justification: 'Biomarker analysis for personalized medicine',
-                                impactLevel: 'MEDIUM'
+                                impactLevel: 'MEDIUM' as const
                             },
                             {
                                 section: 'Inclusion Criteria',
                                 type: 'SUBSTANTIAL',
                                 description: 'Modified ECOG performance status requirement',
                                 justification: 'Broaden eligible patient population',
-                                impactLevel: 'MEDIUM'
+                                impactLevel: 'MEDIUM' as const
                             }
                         ]
                     },
                     {
                         id: 'V2.1',
                         version: '2.1',
-                        status: 'ACTIVE',
+                        status: 'ACTIVE' as const,
                         type: 'MINOR_AMENDMENT',
                         title: 'Safety Update',
                         summary: 'Updated safety monitoring procedures based on DSMB recommendations',
@@ -144,14 +251,14 @@ const ProtocolRevisionWorkflow = () => {
                                 type: 'MINOR',
                                 description: 'Increased frequency of liver function monitoring',
                                 justification: 'DSMB recommendation following safety review',
-                                impactLevel: 'LOW'
+                                impactLevel: 'LOW' as const
                             },
                             {
                                 section: 'Adverse Event Reporting',
                                 type: 'MINOR',
                                 description: 'Updated expedited reporting criteria',
                                 justification: 'Align with updated regulatory guidance',
-                                impactLevel: 'LOW'
+                                impactLevel: 'LOW' as const
                             }
                         ]
                     }
@@ -186,9 +293,9 @@ const ProtocolRevisionWorkflow = () => {
             setStudy(mockData.study);
             setVersions(mockData.versions);
             setPendingRevisions(mockData.pendingRevisions);
-            setSelectedVersion(mockData.versions.find(v => v.status === 'ACTIVE'));
+            setSelectedVersion(mockData.versions.find(v => v.status === 'ACTIVE') || null);
             setLoading(false);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error loading protocol versions:', error);
             setErrors(['Failed to load protocol revision data']);
             setLoading(false);
@@ -196,9 +303,9 @@ const ProtocolRevisionWorkflow = () => {
     };
 
     // Create new revision
-    const handleCreateRevision = async (revisionData) => {
+    const handleCreateRevision = async (revisionData: RevisionFormData) => {
         try {
-            const newRevision = {
+            const newRevision: PendingRevision = {
                 id: `REV${String(pendingRevisions.length + 1).padStart(3, '0')}`,
                 ...revisionData,
                 status: 'DRAFT',
@@ -210,14 +317,14 @@ const ProtocolRevisionWorkflow = () => {
             setPendingRevisions([...pendingRevisions, newRevision]);
             setActiveRevision(newRevision);
             setShowCreateRevision(false);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error creating revision:', error);
             setErrors(['Failed to create revision']);
         }
     };
 
     // Get next version number based on revision type
-    const getNextVersionNumber = (type) => {
+    const getNextVersionNumber = (type: string): string => {
         const currentVersion = study?.currentVersion || '1.0';
         const [major, minor] = currentVersion.split('.').map(Number);
 
@@ -233,32 +340,32 @@ const ProtocolRevisionWorkflow = () => {
     };
 
     // Submit revision for approval
-    const handleSubmitRevision = async (revisionId) => {
+    const handleSubmitRevision = async (revisionId: string) => {
         try {
             const updatedRevisions = pendingRevisions.map(rev =>
                 rev.id === revisionId ? { ...rev, status: 'PROTOCOL_REVIEW' } : rev
             );
             setPendingRevisions(updatedRevisions);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error submitting revision:', error);
             setErrors(['Failed to submit revision']);
         }
     };
 
     // Handle version comparison
-    const handleCompareVersions = (versionsToCompare) => {
+    const handleCompareVersions = (versionsToCompare: ProtocolVersion[]) => {
         setSelectedVersionsForComparison(versionsToCompare);
         setShowVersionComparison(true);
     };
 
     // Handle approval workflow actions
-    const handleApproveRevision = async (revisionId) => {
+    const handleApproveRevision = async (revisionId: string) => {
         try {
             const revision = pendingRevisions.find(r => r.id === revisionId);
             if (!revision) return;
 
             // Create new version
-            const newVersion = {
+            const newVersion: ProtocolVersion = {
                 id: `V${revision.targetVersion}`,
                 version: revision.targetVersion,
                 status: 'ACTIVE',
@@ -269,13 +376,13 @@ const ProtocolRevisionWorkflow = () => {
                 createdDate: revision.requestedDate,
                 approvedDate: new Date().toISOString(),
                 publishedDate: new Date().toISOString(),
-                subjectsEnrolled: study?.subjectsEnrolled || 0,
+                subjectsEnrolled: (study as any)?.subjectsEnrolled || 0,
                 changes: revision.proposedChanges
             };
 
             // Update current version to archived
             const updatedVersions = versions.map(v =>
-                v.status === 'ACTIVE' ? { ...v, status: 'ARCHIVED' } : v
+                v.status === 'ACTIVE' ? { ...v, status: 'ARCHIVED' as const } : v
             );
             updatedVersions.push(newVersion);
 
@@ -284,50 +391,50 @@ const ProtocolRevisionWorkflow = () => {
 
             setVersions(updatedVersions);
             setPendingRevisions(updatedRevisions);
-            setStudy(prev => ({ ...prev, currentVersion: revision.targetVersion }));
+            setStudy(prev => prev ? { ...prev, currentVersion: revision.targetVersion } : null);
             setSelectedVersion(newVersion);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error approving revision:', error);
             setErrors(['Failed to approve revision']);
         }
     };
 
-    const handleRejectRevision = async (revisionId) => {
+    const handleRejectRevision = async (revisionId: string) => {
         try {
             const updatedRevisions = pendingRevisions.map(rev =>
                 rev.id === revisionId ? { ...rev, status: 'REJECTED' } : rev
             );
             setPendingRevisions(updatedRevisions);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error rejecting revision:', error);
             setErrors(['Failed to reject revision']);
         }
     };
 
-    const handleRequestChanges = async (revisionId) => {
+    const handleRequestChanges = async (revisionId: string) => {
         try {
             const updatedRevisions = pendingRevisions.map(rev =>
                 rev.id === revisionId ? { ...rev, status: 'CHANGES_REQUESTED' } : rev
             );
             setPendingRevisions(updatedRevisions);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error requesting changes:', error);
             setErrors(['Failed to request changes']);
         }
     };
 
-    const handleAddComment = async (revisionId, comment) => {
+    const handleAddComment = async (revisionId: string, comment: string) => {
         try {
             // In real implementation, this would make an API call
             console.log('Adding comment to revision:', revisionId, comment);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error adding comment:', error);
             setErrors(['Failed to add comment']);
         }
     };
 
     // Get version status color
-    const getVersionStatusColor = (status) => {
+    const getVersionStatusColor = (status: string): string => {
         switch (status) {
             case 'ACTIVE':
                 return 'bg-green-100 text-green-800';
@@ -341,7 +448,7 @@ const ProtocolRevisionWorkflow = () => {
     };
 
     // Get revision type color
-    const getRevisionTypeColor = (type) => {
+    const getRevisionTypeColor = (type: string): string => {
         switch (type) {
             case 'SUBSTANTIAL_AMENDMENT':
                 return 'bg-red-100 text-red-800';
@@ -380,7 +487,7 @@ const ProtocolRevisionWorkflow = () => {
                             <label className="text-sm font-medium text-gray-700">View:</label>
                             <select
                                 value={viewMode}
-                                onChange={(e) => setViewMode(e.target.value)}
+                                onChange={(e) => setViewMode(e.target.value as 'enhanced' | 'classic')}
                                 className="text-sm border border-gray-300 rounded px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="enhanced">Enhanced</option>
@@ -463,12 +570,12 @@ const ProtocolRevisionWorkflow = () => {
             {/* Enhanced or Classic View */}
             {viewMode === 'enhanced' ? (
                 <EnhancedVersionManager
-                    versions={versions}
-                    selectedVersion={selectedVersion}
-                    onSelectVersion={setSelectedVersion}
-                    onCompareVersions={handleCompareVersions}
+                    versions={versions as any}
+                    selectedVersion={selectedVersion as any}
+                    onSelectVersion={setSelectedVersion as any}
+                    onCompareVersions={handleCompareVersions as any}
                     currentVersion={study?.currentVersion}
-                    pendingRevisions={pendingRevisions}
+                    pendingRevisions={pendingRevisions as any}
                 />
             ) : (
                 <div className="space-y-6">
@@ -547,9 +654,9 @@ const ProtocolRevisionWorkflow = () => {
 
             {/* Version Comparison Tool */}
             <VersionComparisonTool
-                versions={versions}
-                selectedVersions={selectedVersionsForComparison}
-                onVersionSelect={setSelectedVersionsForComparison}
+                versions={versions as any}
+                selectedVersions={selectedVersionsForComparison as any}
+                onVersionSelect={setSelectedVersionsForComparison as any}
                 isVisible={showVersionComparison}
                 onClose={() => {
                     setShowVersionComparison(false);
@@ -559,12 +666,12 @@ const ProtocolRevisionWorkflow = () => {
 
             {/* Approval Workflow Interface */}
             <ApprovalWorkflowInterface
-                revisions={pendingRevisions}
-                currentUser={{ name: 'Current User', role: 'Investigator' }} // Replace with actual user
+                revisions={pendingRevisions as any}
+                currentUser={{ name: 'Current User', role: 'Investigator' }}
                 onApprove={handleApproveRevision}
                 onReject={handleRejectRevision}
                 onRequestChanges={handleRequestChanges}
-                onAddComment={handleAddComment}
+                onAddComment={handleAddComment as any}
                 isVisible={showApprovalWorkflow}
                 onClose={() => setShowApprovalWorkflow(false)}
             />
@@ -573,8 +680,8 @@ const ProtocolRevisionWorkflow = () => {
 };
 
 // Pending Revisions Component
-const PendingRevisions = ({ revisions, onSubmit, onApprove, onView }) => {
-    const getStatusColor = (status) => {
+const PendingRevisions: React.FC<PendingRevisionsProps> = ({ revisions, onSubmit, onApprove, onView }) => {
+    const getStatusColor = (status: string): string => {
         switch (status) {
             case 'DRAFT':
                 return 'bg-blue-100 text-blue-800';
@@ -637,7 +744,7 @@ const PendingRevisions = ({ revisions, onSubmit, onApprove, onView }) => {
 };
 
 // Version History Component
-const VersionHistory = ({ versions, selectedVersion, onSelectVersion, getVersionStatusColor, getRevisionTypeColor }) => {
+const VersionHistory: React.FC<VersionHistoryProps> = ({ versions, selectedVersion, onSelectVersion, getVersionStatusColor, getRevisionTypeColor }) => {
     return (
         <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
             {versions.map((version) => (
@@ -674,7 +781,7 @@ const VersionHistory = ({ versions, selectedVersion, onSelectVersion, getVersion
 };
 
 // Version Details Component
-const VersionDetails = ({ version, getRevisionTypeColor, getVersionStatusColor }) => {
+const VersionDetails: React.FC<VersionDetailsProps> = ({ version, getRevisionTypeColor, getVersionStatusColor }) => {
     return (
         <div className="p-6">
             <div className="border-b border-gray-200 pb-4 mb-4">
@@ -717,9 +824,11 @@ const VersionDetails = ({ version, getRevisionTypeColor, getVersionStatusColor }
                             <div key={index} className="border border-gray-200 rounded-lg p-3">
                                 <div className="flex items-center justify-between mb-2">
                                     <h6 className="font-medium text-gray-900">{change.section}</h6>
-                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRevisionTypeColor(change.type)}`}>
-                                        {change.type}
-                                    </span>
+                                    {change.type && (
+                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRevisionTypeColor(change.type)}`}>
+                                            {change.type}
+                                        </span>
+                                    )}
                                 </div>
                                 <p className="text-sm text-gray-700 mb-2">{change.description}</p>
                                 <p className="text-sm text-gray-600 italic">{change.justification}</p>
@@ -743,7 +852,7 @@ const VersionDetails = ({ version, getRevisionTypeColor, getVersionStatusColor }
 };
 
 // Revision Details Panel Component
-const RevisionDetailsPanel = ({ revision, onClose, onSubmit, onApprove, getRevisionTypeColor }) => {
+const RevisionDetailsPanel: React.FC<RevisionDetailsPanelProps> = ({ revision, onClose, onSubmit, onApprove, getRevisionTypeColor }) => {
     return (
         <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-start mb-6">
@@ -790,8 +899,8 @@ const RevisionDetailsPanel = ({ revision, onClose, onSubmit, onApprove, getRevis
 };
 
 // Create Revision Modal Component
-const CreateRevisionModal = ({ onClose, onCreate, nextVersion, onTypeChange }) => {
-    const [formData, setFormData] = useState({
+const CreateRevisionModal: React.FC<CreateRevisionModalProps> = ({ onClose, onCreate, nextVersion, onTypeChange }) => {
+    const [formData, setFormData] = useState<RevisionFormData>({
         title: '',
         type: 'MINOR_AMENDMENT',
         description: '',
@@ -799,19 +908,19 @@ const CreateRevisionModal = ({ onClose, onCreate, nextVersion, onTypeChange }) =
         proposedChanges: [{ section: '', description: '', justification: '' }]
     });
 
-    const revisionTypes = [
+    const revisionTypes: RevisionType[] = [
         { value: 'ADMINISTRATIVE_CHANGE', label: 'Administrative Change', description: 'Minor administrative updates' },
         { value: 'MINOR_AMENDMENT', label: 'Minor Amendment', description: 'Minor protocol changes' },
         { value: 'SUBSTANTIAL_AMENDMENT', label: 'Substantial Amendment', description: 'Major protocol changes' }
     ];
 
-    const impactLevels = [
+    const impactLevels: ImpactLevel[] = [
         { value: 'LOW', label: 'Low Impact' },
         { value: 'MEDIUM', label: 'Medium Impact' },
         { value: 'HIGH', label: 'High Impact' }
     ];
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onCreate(formData);
     };
@@ -823,14 +932,14 @@ const CreateRevisionModal = ({ onClose, onCreate, nextVersion, onTypeChange }) =
         });
     };
 
-    const updateChange = (index, field, value) => {
+    const updateChange = (index: number, field: keyof ProposedChange, value: string) => {
         const updatedChanges = formData.proposedChanges.map((change, i) =>
             i === index ? { ...change, [field]: value } : change
         );
         setFormData({ ...formData, proposedChanges: updatedChanges });
     };
 
-    const removeChange = (index) => {
+    const removeChange = (index: number) => {
         const updatedChanges = formData.proposedChanges.filter((_, i) => i !== index);
         setFormData({ ...formData, proposedChanges: updatedChanges });
     };

@@ -2,13 +2,102 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FileText, Eye, Link, Unlink, Settings, Search, Filter } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
-import VisitDefinitionService from '../../../../services/VisitDefinitionService';
+import VisitDefinitionService, { VisitDefinition, VisitFormBinding, VisitFormBindingCreateData } from '../../../../services/VisitDefinitionService';
 import StudyService from '../../../../services/StudyService';
 import StudyFormService from '../../../../services/data-capture/StudyFormService';
 import StudyDesignService from '../../../../services/StudyDesignService';
+import type { Study } from '../../../../types';
+import type { StudyFormDefinition } from '../../../../types/domain/DataEntry.types';
+
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+interface TransformedVisit {
+    id: string;
+    visitId?: string;
+    studyId?: number;
+    studyDesignUuid?: string;
+    armId?: string | null;
+    visitName: string;
+    visitCode?: string;
+    visitType?: string;
+    dayOffset?: number;
+    windowBefore?: number;
+    windowAfter?: number;
+    sequence?: number;
+    isRequired?: boolean;
+    description?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    name: string;
+    type: string;
+    sequenceNumber?: number;
+}
+
+interface FormBindingWithMetadata extends VisitFormBinding {
+    id: number;
+    visitId?: string;
+    formId?: string;
+    timing?: string;
+    conditions?: any[];
+    reminders?: {
+        enabled: boolean;
+        days: number[];
+    };
+}
+
+interface FormVisitMatrixProps {
+    visits: TransformedVisit[];
+    forms: StudyFormDefinition[];
+    bindings: FormBindingWithMetadata[];
+    getBinding: (visitId: string, formId: number | string) => FormBindingWithMetadata | undefined;
+    onCreateBinding: (visitId: string, formId: number | string) => void;
+    onRemoveBinding: (bindingId: number) => void;
+    onSelectBinding: (binding: FormBindingWithMetadata) => void;
+    selectedBinding: FormBindingWithMetadata | null;
+    searchTerm: string;
+    onSearchChange: (term: string) => void;
+    filterCategory: string;
+    onFilterChange: (category: string) => void;
+    formCategories: string[];
+}
+
+interface MatrixCellProps {
+    visit: TransformedVisit;
+    form: StudyFormDefinition;
+    binding: FormBindingWithMetadata | undefined;
+    isSelected: boolean;
+    onCreateBinding: () => void;
+    onRemoveBinding: () => void;
+    onSelectBinding: () => void;
+}
+
+interface BindingDetailsPanelProps {
+    binding: FormBindingWithMetadata;
+    visits: TransformedVisit[];
+    forms: StudyFormDefinition[];
+    onUpdate: (updates: Partial<FormBindingWithMetadata>) => void;
+    onRemove: () => void;
+}
+
+interface FormPreviewPanelProps {
+    form: StudyFormDefinition | undefined;
+    visit: TransformedVisit | undefined;
+    binding: FormBindingWithMetadata | null;
+}
+
+interface TimingOption {
+    value: string;
+    label: string;
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
 
 // Helper function to get field count from form
-const getFieldCount = (form) => {
+const getFieldCount = (form: StudyFormDefinition): number => {
     if (typeof form.fields === 'number') {
         return form.fields; // Mock data format
     }
@@ -24,46 +113,47 @@ const getFieldCount = (form) => {
 };
 
 // Helper function to transform visit response to ensure visitId is present
-const transformVisitResponse = (visit) => {
+const transformVisitResponse = (visit: VisitDefinition | null): TransformedVisit | null => {
     if (!visit) {
         return null;
     }
 
-    const visitId = visit.visitId || visit.id || visit.aggregateUuid || null;
+    const visitId = visit.visitId || visit.id || null;
 
     return {
         ...visit,
-        id: visitId ? String(visitId) : null,
-        name: visit.name || `Visit ${visit.sequenceNumber || ''}`,
-        type: (visit.visitType || 'REGULAR').toUpperCase()
+        id: visitId ? String(visitId) : String(visit.id || ''),
+        name: visit.visitName || `Visit ${visit.sequence || ''}`,
+        type: (visit.visitType || 'REGULAR').toUpperCase(),
+        sequenceNumber: visit.sequence
     };
 };
 
-const transformVisitCollection = (visits = []) =>
-    visits.map(transformVisitResponse).filter(Boolean);
+const transformVisitCollection = (visits: VisitDefinition[] = []): TransformedVisit[] =>
+    visits.map(transformVisitResponse).filter((v): v is TransformedVisit => v !== null);
 
 /**
  * Form Binding Designer Component
  * Manages binding of forms to visits and configures form rules
  */
-const FormBindingDesigner = () => {
-    const { studyId } = useParams();
+const FormBindingDesigner: React.FC = () => {
+    const { studyId } = useParams<{ studyId: string }>();
     const navigate = useNavigate();
 
     // State management
-    const [study, setStudy] = useState(null);
-    const [visits, setVisits] = useState([]);
-    const [forms, setForms] = useState([]);
-    const [bindings, setBindings] = useState([]);
-    const [selectedBinding, setSelectedBinding] = useState(null);
-    const [selectedForm, setSelectedForm] = useState(null);
-    const [selectedVisit, setSelectedVisit] = useState(null);
-    const [filterCategory, setFilterCategory] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [errors, setErrors] = useState([]);
-    const [successMessage, setSuccessMessage] = useState(null);
-    const [isDirty, setIsDirty] = useState(false);
+    const [study, setStudy] = useState<Study | null>(null);
+    const [visits, setVisits] = useState<TransformedVisit[]>([]);
+    const [forms, setForms] = useState<StudyFormDefinition[]>([]);
+    const [bindings, setBindings] = useState<FormBindingWithMetadata[]>([]);
+    const [selectedBinding, setSelectedBinding] = useState<FormBindingWithMetadata | null>(null);
+    const [selectedForm, setSelectedForm] = useState<StudyFormDefinition | null>(null);
+    const [selectedVisit, setSelectedVisit] = useState<TransformedVisit | null>(null);
+    const [filterCategory, setFilterCategory] = useState<string>('');
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(true);
+    const [errors, setErrors] = useState<string[]>([]);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [isDirty, setIsDirty] = useState<boolean>(false);
 
     // Load study data
     useEffect(() => {
@@ -71,6 +161,8 @@ const FormBindingDesigner = () => {
     }, [studyId]);
 
     const loadStudyData = async () => {
+        if (!studyId) return;
+
         try {
             setLoading(true);
 
@@ -79,7 +171,7 @@ const FormBindingDesigner = () => {
                 StudyService.getStudyById(studyId),
                 VisitDefinitionService.getVisitsByStudy(studyId),
                 VisitDefinitionService.getVisitFormBindings(studyId), // Load visit-form bindings
-                StudyFormService.getFormsByStudy(studyId) // Load study-specific forms
+                StudyFormService.getFormsByStudy(Number(studyId)) // Load study-specific forms
             ]);
 
             console.log('Raw visits data:', visitsData);
@@ -88,7 +180,7 @@ const FormBindingDesigner = () => {
 
             setStudy(studyData);
             setVisits(transformedVisits);
-            setBindings(bindingsData || []);
+            setBindings((bindingsData || []) as FormBindingWithMetadata[]);
             setForms(formsData || []);
 
             setLoading(false);
@@ -100,36 +192,43 @@ const FormBindingDesigner = () => {
     };
 
     // Create new binding
-    const handleCreateBinding = async (visitId, formId) => {
+    const handleCreateBinding = async (visitId: string, formId: number | string) => {
+        if (!studyId) return;
+
         try {
             console.log('Creating binding with:', { visitId, formId, studyId });
 
             // Check if binding already exists
             const existingBinding = bindings.find(b =>
                 (b.visitDefinitionId === visitId || b.visitId === visitId) &&
-                (b.formDefinitionId === formId || b.formId === formId)
+                (b.formDefinitionId === formId || b.formId === String(formId))
             );
             if (existingBinding) {
                 alert('This form is already bound to this visit');
                 return;
             }
 
-            const newBinding = {
+            const newBinding: VisitFormBindingCreateData = {
                 studyId,
                 visitDefinitionId: visitId,
                 formDefinitionId: formId,
                 isRequired: true,
-                timing: 'ANY_TIME',
-                conditions: [],
-                reminders: { enabled: true, days: [1] }
+                sequence: bindings.length + 1
             };
 
             console.log('New binding data:', newBinding);
 
             const createdBinding = await VisitDefinitionService.createVisitFormBinding(newBinding);
-            const updatedBindings = [...bindings, createdBinding];
+            const bindingWithMetadata: FormBindingWithMetadata = {
+                ...createdBinding,
+                id: createdBinding.id || 0,
+                timing: 'ANY_TIME',
+                conditions: [],
+                reminders: { enabled: true, days: [1] }
+            };
+            const updatedBindings = [...bindings, bindingWithMetadata];
             setBindings(updatedBindings);
-            setSelectedBinding(createdBinding);
+            setSelectedBinding(bindingWithMetadata);
             setIsDirty(true);
         } catch (error) {
             console.error('Error creating binding:', error);
@@ -138,10 +237,10 @@ const FormBindingDesigner = () => {
     };
 
     // Remove binding
-    const handleRemoveBinding = async (bindingId) => {
+    const handleRemoveBinding = async (bindingId: number) => {
         if (window.confirm('Are you sure you want to remove this form binding?')) {
             try {
-                await VisitDefinitionService.deleteVisitFormBinding(bindingId);
+                await VisitDefinitionService.deleteVisitFormBinding(String(bindingId));
                 const updatedBindings = bindings.filter(b => b.id !== bindingId);
                 setBindings(updatedBindings);
                 if (selectedBinding && selectedBinding.id === bindingId) {
@@ -156,15 +255,22 @@ const FormBindingDesigner = () => {
     };
 
     // Update binding
-    const handleUpdateBinding = async (bindingId, updates) => {
+    const handleUpdateBinding = async (bindingId: number, updates: Partial<FormBindingWithMetadata>) => {
         try {
-            const updatedBinding = await VisitDefinitionService.updateVisitFormBinding(bindingId, updates);
+            const updatedBinding = await VisitDefinitionService.updateVisitFormBinding(String(bindingId), updates);
+            const bindingWithMetadata: FormBindingWithMetadata = {
+                ...updatedBinding,
+                id: updatedBinding.id || 0,
+                timing: (updates as any).timing || 'ANY_TIME',
+                conditions: (updates as any).conditions || [],
+                reminders: (updates as any).reminders || { enabled: true, days: [1] }
+            };
             const updatedBindings = bindings.map(binding =>
-                binding.id === bindingId ? updatedBinding : binding
+                binding.id === bindingId ? bindingWithMetadata : binding
             );
             setBindings(updatedBindings);
             if (selectedBinding && selectedBinding.id === bindingId) {
-                setSelectedBinding(updatedBinding);
+                setSelectedBinding(bindingWithMetadata);
             }
             setIsDirty(true);
         } catch (error) {
@@ -175,6 +281,8 @@ const FormBindingDesigner = () => {
 
     // Save changes
     const handleSave = async () => {
+        if (!studyId) return;
+
         try {
             // Clear previous messages
             setErrors([]);
@@ -192,14 +300,9 @@ const FormBindingDesigner = () => {
 
             // Update design progress to indicate forms phase is completed
             await StudyDesignService.updateDesignProgress(studyId, {
-                progressData: {
-                    forms: {
-                        phase: 'forms',
-                        completed: true,
-                        percentage: 100,
-                        notes: 'Form binding configuration completed'
-                    }
-                }
+                phase: 'forms',
+                isComplete: true,
+                percentageComplete: 100
             });
 
             setIsDirty(false);
@@ -220,8 +323,8 @@ const FormBindingDesigner = () => {
     };
 
     // Validate bindings data
-    const validateBindingsData = () => {
-        const errors = [];
+    const validateBindingsData = (): string[] => {
+        const errors: string[] = [];
 
         // Check for required forms in baseline visit
         const baselineVisit = visits.find(v => v.type === 'BASELINE');
@@ -238,19 +341,19 @@ const FormBindingDesigner = () => {
     // Filter forms
     const filteredForms = forms.filter(form => {
         const matchesSearch = form.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            form.description.toLowerCase().includes(searchTerm.toLowerCase());
+            (form.description || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = !filterCategory || form.formType === filterCategory;
         return matchesSearch && matchesCategory;
     });
 
     // Get form categories
-    const formCategories = [...new Set(forms.map(f => f.formType))].filter(Boolean);
+    const formCategories = [...new Set(forms.map(f => f.formType).filter(Boolean) as string[])];
 
     // Get binding for visit and form
-    const getBinding = (visitId, formId) => {
+    const getBinding = (visitId: string, formId: number | string): FormBindingWithMetadata | undefined => {
         return bindings.find(b =>
             (b.visitDefinitionId === visitId || b.visitId === visitId) &&
-            (b.formDefinitionId === formId || b.formId === formId)
+            (b.formDefinitionId === formId || b.formId === String(formId))
         );
     };
 
@@ -357,13 +460,7 @@ const FormBindingDesigner = () => {
                 <Alert
                     type="error"
                     title="Validation Errors"
-                    message={
-                        <ul className="list-disc list-inside space-y-1">
-                            {errors.map((error, index) => (
-                                <li key={index}>{error}</li>
-                            ))}
-                        </ul>
-                    }
+                    message={errors.join('; ')}
                     onClose={() => setErrors([])}
                 />
             )}
@@ -399,7 +496,7 @@ const FormBindingDesigner = () => {
             {/* Form Preview */}
             {(selectedForm || (selectedBinding && selectedBinding.formId)) && (
                 <FormPreviewPanel
-                    form={forms.find(f => f.id === (selectedForm?.id || selectedBinding.formId))}
+                    form={forms.find(f => f.id === (selectedForm?.id || Number(selectedBinding.formId)))}
                     visit={visits.find(v => v.id === selectedBinding?.visitId)}
                     binding={selectedBinding}
                 />
@@ -409,7 +506,7 @@ const FormBindingDesigner = () => {
 };
 
 // Form-Visit Matrix Component
-const FormVisitMatrix = ({
+const FormVisitMatrix: React.FC<FormVisitMatrixProps> = ({
     visits,
     forms,
     bindings,
@@ -518,7 +615,7 @@ const FormVisitMatrix = ({
 };
 
 // Matrix Cell Component
-const MatrixCell = ({
+const MatrixCell: React.FC<MatrixCellProps> = ({
     visit,
     form,
     binding,
@@ -572,11 +669,11 @@ const MatrixCell = ({
 };
 
 // Binding Details Panel Component
-const BindingDetailsPanel = ({ binding, visits, forms, onUpdate, onRemove }) => {
+const BindingDetailsPanel: React.FC<BindingDetailsPanelProps> = ({ binding, visits, forms, onUpdate, onRemove }) => {
     const visit = visits.find(v => v.id === binding.visitId);
-    const form = forms.find(f => f.id === binding.formId);
+    const form = forms.find(f => f.id === Number(binding.formId));
 
-    const timingOptions = [
+    const timingOptions: TimingOption[] = [
         { value: 'ANY_TIME', label: 'Any time during visit' },
         { value: 'BEFORE_PROCEDURES', label: 'Before procedures' },
         { value: 'AFTER_PROCEDURES', label: 'After procedures' },
@@ -682,6 +779,7 @@ const BindingDetailsPanel = ({ binding, visits, forms, onUpdate, onRemove }) => 
                                                 onUpdate({
                                                     reminders: {
                                                         ...binding.reminders,
+                                                        enabled: binding.reminders?.enabled || true,
                                                         days: newDays.sort((a, b) => a - b)
                                                     }
                                                 });
@@ -710,7 +808,7 @@ const BindingDetailsPanel = ({ binding, visits, forms, onUpdate, onRemove }) => 
                         </div>
                         <div>
                             <span className="font-medium text-gray-700">Est. Time:</span>
-                            <span className="ml-2 text-gray-600">~{form?.estimatedTime} minutes</span>
+                            <span className="ml-2 text-gray-600">~{(form as any)?.estimatedTime || 10} minutes</span>
                         </div>
                         <div>
                             <span className="font-medium text-gray-700">Version:</span>
@@ -728,7 +826,7 @@ const BindingDetailsPanel = ({ binding, visits, forms, onUpdate, onRemove }) => 
 };
 
 // Form Preview Panel Component
-const FormPreviewPanel = ({ form, visit, binding }) => {
+const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({ form, visit, binding }) => {
     if (!form) return null;
 
     return (
@@ -762,7 +860,7 @@ const FormPreviewPanel = ({ form, visit, binding }) => {
                                     Visit: {visit.name}
                                 </span>
                                 <span className="text-gray-600">
-                                    Timing: {binding.timing.replace('_', ' ').toLowerCase()}
+                                    Timing: {binding.timing?.replace('_', ' ').toLowerCase()}
                                 </span>
                             </div>
                         </div>
@@ -817,7 +915,7 @@ const FormPreviewPanel = ({ form, visit, binding }) => {
                         )}
 
                         {/* Generic preview for other forms */}
-                        {!['Demographics', 'Vital Signs'].includes(form.formType) && (
+                        {!['Demographics', 'Vital Signs'].includes(form.formType || '') && (
                             <div className="text-gray-500 text-center py-4">
                                 <FileText className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                                 <p>Form contains {getFieldCount(form)} fields</p>

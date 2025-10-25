@@ -13,27 +13,57 @@ import {
     Trash2,
     Download,
     Upload,
-    X
+    X,
+    LucideIcon
 } from 'lucide-react';
 import useProtocolVersioning from '../hooks/useProtocolVersioning';
 import StudyService from '../../../../services/StudyService';
 import ProtocolVersionManagementModal from '../study-design/protocol-version/ProtocolVersionManagementModal';
+import { ProtocolVersion } from '../../../../services/StudyVersioningService';
+import type { Study } from '../../../../types';
+
+/**
+ * Status display configuration interface
+ */
+interface StatusDisplayConfig {
+    icon: LucideIcon;
+    color: string;
+    bgColor: string;
+    label: string;
+}
+
+/**
+ * Status display configuration map
+ */
+type StatusDisplayConfigMap = Record<string, StatusDisplayConfig>;
+
+/**
+ * Version action interface
+ */
+interface VersionAction {
+    label: string;
+    icon: LucideIcon;
+    onClick: () => void;
+    variant: 'primary' | 'outline' | 'danger';
+    disabled?: boolean;
+    tooltip?: string;
+}
 
 /**
  * Protocol Management Dashboard - Study-Level Protocol Version Management
  * Separated from Study Design Phase for better user experience and cleaner architecture
  */
-const ProtocolManagementDashboard = () => {
-    const { studyId } = useParams();
+const ProtocolManagementDashboard: React.FC = () => {
+    const { studyId } = useParams<{ studyId: string }>();
     const navigate = useNavigate();
 
     // State
-    const [study, setStudy] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [showVersionModal, setShowVersionModal] = useState(false);
-    const [selectedVersionId, setSelectedVersionId] = useState(null);
-    const [successMessage, setSuccessMessage] = useState(null);
+    const [study, setStudy] = useState<Study | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [showVersionModal, setShowVersionModal] = useState<boolean>(false);
+    const [selectedVersionId, setSelectedVersionId] = useState<string | number | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     // Protocol versioning hook
     const {
@@ -52,10 +82,10 @@ const ProtocolManagementDashboard = () => {
 
     // Load study data
     useEffect(() => {
-        const loadStudy = async () => {
+        const loadStudy = async (): Promise<void> => {
             try {
                 setLoading(true);
-                const studyData = await StudyService.getStudyById(studyId);
+                const studyData = await StudyService.getStudyById(studyId!);
                 setStudy(studyData);
             } catch (err) {
                 setError('Failed to load study');
@@ -71,8 +101,8 @@ const ProtocolManagementDashboard = () => {
     }, [studyId]);
 
     // Get status display configuration
-    const getStatusDisplay = (status) => {
-        const statusConfig = {
+    const getStatusDisplay = (status: string): StatusDisplayConfig => {
+        const statusConfig: StatusDisplayConfigMap = {
             'DRAFT': {
                 icon: FileText,
                 color: 'text-gray-600',
@@ -116,18 +146,18 @@ const ProtocolManagementDashboard = () => {
                 label: 'Withdrawn'
             }
         };
-        return statusConfig[status] || statusConfig.DRAFT;
+        return statusConfig[status] || statusConfig['DRAFT'];
     };
 
     // Get available actions for a version
-    const getVersionActions = (version) => {
-        const actions = [];
+    const getVersionActions = (version: ProtocolVersion): VersionAction[] => {
+        const actions: VersionAction[] = [];
 
         // Always available
         actions.push({
             label: 'View',
             icon: Eye,
-            onClick: () => handleViewVersion(version.id),
+            onClick: () => handleViewVersion(version.id!),
             variant: 'outline'
         });
 
@@ -138,13 +168,13 @@ const ProtocolManagementDashboard = () => {
                     {
                         label: 'Edit',
                         icon: Edit,
-                        onClick: () => handleEditVersion(version.id),
+                        onClick: () => handleEditVersion(version.id!),
                         variant: 'outline'
                     },
                     {
                         label: 'Submit for Review',
                         icon: Upload,
-                        onClick: () => handleSubmitForReview(version.id),
+                        onClick: () => handleSubmitForReview(version.id!),
                         variant: 'primary'
                     }
                 );
@@ -155,7 +185,7 @@ const ProtocolManagementDashboard = () => {
                 actions.push({
                     label: 'Approve',
                     icon: CheckCircle,
-                    onClick: () => handleApproveVersion(version.id),
+                    onClick: () => handleApproveVersion(version.id!),
                     variant: 'primary'
                 });
                 break;
@@ -165,7 +195,7 @@ const ProtocolManagementDashboard = () => {
                 actions.push({
                     label: 'Approve',
                     icon: CheckCircle,
-                    onClick: () => handleApproveVersion(version.id),
+                    onClick: () => handleApproveVersion(version.id!),
                     variant: 'primary'
                 });
                 break;
@@ -176,7 +206,7 @@ const ProtocolManagementDashboard = () => {
                 actions.push({
                     label: 'Activate',
                     icon: CheckCircle,
-                    onClick: () => handleActivateVersion(version.id),
+                    onClick: () => handleActivateVersion(version.id!),
                     variant: 'primary'
                 });
                 break;
@@ -185,7 +215,7 @@ const ProtocolManagementDashboard = () => {
                 actions.push({
                     label: 'Create Amendment',
                     icon: GitBranch,
-                    onClick: () => handleCreateAmendment(version.id),
+                    onClick: () => handleCreateAmendment(version.id!),
                     variant: 'primary'
                 });
                 break;
@@ -196,7 +226,7 @@ const ProtocolManagementDashboard = () => {
             actions.push({
                 label: 'Delete',
                 icon: Trash2,
-                onClick: () => handleDeleteVersion(version.id),
+                onClick: () => handleDeleteVersion(version.id!),
                 variant: 'danger'
             });
         }
@@ -205,22 +235,22 @@ const ProtocolManagementDashboard = () => {
     };
 
     // Action handlers
-    const handleCreateVersion = () => {
+    const handleCreateVersion = (): void => {
         setSelectedVersionId(null);
         setShowVersionModal(true);
     };
 
-    const handleViewVersion = (versionId) => {
+    const handleViewVersion = (versionId: string | number): void => {
         setSelectedVersionId(versionId);
         setShowVersionModal(true);
     };
 
-    const handleEditVersion = (versionId) => {
+    const handleEditVersion = (versionId: string | number): void => {
         setSelectedVersionId(versionId);
         setShowVersionModal(true);
     };
 
-    const handleSubmitForReview = async (versionId) => {
+    const handleSubmitForReview = async (versionId: string | number): Promise<void> => {
         try {
             await submitForReview(versionId);
         } catch (error) {
@@ -228,7 +258,7 @@ const ProtocolManagementDashboard = () => {
         }
     };
 
-    const handleApproveVersion = async (versionId) => {
+    const handleApproveVersion = async (versionId: string | number): Promise<void> => {
         try {
             await approveProtocolVersion(versionId);
         } catch (error) {
@@ -236,7 +266,7 @@ const ProtocolManagementDashboard = () => {
         }
     };
 
-    const handleActivateVersion = async (versionId) => {
+    const handleActivateVersion = async (versionId: string | number): Promise<void> => {
         try {
             await activateProtocolVersion(versionId);
         } catch (error) {
@@ -244,12 +274,12 @@ const ProtocolManagementDashboard = () => {
         }
     };
 
-    const handleCreateAmendment = (parentVersionId) => {
+    const handleCreateAmendment = (parentVersionId: string | number): void => {
         setSelectedVersionId(parentVersionId);
         setShowVersionModal(true);
     };
 
-    const handleDeleteVersion = async (versionId) => {
+    const handleDeleteVersion = async (versionId: string | number): Promise<void> => {
         if (window.confirm('Are you sure you want to delete this protocol version?')) {
             try {
                 await deleteProtocolVersion(versionId);
@@ -259,7 +289,7 @@ const ProtocolManagementDashboard = () => {
         }
     };
 
-    const handleBackToStudy = () => {
+    const handleBackToStudy = (): void => {
         navigate(`/study-design/study/${studyId}`);
     };
 
@@ -426,7 +456,7 @@ const ProtocolManagementDashboard = () => {
                             </div>
                         ) : (
                             protocolVersions.map((version) => {
-                                const statusDisplay = getStatusDisplay(version.status);
+                                const statusDisplay = getStatusDisplay(version.status || 'DRAFT');
                                 const StatusIcon = statusDisplay.icon;
                                 const actions = getVersionActions(version);
 
@@ -450,7 +480,7 @@ const ProtocolManagementDashboard = () => {
                                                     <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
                                                         <span>Status: {statusDisplay.label}</span>
                                                         <span>•</span>
-                                                        <span>Created: {new Date(version.createdDate || version.createdAt).toLocaleDateString()}</span>
+                                                        <span>Created: {version.createdDate ? new Date(version.createdDate).toLocaleDateString() : 'N/A'}</span>
                                                         {version.amendmentType && (
                                                             <>
                                                                 <span>•</span>
@@ -464,7 +494,7 @@ const ProtocolManagementDashboard = () => {
                                                 {actions.map((action, index) => {
                                                     const ActionIcon = action.icon;
                                                     const baseClasses = "inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed";
-                                                    const variantClasses = {
+                                                    const variantClasses: Record<'primary' | 'outline' | 'danger', string> = {
                                                         primary: "text-white bg-blue-600 hover:bg-blue-700",
                                                         outline: "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50",
                                                         danger: "text-red-700 bg-white border border-red-300 hover:bg-red-50"
@@ -507,13 +537,13 @@ const ProtocolManagementDashboard = () => {
                 isOpen={showVersionModal}
                 studyId={studyId}
                 studyName={study?.name}
-                studyStatus={study?.studyStatus?.code}
+                studyStatus={study?.status}
                 initialVersionId={selectedVersionId}
                 onClose={() => {
                     setShowVersionModal(false);
                     setSelectedVersionId(null);
                 }}
-                onVersionCreated={async (newVersion) => {
+                onVersionCreated={async (newVersion: ProtocolVersion) => {
                     // Reload protocol versions
                     await loadProtocolVersions();
                     // Show success message

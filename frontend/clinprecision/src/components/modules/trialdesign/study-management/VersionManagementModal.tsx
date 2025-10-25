@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useStudyVersioning } from '../hooks/useStudyVersioning';
+import { useStudyVersioning, StudyVersion } from '../hooks/useStudyVersioning';
 import {
     X,
     GitBranch,
@@ -13,16 +13,47 @@ import {
     Info
 } from 'lucide-react';
 
+interface Study {
+    id: number;
+    title: string;
+    version: string | number;
+}
+
+interface FormData {
+    amendmentType: string;
+    reason: string;
+    description: string;
+    effectiveDate: string;
+    notifyStakeholders: boolean;
+    requiresRegulatory: boolean;
+    notes: string;
+}
+
+interface FormErrors {
+    amendmentType?: string;
+    reason?: string;
+    description?: string;
+    effectiveDate?: string;
+    submit?: string;
+}
+
+interface VersionManagementModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    study: Study;
+    onVersionCreated?: (version: StudyVersion) => void;
+}
+
 /**
  * Modal for creating new study versions and managing amendments
  */
-const VersionManagementModal = ({
+const VersionManagementModal: React.FC<VersionManagementModalProps> = ({
     isOpen,
     onClose,
     study,
     onVersionCreated
 }) => {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         amendmentType: '',
         reason: '',
         description: '',
@@ -32,9 +63,9 @@ const VersionManagementModal = ({
         notes: ''
     });
 
-    const [errors, setErrors] = useState({});
-    const [loading, setLoading] = useState(false);
-    const [versionHistory, setVersionHistory] = useState([]);
+    const [errors, setErrors] = useState<FormErrors>({});
+    const [loading, setLoading] = useState<boolean>(false);
+    const [versionHistory, setVersionHistory] = useState<StudyVersion[]>([]);
 
     const {
         loadStudyVersions,
@@ -51,7 +82,7 @@ const VersionManagementModal = ({
         }
     }, [isOpen, study]);
 
-    const loadVersionHistory = async () => {
+    const loadVersionHistory = async (): Promise<void> => {
         try {
             const history = await getVersionHistory(study.id);
             setVersionHistory(history);
@@ -60,7 +91,7 @@ const VersionManagementModal = ({
         }
     };
 
-    const resetForm = () => {
+    const resetForm = (): void => {
         setFormData({
             amendmentType: '',
             reason: '',
@@ -73,15 +104,15 @@ const VersionManagementModal = ({
         setErrors({});
     };
 
-    const handleInputChange = (field, value) => {
+    const handleInputChange = (field: keyof FormData, value: string | boolean): void => {
         setFormData(prev => ({ ...prev, [field]: value }));
-        if (errors[field]) {
+        if (errors[field as keyof FormErrors]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
         }
     };
 
-    const validateForm = () => {
-        const newErrors = {};
+    const validateForm = (): boolean => {
+        const newErrors: FormErrors = {};
 
         if (!formData.amendmentType) {
             newErrors.amendmentType = 'Amendment type is required';
@@ -111,7 +142,7 @@ const VersionManagementModal = ({
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -140,7 +171,7 @@ const VersionManagementModal = ({
         }
     };
 
-    const getAmendmentTypeIcon = (type) => {
+    const getAmendmentTypeIcon = (type: string): React.ReactElement => {
         switch (type) {
             case 'MAJOR': return <AlertTriangle className="w-4 h-4 text-red-500" />;
             case 'MINOR': return <Info className="w-4 h-4 text-blue-500" />;
@@ -150,8 +181,8 @@ const VersionManagementModal = ({
         }
     };
 
-    const getVersionStatusBadge = (status) => {
-        const configs = {
+    const getVersionStatusBadge = (status: string): React.ReactElement => {
+        const configs: Record<string, { color: string; text: string }> = {
             [VERSION_STATUS.DRAFT.value]: { color: 'bg-gray-100 text-gray-700', text: VERSION_STATUS.DRAFT.label },
             [VERSION_STATUS.PROTOCOL_REVIEW.value]: { color: 'bg-yellow-100 text-yellow-700', text: VERSION_STATUS.PROTOCOL_REVIEW.label },
             [VERSION_STATUS.SUBMITTED.value]: { color: 'bg-blue-100 text-blue-700', text: VERSION_STATUS.SUBMITTED.label },
@@ -210,7 +241,7 @@ const VersionManagementModal = ({
                                         }`}
                                 >
                                     <option value="">Select Amendment Type</option>
-                                    {Object.entries(AMENDMENT_TYPES).map(([key, value]) => (
+                                    {Object.entries(AMENDMENT_TYPES).map(([key, value]: [string, any]) => (
                                         <option key={key} value={key}>
                                             {value.label} - {value.description}
                                         </option>
@@ -363,20 +394,20 @@ const VersionManagementModal = ({
 
                                     <div className="space-y-1">
                                         <div className="flex items-center text-xs text-gray-600">
-                                            {getAmendmentTypeIcon(version.amendmentType)}
-                                            <span className="ml-1">{AMENDMENT_TYPES[version.amendmentType]?.label}</span>
+                                            {getAmendmentTypeIcon(version.amendmentType || '')}
+                                            <span className="ml-1">{AMENDMENT_TYPES[version.amendmentType as keyof typeof AMENDMENT_TYPES]?.label}</span>
                                         </div>
 
-                                        <p className="text-xs text-gray-800">{version.reason}</p>
+                                        <p className="text-xs text-gray-800">{version.amendmentReason || version.description || 'No description'}</p>
 
                                         <div className="flex items-center text-xs text-gray-500">
                                             <User className="w-3 h-3 mr-1" />
-                                            {version.createdBy}
+                                            {version.createdBy || 'Unknown'}
                                         </div>
 
                                         <div className="flex items-center text-xs text-gray-500">
                                             <Calendar className="w-3 h-3 mr-1" />
-                                            {new Date(version.createdDate).toLocaleDateString()}
+                                            {version.createdDate ? new Date(version.createdDate).toLocaleDateString() : 'N/A'}
                                         </div>
                                     </div>
                                 </div>

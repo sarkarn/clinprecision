@@ -1,19 +1,133 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Clock, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Activity, FileText } from 'lucide-react';
+import { Calendar, Clock, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Activity, FileText, LucideIcon } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
-import VisitDefinitionService from '../../../../services/VisitDefinitionService';
+import VisitDefinitionService, { VisitDefinition, VisitDefinitionCreateData } from '../../../../services/VisitDefinitionService';
 import StudyService from '../../../../services/StudyService';
 import StudyDesignService from '../../../../services/StudyDesignService';
+import type { Study } from '../../../../types';
 
-const DEFAULT_VISIT_TYPE = 'TREATMENT';
+// ============================================================================
+// Types
+// ============================================================================
 
-const toNumber = (value, fallback = 0) => {
+/**
+ * Visit type union
+ */
+type VisitType = 'SCREENING' | 'BASELINE' | 'TREATMENT' | 'FOLLOW_UP' | 'UNSCHEDULED';
+
+/**
+ * Timeline view type
+ */
+type TimelineView = 'days' | 'weeks' | 'months';
+
+/**
+ * Transformed visit interface (frontend representation)
+ */
+interface TransformedVisit {
+    id: string | null;
+    name: string;
+    type: string;
+    window: {
+        days: [number, number];
+        description: string;
+    };
+    isRequired: boolean;
+    forms: any[];
+    armId: string | null;
+    studyId: number | null;
+    sequenceNumber: number | null;
+    timepoint: number;
+    windowBefore: number;
+    windowAfter: number;
+    createdAt: string | null;
+    updatedAt: string | null;
+}
+
+/**
+ * Visit update data interface
+ */
+interface VisitUpdateData {
+    name?: string;
+    type?: string;
+    window?: {
+        days?: [number, number];
+        description?: string;
+    };
+    isRequired?: boolean;
+}
+
+/**
+ * Backend visit update interface
+ */
+interface BackendVisitUpdate {
+    id: string | null;
+    name: string;
+    visitType: string;
+    isRequired: boolean;
+    sequenceNumber: number | null;
+    description: string;
+    timepoint: number;
+    windowBefore: number;
+    windowAfter: number;
+    updatedBy: number;
+    armId?: string;
+}
+
+/**
+ * Visit type option interface
+ */
+interface VisitTypeOption {
+    value: VisitType;
+    label: string;
+}
+
+/**
+ * Component props interfaces
+ */
+interface VisitScheduleDesignerProps {
+    onPhaseCompleted?: () => Promise<void>;
+}
+
+interface VisitTimelineProps {
+    visits: TransformedVisit[];
+    selectedVisit: TransformedVisit | null;
+    onVisitSelect: (visit: TransformedVisit) => void;
+    study: Study | null;
+}
+
+interface VisitListItemProps {
+    visit: TransformedVisit;
+    isSelected: boolean;
+    onClick: () => void;
+    onDelete: () => void;
+}
+
+interface VisitDetailsPanelProps {
+    visit: TransformedVisit;
+    onUpdate: (updates: VisitUpdateData) => void;
+}
+
+interface RefreshVisitsOptions {
+    targetVisitId?: string | number;
+}
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const DEFAULT_VISIT_TYPE: VisitType = 'TREATMENT';
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+const toNumber = (value: any, fallback: number = 0): number => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const transformVisitResponse = (visit) => {
+const transformVisitResponse = (visit: any): TransformedVisit | null => {
     if (!visit) {
         return null;
     }
@@ -58,29 +172,56 @@ const transformVisitResponse = (visit) => {
     };
 };
 
-const transformVisitCollection = (visits = []) =>
-    visits.map(transformVisitResponse).filter(Boolean);
+const transformVisitCollection = (visits: any[] = []): TransformedVisit[] =>
+    visits.map(transformVisitResponse).filter((v): v is TransformedVisit => v !== null);
+
+// Helper functions
+const getVisitTypeColor = (type: string): string => {
+    const colors: Record<string, string> = {
+        SCREENING: 'bg-red-500 border-red-700',
+        BASELINE: 'bg-green-500 border-green-700',
+        TREATMENT: 'bg-blue-500 border-blue-700',
+        FOLLOW_UP: 'bg-purple-500 border-purple-700',
+        UNSCHEDULED: 'bg-gray-500 border-gray-700'
+    };
+    return colors[type] || 'bg-gray-500 border-gray-700';
+};
+
+const getVisitTypeColorClasses = (type: string): string => {
+    const colors: Record<string, string> = {
+        SCREENING: 'bg-red-100 text-red-800',
+        BASELINE: 'bg-green-100 text-green-800',
+        TREATMENT: 'bg-blue-100 text-blue-800',
+        FOLLOW_UP: 'bg-purple-100 text-purple-800',
+        UNSCHEDULED: 'bg-gray-100 text-gray-800'
+    };
+    return colors[type] || 'bg-gray-100 text-gray-800';
+};
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 /**
  * Visit Schedule Designer Component
  * Manages study visits and timeline (procedures managed separately)
  */
-const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
-    const { studyId } = useParams();
+const VisitScheduleDesigner: React.FC<VisitScheduleDesignerProps> = ({ onPhaseCompleted }) => {
+    const { studyId } = useParams<{ studyId: string }>();
     const navigate = useNavigate();
 
     // State management
-    const [study, setStudy] = useState(null);
-    const [visits, setVisits] = useState([]);
-    const [selectedVisit, setSelectedVisit] = useState(null);
-    const [timelineView, setTimelineView] = useState('weeks'); // 'days', 'weeks', 'months'
-    const [loading, setLoading] = useState(true);
-    const [errors, setErrors] = useState([]);
-    const [isDirty, setIsDirty] = useState(false);
+    const [study, setStudy] = useState<Study | null>(null);
+    const [visits, setVisits] = useState<TransformedVisit[]>([]);
+    const [selectedVisit, setSelectedVisit] = useState<TransformedVisit | null>(null);
+    const [timelineView, setTimelineView] = useState<TimelineView>('weeks');
+    const [loading, setLoading] = useState<boolean>(true);
+    const [errors, setErrors] = useState<string[]>([]);
+    const [isDirty, setIsDirty] = useState<boolean>(false);
 
-    const refreshVisits = async ({ targetVisitId } = {}) => {
+    const refreshVisits = async ({ targetVisitId }: RefreshVisitsOptions = {}): Promise<TransformedVisit[]> => {
         try {
-            const visitsData = await VisitDefinitionService.getVisitsByStudy(studyId);
+            const visitsData = await VisitDefinitionService.getVisitsByStudy(studyId!);
             console.log('Raw visits data from backend:', visitsData); // Debug log
 
             const transformedVisits = transformVisitCollection(visitsData);
@@ -115,12 +256,12 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [studyId]);
 
-    const loadStudyData = async () => {
+    const loadStudyData = async (): Promise<void> => {
         try {
             setLoading(true);
 
             // Load study data first 
-            const studyData = await StudyService.getStudyById(studyId);
+            const studyData = await StudyService.getStudyById(studyId!);
             console.log('Study data loaded:', studyData); // Debug log
 
             setStudy(studyData);
@@ -135,7 +276,7 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     };
 
     // Add new visit
-    const handleAddVisit = async () => {
+    const handleAddVisit = async (): Promise<void> => {
         try {
             if (!studyId) {
                 throw new Error('Study ID not available');
@@ -147,10 +288,10 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
                 : 0;
             const nextSequence = maxSequence + 1;
 
-            const newVisitData = {
-                name: `Visit ${nextSequence}`,
+            const newVisitData: VisitDefinitionCreateData = {
+                visitName: `Visit ${nextSequence}`,
                 visitType: 'TREATMENT',
-                timepoint: 7 * visits.length,
+                dayOffset: 7 * visits.length,
                 windowBefore: 0,
                 windowAfter: 3,
                 description: '',
@@ -159,7 +300,7 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
 
             // Create visit without arm association initially
             // The user can associate it with specific arms later if needed
-            const createdVisit = await VisitDefinitionService.createVisit(studyId, null, newVisitData);
+            const createdVisit = await VisitDefinitionService.createVisit(studyId, newVisitData);
             const newVisitId = createdVisit?.visitId || createdVisit?.id || null;
 
             // Small delay to allow event sourcing aggregate to process the VisitDefinedEvent
@@ -176,7 +317,7 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     };
 
     // Update visit
-    const handleUpdateVisit = async (visitId, updates) => {
+    const handleUpdateVisit = async (visitId: string | null, updates: VisitUpdateData): Promise<void> => {
         try {
             if (!studyId) {
                 throw new Error('Study ID not available');
@@ -193,7 +334,7 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
             }
 
             // Transform frontend updates to backend format, merging with current visit data
-            const backendUpdates = {
+            const backendUpdates: BackendVisitUpdate = {
                 // Include all required fields from current visit
                 id: currentVisit.id,
                 name: updates.name !== undefined ? updates.name : currentVisit.name,
@@ -246,7 +387,7 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     };
 
     // Delete visit
-    const handleDeleteVisit = async (visitId) => {
+    const handleDeleteVisit = async (visitId: string | null): Promise<void> => {
         if (window.confirm('Are you sure you want to delete this visit? This action cannot be undone.')) {
             try {
                 if (!studyId) {
@@ -261,7 +402,7 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
                 await refreshVisits();
                 setIsDirty(true);
                 setErrors([]);
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Error deleting visit:', error);
 
                 // Check if this is an "entity not found" error (race condition)
@@ -282,20 +423,20 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     // Use VisitFormService to manage visit-form associations separately
 
     // Calculate visit day from window
-    const getVisitDay = (visit) => {
+    const getVisitDay = (visit: TransformedVisit): number => {
         const { days } = visit.window;
         return Math.round((days[0] + days[1]) / 2);
     };
 
     // Get visit position for timeline
-    const getVisitPosition = (visit) => {
+    const getVisitPosition = (visit: TransformedVisit): number => {
         const day = getVisitDay(visit);
-        const totalDays = study?.duration * 7 || 728; // Default 2 years
+        const totalDays = ((study as any)?.duration || 104) * 7; // Default 104 weeks = ~2 years
         return (day / totalDays) * 100;
     };
 
     // Save changes
-    const handleSave = async () => {
+    const handleSave = async (): Promise<void> => {
         try {
             // Validate data
             const validationErrors = validateVisitsData();
@@ -308,15 +449,10 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
             console.log('Saving visit schedule:', { studyId, visits });
 
             // Update design progress to indicate visits phase is completed
-            await StudyDesignService.updateDesignProgress(studyId, {
-                progressData: {
-                    visits: {
-                        phase: 'visits',
-                        completed: true,
-                        percentage: 100,
-                        notes: 'Visit schedule configuration completed'
-                    }
-                }
+            await StudyDesignService.updateDesignProgress(studyId!, {
+                phase: 'visits',
+                isComplete: true,
+                percentageComplete: 100
             });
 
             setIsDirty(false);
@@ -333,8 +469,8 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     };
 
     // Validate visits data
-    const validateVisitsData = () => {
-        const errors = [];
+    const validateVisitsData = (): string[] => {
+        const errors: string[] = [];
 
         if (visits.length === 0) {
             errors.push('At least one visit is required');
@@ -400,7 +536,7 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
                             <Clock className="h-5 w-5 text-green-600 mr-2" />
                             <span className="text-sm font-medium text-green-900">Study Duration</span>
                         </div>
-                        <div className="text-2xl font-bold text-green-900 mt-1">{study?.duration || 0}w</div>
+                        <div className="text-2xl font-bold text-green-900 mt-1">{(study as any)?.duration || 0}w</div>
                     </div>
                     <div className="bg-orange-50 p-4 rounded-lg">
                         <div className="flex items-center">
@@ -419,13 +555,7 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
                 <Alert
                     type="error"
                     title="Validation Errors"
-                    message={
-                        <ul className="list-disc list-inside space-y-1">
-                            {errors.map((error, index) => (
-                                <li key={index}>{error}</li>
-                            ))}
-                        </ul>
-                    }
+                    message={errors.join('; ')}
                     onClose={() => setErrors([])}
                 />
             )}
@@ -502,12 +632,16 @@ const VisitScheduleDesigner = ({ onPhaseCompleted }) => {
     );
 };
 
+// ============================================================================
+// Sub-Components
+// ============================================================================
+
 // Visit Timeline Component
-const VisitTimeline = ({ visits, selectedVisit, onVisitSelect, study }) => {
-    const maxDays = study?.duration * 7 || 728;
+const VisitTimeline: React.FC<VisitTimelineProps> = ({ visits, selectedVisit, onVisitSelect, study }) => {
+    const maxDays = ((study as any)?.duration || 104) * 7; // Default 104 weeks = ~2 years
 
     // Calculate visit day from window
-    const getVisitDay = (visit) => {
+    const getVisitDay = (visit: TransformedVisit): number => {
         const { days } = visit.window;
         return Math.round((days[0] + days[1]) / 2);
     };
@@ -583,8 +717,8 @@ const VisitTimeline = ({ visits, selectedVisit, onVisitSelect, study }) => {
 };
 
 // Visit List Item Component
-const VisitListItem = ({ visit, isSelected, onClick, onDelete }) => {
-    const getVisitDay = (visit) => {
+const VisitListItem: React.FC<VisitListItemProps> = ({ visit, isSelected, onClick, onDelete }) => {
+    const getVisitDay = (visit: TransformedVisit): number => {
         const { days } = visit.window;
         return Math.round((days[0] + days[1]) / 2);
     };
@@ -629,9 +763,9 @@ const VisitListItem = ({ visit, isSelected, onClick, onDelete }) => {
 };
 
 // Visit Details Panel Component
-const VisitDetailsPanel = ({ visit, onUpdate }) => {
+const VisitDetailsPanel: React.FC<VisitDetailsPanelProps> = ({ visit, onUpdate }) => {
     // Visit types must match backend VisitType enum exactly
-    const visitTypes = [
+    const visitTypes: VisitTypeOption[] = [
         { value: 'SCREENING', label: 'Screening' },
         { value: 'BASELINE', label: 'Baseline' },
         { value: 'TREATMENT', label: 'Treatment' },
@@ -769,29 +903,6 @@ const VisitDetailsPanel = ({ visit, onUpdate }) => {
             </div>
         </div>
     );
-};
-
-// Helper functions
-const getVisitTypeColor = (type) => {
-    const colors = {
-        SCREENING: 'bg-red-500 border-red-700',
-        BASELINE: 'bg-green-500 border-green-700',
-        TREATMENT: 'bg-blue-500 border-blue-700',
-        FOLLOW_UP: 'bg-purple-500 border-purple-700',
-        UNSCHEDULED: 'bg-gray-500 border-gray-700'
-    };
-    return colors[type] || 'bg-gray-500 border-gray-700';
-};
-
-const getVisitTypeColorClasses = (type) => {
-    const colors = {
-        SCREENING: 'bg-red-100 text-red-800',
-        BASELINE: 'bg-green-100 text-green-800',
-        TREATMENT: 'bg-blue-100 text-blue-800',
-        FOLLOW_UP: 'bg-purple-100 text-purple-800',
-        UNSCHEDULED: 'bg-gray-100 text-gray-800'
-    };
-    return colors[type] || 'bg-gray-100 text-gray-800';
 };
 
 export default VisitScheduleDesigner;

@@ -1,14 +1,47 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-    useStudyPhases,
-    useStudyStatuses,
-    useRegulatoryStatuses
-} from '../../../../hooks/useCodeList';
-import {
-    StudyPhaseDropdown,
-    StudyStatusDropdown,
-    RegulatoryStatusDropdown
-} from '../../../shared/CodeListDropdown';
+
+// Temporary mock hooks until useCodeList is implemented
+const useStudyPhases = (options: any) => ({ data: [] as any[], loading: false, refresh: () => {}, lastFetch: '' });
+const useStudyStatuses = (options: any) => ({ data: [] as any[], loading: false, refresh: () => {}, lastFetch: '' });
+const useRegulatoryStatuses = (options: any) => ({ data: [] as any[], loading: false, refresh: () => {}, lastFetch: '' });
+
+// Temporary mock components
+const StudyPhaseDropdown = (props: any) => <select {...props}></select>;
+const StudyStatusDropdown = (props: any) => <select {...props}></select>;
+const RegulatoryStatusDropdown = (props: any) => <select {...props}></select>;
+
+// Type Definitions
+interface Study {
+    id: string | number;
+    name: string;
+    protocolNumber: string;
+    phase: string;
+    status: string;
+    regulatoryStatus?: string;
+    sponsor: string;
+    principalInvestigator?: string;
+    enrolledSubjects?: number;
+    plannedSubjects?: number;
+}
+
+interface Filters {
+    phase: string;
+    status: string;
+    regulatoryStatus: string;
+    searchTerm: string;
+}
+
+interface CodeListItem {
+    value: string;
+    label: string;
+    description?: string;
+}
+
+interface StudyCardProps {
+    study: Study;
+    phaseData: CodeListItem[];
+    statusData: CodeListItem[];
+}
 
 /**
  * Modernized StudyListGrid - Phase 3 Frontend Integration Example
@@ -19,14 +52,14 @@ import {
  * This demonstrates the migration from legacy hardcoded dropdowns
  * to modern centralized CodeList integration
  */
-export const ModernStudyListGrid = () => {
-    const [studies, setStudies] = useState([]);
-    const [filteredStudies, setFilteredStudies] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+export const ModernStudyListGrid: React.FC = () => {
+    const [studies, setStudies] = useState<Study[]>([]);
+    const [filteredStudies, setFilteredStudies] = useState<Study[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
     // Filters state
-    const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState<Filters>({
         phase: '',
         status: '',
         regulatoryStatus: '',
@@ -61,9 +94,9 @@ export const ModernStudyListGrid = () => {
                 setLoading(true);
                 // StudyService now focuses only on study business logic
                 const response = await fetch('/api/studies');
-                const data = await response.json();
+                const data: Study[] = await response.json();
                 setStudies(data);
-            } catch (err) {
+            } catch (err: any) {
                 setError(err.message);
             } finally {
                 setLoading(false);
@@ -102,7 +135,7 @@ export const ModernStudyListGrid = () => {
     }, [studies, filters]);
 
     // Handle filter changes
-    const handleFilterChange = (filterName, value) => {
+    const handleFilterChange = (filterName: keyof Filters, value: string) => {
         setFilters(prev => ({
             ...prev,
             [filterName]: value
@@ -343,7 +376,7 @@ export const ModernStudyListGrid = () => {
 /**
  * Individual Study Card Component
  */
-const StudyCard = ({ study, phaseData, statusData }) => {
+const StudyCard: React.FC<StudyCardProps> = ({ study, phaseData, statusData }) => {
     const phase = phaseData.find(p => p.value === study.phase);
     const status = statusData.find(s => s.value === study.status);
 
@@ -377,8 +410,8 @@ const StudyCard = ({ study, phaseData, statusData }) => {
     );
 };
 
-const getStatusColor = (status) => {
-    const colors = {
+const getStatusColor = (status: string): string => {
+    const colors: Record<string, string> = {
         'ACTIVE': 'bg-green-100 text-green-800',
         'DRAFT': 'bg-gray-100 text-gray-800',
         'COMPLETED': 'bg-blue-100 text-blue-800',

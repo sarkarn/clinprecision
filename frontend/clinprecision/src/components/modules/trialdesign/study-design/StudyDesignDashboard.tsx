@@ -1,200 +1,245 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircle, AlertCircle, Clock, FileText, Users, Target, Calendar, Link as LinkIcon, Send, Zap } from 'lucide-react';
+import {
+    FileText, CheckCircle, Clock, Zap, Send, Calendar, Target, LinkIcon
+} from 'lucide-react';
+
+// Services
+import { getStudyById } from '../../../../services/StudyService';
+import StudyDesignService from '../../../../services/StudyDesignService';
+
+// Types
+import { Study } from '../../../../types';
+
+// UI Components
 import { Alert, Button } from '../components/UIComponents';
+
+// Shared Components
 import StudyContextHeader from '../components/StudyContextHeader';
-import NavigationSidebar, { NavigationToggle } from '../components/NavigationSidebar';
+import NavigationSidebar from '../components/NavigationSidebar';
 import WorkflowProgressTracker from '../components/WorkflowProgressTracker';
 import SmartWorkflowAssistant from '../components/SmartWorkflowAssistant';
 import PhaseTransitionHelper from '../components/PhaseTransitionHelper';
 
-// Import the designer components
+// Designer Components
 import StudyArmsDesigner from './StudyArmsDesigner';
 import VisitScheduleDesigner from './VisitScheduleDesigner';
 import FormBindingDesigner from './FormBindingDesigner';
 import StudyPublishWorkflow from './StudyPublishWorkflow';
 
-// Import services
-import { getStudyById } from '../../../../services/StudyService';
-import StudyDesignService from '../../../../services/StudyDesignService';
+// Type Definitions
+interface DesignPhase {
+    id: string;
+    name: string;
+    description: string;
+    icon: React.ComponentType<any>;
+    path: string;
+    status: string;
+    category: 'design' | 'protocol-management';
+    type?: 'separator';
+    label?: string;
+    independent?: boolean;
+}
 
+interface PhaseProgress {
+    phase?: string;
+    completed: boolean;
+    percentage: number;
+    lastUpdated: string | null;
+}
 
-/**
- * Study Design Dashboard Component
- * Main orchestrator for the complete study design workflow
- */
-const StudyDesignDashboard = () => {
-    const { studyId } = useParams();
+interface DesignProgress {
+    [phaseId: string]: PhaseProgress;
+}
+
+interface StudyDesignDashboardProps {}
+
+interface StudyDesignHeaderProps {
+    study: Study | null;
+    currentPhase: string;
+    overallCompletion: number;
+    onBack: () => void;
+}
+
+interface StudyDesignSidebarProps {
+    phases: DesignPhase[];
+    currentPhase: string;
+    designProgress: DesignProgress;
+    completedPhases: string[];
+    onPhaseChange: (phaseId: string) => void;
+    isPhaseAccessible: (phaseId: string) => boolean;
+    getPhaseStatus: (phaseId: string) => string;
+}
+
+interface BasicInfoSummaryProps {
+    study: Study | null;
+}
+
+interface StudyReviewPanelProps {
+    study: Study | null;
+    designProgress: DesignProgress;
+    onReviewSubmitted: () => void;
+}
+
+interface StudyDesignPhaseTrackerProps {
+    phases: DesignPhase[];
+    currentPhase: string;
+    completedPhases: string[];
+    designProgress: DesignProgress;
+    onPhaseChange: (phaseId: string) => void;
+    isPhaseAccessible: (phaseId: string) => boolean;
+}
+
+const StudyDesignDashboard: React.FC<StudyDesignDashboardProps> = () => {
+    const { studyId } = useParams<{ studyId: string }>();
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Extract current phase from URL path
-    const getCurrentPhaseFromUrl = () => {
-        const pathParts = location.pathname.split('/');
-        const designIndex = pathParts.findIndex(part => part === 'design');
-        if (designIndex !== -1 && pathParts[designIndex + 1]) {
-            return pathParts[designIndex + 1];
-        }
-        return 'basic-info';
-    };
-
-    // State management
-    const [study, setStudy] = useState(null);
-    const [designProgress, setDesignProgress] = useState({});
-    const [currentPhase, setCurrentPhase] = useState(getCurrentPhaseFromUrl());
-    const [completedPhases, setCompletedPhases] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [errors, setErrors] = useState([]);
+    // State
+    const [study, setStudy] = useState<Study | null>(null);
+    const [designProgress, setDesignProgress] = useState<DesignProgress>({});
+    const [currentPhase, setCurrentPhase] = useState<string>('basic-info');
+    const [completedPhases, setCompletedPhases] = useState<string[]>([]);
     const [showNavSidebar, setShowNavSidebar] = useState(false);
     const [showWorkflowAssistant, setShowWorkflowAssistant] = useState(true);
-    const [transitionTarget, setTransitionTarget] = useState(null);
     const [showTransitionHelper, setShowTransitionHelper] = useState(false);
+    const [transitionTarget, setTransitionTarget] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [errors, setErrors] = useState<string[]>([]);
 
-
-    // Design phases configuration
-    const designPhases = [
-        // Sequential Design Phases
+    // Design Phases Configuration
+    const designPhases: DesignPhase[] = [
         {
             id: 'basic-info',
             name: 'Basic Information',
-            description: 'Study registration and basic details',
-            icon: <FileText className="h-5 w-5" />,
-            path: '/study-design/basic-info',
-            status: 'COMPLETED', // Already implemented in StudyCreationWizard
+            description: 'Core study details and protocol information',
+            icon: FileText,
+            path: '/basic-info',
+            status: 'COMPLETED',
             category: 'design'
         },
         {
             id: 'arms',
             name: 'Study Arms',
-            description: 'Configure treatment arms and interventions',
-            icon: <Target className="h-5 w-5" />,
-            path: '/study-design/arms',
+            description: 'Treatment arms and interventions',
+            icon: Target,
+            path: '/arms',
             status: 'AVAILABLE',
             category: 'design'
         },
         {
             id: 'visits',
             name: 'Visit Schedule',
-            description: 'Design visit timeline and procedures',
-            icon: <Calendar className="h-5 w-5" />,
-            path: '/study-design/visits',
+            description: 'Study visit timeline and procedures',
+            icon: Calendar,
+            path: '/visits',
             status: 'AVAILABLE',
             category: 'design'
         },
         {
             id: 'forms',
             name: 'Form Binding',
-            description: 'Bind forms to visits and configure rules',
-            icon: <LinkIcon className="h-5 w-5" />,
-            path: '/study-design/forms',
+            description: 'Bind forms to visits and events',
+            icon: LinkIcon,
+            path: '/forms',
             status: 'AVAILABLE',
             category: 'design'
         },
         {
             id: 'review',
             name: 'Review & Validation',
-            description: 'Review design and validate configuration',
-            icon: <CheckCircle className="h-5 w-5" />,
-            path: '/study-design/review',
+            description: 'Review and validate study design',
+            icon: CheckCircle,
+            path: '/review',
             status: 'AVAILABLE',
             category: 'design'
         },
         {
             id: 'publish',
             name: 'Publish Study',
-            description: 'Publish study for data capture',
-            icon: <Send className="h-5 w-5" />,
-            path: '/study-design/publish',
+            description: 'Publish study to make it available',
+            icon: Send,
+            path: '/publish',
             status: 'AVAILABLE',
             category: 'design'
         }
     ];
 
-    // Load study data and progress
-    useEffect(() => {
-        loadStudyData();
-    }, [studyId]);
+    // Get current phase from URL
+    const getCurrentPhaseFromUrl = () => {
+        const pathParts = location.pathname.split('/');
+        const designIndex = pathParts.indexOf('design');
+        return designIndex >= 0 && pathParts.length > designIndex + 1
+            ? pathParts[designIndex + 1]
+            : 'basic-info';
+    };
 
-    // Reload progress when navigating between phases to show updated status
+    // Load study data
     useEffect(() => {
         if (studyId) {
-            loadDesignProgress();
+            loadStudyData();
         }
-    }, [location.pathname, studyId]);
+    }, [studyId]);
 
     // Update current phase when route changes
     useEffect(() => {
-        const newPhase = getCurrentPhaseFromUrl();
-        if (newPhase !== currentPhase) {
-            setCurrentPhase(newPhase);
-        }
+        const phaseFromUrl = getCurrentPhaseFromUrl();
+        setCurrentPhase(phaseFromUrl);
     }, [location.pathname]);
+
+    // Reload design progress when phase changes
+    useEffect(() => {
+        if (studyId && currentPhase) {
+            loadDesignProgress();
+        }
+    }, [studyId, currentPhase]);
 
     // Redirect to basic-info if no phase is specified
     useEffect(() => {
-        const currentPhaseFromUrl = getCurrentPhaseFromUrl();
-        if (!currentPhaseFromUrl || currentPhaseFromUrl === 'design') {
+        if (location.pathname.endsWith('/design') || location.pathname.endsWith('/design/')) {
             navigate(`/study-design/study/${studyId}/design/basic-info`, { replace: true });
         }
-    }, [studyId, location.pathname]);
+    }, [location.pathname, navigate, studyId]);
 
     const loadStudyData = async () => {
+        if (!studyId) return;
+
         try {
             setLoading(true);
             setErrors([]);
 
-            // Fetch real study data from backend
-            const studyResponse = await getStudyById(studyId);
-            setStudy(studyResponse);
+            // Load study data
+            const studyData = await getStudyById(studyId);
+            setStudy(studyData);
 
-            // Fetch design progress from backend API
+            // Load design progress
             try {
                 const designProgressResponse = await StudyDesignService.getDesignProgress(studyId);
-
-                // Check if response is in expected format (has progressData)
-                const progressData = designProgressResponse.progressData || designProgressResponse;
+                const progressData = (designProgressResponse as any).progressData || designProgressResponse;
 
                 // BUGFIX: If basic-info is not in progress data or not marked as completed,
                 // mark it as completed since the study exists (study creation = basic info complete)
                 if (!progressData['basic-info'] || !progressData['basic-info'].completed) {
-                    console.log('Basic-info phase not marked complete, auto-completing and saving...');
-
-                    // Format date for LocalDateTime (no timezone, no milliseconds)
-                    const now = new Date();
-                    const localDateTime = now.getFullYear() + '-' +
-                        String(now.getMonth() + 1).padStart(2, '0') + '-' +
-                        String(now.getDate()).padStart(2, '0') + 'T' +
-                        String(now.getHours()).padStart(2, '0') + ':' +
-                        String(now.getMinutes()).padStart(2, '0') + ':' +
-                        String(now.getSeconds()).padStart(2, '0');
-
                     progressData['basic-info'] = {
                         completed: true,
                         percentage: 100,
                         phase: 'basic-info',
-                        lastUpdated: localDateTime
+                        lastUpdated: new Date().toISOString()
                     };
 
-                    // Persist to backend
-                    try {
-                        await StudyDesignService.updateDesignProgress(studyId, {
-                            progressData: {
-                                'basic-info': progressData['basic-info']
-                            }
-                        });
-                        console.log('Basic-info phase auto-completion saved to backend');
-                    } catch (saveError) {
-                        console.error('Failed to save basic-info completion:', saveError);
-                    }
+                    // Persist this change to backend
+                    await StudyDesignService.updateDesignProgress(studyId, {
+                        progressData: {
+                            'basic-info': progressData['basic-info']
+                        }
+                    } as any);
                 }
 
                 setDesignProgress(progressData);
 
-                console.log('Initial progress data received:', progressData);
-
-                // Calculate completed phases based on progress data
+                // Update completed phases with explicit boolean check
                 const completed = Object.entries(progressData).filter(
-                    ([_, progress]) => progress && progress.completed
+                    ([_, progress]) => progress && (progress as PhaseProgress).completed === true
                 ).map(([phaseId, _]) => phaseId);
 
                 setCompletedPhases(completed);
@@ -209,11 +254,11 @@ const StudyDesignDashboard = () => {
                     await StudyDesignService.initializeDesignProgress(studyId);
                     // Retry fetching progress after initialization
                     const retryProgressResponse = await StudyDesignService.getDesignProgress(studyId);
-                    const progressData = retryProgressResponse.progressData || retryProgressResponse;
+                    const progressData = (retryProgressResponse as any).progressData || retryProgressResponse;
                     setDesignProgress(progressData);
 
                     const completed = Object.entries(progressData).filter(
-                        ([_, progress]) => progress && progress.completed
+                        ([_, progress]) => progress && (progress as PhaseProgress).completed
                     ).map(([phaseId, _]) => phaseId);
                     setCompletedPhases(completed);
 
@@ -243,9 +288,11 @@ const StudyDesignDashboard = () => {
 
     // Load only design progress (for updates without full reload)
     const loadDesignProgress = async () => {
+        if (!studyId) return;
+
         try {
             const designProgressResponse = await StudyDesignService.getDesignProgress(studyId);
-            const progressData = designProgressResponse.progressData || designProgressResponse;
+            const progressData = (designProgressResponse as any).progressData || designProgressResponse;
 
             // BUGFIX: If basic-info is not in progress data or not marked as completed,
             // mark it as completed since the study exists (study creation = basic info complete)
@@ -264,8 +311,8 @@ const StudyDesignDashboard = () => {
             const completed = Object.entries(progressData).filter(
                 ([phaseId, progress]) => {
                     // Debug log to see what we're getting
-                    console.log(`Phase ${phaseId} progress:`, progress, 'completed:', progress?.completed);
-                    return progress && progress.completed === true;
+                    console.log(`Phase ${phaseId} progress:`, progress, 'completed:', (progress as PhaseProgress)?.completed);
+                    return progress && (progress as PhaseProgress).completed === true;
                 }
             ).map(([phaseId, _]) => phaseId);
             setCompletedPhases(completed);
@@ -279,7 +326,7 @@ const StudyDesignDashboard = () => {
     };
 
     // Navigate to phase with transition helper
-    const handlePhaseChange = (phaseId) => {
+    const handlePhaseChange = (phaseId: string) => {
         // If changing to a different phase, show transition helper
         if (phaseId !== currentPhase && showWorkflowAssistant) {
             setTransitionTarget(phaseId);
@@ -290,7 +337,7 @@ const StudyDesignDashboard = () => {
     };
 
     // Handle confirmed phase transition
-    const handleConfirmedTransition = (phaseId) => {
+    const handleConfirmedTransition = (phaseId: string) => {
         setShowTransitionHelper(false);
         setTransitionTarget(null);
         navigate(`/study-design/study/${studyId}/design/${phaseId}`, { replace: true });
@@ -303,7 +350,7 @@ const StudyDesignDashboard = () => {
     };
 
     // Get phase status
-    const getPhaseStatus = (phaseId) => {
+    const getPhaseStatus = (phaseId: string): string => {
         const progress = designProgress[phaseId];
         if (!progress) return 'NOT_STARTED';
 
@@ -313,7 +360,7 @@ const StudyDesignDashboard = () => {
     };
 
     // Get overall completion percentage
-    const getOverallCompletion = () => {
+    const getOverallCompletion = (): number => {
         const phases = Object.keys(designProgress);
         if (phases.length === 0) return 0;
 
@@ -325,7 +372,7 @@ const StudyDesignDashboard = () => {
     };
 
     // Check if phase is accessible
-    const isPhaseAccessible = (phaseId) => {
+    const isPhaseAccessible = (phaseId: string): boolean => {
         // Separator is not clickable
         if (phaseId === 'separator') {
             return false;
@@ -366,7 +413,7 @@ const StudyDesignDashboard = () => {
 
 
     // Get current phase display name
-    const getCurrentPhaseName = () => {
+    const getCurrentPhaseName = (): string => {
         const phase = designPhases.find(p => p.id === currentPhase);
         return phase ? phase.name : 'Study Design';
     };
@@ -382,12 +429,6 @@ const StudyDesignDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Navigation Toggle for Mobile */}
-            <NavigationToggle
-                onClick={() => setShowNavSidebar(!showNavSidebar)}
-                isOpen={showNavSidebar}
-            />
-
             {/* Navigation Sidebar */}
             <NavigationSidebar
                 isOpen={showNavSidebar}
@@ -408,7 +449,7 @@ const StudyDesignDashboard = () => {
                     {
                         type: 'separator',
                         label: 'Protocol Management'
-                    },
+                    } as any,
                     // Protocol management phases
                     ...designPhases
                         .filter(phase => phase.category === 'protocol-management')
@@ -428,7 +469,7 @@ const StudyDesignDashboard = () => {
                         { type: 'separator' },
                         ...designPhases.filter(phase => phase.category === 'protocol-management')
                     ];
-                    return workflowSteps.findIndex(phase => phase.id === currentPhase);
+                    return workflowSteps.findIndex(phase => (phase as any).id === currentPhase);
                 })()}
                 study={study}
             />
@@ -453,7 +494,7 @@ const StudyDesignDashboard = () => {
                         icon: FileText,
                         onClick: () => navigate(`/study-design/edit/${studyId}`)
                     }
-                ]}
+                ] as any}
             />
 
             {/* Errors */}
@@ -502,7 +543,7 @@ const StudyDesignDashboard = () => {
                                 {currentPhase === 'arms' && <StudyArmsDesigner onPhaseCompleted={loadDesignProgress} />}
                                 {currentPhase === 'visits' && <VisitScheduleDesigner onPhaseCompleted={loadDesignProgress} />}
                                 {currentPhase === 'forms' && <FormBindingDesigner />}
-                                {currentPhase === 'review' && <StudyReviewPanel key={study?.status} study={study} designProgress={designProgress} onReviewSubmitted={() => { loadStudyData(); loadDesignProgress(); }} />}
+                                {currentPhase === 'review' && <StudyReviewPanel key={(study as any)?.status} study={study} designProgress={designProgress} onReviewSubmitted={() => { loadStudyData(); loadDesignProgress(); }} />}
                                 {currentPhase === 'publish' && <StudyPublishWorkflow />}
 
                             </div>
@@ -526,7 +567,7 @@ const StudyDesignDashboard = () => {
 };
 
 // Study Design Header Component
-const StudyDesignHeader = ({ study, currentPhase, overallCompletion, onBack }) => {
+const StudyDesignHeader: React.FC<StudyDesignHeaderProps> = ({ study, currentPhase, overallCompletion, onBack }) => {
     const getCurrentPhaseName = () => {
         const designPhases = [
             { id: 'basic-info', name: 'Basic Information' },
@@ -585,7 +626,7 @@ const StudyDesignHeader = ({ study, currentPhase, overallCompletion, onBack }) =
                         {/* Study Info */}
                         <div className="text-right">
                             <div className="text-sm font-medium text-gray-900">Version {study?.version}</div>
-                            <div className="text-xs text-gray-600">{study?.studyStatus?.name || study?.state || 'Draft'}</div>
+                            <div className="text-xs text-gray-600">{(study as any)?.studyStatus?.name || (study as any)?.state || 'Draft'}</div>
                         </div>
                     </div>
                 </div>
@@ -595,7 +636,7 @@ const StudyDesignHeader = ({ study, currentPhase, overallCompletion, onBack }) =
 };
 
 // Study Design Sidebar Component
-const StudyDesignSidebar = ({
+const StudyDesignSidebar: React.FC<StudyDesignSidebarProps> = ({
     phases,
     currentPhase,
     designProgress,
@@ -604,7 +645,7 @@ const StudyDesignSidebar = ({
     isPhaseAccessible,
     getPhaseStatus
 }) => {
-    const getStatusIcon = (phaseId) => {
+    const getStatusIcon = (phaseId: string) => {
         const status = getPhaseStatus(phaseId);
         switch (status) {
             case 'COMPLETED':
@@ -616,7 +657,7 @@ const StudyDesignSidebar = ({
         }
     };
 
-    const getPhaseClasses = (phaseId) => {
+    const getPhaseClasses = (phaseId: string): string => {
         const isAccessible = isPhaseAccessible(phaseId);
         const isActive = currentPhase === phaseId;
         const status = getPhaseStatus(phaseId);
@@ -697,7 +738,7 @@ const StudyDesignSidebar = ({
 };
 
 // Basic Info Summary Component (placeholder)
-const BasicInfoSummary = ({ study }) => {
+const BasicInfoSummary: React.FC<BasicInfoSummaryProps> = ({ study }) => {
     return (
         <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Study Information Summary</h3>
@@ -709,27 +750,27 @@ const BasicInfoSummary = ({ study }) => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Protocol Number</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.protocolNumber || 'Not assigned'}</div>
+                        <div className="mt-1 text-sm text-gray-900">{(study as any)?.protocolNumber || 'Not assigned'}</div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Study Phase</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.studyPhase?.name || study?.studyPhase}</div>
+                        <div className="mt-1 text-sm text-gray-900">{(study as any)?.studyPhase?.name || (study as any)?.studyPhase}</div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Study Status</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.studyStatus?.name || study?.studyStatus}</div>
+                        <div className="mt-1 text-sm text-gray-900">{(study as any)?.studyStatus?.name || (study as any)?.studyStatus}</div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Indication</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.indication}</div>
+                        <div className="mt-1 text-sm text-gray-900">{(study as any)?.indication}</div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Principal Investigator</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.principalInvestigator}</div>
+                        <div className="mt-1 text-sm text-gray-900">{(study as any)?.principalInvestigator}</div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Sponsor</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.sponsor}</div>
+                        <div className="mt-1 text-sm text-gray-900">{(study as any)?.sponsor}</div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Version</label>
@@ -737,17 +778,17 @@ const BasicInfoSummary = ({ study }) => {
                     </div>
                 </div>
 
-                {study?.description && (
+                {(study as any)?.description && (
                     <div className="mt-4">
                         <label className="block text-sm font-medium text-gray-700">Description</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.description}</div>
+                        <div className="mt-1 text-sm text-gray-900">{(study as any)?.description}</div>
                     </div>
                 )}
 
-                {study?.primaryObjective && (
+                {(study as any)?.primaryObjective && (
                     <div className="mt-4">
                         <label className="block text-sm font-medium text-gray-700">Primary Objective</label>
-                        <div className="mt-1 text-sm text-gray-900">{study?.primaryObjective}</div>
+                        <div className="mt-1 text-sm text-gray-900">{(study as any)?.primaryObjective}</div>
                     </div>
                 )}
 
@@ -769,7 +810,7 @@ const BasicInfoSummary = ({ study }) => {
 
 
 // Study Review Panel Component with completion button
-const StudyReviewPanel = ({ study, designProgress, onReviewSubmitted }) => {
+const StudyReviewPanel: React.FC<StudyReviewPanelProps> = ({ study, designProgress, onReviewSubmitted }) => {
     const [marking, setMarking] = React.useState(false);
     const [error, setError] = React.useState("");
     const completedPhases = Object.entries(designProgress).filter(
@@ -778,7 +819,7 @@ const StudyReviewPanel = ({ study, designProgress, onReviewSubmitted }) => {
     const pendingPhases = Object.entries(designProgress).filter(
         ([_, progress]) => !progress.completed
     );
-    const { studyId } = useParams();
+    const { studyId } = useParams<{ studyId: string }>();
     // Submit study for review (changes status from PLANNING to PROTOCOL_REVIEW)
     const handleSubmitForReview = async () => {
         setMarking(true);
@@ -786,7 +827,7 @@ const StudyReviewPanel = ({ study, designProgress, onReviewSubmitted }) => {
 
         try {
             // Check current study status - Backend returns status as flat string
-            const currentStatus = study?.status || study?.studyStatus?.code;
+            const currentStatus = (study as any)?.status || (study as any)?.studyStatus?.code;
 
             // If already in review status, show appropriate message
             if (currentStatus === 'PROTOCOL_REVIEW') {
@@ -802,16 +843,16 @@ const StudyReviewPanel = ({ study, designProgress, onReviewSubmitted }) => {
 
             // First change the study status to PROTOCOL_REVIEW
             console.log('Changing study status to PROTOCOL_REVIEW for study:', studyId);
-            await StudyDesignService.changeStudyStatus(studyId, 'PROTOCOL_REVIEW');
+            await StudyDesignService.changeStudyStatus(studyId!, 'PROTOCOL_REVIEW');
             console.log('Study status changed successfully');
 
             // Then mark the review phase as completed in design progress
             console.log('Updating design progress for review phase');
-            await StudyDesignService.updateDesignProgress(studyId, {
+            await StudyDesignService.updateDesignProgress(studyId!, {
                 progressData: {
                     review: { phase: "review", completed: true, percentage: 100 }
                 }
-            });
+            } as any);
             console.log('Design progress updated successfully');
 
             // Show success message instead of reload
@@ -845,7 +886,7 @@ const StudyReviewPanel = ({ study, designProgress, onReviewSubmitted }) => {
                 await onReviewSubmitted();
             }
 
-        } catch (e) {
+        } catch (e: any) {
             console.error('Error submitting study for review:', e);
             console.log('Error details:', {
                 message: e.message,
@@ -937,7 +978,7 @@ const StudyReviewPanel = ({ study, designProgress, onReviewSubmitted }) => {
                     {/* Render button based on current study status */}
                     {(() => {
                         // Backend returns status as flat string, not nested object
-                        const currentStatus = study?.status || study?.studyStatus?.code;
+                        const currentStatus = (study as any)?.status || (study as any)?.studyStatus?.code;
                         console.log('StudyReviewPanel rendering - Current status:', currentStatus, 'Full study:', study);
 
                         if (currentStatus === 'PROTOCOL_REVIEW') {
@@ -1008,7 +1049,7 @@ const StudyReviewPanel = ({ study, designProgress, onReviewSubmitted }) => {
 };
 
 // Custom Phase Tracker with Separator Support
-const StudyDesignPhaseTracker = ({
+const StudyDesignPhaseTracker: React.FC<StudyDesignPhaseTrackerProps> = ({
     phases,
     currentPhase,
     completedPhases,
@@ -1016,7 +1057,7 @@ const StudyDesignPhaseTracker = ({
     onPhaseChange,
     isPhaseAccessible
 }) => {
-    const getStatusIcon = (phaseId) => {
+    const getStatusIcon = (phaseId: string) => {
         if (completedPhases.includes(phaseId)) {
             return <CheckCircle className="h-5 w-5 text-green-500" />;
         }
@@ -1029,7 +1070,7 @@ const StudyDesignPhaseTracker = ({
         return <div className="h-5 w-5 rounded-full border-2 border-gray-300" />;
     };
 
-    const getPhaseClasses = (phase) => {
+    const getPhaseClasses = (phase: DesignPhase): string => {
         if (phase.type === 'separator') {
             return 'py-2'; // Just padding for separators
         }

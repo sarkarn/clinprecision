@@ -1,22 +1,45 @@
-// src/components/modules/trialdesign/study-management/DocumentUploadModal.jsx
+// src/components/modules/trialdesign/study-management/DocumentUploadModal.tsx
 import React, { useState } from 'react';
 import { X, Upload, FileText, AlertCircle } from 'lucide-react';
 import StudyDocumentService from '../../../../services/data-capture/StudyDocumentService';
 
+// Type Definitions
+interface DocumentType {
+    value: string;
+    label: string;
+}
+
+interface MockDocument {
+    fileName: string;
+    fileSize: number;
+    documentType: string;
+    description: string;
+    uploadedAt: string;
+    uploadedBy: number;
+    status: string;
+}
+
+interface DocumentUploadModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    studyId: string | number;
+    onUploadSuccess?: (document: MockDocument) => void;
+}
+
 /**
  * Modal for uploading documents to a study
  */
-const DocumentUploadModal = ({ isOpen, onClose, studyId, onUploadSuccess }) => {
-    const [file, setFile] = useState(null);
-    const [documentType, setDocumentType] = useState('');
-    const [description, setDescription] = useState('');
-    const [uploading, setUploading] = useState(false);
-    const [error, setError] = useState('');
-    const [dragActive, setDragActive] = useState(false);
+const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({ isOpen, onClose, studyId, onUploadSuccess }) => {
+    const [file, setFile] = useState<File | null>(null);
+    const [documentType, setDocumentType] = useState<string>('');
+    const [description, setDescription] = useState<string>('');
+    const [uploading, setUploading] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+    const [dragActive, setDragActive] = useState<boolean>(false);
 
-    const documentTypes = StudyDocumentService.getDocumentTypes();
+    const documentTypes: DocumentType[] = StudyDocumentService.getDocumentTypes();
 
-    const handleFileChange = (selectedFile) => {
+    const handleFileChange = (selectedFile: File | null) => {
         if (selectedFile) {
             // Validate file size (max 10MB)
             const maxSize = 10 * 1024 * 1024; // 10MB
@@ -48,7 +71,7 @@ const DocumentUploadModal = ({ isOpen, onClose, studyId, onUploadSuccess }) => {
         }
     };
 
-    const handleDrag = (e) => {
+    const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
         if (e.type === "dragenter" || e.type === "dragover") {
@@ -58,7 +81,7 @@ const DocumentUploadModal = ({ isOpen, onClose, studyId, onUploadSuccess }) => {
         }
     };
 
-    const handleDrop = (e) => {
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
@@ -68,7 +91,7 @@ const DocumentUploadModal = ({ isOpen, onClose, studyId, onUploadSuccess }) => {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if (!file) {
@@ -89,7 +112,7 @@ const DocumentUploadModal = ({ isOpen, onClose, studyId, onUploadSuccess }) => {
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Create a mock document object
-            const mockDocument = {
+            const mockDocument: MockDocument = {
                 fileName: file.name,
                 fileSize: file.size,
                 documentType: documentType,
@@ -167,13 +190,13 @@ const DocumentUploadModal = ({ isOpen, onClose, studyId, onUploadSuccess }) => {
                             onDragLeave={handleDrag}
                             onDragOver={handleDrag}
                             onDrop={handleDrop}
-                            onClick={() => document.getElementById('file-input').click()}
+                            onClick={() => document.getElementById('file-input')?.click()}
                         >
                             <input
                                 id="file-input"
                                 type="file"
                                 className="hidden"
-                                onChange={(e) => handleFileChange(e.target.files[0])}
+                                onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
                                 disabled={uploading}
                             />
 
