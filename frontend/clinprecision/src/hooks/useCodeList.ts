@@ -1,6 +1,78 @@
 import { useState, useEffect, useMemo } from 'react';
 import { CODE_LIST_ENDPOINTS } from '../services/StudyServiceModern';
 
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+/**
+ * Code list category keys
+ */
+export type CodeListCategory =
+  | 'REGULATORY_STATUS'
+  | 'STUDY_PHASE'
+  | 'STUDY_STATUS'
+  | 'AMENDMENT_TYPE'
+  | 'VISIT_TYPE';
+
+/**
+ * Standardized code list item structure
+ */
+export interface CodeListItem {
+  id: number | string;
+  value: string;
+  label: string;
+  description?: string;
+  code?: string;
+  name?: string;
+  [key: string]: any; // Allow additional properties
+}
+
+/**
+ * Options for useCodeList hook
+ */
+export interface UseCodeListOptions {
+  /** Query filters to apply */
+  filters?: Record<string, string | number | boolean>;
+  /** Enable caching */
+  enableCache?: boolean;
+  /** Cache time-to-live in milliseconds */
+  cacheTimeMs?: number;
+  /** Fallback data if fetch fails */
+  fallbackData?: CodeListItem[];
+  /** Transform function for raw data */
+  transformData?: ((data: any[]) => any[]) | null;
+  /** Enable automatic refresh */
+  autoRefresh?: boolean;
+  /** Auto-refresh interval in milliseconds */
+  refreshIntervalMs?: number;
+}
+
+/**
+ * Cached code list data structure
+ */
+interface CachedCodeListData {
+  data: CodeListItem[];
+  timestamp: number;
+}
+
+/**
+ * Return type of useCodeList hook
+ */
+export interface UseCodeListResult {
+  data: CodeListItem[];
+  loading: boolean;
+  error: string | null;
+  refresh: () => void;
+  clearCache: () => void;
+  lastFetch: string;
+  cacheKey: string;
+}
+
+// ============================================================================
+// Hook Implementation
+// ============================================================================
+
 /**
  * Universal CodeList Hook
  * 
@@ -13,12 +85,28 @@ import { CODE_LIST_ENDPOINTS } from '../services/StudyServiceModern';
  * - Support for filtering and metadata queries
  * - Consistent data format across all components
  * - Fallback to default data when services unavailable
+ * 
+ * @param category - The code list category to fetch
+ * @param options - Configuration options
+ * @returns Code list data and utilities
+ * 
+ * @example
+ * ```typescript
+ * const { data, loading, error, refresh } = useCodeList('STUDY_PHASE', {
+ *   enableCache: true,
+ *   cacheTimeMs: 300000, // 5 minutes
+ *   fallbackData: defaultPhases
+ * });
+ * ```
  */
-export const useCodeList = (category, options = {}) => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [lastFetch, setLastFetch] = useState(null);
+export const useCodeList = (
+  category: CodeListCategory | string,
+  options: UseCodeListOptions = {}
+): UseCodeListResult => {
+  const [data, setData] = useState<CodeListItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastFetch, setLastFetch] = useState<number | null>(null);
 
   const {
     filters = {},
@@ -44,7 +132,7 @@ export const useCodeList = (category, options = {}) => {
   }, [enableCache, lastFetch, cacheTimeMs]);
 
   // Fetch data from API
-  const fetchData = async (force = false) => {
+  const fetchData = async (force: boolean = false): Promise<void> => {
     if (!force && isCacheValid) {
       return; // Use cached data
     }
@@ -62,7 +150,12 @@ export const useCodeList = (category, options = {}) => {
       // Add filters for advanced queries
       let requestUrl = baseEndpoint;
       if (Object.keys(filters).length > 0) {
-        const queryParams = new URLSearchParams(filters);
+        const queryParams = new URLSearchParams(
+          Object.entries(filters).reduce((acc, [key, value]) => {
+            acc[key] = String(value);
+            return acc;
+          }, {} as Record<string, string>)
+        );
         requestUrl += `?${queryParams}`;
       }
 
@@ -81,7 +174,7 @@ export const useCodeList = (category, options = {}) => {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const rawData = await response.json();
+      const rawData: any[] = await response.json();
       console.log(`✅ Retrieved ${rawData.length} items for ${category}`);
 
       // Transform data if transformer provided
@@ -91,7 +184,7 @@ export const useCodeList = (category, options = {}) => {
       }
 
       // Ensure consistent format for frontend components
-      const formattedData = processedData.map(item => ({
+      const formattedData: CodeListItem[] = processedData.map((item: any) => ({
         id: item.id,
         value: item.code || item.value,
         label: item.name || item.label,
@@ -105,25 +198,27 @@ export const useCodeList = (category, options = {}) => {
       // Cache data in localStorage if enabled
       if (enableCache) {
         try {
-          localStorage.setItem(cacheKey, JSON.stringify({
+          const cachedData: CachedCodeListData = {
             data: formattedData,
             timestamp: Date.now()
-          }));
+          };
+          localStorage.setItem(cacheKey, JSON.stringify(cachedData));
         } catch (e) {
           console.warn('Failed to cache data:', e);
         }
       }
 
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.error(`❌ Error fetching CodeList data for ${category}:`, err);
-      setError(err.message);
+      setError(errorMessage);
       
       // Try to load from cache first
       if (enableCache) {
         try {
           const cached = localStorage.getItem(cacheKey);
           if (cached) {
-            const { data: cachedData } = JSON.parse(cached);
+            const { data: cachedData }: CachedCodeListData = JSON.parse(cached);
             console.log(`🔄 Using cached data for ${category} (${cachedData.length} items)`);
             setData(cachedData);
             setLastFetch(Date.now()); // Reset to prevent continuous retries
@@ -150,7 +245,7 @@ export const useCodeList = (category, options = {}) => {
       try {
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
-          const { data: cachedData, timestamp } = JSON.parse(cached);
+          const { data: cachedData, timestamp }: CachedCodeListData = JSON.parse(cached);
           if ((Date.now() - timestamp) < cacheTimeMs) {
             console.log(`💾 Using cached data for ${category} (${cachedData.length} items)`);
             setData(cachedData);
@@ -166,7 +261,8 @@ export const useCodeList = (category, options = {}) => {
 
     // Fetch fresh data
     fetchData();
-  }, [category, cacheKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, cacheKey]);
 
   // Auto-refresh setup
   useEffect(() => {
@@ -177,13 +273,16 @@ export const useCodeList = (category, options = {}) => {
     }, refreshIntervalMs);
 
     return () => clearInterval(intervalId);
-  }, [autoRefresh, refreshIntervalMs]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRefresh, refreshIntervalMs]);
 
   // Manual refresh function
-  const refresh = () => fetchData(true);
+  const refresh = (): void => {
+    fetchData(true);
+  };
 
   // Clear cache function
-  const clearCache = () => {
+  const clearCache = (): void => {
     try {
       localStorage.removeItem(cacheKey);
       console.log(`🗑️  Cleared cache for ${category}`);
@@ -198,15 +297,19 @@ export const useCodeList = (category, options = {}) => {
     error,
     refresh,
     clearCache,
-    lastFetch: new Date(lastFetch).toISOString(),
+    lastFetch: lastFetch ? new Date(lastFetch).toISOString() : '',
     cacheKey
   };
 };
 
+// ============================================================================
+// Specialized Hooks
+// ============================================================================
+
 /**
- * Specialized hooks for common code lists
+ * Hook for fetching regulatory statuses
  */
-export const useRegulatoryStatuses = (options = {}) => {
+export const useRegulatoryStatuses = (options: UseCodeListOptions = {}): UseCodeListResult => {
   return useCodeList('REGULATORY_STATUS', {
     fallbackData: [
       { id: 1, value: 'NOT_APPLICABLE', label: 'Not Applicable', description: 'No regulatory approval required' },
@@ -218,7 +321,10 @@ export const useRegulatoryStatuses = (options = {}) => {
   });
 };
 
-export const useStudyPhases = (options = {}) => {
+/**
+ * Hook for fetching study phases
+ */
+export const useStudyPhases = (options: UseCodeListOptions = {}): UseCodeListResult => {
   return useCodeList('STUDY_PHASE', {
     fallbackData: [
       { id: 1, value: 'PRECLINICAL', label: 'Preclinical', description: 'Laboratory and animal studies' },
@@ -230,7 +336,10 @@ export const useStudyPhases = (options = {}) => {
   });
 };
 
-export const useStudyStatuses = (options = {}) => {
+/**
+ * Hook for fetching study statuses
+ */
+export const useStudyStatuses = (options: UseCodeListOptions = {}): UseCodeListResult => {
   return useCodeList('STUDY_STATUS', {
     fallbackData: [
       { id: 1, value: 'DRAFT', label: 'Draft', description: 'Study in draft state' },
@@ -242,7 +351,10 @@ export const useStudyStatuses = (options = {}) => {
   });
 };
 
-export const useAmendmentTypes = (options = {}) => {
+/**
+ * Hook for fetching amendment types
+ */
+export const useAmendmentTypes = (options: UseCodeListOptions = {}): UseCodeListResult => {
   return useCodeList('AMENDMENT_TYPE', {
     fallbackData: [
       { id: 1, value: 'MAJOR', label: 'Major Amendment', description: 'Significant protocol changes' },
@@ -253,7 +365,10 @@ export const useAmendmentTypes = (options = {}) => {
   });
 };
 
-export const useVisitTypes = (options = {}) => {
+/**
+ * Hook for fetching visit types
+ */
+export const useVisitTypes = (options: UseCodeListOptions = {}): UseCodeListResult => {
   return useCodeList('VISIT_TYPE', {
     fallbackData: [
       { id: 1, value: 'SCREENING', label: 'Screening Visit', description: 'Initial patient screening' },

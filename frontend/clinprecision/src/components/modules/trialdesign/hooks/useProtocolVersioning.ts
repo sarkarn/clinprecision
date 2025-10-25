@@ -1,20 +1,73 @@
 import { useState, useCallback, useEffect } from 'react';
-import StudyVersioningService from '../../../../services/StudyVersioningService';
+import StudyVersioningService, {
+  ProtocolVersion,
+  ProtocolVersionStatus as ServiceProtocolVersionStatus,
+  ProtocolVersionCreateData as ServiceProtocolVersionCreateData,
+  ProtocolVersionUpdateData as ServiceProtocolVersionUpdateData
+} from '../../../../services/StudyVersioningService';
+import {
+  ProtocolVersionStatus,
+  AmendmentType,
+  ProtocolVersionStatusInfo,
+  AmendmentTypeInfo,
+  ProtocolVersionStatusConfig,
+  AmendmentTypeConfig,
+  ProtocolVersionCreateData,
+  ProtocolVersionUpdateData
+} from '../types/ProtocolVersioning.types';
+
+/**
+ * Hook return type for useProtocolVersioning
+ */
+export interface UseProtocolVersioningReturn {
+  // State
+  protocolVersions: ProtocolVersion[];
+  currentProtocolVersion: ProtocolVersion | null;
+  editingVersion: ProtocolVersion | null;
+  loading: boolean;
+  error: string | null;
+  
+  // Constants
+  PROTOCOL_VERSION_STATUS: ProtocolVersionStatusConfig;
+  AMENDMENT_TYPES: AmendmentTypeConfig;
+  
+  // Actions
+  loadProtocolVersions: () => Promise<void>;
+  createProtocolVersion: (versionData: Partial<ProtocolVersionCreateData>) => Promise<ProtocolVersion>;
+  updateProtocolVersion: (versionId: string | number, updateData: ProtocolVersionUpdateData) => Promise<void>;
+  deleteProtocolVersion: (versionId: string | number) => Promise<void>;
+  submitForReview: (versionId: string | number) => Promise<void>;
+  approveProtocolVersion: (versionId: string | number) => Promise<void>;
+  activateProtocolVersion: (versionId: string | number) => Promise<void>;
+  setEditingVersion: (version: ProtocolVersion | null) => void;
+  
+  // Utilities
+  generateNextVersionNumber: () => string;
+  compareVersionNumbers: (version1: string, version2: string) => number;
+  getVersionsByStatus: (status: ProtocolVersionStatus | string) => ProtocolVersion[];
+  canPerformAction: (version: ProtocolVersion | null, action: 'edit' | 'submit' | 'approve' | 'activate') => boolean;
+  getActiveVersion: () => ProtocolVersion | null;
+  getApprovedVersionsCount: () => number;
+  clearError: () => void;
+}
 
 /**
  * Custom hook for Protocol Version Management
  * Handles CRUD operations for protocol versions with enhanced features
+ * 
+ * @param studyId - The ID of the study to manage protocol versions for
+ * @returns Protocol versioning state and operations
  */
-const useProtocolVersioning = (studyId) => {
-  const [protocolVersions, setProtocolVersions] = useState([]);
-  const [currentProtocolVersion, setCurrentProtocolVersion] = useState(null);
-  const [editingVersion, setEditingVersion] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+const useProtocolVersioning = (studyId: string | undefined): UseProtocolVersioningReturn => {
+  const [protocolVersions, setProtocolVersions] = useState<ProtocolVersion[]>([]);
+  const [currentProtocolVersion, setCurrentProtocolVersion] = useState<ProtocolVersion | null>(null);
+  const [editingVersion, setEditingVersion] = useState<ProtocolVersion | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Protocol Version Status definitions
-  const PROTOCOL_VERSION_STATUS = {
-    DRAFT: {
+  const PROTOCOL_VERSION_STATUS: ProtocolVersionStatusConfig = {
+    [ProtocolVersionStatus.DRAFT]: {
       value: 'DRAFT',
       label: 'Initial Draft',
       description: 'Protocol version in development',
@@ -24,7 +77,7 @@ const useProtocolVersioning = (studyId) => {
       canApprove: false,
       canActivate: false
     },
-    UNDER_REVIEW: {
+    [ProtocolVersionStatus.UNDER_REVIEW]: {
       value: 'UNDER_REVIEW',
       label: 'Submitted for Review',
       description: 'Submitted to IRB/EC for review',
@@ -34,7 +87,7 @@ const useProtocolVersioning = (studyId) => {
       canApprove: false,
       canActivate: false
     },
-    AMENDMENT_REVIEW: {
+    [ProtocolVersionStatus.AMENDMENT_REVIEW]: {
       value: 'AMENDMENT_REVIEW',
       label: 'Pending Approval',
       description: 'Under IRB/EC review for approval',
@@ -44,7 +97,7 @@ const useProtocolVersioning = (studyId) => {
       canApprove: true,
       canActivate: false
     },
-    APPROVED: {
+    [ProtocolVersionStatus.APPROVED]: {
       value: 'APPROVED',
       label: 'Approved',
       description: 'Approved by IRB/EC and regulatory bodies',
@@ -54,7 +107,7 @@ const useProtocolVersioning = (studyId) => {
       canApprove: false,
       canActivate: true
     },
-    ACTIVE: {
+    [ProtocolVersionStatus.ACTIVE]: {
       value: 'ACTIVE',
       label: 'Active',
       description: 'Currently active protocol version',
@@ -64,7 +117,7 @@ const useProtocolVersioning = (studyId) => {
       canApprove: false,
       canActivate: false
     },
-    SUPERSEDED: {
+    [ProtocolVersionStatus.SUPERSEDED]: {
       value: 'SUPERSEDED',
       label: 'Superseded',
       description: 'Replaced by newer version',
@@ -74,7 +127,7 @@ const useProtocolVersioning = (studyId) => {
       canApprove: false,
       canActivate: false
     },
-    WITHDRAWN: {
+    [ProtocolVersionStatus.WITHDRAWN]: {
       value: 'WITHDRAWN',
       label: 'Withdrawn',
       description: 'Protocol version withdrawn',
@@ -87,28 +140,28 @@ const useProtocolVersioning = (studyId) => {
   };
 
   // Amendment Types for protocol versions
-  const AMENDMENT_TYPES = {
-    INITIAL: {
+  const AMENDMENT_TYPES: AmendmentTypeConfig = {
+    [AmendmentType.INITIAL]: {
       value: 'INITIAL',
       label: 'Initial Protocol',
       description: 'Initial protocol version'
     },
-    MAJOR: {
+    [AmendmentType.MAJOR]: {
       value: 'MAJOR',
       label: 'Major Amendment',
       description: 'Protocol changes affecting safety/efficacy'
     },
-    MINOR: {
+    [AmendmentType.MINOR]: {
       value: 'MINOR',
       label: 'Minor Amendment',
       description: 'Administrative changes'
     },
-    SAFETY: {
+    [AmendmentType.SAFETY]: {
       value: 'SAFETY',
       label: 'Safety Amendment',
       description: 'Safety-related changes'
     },
-    ADMINISTRATIVE: {
+    [AmendmentType.ADMINISTRATIVE]: {
       value: 'ADMINISTRATIVE',
       label: 'Administrative Amendment',
       description: 'Non-substantial changes'
@@ -116,12 +169,12 @@ const useProtocolVersioning = (studyId) => {
   };
 
   // Clear error helper
-  const clearError = useCallback(() => {
+  const clearError = useCallback((): void => {
     setError(null);
   }, []);
 
   // Compare version numbers (e.g., "1.0", "1.1", "2.0")
-  const compareVersionNumbers = useCallback((version1, version2) => {
+  const compareVersionNumbers = useCallback((version1: string, version2: string): number => {
     const parts1 = version1.split('.').map(Number);
     const parts2 = version2.split('.').map(Number);
     
@@ -136,27 +189,29 @@ const useProtocolVersioning = (studyId) => {
   }, []);
 
   // Helper function to reload versions (stable reference)
-  const reloadVersions = useCallback(async () => {
+  const reloadVersions = useCallback(async (): Promise<void> => {
     if (!studyId || typeof studyId !== 'string') return;
     
     try {
       const versions = await StudyVersioningService.getVersionHistory(studyId);
-      const transformedVersions = versions.map(version => ({
+      const transformedVersions = versions.map((version: any) => ({
         ...version,
         versionNumber: version.versionNumber || version.version,
-        statusInfo: PROTOCOL_VERSION_STATUS[version.status] || PROTOCOL_VERSION_STATUS.DRAFT
-      })).sort((a, b) => {
+        statusInfo: PROTOCOL_VERSION_STATUS[version.status as ProtocolVersionStatus] || PROTOCOL_VERSION_STATUS[ProtocolVersionStatus.DRAFT]
+      })).sort((a: ProtocolVersion, b: ProtocolVersion) => {
         const versionCompare = compareVersionNumbers(b.versionNumber || '1.0', a.versionNumber || '1.0');
         if (versionCompare !== 0) return versionCompare;
-        return new Date(b.createdDate || b.createdAt) - new Date(a.createdDate || a.createdAt);
+        return new Date(b.createdDate || '').getTime() - new Date(a.createdDate || '').getTime();
       });
 
       setProtocolVersions(transformedVersions);
       
-      // Set current version
-      const activeVersion = transformedVersions.find(v => v.status === 'ACTIVE');
-      const latestApproved = transformedVersions.find(v => v.status === 'APPROVED');
-      const latestDraft = transformedVersions.find(v => v.status === 'DRAFT' || v.status === 'UNDER_REVIEW' || v.status === 'AMENDMENT_REVIEW');
+      // Set current version (Service uses PUBLISHED instead of ACTIVE)
+      const activeVersion = transformedVersions.find((v: ProtocolVersion) => v.status === 'PUBLISHED');
+      const latestApproved = transformedVersions.find((v: ProtocolVersion) => v.status === 'APPROVED');
+      const latestDraft = transformedVersions.find((v: ProtocolVersion) => 
+        v.status === 'DRAFT' || v.status === 'UNDER_REVIEW'
+      );
       
       setCurrentProtocolVersion(activeVersion || latestApproved || latestDraft || transformedVersions[0] || null);
     } catch (error) {
@@ -166,7 +221,7 @@ const useProtocolVersioning = (studyId) => {
   }, [studyId, compareVersionNumbers, PROTOCOL_VERSION_STATUS]);
 
   // Load protocol versions for a study
-  const loadProtocolVersions = useCallback(async () => {
+  const loadProtocolVersions = useCallback(async (): Promise<void> => {
     if (!studyId || typeof studyId !== 'string') {
       console.warn('Invalid studyId provided to loadProtocolVersions:', studyId);
       return;
@@ -179,15 +234,16 @@ const useProtocolVersioning = (studyId) => {
       await reloadVersions();
       
     } catch (error) {
+      const errorMessage = (error as Error).message || 'Failed to load protocol versions';
       console.error('Error loading protocol versions:', error);
-      setError(error.message || 'Failed to load protocol versions');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   }, [studyId, clearError, reloadVersions]);
 
   // Generate next version number suggestion
-  const generateNextVersionNumber = useCallback(() => {
+  const generateNextVersionNumber = useCallback((): string => {
     if (protocolVersions.length === 0) {
       return '1.0';
     }
@@ -206,7 +262,7 @@ const useProtocolVersioning = (studyId) => {
   }, [protocolVersions]);
 
   // Create new protocol version
-  const createProtocolVersion = useCallback(async (versionData) => {
+  const createProtocolVersion = useCallback(async (versionData: Partial<ProtocolVersionCreateData>): Promise<ProtocolVersion> => {
     if (!studyId || typeof studyId !== 'string') {
       console.error('Invalid studyId provided to createProtocolVersion:', studyId);
       throw new Error('Invalid study ID');
@@ -221,9 +277,7 @@ const useProtocolVersioning = (studyId) => {
       const amendmentType = versionData.amendmentType || (isInitialVersion ? 'INITIAL' : 'MINOR');
       
       // Provide default changesSummary based on amendment type
-      let changesSummary = versionData.changesSummary && versionData.changesSummary.trim() 
-        ? versionData.changesSummary.trim() 
-        : null;
+      let changesSummary: string | null = (versionData as any).changesSummary?.trim() || null;
       
       // If changesSummary is not provided, create a default based on amendment type
       if (!changesSummary) {
@@ -242,29 +296,36 @@ const useProtocolVersioning = (studyId) => {
         }
       }
       
-      const newVersionData = {
-        studyId: studyId,
+      const newVersionData: any = {
+        studyId: parseInt(studyId, 10), // Convert string to number for service
         versionNumber: versionData.versionNumber || generateNextVersionNumber(),
         description: versionData.description || '',
         amendmentType: amendmentType,
-        amendmentReason: versionData.amendmentReason && versionData.amendmentReason.trim() ? versionData.amendmentReason.trim() : null,
-        changesSummary: changesSummary, // Now always has a value when amendmentType is set
+        amendmentReason: (versionData as any).amendmentReason?.trim() || null,
+        changesSummary: changesSummary,
         effectiveDate: versionData.effectiveDate || null,
-        requiresRegulatoryApproval: versionData.requiresRegulatoryApproval !== false, // Default to true
-        notifyStakeholders: versionData.notifyStakeholders !== false, // Default true
+        requiresRegulatoryApproval: (versionData as any).requiresRegulatoryApproval !== false,
+        notifyStakeholders: (versionData as any).notifyStakeholders !== false,
         status: 'DRAFT',
         createdBy: 1 // TODO: Get from auth context
       };
 
-      const createdVersion = await StudyVersioningService.createVersion(studyId, newVersionData);
+      // Parse studyId to number for service call
+      const numericStudyId = parseInt(studyId, 10);
+      if (isNaN(numericStudyId)) {
+        throw new Error('Invalid study ID format');
+      }
+
+      const createdVersion = await StudyVersioningService.createVersion(numericStudyId, newVersionData);
       
       // Reload versions to get updated state
       await reloadVersions();
       
-      return createdVersion;
+      return createdVersion; // Service returns compatible ProtocolVersion type
     } catch (error) {
+      const errorMessage = (error as Error).message || 'Failed to create protocol version';
       console.error('Error creating protocol version:', error);
-      setError(error.message || 'Failed to create protocol version');
+      setError(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -272,7 +333,7 @@ const useProtocolVersioning = (studyId) => {
   }, [studyId, generateNextVersionNumber, protocolVersions.length, clearError, reloadVersions]);
 
   // Submit protocol version for review
-  const submitForReview = useCallback(async (versionId) => {
+  const submitForReview = useCallback(async (versionId: string | number): Promise<void> => {
     try {
       setLoading(true);
       clearError();
@@ -285,8 +346,9 @@ const useProtocolVersioning = (studyId) => {
       await reloadVersions();
       
     } catch (error) {
+      const errorMessage = (error as Error).message || 'Failed to submit version for review';
       console.error('Error submitting version for review:', error);
-      setError(error.message || 'Failed to submit version for review');
+      setError(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -294,7 +356,7 @@ const useProtocolVersioning = (studyId) => {
   }, [reloadVersions, clearError]);
 
   // Approve protocol version
-  const approveProtocolVersion = useCallback(async (versionId) => {
+  const approveProtocolVersion = useCallback(async (versionId: string | number): Promise<void> => {
     try {
       setLoading(true);
       clearError();
@@ -307,8 +369,9 @@ const useProtocolVersioning = (studyId) => {
       await reloadVersions();
       
     } catch (error) {
+      const errorMessage = (error as Error).message || 'Failed to approve protocol version';
       console.error('Error approving protocol version:', error);
-      setError(error.message || 'Failed to approve protocol version');
+      setError(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -316,21 +379,22 @@ const useProtocolVersioning = (studyId) => {
   }, [reloadVersions, clearError]);
 
   // Activate protocol version (marks others as superseded)
-  const activateProtocolVersion = useCallback(async (versionId) => {
+  const activateProtocolVersion = useCallback(async (versionId: string | number): Promise<void> => {
     try {
       setLoading(true);
       clearError();
 
       await StudyVersioningService.updateVersionStatus(
         versionId, 
-        'ACTIVE',
+        'PUBLISHED' as ServiceProtocolVersionStatus, // Service uses PUBLISHED for active state
         'Protocol version activated for use in trial'
       );
       await reloadVersions();
       
     } catch (error) {
+      const errorMessage = (error as Error).message || 'Failed to activate protocol version';
       console.error('Error activating protocol version:', error);
-      setError(error.message || 'Failed to activate protocol version');
+      setError(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -338,7 +402,7 @@ const useProtocolVersioning = (studyId) => {
   }, [reloadVersions, clearError]);
 
   // Update protocol version
-  const updateProtocolVersion = useCallback(async (versionId, updateData) => {
+  const updateProtocolVersion = useCallback(async (versionId: string | number, updateData: ProtocolVersionUpdateData): Promise<void> => {
     try {
       setLoading(true);
       clearError();
@@ -347,8 +411,9 @@ const useProtocolVersioning = (studyId) => {
       await reloadVersions();
       
     } catch (error) {
+      const errorMessage = (error as Error).message || 'Failed to update protocol version';
       console.error('Error updating protocol version:', error);
-      setError(error.message || 'Failed to update protocol version');
+      setError(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -356,7 +421,7 @@ const useProtocolVersioning = (studyId) => {
   }, [reloadVersions, clearError]);
 
   // Delete protocol version (only if DRAFT)
-  const deleteProtocolVersion = useCallback(async (versionId) => {
+  const deleteProtocolVersion = useCallback(async (versionId: string | number): Promise<void> => {
     try {
       setLoading(true);
       clearError();
@@ -365,8 +430,9 @@ const useProtocolVersioning = (studyId) => {
       await reloadVersions();
       
     } catch (error) {
+      const errorMessage = (error as Error).message || 'Failed to delete protocol version';
       console.error('Error deleting protocol version:', error);
-      setError(error.message || 'Failed to delete protocol version');
+      setError(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -374,13 +440,13 @@ const useProtocolVersioning = (studyId) => {
   }, [reloadVersions, clearError]);
 
   // Get versions by status
-  const getVersionsByStatus = useCallback((status) => {
+  const getVersionsByStatus = useCallback((status: ProtocolVersionStatus | string): ProtocolVersion[] => {
     return protocolVersions.filter(version => version.status === status);
   }, [protocolVersions]);
 
   // Check if version can perform action
-  const canPerformAction = useCallback((version, action) => {
-    const statusInfo = PROTOCOL_VERSION_STATUS[version?.status];
+  const canPerformAction = useCallback((version: ProtocolVersion | null, action: 'edit' | 'submit' | 'approve' | 'activate'): boolean => {
+    const statusInfo = version?.status ? PROTOCOL_VERSION_STATUS[version.status as ProtocolVersionStatus] : null;
     if (!statusInfo) return false;
     
     switch (action) {
@@ -395,17 +461,17 @@ const useProtocolVersioning = (studyId) => {
       default:
         return false;
     }
-  }, []);
+  }, [PROTOCOL_VERSION_STATUS]);
 
-  // Get active protocol version
-  const getActiveVersion = useCallback(() => {
-    return protocolVersions.find(version => version.status === 'ACTIVE') || null;
+  // Get active protocol version (Service uses PUBLISHED instead of ACTIVE)
+  const getActiveVersion = useCallback((): ProtocolVersion | null => {
+    return protocolVersions.find(version => version.status === 'PUBLISHED') || null;
   }, [protocolVersions]);
 
   // Get approved versions count
-  const getApprovedVersionsCount = useCallback(() => {
+  const getApprovedVersionsCount = useCallback((): number => {
     return protocolVersions.filter(version => 
-      version.status === 'APPROVED' || version.status === 'ACTIVE'
+      version.status === 'APPROVED' || version.status === 'PUBLISHED' // PUBLISHED is the service's active state
     ).length;
   }, [protocolVersions]);
 

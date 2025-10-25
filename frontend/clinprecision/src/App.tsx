@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './components/login/AuthContext';
@@ -6,27 +7,39 @@ import Login from './components/login/Login';
 import ProtectedRoute from './components/login/ProtectedRoute';
 import Home from './components/home';
 
-
-function AppContent() {
+/**
+ * AppContent Component
+ * Manages the main routing structure of the application
+ */
+const AppContent: React.FC = () => {
     return (
         <Router>
             <div className="min-h-screen bg-gray-100">
                 <Routes>
                     <Route path="/login" element={<Login />} />
-                    <Route path="/*" element={
-                        <ProtectedRoute>
-                            <Home />
-                        </ProtectedRoute>
-                    } />
+                    <Route 
+                        path="/*" 
+                        element={
+                            <ProtectedRoute requiredRole={undefined}>
+                                <Home />
+                            </ProtectedRoute>
+                        } 
+                    />
                     {/* Legacy redirect: forward old /admin paths to new /user-management */}
                     <Route path="/admin/*" element={<Navigate to="/user-management" replace />} />
                 </Routes>
             </div>
         </Router>
     );
-}
+};
 
-export default function App() {
+/**
+ * App Component
+ * Root component that provides global context providers and toast notifications
+ * 
+ * @returns {React.ReactElement} The root application component
+ */
+const App: React.FC = () => {
     return (
         <AuthProvider>
             <StudyProvider>
@@ -58,4 +71,6 @@ export default function App() {
             </StudyProvider>
         </AuthProvider>
     );
-}
+};
+
+export default App;

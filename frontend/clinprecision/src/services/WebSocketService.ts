@@ -1,5 +1,5 @@
 // src/services/WebSocketService.ts
-import { API_BASE_URL } from '../config.js';
+import { API_BASE_URL } from '../config';
 import {
   IWebSocketService,
   WebSocketMessage,

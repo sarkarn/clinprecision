@@ -1,6 +1,6 @@
 // src/services/ApiService.ts
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
-import { API_BASE_URL } from '../config.js';
+import { API_BASE_URL } from '../config';
 import {
   ApiRequestConfig,
   IApiService,

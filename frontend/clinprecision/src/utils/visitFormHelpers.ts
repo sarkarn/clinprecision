@@ -5,26 +5,93 @@
  * 
  * @module visitFormHelpers
  * @created October 22, 2025
+ * @migrated-to-ts October 24, 2025
  */
 
-import axios from 'axios';
 import ApiService from '../services/ApiService';
+
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+/**
+ * Visit type enumeration
+ */
+export type VisitType = 'SCREENING' | 'ENROLLMENT' | 'ADVERSE_EVENT' | 'DISCONTINUATION';
+
+/**
+ * Form timing options
+ */
+export type FormTiming = 'ANY_TIME' | 'DURING_VISIT' | 'POST_VISIT' | 'PRE_VISIT';
+
+/**
+ * Visit creation parameters
+ */
+export interface VisitData {
+  patientId: number;
+  studyId: number;
+  siteId: number;
+  visitType: VisitType;
+  visitDate: string; // ISO format: YYYY-MM-DD
+  createdBy: number;
+  notes?: string;
+}
+
+/**
+ * Form configuration object
+ */
+export interface FormConfig {
+  id: number;
+  isRequired?: boolean;
+  isConditional?: boolean;
+  conditionalLogic?: string | null;
+  displayOrder?: number;
+  instructions?: string;
+  timing?: FormTiming;
+}
+
+/**
+ * Standard form set item
+ */
+export interface StandardFormItem {
+  id: number;
+  name: string;
+  isRequired: boolean;
+}
+
+/**
+ * Visit response from API
+ */
+export interface VisitResponse {
+  visitId: string;
+  [key: string]: any;
+}
+
+/**
+ * Form assignment options
+ */
+export interface FormAssignmentOptions {
+  isRequired?: boolean;
+  isConditional?: boolean;
+  conditionalLogic?: string;
+  displayOrder?: number;
+  instructions?: string;
+  timing?: FormTiming;
+}
+
+// ============================================================================
+// Core Functions
+// ============================================================================
 
 /**
  * Create an unscheduled visit and assign forms in a single operation
  * 
- * @param {Object} visitData - Visit creation parameters
- * @param {number} visitData.patientId - Patient ID
- * @param {number} visitData.studyId - Study ID
- * @param {number} visitData.siteId - Site ID
- * @param {string} visitData.visitType - Visit type (SCREENING, ENROLLMENT, ADVERSE_EVENT, DISCONTINUATION)
- * @param {string} visitData.visitDate - Visit date (ISO format: YYYY-MM-DD)
- * @param {number} visitData.createdBy - User ID
- * @param {string} [visitData.notes] - Optional notes
- * @param {Array<number|Object>} formIds - Array of form IDs or form config objects
- * @returns {Promise<Object>} Complete visit details with forms
+ * @param visitData - Visit creation parameters
+ * @param formIds - Array of form IDs or form config objects
+ * @returns Complete visit details with forms
  * 
  * @example
+ * ```typescript
  * // Simple usage with form IDs
  * const visit = await createUnscheduledVisitWithForms(
  *   {
@@ -38,8 +105,10 @@ import ApiService from '../services/ApiService';
  *   },
  *   [101, 102, 103]  // Demographics, Vitals, Labs
  * );
+ * ```
  * 
  * @example
+ * ```typescript
  * // Advanced usage with form configuration
  * const visit = await createUnscheduledVisitWithForms(
  *   { ...visitData },
@@ -49,13 +118,20 @@ import ApiService from '../services/ApiService';
  *     { id: 103, isRequired: false, displayOrder: 3, timing: 'POST_VISIT' }
  *   ]
  * );
+ * ```
  */
-export const createUnscheduledVisitWithForms = async (visitData, formIds = []) => {
+export const createUnscheduledVisitWithForms = async (
+  visitData: VisitData,
+  formIds: (number | FormConfig)[] = []
+): Promise<any> => {
   try {
     console.log('Creating unscheduled visit...', visitData);
     
     // Step 1: Create the visit
-    const visitResponse = await ApiService.post('/clinops-ws/api/v1/visits/unscheduled', visitData);
+    const visitResponse = await ApiService.post<VisitResponse>(
+      '/clinops-ws/api/v1/visits/unscheduled',
+      visitData
+    );
     const visitUuid = visitResponse.data.visitId;
     
     console.log('Visit created:', visitUuid);
@@ -68,7 +144,7 @@ export const createUnscheduledVisitWithForms = async (visitData, formIds = []) =
         formIds.map((formConfig, index) => {
           // Handle both simple IDs and config objects
           const formId = typeof formConfig === 'number' ? formConfig : formConfig.id;
-          const formSettings = typeof formConfig === 'object' ? formConfig : {};
+          const formSettings: Partial<FormConfig> = typeof formConfig === 'object' ? formConfig : {};
           
           return ApiService.post(
             `/clinops-ws/api/studies/${visitData.studyId}/visits/${visitUuid}/forms/${formId}`,
@@ -104,24 +180,25 @@ export const createUnscheduledVisitWithForms = async (visitData, formIds = []) =
 /**
  * Add a single form to an existing visit
  * 
- * @param {number} visitInstanceId - Visit instance ID (Long primary key, not UUID)
- * @param {number} formId - Form definition ID
- * @param {Object} options - Form configuration
- * @param {boolean} [options.isRequired=true] - Whether form is required
- * @param {boolean} [options.isConditional=false] - Whether form is conditional
- * @param {string} [options.conditionalLogic] - Conditional logic expression
- * @param {number} [options.displayOrder] - Display order (auto-calculated if omitted)
- * @param {string} [options.instructions] - User instructions
- * @returns {Promise<Object>} Assignment response
+ * @param visitInstanceId - Visit instance ID (Long primary key, not UUID)
+ * @param formId - Form definition ID
+ * @param options - Form configuration
+ * @returns Assignment response
  * 
  * @example
+ * ```typescript
  * await addFormToVisit(123, 101, {
  *   isRequired: true,
  *   displayOrder: 1,
  *   instructions: 'Complete during visit'
  * });
+ * ```
  */
-export const addFormToVisit = async (visitInstanceId, formId, options = {}) => {
+export const addFormToVisit = async (
+  visitInstanceId: number,
+  formId: number,
+  options: FormAssignmentOptions = {}
+): Promise<any> => {
   try {
     const response = await ApiService.post(
       `/clinops-ws/api/v1/visits/${visitInstanceId}/forms/${formId}`,
@@ -143,23 +220,28 @@ export const addFormToVisit = async (visitInstanceId, formId, options = {}) => {
 /**
  * Add multiple forms to an existing visit
  * 
- * @param {number} visitInstanceId - Visit instance ID (Long primary key)
- * @param {Array<number|Object>} formIds - Array of form IDs or config objects
- * @returns {Promise<Array>} Array of assignment responses
+ * @param visitInstanceId - Visit instance ID (Long primary key)
+ * @param formIds - Array of form IDs or config objects
+ * @returns Array of assignment responses
  * 
  * @example
+ * ```typescript
  * await addMultipleFormsToVisit(123, [
  *   { id: 101, isRequired: true },
  *   { id: 102, isRequired: true },
  *   { id: 103, isRequired: false }
  * ]);
+ * ```
  */
-export const addMultipleFormsToVisit = async (visitInstanceId, formIds) => {
+export const addMultipleFormsToVisit = async (
+  visitInstanceId: number,
+  formIds: (number | FormConfig)[]
+): Promise<any[]> => {
   try {
     const assignments = await Promise.all(
       formIds.map((formConfig, index) => {
         const formId = typeof formConfig === 'number' ? formConfig : formConfig.id;
-        const options = typeof formConfig === 'object' ? formConfig : {};
+        const options: FormAssignmentOptions = typeof formConfig === 'object' ? formConfig : {};
         
         // Auto-calculate display order if not provided
         if (!options.displayOrder) {
@@ -178,12 +260,16 @@ export const addMultipleFormsToVisit = async (visitInstanceId, formIds) => {
   }
 };
 
+// ============================================================================
+// Predefined Form Sets
+// ============================================================================
+
 /**
  * Predefined form sets for common visit types
  * 
  * NOTE: Update these form IDs to match your actual form_definitions
  */
-export const STANDARD_FORM_SETS = {
+export const STANDARD_FORM_SETS: Record<VisitType, StandardFormItem[]> = {
   SCREENING: [
     { id: 101, name: 'Demographics', isRequired: true },
     { id: 102, name: 'Medical History', isRequired: true },
@@ -212,13 +298,18 @@ export const STANDARD_FORM_SETS = {
   ]
 };
 
+// ============================================================================
+// Visit Type Helpers
+// ============================================================================
+
 /**
  * Create a screening visit with standard forms
  * 
- * @param {Object} visitData - Visit creation parameters (without visitType)
- * @returns {Promise<Object>} Complete visit details
+ * @param visitData - Visit creation parameters (without visitType)
+ * @returns Complete visit details
  * 
  * @example
+ * ```typescript
  * const visit = await createScreeningVisit({
  *   patientId: 123,
  *   studyId: 456,
@@ -227,8 +318,11 @@ export const STANDARD_FORM_SETS = {
  *   createdBy: 1,
  *   notes: 'Initial screening'
  * });
+ * ```
  */
-export const createScreeningVisit = async (visitData) => {
+export const createScreeningVisit = async (
+  visitData: Omit<VisitData, 'visitType'>
+): Promise<any> => {
   return createUnscheduledVisitWithForms(
     { ...visitData, visitType: 'SCREENING' },
     STANDARD_FORM_SETS.SCREENING.map(f => f.id)
@@ -238,10 +332,12 @@ export const createScreeningVisit = async (visitData) => {
 /**
  * Create an enrollment visit with standard forms
  * 
- * @param {Object} visitData - Visit creation parameters (without visitType)
- * @returns {Promise<Object>} Complete visit details
+ * @param visitData - Visit creation parameters (without visitType)
+ * @returns Complete visit details
  */
-export const createEnrollmentVisit = async (visitData) => {
+export const createEnrollmentVisit = async (
+  visitData: Omit<VisitData, 'visitType'>
+): Promise<any> => {
   return createUnscheduledVisitWithForms(
     { ...visitData, visitType: 'ENROLLMENT' },
     STANDARD_FORM_SETS.ENROLLMENT.map(f => f.id)
@@ -251,10 +347,12 @@ export const createEnrollmentVisit = async (visitData) => {
 /**
  * Create an adverse event visit with standard forms
  * 
- * @param {Object} visitData - Visit creation parameters (without visitType)
- * @returns {Promise<Object>} Complete visit details
+ * @param visitData - Visit creation parameters (without visitType)
+ * @returns Complete visit details
  */
-export const createAdverseEventVisit = async (visitData) => {
+export const createAdverseEventVisit = async (
+  visitData: Omit<VisitData, 'visitType'>
+): Promise<any> => {
   return createUnscheduledVisitWithForms(
     { ...visitData, visitType: 'ADVERSE_EVENT' },
     STANDARD_FORM_SETS.ADVERSE_EVENT.map(f => f.id)
@@ -264,10 +362,12 @@ export const createAdverseEventVisit = async (visitData) => {
 /**
  * Create a discontinuation visit with standard forms
  * 
- * @param {Object} visitData - Visit creation parameters (without visitType)
- * @returns {Promise<Object>} Complete visit details
+ * @param visitData - Visit creation parameters (without visitType)
+ * @returns Complete visit details
  */
-export const createDiscontinuationVisit = async (visitData) => {
+export const createDiscontinuationVisit = async (
+  visitData: Omit<VisitData, 'visitType'>
+): Promise<any> => {
   return createUnscheduledVisitWithForms(
     { ...visitData, visitType: 'DISCONTINUATION' },
     STANDARD_FORM_SETS.DISCONTINUATION.map(f => f.id)
@@ -277,40 +377,64 @@ export const createDiscontinuationVisit = async (visitData) => {
 /**
  * Get form configuration for a specific visit type
  * 
- * @param {string} visitType - Visit type (SCREENING, ENROLLMENT, etc.)
- * @returns {Array<Object>} Array of form configurations
+ * @param visitType - Visit type
+ * @returns Array of form configurations
  */
-export const getStandardFormsForVisitType = (visitType) => {
+export const getStandardFormsForVisitType = (visitType: VisitType): StandardFormItem[] => {
   return STANDARD_FORM_SETS[visitType] || [];
 };
+
+// ============================================================================
+// Validation Functions
+// ============================================================================
 
 /**
  * Validate visit data before creation
  * 
- * @param {Object} visitData - Visit creation parameters
- * @throws {Error} If validation fails
+ * @param visitData - Visit creation parameters
+ * @throws Error if validation fails
  */
-export const validateVisitData = (visitData) => {
-  const required = ['patientId', 'studyId', 'siteId', 'visitType', 'visitDate', 'createdBy'];
+export const validateVisitData = (visitData: Partial<VisitData>): void => {
+  const required: (keyof VisitData)[] = [
+    'patientId',
+    'studyId',
+    'siteId',
+    'visitType',
+    'visitDate',
+    'createdBy'
+  ];
+  
   const missing = required.filter(field => !visitData[field]);
   
   if (missing.length > 0) {
     throw new Error(`Missing required fields: ${missing.join(', ')}`);
   }
   
-  const validTypes = ['SCREENING', 'ENROLLMENT', 'ADVERSE_EVENT', 'DISCONTINUATION'];
-  if (!validTypes.includes(visitData.visitType)) {
-    throw new Error(`Invalid visit type: ${visitData.visitType}. Must be one of: ${validTypes.join(', ')}`);
+  const validTypes: VisitType[] = [
+    'SCREENING',
+    'ENROLLMENT',
+    'ADVERSE_EVENT',
+    'DISCONTINUATION'
+  ];
+  
+  if (visitData.visitType && !validTypes.includes(visitData.visitType)) {
+    throw new Error(
+      `Invalid visit type: ${visitData.visitType}. Must be one of: ${validTypes.join(', ')}`
+    );
   }
   
   // Validate date format (YYYY-MM-DD)
   const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-  if (!datePattern.test(visitData.visitDate)) {
+  if (visitData.visitDate && !datePattern.test(visitData.visitDate)) {
     throw new Error('Visit date must be in YYYY-MM-DD format');
   }
 };
 
-export default {
+// ============================================================================
+// Default Export
+// ============================================================================
+
+const visitFormHelpers = {
   createUnscheduledVisitWithForms,
   addFormToVisit,
   addMultipleFormsToVisit,
@@ -322,3 +446,5 @@ export default {
   validateVisitData,
   STANDARD_FORM_SETS
 };
+
+export default visitFormHelpers;
