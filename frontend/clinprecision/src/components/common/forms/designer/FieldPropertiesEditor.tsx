@@ -1,25 +1,119 @@
 import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
-import { X, Plus, Trash2, Eye, EyeOff, Copy, Check, AlertCircle } from 'lucide-react';
+import { X, Plus, Trash2, Copy, AlertCircle } from 'lucide-react';
 
-/**
- * FieldPropertiesEditor - Edits field properties and configuration
- * Used within FormDesigner for editing selected field properties
- */
-const FieldPropertiesEditor = ({
+// Interfaces
+interface FieldOption {
+    value: string;
+    label: string;
+}
+
+interface Field {
+    id: string;
+    label: string;
+    type: string;
+    description?: string;
+    required?: boolean;
+    readOnly?: boolean;
+    hidden?: boolean;
+    className?: string;
+    width?: string;
+    order?: number;
+    conditions?: string;
+    metadata?: {
+        placeholder?: string;
+        maxLength?: number;
+        minLength?: number;
+        rows?: number;
+        cols?: number;
+        min?: number;
+        max?: number;
+        step?: number;
+        pattern?: string;
+        autocomplete?: string;
+        accept?: string;
+        multiple?: boolean;
+        maxSize?: number;
+        maxFiles?: number;
+        maxSelections?: number;
+        layout?: string;
+        checkedValue?: any;
+        uncheckedValue?: any;
+        [key: string]: any;
+    };
+    validation?: {
+        minLength?: number;
+        maxLength?: number;
+        min?: number;
+        max?: number;
+        pattern?: string;
+        message?: string;
+        [key: string]: any;
+    };
+    options?: (string | FieldOption)[];
+    [key: string]: any;
+}
+
+interface FieldType {
+    value: string;
+    label: string;
+}
+
+interface ValidationErrors {
+    [key: string]: string;
+}
+
+interface FieldTypeConfig {
+    supportedAttributes: string[];
+    validationRules: string[];
+    defaultMetadata: Record<string, any>;
+    requiresOptions?: boolean;
+}
+
+interface FieldPropertiesEditorProps {
+    field: Field;
+    context?: 'general' | 'study' | 'template' | 'patient';
+    onSave: (field: Field) => void;
+    onCancel: () => void;
+    onDelete?: (fieldId: string) => void;
+    onDuplicate?: (field: Field) => void;
+    availableFieldTypes?: FieldType[];
+    customValidators?: Record<string, (field: Field) => ValidationErrors>;
+    className?: string;
+}
+
+const defaultAvailableFieldTypes: FieldType[] = [
+    { value: 'text', label: 'Text Input' },
+    { value: 'textarea', label: 'Text Area' },
+    { value: 'number', label: 'Number' },
+    { value: 'email', label: 'Email' },
+    { value: 'tel', label: 'Phone' },
+    { value: 'url', label: 'URL' },
+    { value: 'date', label: 'Date' },
+    { value: 'time', label: 'Time' },
+    { value: 'datetime', label: 'Date & Time' },
+    { value: 'select', label: 'Dropdown' },
+    { value: 'multiselect', label: 'Multi-Select' },
+    { value: 'radio', label: 'Radio Buttons' },
+    { value: 'checkbox-group', label: 'Checkboxes' },
+    { value: 'checkbox', label: 'Single Checkbox' },
+    { value: 'file', label: 'File Upload' },
+    { value: 'range', label: 'Range Slider' }
+];
+
+const FieldPropertiesEditor: React.FC<FieldPropertiesEditorProps> = ({
     field,
     context = 'general',
     onSave,
     onCancel,
     onDelete,
     onDuplicate,
-    availableFieldTypes = [],
+    availableFieldTypes = defaultAvailableFieldTypes,
     customValidators = {},
     className = ''
 }) => {
-    const [editedField, setEditedField] = useState({ ...field });
-    const [activeTab, setActiveTab] = useState('basic');
-    const [validationErrors, setValidationErrors] = useState({});
+    const [editedField, setEditedField] = useState<Field>({ ...field });
+    const [activeTab, setActiveTab] = useState<string>('basic');
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
     const [isDirty, setIsDirty] = useState(false);
 
     // Update local state when field changes
@@ -30,7 +124,7 @@ const FieldPropertiesEditor = ({
     }, [field]);
 
     // Field type configurations
-    const fieldTypeConfigs = {
+    const fieldTypeConfigs: Record<string, FieldTypeConfig> = {
         text: {
             supportedAttributes: ['placeholder', 'maxLength', 'pattern', 'autocomplete'],
             validationRules: ['required', 'minLength', 'maxLength', 'pattern'],
@@ -118,7 +212,7 @@ const FieldPropertiesEditor = ({
     };
 
     // Get current field type config
-    const getCurrentConfig = () => {
+    const getCurrentConfig = (): FieldTypeConfig => {
         return fieldTypeConfigs[editedField.type] || {
             supportedAttributes: [],
             validationRules: [],
@@ -127,13 +221,13 @@ const FieldPropertiesEditor = ({
     };
 
     // Handle field property changes
-    const handleFieldChange = (property, value) => {
+    const handleFieldChange = (property: string, value: any): void => {
         const updatedField = { ...editedField };
 
         if (property.includes('.')) {
             // Handle nested properties like 'metadata.placeholder'
             const parts = property.split('.');
-            let current = updatedField;
+            let current: any = updatedField;
             for (let i = 0; i < parts.length - 1; i++) {
                 if (!current[parts[i]]) current[parts[i]] = {};
                 current = current[parts[i]];
@@ -150,7 +244,11 @@ const FieldPropertiesEditor = ({
 
         // Handle field type changes
         if (property === 'type') {
-            const newConfig = fieldTypeConfigs[value] || {};
+            const newConfig = fieldTypeConfigs[value] || {
+                supportedAttributes: [],
+                validationRules: [],
+                defaultMetadata: {}
+            };
             updatedField.metadata = {
                 ...newConfig.defaultMetadata,
                 ...updatedField.metadata
@@ -159,9 +257,9 @@ const FieldPropertiesEditor = ({
             // Clear incompatible validation rules
             if (updatedField.validation) {
                 const supportedRules = newConfig.validationRules || [];
-                const filteredValidation = {};
+                const filteredValidation: Record<string, any> = {};
                 supportedRules.forEach(rule => {
-                    if (updatedField.validation[rule] !== undefined) {
+                    if (updatedField.validation && updatedField.validation[rule] !== undefined) {
                         filteredValidation[rule] = updatedField.validation[rule];
                     }
                 });
@@ -181,7 +279,7 @@ const FieldPropertiesEditor = ({
     };
 
     // Generate field ID from label
-    const generateFieldId = (label) => {
+    const generateFieldId = (label: string): string => {
         return label
             .toLowerCase()
             .replace(/[^a-z0-9\s]/g, '')
@@ -190,8 +288,8 @@ const FieldPropertiesEditor = ({
     };
 
     // Validate field
-    const validateField = () => {
-        const errors = {};
+    const validateField = (): boolean => {
+        const errors: ValidationErrors = {};
 
         // Required fields
         if (!editedField.label?.trim()) {
@@ -224,16 +322,16 @@ const FieldPropertiesEditor = ({
     };
 
     // Handle save
-    const handleSave = () => {
+    const handleSave = (): void => {
         if (validateField()) {
             onSave(editedField);
         }
     };
 
     // Handle cancel
-    const handleCancel = () => {
+    const handleCancel = (): void => {
         if (isDirty) {
-            if (confirm('You have unsaved changes. Are you sure you want to cancel?')) {
+            if (window.confirm('You have unsaved changes. Are you sure you want to cancel?')) {
                 onCancel();
             }
         } else {
@@ -242,33 +340,37 @@ const FieldPropertiesEditor = ({
     };
 
     // Handle option management for select/radio/checkbox fields
-    const handleOptionAdd = () => {
+    const handleOptionAdd = (): void => {
         const currentOptions = editedField.options || [];
-        const newOption = {
+        const newOption: FieldOption = {
             value: `option_${currentOptions.length + 1}`,
             label: `Option ${currentOptions.length + 1}`
         };
         handleFieldChange('options', [...currentOptions, newOption]);
     };
 
-    const handleOptionChange = (index, property, value) => {
+    const handleOptionChange = (index: number, property: string, value: string): void => {
         const currentOptions = [...(editedField.options || [])];
         if (typeof currentOptions[index] === 'string') {
             // Convert string options to objects
-            currentOptions[index] = { value: currentOptions[index], label: currentOptions[index] };
+            currentOptions[index] = { 
+                value: currentOptions[index] as string, 
+                label: currentOptions[index] as string 
+            };
         }
-        currentOptions[index] = { ...currentOptions[index], [property]: value };
+        const option = currentOptions[index] as FieldOption;
+        currentOptions[index] = { ...option, [property]: value };
         handleFieldChange('options', currentOptions);
     };
 
-    const handleOptionRemove = (index) => {
+    const handleOptionRemove = (index: number): void => {
         const currentOptions = [...(editedField.options || [])];
         currentOptions.splice(index, 1);
         handleFieldChange('options', currentOptions);
     };
 
     // Render basic properties tab
-    const renderBasicTab = () => (
+    const renderBasicTab = (): React.ReactElement => (
         <div className="space-y-4">
             {/* Field Type */}
             <div>
@@ -297,8 +399,9 @@ const FieldPropertiesEditor = ({
                     type="text"
                     value={editedField.label || ''}
                     onChange={(e) => handleFieldChange('label', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${validationErrors.label ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        validationErrors.label ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="Enter field label"
                 />
                 {validationErrors.label && (
@@ -315,8 +418,9 @@ const FieldPropertiesEditor = ({
                     type="text"
                     value={editedField.id || ''}
                     onChange={(e) => handleFieldChange('id', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${validationErrors.id ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        validationErrors.id ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="field_id"
                 />
                 {validationErrors.id && (
@@ -332,7 +436,7 @@ const FieldPropertiesEditor = ({
                 <textarea
                     value={editedField.description || ''}
                     onChange={(e) => handleFieldChange('description', e.target.value)}
-                    rows="3"
+                    rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Optional field description or help text"
                 />
@@ -383,7 +487,7 @@ const FieldPropertiesEditor = ({
     );
 
     // Render validation tab
-    const renderValidationTab = () => {
+    const renderValidationTab = (): React.ReactElement => {
         const config = getCurrentConfig();
 
         return (
@@ -486,7 +590,7 @@ const FieldPropertiesEditor = ({
     };
 
     // Render options tab (for select, radio, checkbox-group fields)
-    const renderOptionsTab = () => {
+    const renderOptionsTab = (): React.ReactElement => {
         if (!getCurrentConfig().requiresOptions) {
             return (
                 <div className="text-center py-8 text-gray-500">
@@ -519,8 +623,8 @@ const FieldPropertiesEditor = ({
                     <div className="space-y-3">
                         {options.map((option, index) => {
                             const isStringOption = typeof option === 'string';
-                            const optionValue = isStringOption ? option : option.value;
-                            const optionLabel = isStringOption ? option : option.label;
+                            const optionValue = isStringOption ? option : (option as FieldOption).value;
+                            const optionLabel = isStringOption ? option : (option as FieldOption).label;
 
                             return (
                                 <div key={index} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-md">
@@ -548,7 +652,6 @@ const FieldPropertiesEditor = ({
                                         type="button"
                                         onClick={() => handleOptionRemove(index)}
                                         className="p-1 text-red-600 hover:text-red-700"
-                                        title="Remove option"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </button>
@@ -566,7 +669,7 @@ const FieldPropertiesEditor = ({
     };
 
     // Render advanced tab
-    const renderAdvancedTab = () => {
+    const renderAdvancedTab = (): React.ReactElement => {
         const config = getCurrentConfig();
 
         return (
@@ -638,7 +741,7 @@ const FieldPropertiesEditor = ({
                     <textarea
                         value={editedField.conditions || ''}
                         onChange={(e) => handleFieldChange('conditions', e.target.value)}
-                        rows="3"
+                        rows={3}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="e.g., other_field === 'value'"
                     />
@@ -663,7 +766,6 @@ const FieldPropertiesEditor = ({
                             type="button"
                             onClick={() => onDuplicate(editedField)}
                             className="p-2 text-gray-500 hover:text-gray-700"
-                            title="Duplicate Field"
                         >
                             <Copy className="h-4 w-4" />
                         </button>
@@ -673,7 +775,6 @@ const FieldPropertiesEditor = ({
                             type="button"
                             onClick={() => onDelete(editedField.id)}
                             className="p-2 text-red-500 hover:text-red-700"
-                            title="Delete Field"
                         >
                             <Trash2 className="h-4 w-4" />
                         </button>
@@ -701,10 +802,11 @@ const FieldPropertiesEditor = ({
                             key={tab.id}
                             type="button"
                             onClick={() => setActiveTab(tab.id)}
-                            className={`py-3 px-4 text-sm font-medium border-b-2 ${activeTab === tab.id
+                            className={`py-3 px-4 text-sm font-medium border-b-2 ${
+                                activeTab === tab.id
                                     ? 'border-blue-500 text-blue-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
+                            }`}
                         >
                             {tab.label}
                             {tab.id === 'options' && getCurrentConfig().requiresOptions && (
@@ -762,43 +864,6 @@ const FieldPropertiesEditor = ({
             </div>
         </div>
     );
-};
-
-FieldPropertiesEditor.propTypes = {
-    field: PropTypes.object.isRequired,
-    context: PropTypes.oneOf(['general', 'study', 'template', 'patient']),
-    onSave: PropTypes.func.isRequired,
-    onCancel: PropTypes.func.isRequired,
-    onDelete: PropTypes.func,
-    onDuplicate: PropTypes.func,
-    availableFieldTypes: PropTypes.arrayOf(PropTypes.shape({
-        value: PropTypes.string.isRequired,
-        label: PropTypes.string.isRequired
-    })),
-    customValidators: PropTypes.object,
-    className: PropTypes.string
-};
-
-FieldPropertiesEditor.defaultProps = {
-    availableFieldTypes: [
-        { value: 'text', label: 'Text Input' },
-        { value: 'textarea', label: 'Text Area' },
-        { value: 'number', label: 'Number' },
-        { value: 'email', label: 'Email' },
-        { value: 'tel', label: 'Phone' },
-        { value: 'url', label: 'URL' },
-        { value: 'date', label: 'Date' },
-        { value: 'time', label: 'Time' },
-        { value: 'datetime', label: 'Date & Time' },
-        { value: 'select', label: 'Dropdown' },
-        { value: 'multiselect', label: 'Multi-Select' },
-        { value: 'radio', label: 'Radio Buttons' },
-        { value: 'checkbox-group', label: 'Checkboxes' },
-        { value: 'checkbox', label: 'Single Checkbox' },
-        { value: 'file', label: 'File Upload' },
-        { value: 'range', label: 'Range Slider' }
-    ],
-    customValidators: {}
 };
 
 export default FieldPropertiesEditor;

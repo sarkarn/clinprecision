@@ -1,9 +1,72 @@
-import React, { useState, useEffect, useContext } from 'react';
-import PropTypes from 'prop-types';
-import { FormFieldRenderer } from './FormFieldRenderer';
-import { FormValidationProvider } from './FormValidationProvider';
-import { FormContext } from './FormContext';
+import React, { useState, useEffect } from 'react';
+import FormFieldRenderer from './FormFieldRenderer';
 import './FormRenderer.css';
+
+interface Field {
+    id: string;
+    name?: string;
+    label?: string;
+    type: string;
+    required?: boolean;
+    readOnly?: boolean;
+    validation?: ValidationRules;
+    [key: string]: any;
+}
+
+interface FormSection {
+    id?: string;
+    name?: string;
+    description?: string;
+    fields?: Field[];
+}
+
+interface FormDefinition {
+    name?: string;
+    description?: string;
+    sections?: FormSection[];
+    fields?: Field[];
+    [key: string]: any;
+}
+
+interface ValidationRules {
+    min?: number;
+    max?: number;
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+    patternMessage?: string;
+    minDate?: string;
+    maxDate?: string;
+    customValidator?: (value: any, allFormData: Record<string, any>, fieldDefinition: Field) => string | null;
+}
+
+interface CustomStyles {
+    container?: React.CSSProperties;
+    field?: Record<string, any>;
+    [key: string]: any;
+}
+
+interface FormRendererProps {
+    formDefinition: FormDefinition;
+    formData?: Record<string, any>;
+    mode?: 'entry' | 'view' | 'preview' | 'designer';
+    onDataChange?: (data: Record<string, any>, fieldId?: string, value?: any) => void;
+    onValidationChange?: (errors: Record<string, string[]>, isValid: boolean) => void;
+    onSave?: (data: Record<string, any>, isAutoSave?: boolean) => Promise<void> | void;
+    onCancel?: () => void;
+    validationRules?: Record<string, ValidationRules>;
+    fieldConfig?: Record<string, any>;
+    showSections?: boolean;
+    showProgress?: boolean;
+    customStyles?: CustomStyles;
+    className?: string;
+    autoSave?: boolean;
+    autoSaveDelay?: number;
+    readOnlyFields?: string[];
+    hiddenFields?: string[];
+    context?: 'general' | 'study' | 'template' | 'patient';
+    [key: string]: any;
+}
 
 /**
  * FormRenderer Component - Reusable form rendering engine
@@ -13,21 +76,8 @@ import './FormRenderer.css';
  * - 'view': Read-only form display for viewing submitted data
  * - 'preview': Preview mode showing form structure without saving capability
  * - 'designer': Design mode showing form structure with edit capabilities
- * 
- * @param {Object} formDefinition - The form structure and field definitions
- * @param {Object} formData - Current form data values
- * @param {string} mode - Rendering mode ('entry', 'view', 'preview', 'designer')
- * @param {Function} onDataChange - Callback when form data changes (entry mode)
- * @param {Function} onValidationChange - Callback when validation state changes
- * @param {Function} onSave - Callback for form save action
- * @param {Function} onCancel - Callback for form cancel action
- * @param {Object} validationRules - Custom validation rules
- * @param {Object} fieldConfig - Custom field configurations
- * @param {boolean} showSections - Whether to render form sections
- * @param {boolean} showProgress - Whether to show completion progress
- * @param {Object} customStyles - Custom styling overrides
  */
-const FormRenderer = ({
+const FormRenderer: React.FC<FormRendererProps> = ({
     formDefinition,
     formData = {},
     mode = 'entry',
@@ -45,15 +95,15 @@ const FormRenderer = ({
     autoSaveDelay = 2000,
     readOnlyFields = [],
     hiddenFields = [],
-    context = 'general', // 'general', 'study', 'template', 'patient'
+    context = 'general',
     ...props
 }) => {
-    const [currentData, setCurrentData] = useState(formData);
-    const [validationErrors, setValidationErrors] = useState({});
+    const [currentData, setCurrentData] = useState<Record<string, any>>(formData);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
     const [isValid, setIsValid] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
-    const [autoSaveTimeout, setAutoSaveTimeout] = useState(null);
+    const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
     // Update internal data when external formData changes
     useEffect(() => {
@@ -78,36 +128,9 @@ const FormRenderer = ({
         }
     }, [currentData, isDirty, autoSave, autoSaveDelay]);
 
-    // Handle field data changes
-    const handleFieldChange = (fieldId, value, fieldDefinition) => {
-        const newData = { ...currentData, [fieldId]: value };
-        setCurrentData(newData);
-        setIsDirty(true);
-
-        // Immediate validation for the changed field
-        if (mode === 'entry') {
-            const fieldErrors = validateField(fieldDefinition, value, newData);
-            const newValidationErrors = { ...validationErrors };
-
-            if (fieldErrors.length > 0) {
-                newValidationErrors[fieldId] = fieldErrors;
-            } else {
-                delete newValidationErrors[fieldId];
-            }
-
-            setValidationErrors(newValidationErrors);
-            const isFormValid = Object.keys(newValidationErrors).length === 0;
-            setIsValid(isFormValid);
-
-            onValidationChange(newValidationErrors, isFormValid);
-        }
-
-        onDataChange(newData, fieldId, value);
-    };
-
     // Validate individual field
-    const validateField = (fieldDefinition, value, allFormData) => {
-        const errors = [];
+    const validateField = (fieldDefinition: Field, value: any, allFormData: Record<string, any>): string[] => {
+        const errors: string[] = [];
         const rules = validationRules[fieldDefinition.id] || fieldDefinition.validation || {};
 
         // Required validation
@@ -175,6 +198,67 @@ const FormRenderer = ({
         return errors;
     };
 
+    // Handle field data changes
+    const handleFieldChange = (fieldId: string, value: any, fieldDefinition?: Field) => {
+        const newData = { ...currentData, [fieldId]: value };
+        setCurrentData(newData);
+        setIsDirty(true);
+
+        // Immediate validation for the changed field
+        if (mode === 'entry' && fieldDefinition) {
+            const fieldErrors = validateField(fieldDefinition, value, newData);
+            const newValidationErrors = { ...validationErrors };
+
+            if (fieldErrors.length > 0) {
+                newValidationErrors[fieldId] = fieldErrors;
+            } else {
+                delete newValidationErrors[fieldId];
+            }
+
+            setValidationErrors(newValidationErrors);
+            const isFormValid = Object.keys(newValidationErrors).length === 0;
+            setIsValid(isFormValid);
+
+            onValidationChange(newValidationErrors, isFormValid);
+        }
+
+        onDataChange(newData, fieldId, value);
+    };
+
+    // Validate entire form
+    const validateForm = (): Record<string, string[]> => {
+        const errors: Record<string, string[]> = {};
+
+        if (!formDefinition?.sections && !formDefinition?.fields) {
+            return errors;
+        }
+
+        const allFields: Field[] = [];
+
+        // Collect all fields from sections or direct fields array
+        if (formDefinition.sections) {
+            formDefinition.sections.forEach(section => {
+                if (section.fields) {
+                    allFields.push(...section.fields);
+                }
+            });
+        } else if (formDefinition.fields) {
+            allFields.push(...formDefinition.fields);
+        }
+
+        // Validate each field
+        allFields.forEach(field => {
+            if (!hiddenFields.includes(field.id)) {
+                const fieldErrors = validateField(field, currentData[field.id], currentData);
+                if (fieldErrors.length > 0) {
+                    errors[field.id] = fieldErrors;
+                }
+            }
+        });
+
+        return errors;
+    };
+
     // Handle form save
     const handleSave = async (isAutoSave = false) => {
         if (mode !== 'entry') return;
@@ -203,45 +287,11 @@ const FormRenderer = ({
         }
     };
 
-    // Validate entire form
-    const validateForm = () => {
-        const errors = {};
-
-        if (!formDefinition?.sections && !formDefinition?.fields) {
-            return errors;
-        }
-
-        const allFields = [];
-
-        // Collect all fields from sections or direct fields array
-        if (formDefinition.sections) {
-            formDefinition.sections.forEach(section => {
-                if (section.fields) {
-                    allFields.push(...section.fields);
-                }
-            });
-        } else if (formDefinition.fields) {
-            allFields.push(...formDefinition.fields);
-        }
-
-        // Validate each field
-        allFields.forEach(field => {
-            if (!hiddenFields.includes(field.id)) {
-                const fieldErrors = validateField(field, currentData[field.id], currentData);
-                if (fieldErrors.length > 0) {
-                    errors[field.id] = fieldErrors;
-                }
-            }
-        });
-
-        return errors;
-    };
-
     // Calculate completion percentage
-    const getCompletionPercentage = () => {
+    const getCompletionPercentage = (): number => {
         if (!formDefinition) return 0;
 
-        const allFields = [];
+        const allFields: Field[] = [];
 
         if (formDefinition.sections) {
             formDefinition.sections.forEach(section => {
@@ -260,6 +310,33 @@ const FormRenderer = ({
         });
 
         return visibleFields.length > 0 ? Math.round((completedFields.length / visibleFields.length) * 100) : 0;
+    };
+
+    // Render individual field
+    const renderField = (field: Field) => {
+        if (hiddenFields.includes(field.id)) {
+            return null;
+        }
+
+        const isReadOnly = mode === 'view' || readOnlyFields.includes(field.id) || field.readOnly;
+        const fieldErrors = validationErrors[field.id] || [];
+        const fieldValue = currentData[field.id];
+
+        return (
+            <FormFieldRenderer
+                key={field.id}
+                field={field}
+                value={fieldValue}
+                onChange={handleFieldChange}
+                mode={mode}
+                isReadOnly={isReadOnly}
+                errors={fieldErrors}
+                context={context}
+                config={fieldConfig[field.id] || {}}
+                customStyles={customStyles.field || {}}
+                {...(fieldConfig[field.id] || {})}
+            />
+        );
     };
 
     // Render form sections or fields
@@ -295,36 +372,8 @@ const FormRenderer = ({
         }
     };
 
-    // Render individual field
-    const renderField = (field) => {
-        if (hiddenFields.includes(field.id)) {
-            return null;
-        }
-
-        const isReadOnly = mode === 'view' || readOnlyFields.includes(field.id) || field.readOnly;
-        const fieldErrors = validationErrors[field.id] || [];
-        const fieldValue = currentData[field.id];
-
-        return (
-            <FormFieldRenderer
-                key={field.id}
-                field={field}
-                value={fieldValue}
-                onChange={handleFieldChange}
-                mode={mode}
-                isReadOnly={isReadOnly}
-                errors={fieldErrors}
-                context={context}
-                config={fieldConfig[field.id] || {}}
-                customStyles={customStyles.field || {}}
-                {...(fieldConfig[field.id] || {})}
-            />
-        );
-    };
-
     return (
-        <FormValidationProvider validationErrors={validationErrors} isValid={isValid}>
-            <div className={`form-renderer form-renderer--${mode} ${className}`} style={customStyles.container}>
+        <div className={`form-renderer form-renderer--${mode} ${className}`} style={customStyles.container}>
                 {/* Form Header */}
                 {formDefinition?.name && (
                     <div className="form-header mb-6">
@@ -404,29 +453,7 @@ const FormRenderer = ({
                     </div>
                 )}
             </div>
-        </FormValidationProvider>
     );
-};
-
-FormRenderer.propTypes = {
-    formDefinition: PropTypes.object.isRequired,
-    formData: PropTypes.object,
-    mode: PropTypes.oneOf(['entry', 'view', 'preview', 'designer']),
-    onDataChange: PropTypes.func,
-    onValidationChange: PropTypes.func,
-    onSave: PropTypes.func,
-    onCancel: PropTypes.func,
-    validationRules: PropTypes.object,
-    fieldConfig: PropTypes.object,
-    showSections: PropTypes.bool,
-    showProgress: PropTypes.bool,
-    customStyles: PropTypes.object,
-    className: PropTypes.string,
-    autoSave: PropTypes.bool,
-    autoSaveDelay: PropTypes.number,
-    readOnlyFields: PropTypes.array,
-    hiddenFields: PropTypes.array,
-    context: PropTypes.oneOf(['general', 'study', 'template', 'patient'])
 };
 
 export default FormRenderer;

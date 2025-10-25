@@ -1,12 +1,30 @@
 import React, { useState, useMemo } from 'react';
-import PropTypes from 'prop-types';
 import { Search, Type, Hash, Calendar, Clock, Mail, Phone, Link, File, Image, CheckSquare, Circle, MoreHorizontal, Stethoscope, Beaker, Pill } from 'lucide-react';
+
+interface FieldType {
+    value: string;
+    label: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    category: 'text' | 'number' | 'datetime' | 'choice' | 'file' | 'clinical';
+    usage: string;
+}
+
+interface FieldTypeSelectorProps {
+    context?: 'general' | 'study' | 'template' | 'patient';
+    onSelect: (fieldType: FieldType) => void;
+    onCancel?: () => void;
+    selectedType?: string | null;
+    showClinicalFields?: boolean;
+    customFieldTypes?: FieldType[];
+    className?: string;
+}
 
 /**
  * FieldTypeSelector - Visual field type selector with categories and search
  * Used within FormDesigner for selecting field types when adding new fields
  */
-const FieldTypeSelector = ({
+const FieldTypeSelector: React.FC<FieldTypeSelectorProps> = ({
     context = 'general',
     onSelect,
     onCancel,
@@ -16,11 +34,11 @@ const FieldTypeSelector = ({
     className = ''
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
     // Define field type configurations with icons and categories
-    const fieldTypes = useMemo(() => {
-        const baseTypes = [
+    const fieldTypes = useMemo((): FieldType[] => {
+        const baseTypes: FieldType[] = [
             // Text Input Types
             {
                 value: 'text',
@@ -185,7 +203,7 @@ const FieldTypeSelector = ({
         ];
 
         // Add clinical field types if enabled
-        const clinicalTypes = showClinicalFields || context === 'study' || context === 'patient' ? [
+        const clinicalTypes: FieldType[] = showClinicalFields || context === 'study' || context === 'patient' ? [
             {
                 value: 'vital-sign',
                 label: 'Vital Sign',
@@ -235,7 +253,7 @@ const FieldTypeSelector = ({
     }, [showClinicalFields, context, customFieldTypes]);
 
     // Define categories
-    const categories = [
+    const categories: Array<{ id: string; label: string; count: number }> = [
         { id: 'all', label: 'All Fields', count: fieldTypes.length },
         { id: 'text', label: 'Text & Input', count: fieldTypes.filter(t => t.category === 'text').length },
         { id: 'number', label: 'Numbers', count: fieldTypes.filter(t => t.category === 'number').length },
@@ -277,13 +295,13 @@ const FieldTypeSelector = ({
     }, [fieldTypes, selectedCategory, searchTerm]);
 
     // Handle field type selection
-    const handleSelect = (fieldType) => {
+    const handleSelect = (fieldType: FieldType) => {
         onSelect(fieldType);
     };
 
     // Get category color
-    const getCategoryColor = (category) => {
-        const colors = {
+    const getCategoryColor = (category: string): string => {
+        const colors: Record<string, string> = {
             text: 'text-blue-600 bg-blue-100',
             number: 'text-green-600 bg-green-100',
             datetime: 'text-purple-600 bg-purple-100',
@@ -433,28 +451,6 @@ const FieldTypeSelector = ({
             )}
         </div>
     );
-};
-
-FieldTypeSelector.propTypes = {
-    context: PropTypes.oneOf(['general', 'study', 'template', 'patient']),
-    onSelect: PropTypes.func.isRequired,
-    onCancel: PropTypes.func,
-    selectedType: PropTypes.string,
-    showClinicalFields: PropTypes.bool,
-    customFieldTypes: PropTypes.arrayOf(PropTypes.shape({
-        value: PropTypes.string.isRequired,
-        label: PropTypes.string.isRequired,
-        description: PropTypes.string.isRequired,
-        icon: PropTypes.elementType.isRequired,
-        category: PropTypes.string.isRequired,
-        usage: PropTypes.string.isRequired
-    })),
-    className: PropTypes.string
-};
-
-FieldTypeSelector.defaultProps = {
-    showClinicalFields: false,
-    customFieldTypes: []
 };
 
 export default FieldTypeSelector;
