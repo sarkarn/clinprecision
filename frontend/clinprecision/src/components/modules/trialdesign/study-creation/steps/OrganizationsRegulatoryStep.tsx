@@ -1,30 +1,79 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { StudyOrganizationService } from '../../../../../services/StudyOrganizationService';
-import StudyService from '../../../../../services/StudyService';
 import { LoadingOverlay, Alert } from '../../components/UIComponents';
+
+interface LookupItem {
+    id: number | string;
+    label?: string;
+    name?: string;
+    description?: string;
+}
+
+interface Organization {
+    id: string | number;
+    name: string;
+    description?: string;
+    organizationType?: {
+        name: string;
+    };
+}
+
+interface LookupData {
+    regulatoryStatuses?: LookupItem[];
+}
+
+interface OrganizationAssociation {
+    organizationId: string | number;
+    role: string;
+    isPrimary?: boolean;
+}
+
+interface OrganizationsRegulatoryStepProps {
+    formData: {
+        organizations?: OrganizationAssociation[];
+        regulatoryStatusId?: number | string;
+        ethicsApproval?: boolean;
+        fdaInd?: boolean;
+    };
+    onFieldChange: (name: string, value: any) => void;
+    getFieldError: (fieldName: string) => string | undefined;
+    hasFieldError: (fieldName: string) => boolean;
+    lookupData?: LookupData;
+}
+
+interface RoleOption {
+    value: string;
+    label: string;
+}
+
+interface RegulatoryStatusOption {
+    value: number | string;
+    label: string;
+    description?: string;
+}
 
 /**
  * Step 3: Organizations and Regulatory Information
  */
-const OrganizationsRegulatoryStep = ({
+const OrganizationsRegulatoryStep: React.FC<OrganizationsRegulatoryStepProps> = ({
     formData,
     onFieldChange,
     getFieldError,
     hasFieldError,
-    lookupData = { regulatoryStatuses: [] } // Add lookupData prop with default
+    lookupData = { regulatoryStatuses: [] }
 }) => {
-    const [availableOrganizations, setAvailableOrganizations] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [availableOrganizations, setAvailableOrganizations] = useState<Organization[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
     // State for regulatory statuses
-    const [regulatoryStatuses, setRegulatoryStatuses] = useState([]);
-    const [loadingLookups, setLoadingLookups] = useState(true);
-    const [lookupError, setLookupError] = useState(null);
+    const [regulatoryStatuses, setRegulatoryStatuses] = useState<RegulatoryStatusOption[]>([]);
+    const [loadingLookups, setLoadingLookups] = useState<boolean>(true);
+    const [lookupError, setLookupError] = useState<string | null>(null);
 
     // Load available organizations
     useEffect(() => {
-        const fetchOrganizations = async () => {
+        const fetchOrganizations = async (): Promise<void> => {
             try {
                 setLoading(true);
                 const orgs = await StudyOrganizationService.getAllOrganizations();
@@ -44,7 +93,7 @@ const OrganizationsRegulatoryStep = ({
 
     // Process regulatory status lookup data (use prop data if available, otherwise fetch)
     useEffect(() => {
-        const processRegulatoryStatuses = async () => {
+        const processRegulatoryStatuses = async (): Promise<void> => {
             // Don't re-run if we already have data
             if (regulatoryStatuses.length > 0) {
                 return;
@@ -54,23 +103,18 @@ const OrganizationsRegulatoryStep = ({
                 setLoadingLookups(true);
                 setLookupError(null);
 
-                let statuses = [];
+                let statuses: LookupItem[] = [];
 
                 // Use lookupData prop if available
                 if (lookupData?.regulatoryStatuses && Array.isArray(lookupData.regulatoryStatuses) && lookupData.regulatoryStatuses.length > 0) {
                     statuses = lookupData.regulatoryStatuses;
                 } else {
-                    // Fallback to independent loading if no prop data
-                    try {
-                        statuses = await StudyService.getRegulatoryStatuses();
-                    } catch (fetchError) {
-                        console.error('Error fetching regulatory statuses:', fetchError);
-                        throw fetchError;
-                    }
+                    // No lookup data provided - will use fallback values
+                    throw new Error('No regulatory status lookup data available');
                 }
 
                 // Transform to options format
-                const statusOptions = (statuses || []).map(status => ({
+                const statusOptions: RegulatoryStatusOption[] = (statuses || []).map(status => ({
                     value: status.id, // Use ID as value for backend
                     label: status.name || status.label || `Status ${status.id}`, // Use 'name' field primarily, fallback to 'label' or ID
                     description: status.description || ''
@@ -103,7 +147,7 @@ const OrganizationsRegulatoryStep = ({
     // Separate effect to handle prop changes
     useEffect(() => {
         if (lookupData?.regulatoryStatuses && Array.isArray(lookupData.regulatoryStatuses) && lookupData.regulatoryStatuses.length > 0) {
-            const statusOptions = lookupData.regulatoryStatuses.map(status => ({
+            const statusOptions: RegulatoryStatusOption[] = lookupData.regulatoryStatuses.map(status => ({
                 value: status.id,
                 label: status.name || status.label || `Status ${status.id}`,
                 description: status.description || ''
@@ -118,7 +162,7 @@ const OrganizationsRegulatoryStep = ({
     }, [lookupData]);
 
     // Memoize role options to prevent unnecessary re-renders
-    const roleOptions = useMemo(() => [
+    const roleOptions = useMemo<RoleOption[]>(() => [
         { value: 'sponsor', label: 'Sponsor' },
         { value: 'cro', label: 'Contract Research Organization (CRO)' },
         { value: 'site', label: 'Investigational Site' },
@@ -135,10 +179,10 @@ const OrganizationsRegulatoryStep = ({
     }, [regulatoryStatuses]);
 
     // Handle organization role assignment
-    const handleOrgRoleChange = (orgId, role, isPrimary = false) => {
+    const handleOrgRoleChange = (orgId: string | number, role: string, isPrimary: boolean = false): void => {
         try {
             const currentOrgs = formData.organizations || [];
-            const existingIndex = currentOrgs.findIndex(o => o.organizationId === orgId);
+            const existingIndex = currentOrgs.findIndex(o => String(o.organizationId) === String(orgId));
 
             if (!role) {
                 // Remove organization if no role selected
@@ -148,7 +192,7 @@ const OrganizationsRegulatoryStep = ({
                 }
             } else {
                 // Add or update organization
-                const orgAssociation = {
+                const orgAssociation: OrganizationAssociation = {
                     organizationId: orgId,
                     role,
                     isPrimary
@@ -170,7 +214,7 @@ const OrganizationsRegulatoryStep = ({
     };
 
     // Set primary organization for a role
-    const handleSetPrimary = (orgId, role) => {
+    const handleSetPrimary = (orgId: string | number, role: string): void => {
         try {
             const currentOrgs = formData.organizations || [];
             const newOrgs = currentOrgs.map(org => ({
@@ -178,7 +222,7 @@ const OrganizationsRegulatoryStep = ({
                 // Only clear isPrimary for organizations with the SAME role
                 // This allows one primary per role type, not one primary total
                 isPrimary: org.role === role
-                    ? (org.organizationId === orgId) // Set true for selected org, false for others in same role
+                    ? (String(org.organizationId) === String(orgId)) // Set true for selected org, false for others in same role
                     : org.isPrimary // Keep existing isPrimary for different roles
             }));
             onFieldChange('organizations', newOrgs);
@@ -188,19 +232,19 @@ const OrganizationsRegulatoryStep = ({
     };
 
     // Get current role for an organization
-    const getCurrentRole = (orgId) => {
-        const org = formData.organizations?.find(o => o.organizationId === orgId);
+    const getCurrentRole = (orgId: string | number): string => {
+        const org = formData.organizations?.find(o => String(o.organizationId) === String(orgId));
         return org?.role || '';
     };
 
     // Check if organization is primary for its role
-    const isPrimaryForRole = (orgId) => {
-        const org = formData.organizations?.find(o => o.organizationId === orgId);
+    const isPrimaryForRole = (orgId: string | number): boolean => {
+        const org = formData.organizations?.find(o => String(o.organizationId) === String(orgId));
         return org?.isPrimary || false;
     };
 
     // Get the primary organization for a specific role
-    const getPrimaryForRole = (role) => {
+    const getPrimaryForRole = (role: string): OrganizationAssociation | undefined => {
         return formData.organizations?.find(org => org.role === role && org.isPrimary);
     };
 
@@ -302,7 +346,7 @@ const OrganizationsRegulatoryStep = ({
                     <h4 className="text-md font-medium text-blue-800 mb-3">Study Associations Summary</h4>
                     <div className="space-y-2">
                         {formData.organizations.map(orgAssoc => {
-                            const org = availableOrganizations.find(o => o.id === orgAssoc.organizationId);
+                            const org = availableOrganizations.find(o => String(o.id) === String(orgAssoc.organizationId));
                             const role = roleOptions.find(r => r.value === orgAssoc.role);
 
                             return (
@@ -329,11 +373,11 @@ const OrganizationsRegulatoryStep = ({
                             Regulatory Status
                         </label>
                         <select
-                            value={formData.regulatoryStatusId || ''}
+                            value={formData.regulatoryStatusId != null ? String(formData.regulatoryStatusId) : ''}
                             onChange={(e) => {
                                 // Convert to number if it's a valid number, otherwise keep as string
                                 const value = e.target.value;
-                                const numValue = !isNaN(value) && value !== '' ? Number(value) : value;
+                                const numValue = !isNaN(Number(value)) && value !== '' ? Number(value) : value;
                                 onFieldChange('regulatoryStatusId', numValue);
                             }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -341,7 +385,7 @@ const OrganizationsRegulatoryStep = ({
                         >
                             <option value="">{loadingLookups ? "Loading..." : "Select Status"}</option>
                             {filteredRegulatoryOptions.map(option => (
-                                <option key={option.value} value={option.value}>
+                                <option key={option.value} value={String(option.value)}>
                                     {option.label}
                                 </option>
                             ))}

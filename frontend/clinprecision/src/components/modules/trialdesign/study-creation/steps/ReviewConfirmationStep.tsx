@@ -1,42 +1,93 @@
 import React from 'react';
 import { Alert } from '../../components/UIComponents';
 
+interface Organization {
+    id: string | number;
+    name: string;
+}
+
+interface LookupItem {
+    id: number | string;
+    label?: string;
+    name?: string;
+}
+
+interface LookupData {
+    studyPhases?: LookupItem[];
+    studyStatuses?: LookupItem[];
+    regulatoryStatuses?: LookupItem[];
+}
+
+interface OrganizationAssociation {
+    organizationId: number;
+    role: string;
+    isPrimary?: boolean;
+}
+
+interface ReviewConfirmationStepProps {
+    formData: {
+        name?: string;
+        protocolNumber?: string;
+        studyPhaseId?: number | string;
+        studyType?: string;
+        studyStatusId?: number | string;
+        organizationId?: number | null;
+        sponsor?: string;
+        description?: string;
+        plannedStartDate?: string;
+        plannedEndDate?: string;
+        estimatedDuration?: string;
+        principalInvestigator?: string;
+        studyCoordinator?: string;
+        medicalMonitor?: string;
+        primaryObjective?: string;
+        secondaryObjectives?: string[];
+        organizations?: OrganizationAssociation[];
+        regulatoryStatusId?: number | string;
+        ethicsApproval?: boolean;
+        fdaInd?: boolean;
+    };
+    availableOrganizations?: Organization[];
+    lookupData?: LookupData;
+    onEdit: (stepIndex: number) => void;
+}
+
 /**
  * Step 4: Review and Confirmation
  */
-const ReviewConfirmationStep = ({
+const ReviewConfirmationStep: React.FC<ReviewConfirmationStepProps> = ({
     formData,
     availableOrganizations = [],
     lookupData = { studyPhases: [], studyStatuses: [], regulatoryStatuses: [] },
     onEdit
 }) => {
     // Helper function to get organization name by ID
-    const getOrganizationName = (orgId) => {
-        const org = availableOrganizations.find(o => o.id === orgId);
+    const getOrganizationName = (orgId: string | number): string => {
+        const org = availableOrganizations.find(o => String(o.id) === String(orgId));
         return org?.name || 'Unknown Organization';
     };
 
     // Helper function to get study phase name by ID
-    const getStudyPhaseName = (phaseId) => {
-        const phase = lookupData.studyPhases.find(p => p.id === parseInt(phaseId));
+    const getStudyPhaseName = (phaseId: number | string): string => {
+        const phase = lookupData.studyPhases?.find(p => String(p.id) === String(phaseId));
         return phase?.name || phase?.label || 'Unknown Phase';
     };
 
     // Helper function to get study status name by ID
-    const getStudyStatusName = (statusId) => {
-        const status = lookupData.studyStatuses.find(s => s.id === parseInt(statusId));
+    const getStudyStatusName = (statusId: number | string): string => {
+        const status = lookupData.studyStatuses?.find(s => String(s.id) === String(statusId));
         return status?.name || status?.label || 'Unknown Status';
     };
 
     // Helper function to get regulatory status name by ID
-    const getRegulatoryStatusName = (statusId) => {
-        const status = lookupData.regulatoryStatuses.find(s => s.id === parseInt(statusId));
+    const getRegulatoryStatusName = (statusId: number | string): string => {
+        const status = lookupData.regulatoryStatuses?.find(s => String(s.id) === String(statusId));
         return status?.name || status?.label || 'Unknown Status';
     };
 
     // Helper function to format role display
-    const formatRole = (role) => {
-        const roleLabels = {
+    const formatRole = (role: string): string => {
+        const roleLabels: Record<string, string> = {
             'sponsor': 'Sponsor',
             'cro': 'Contract Research Organization (CRO)',
             'site': 'Investigational Site',
@@ -50,17 +101,17 @@ const ReviewConfirmationStep = ({
     };
 
     // Helper function to format date
-    const formatDate = (dateString) => {
+    const formatDate = (dateString: string | undefined): string => {
         if (!dateString) return 'Not specified';
         return new Date(dateString).toLocaleDateString();
     };
 
     // Helper function to format boolean
-    const formatBoolean = (value) => value ? 'Yes' : 'No';
+    const formatBoolean = (value: boolean | undefined): string => value ? 'Yes' : 'No';
 
     // Validation summary
-    const getValidationSummary = () => {
-        const issues = [];
+    const getValidationSummary = (): string[] => {
+        const issues: string[] = [];
 
         if (!formData.name) issues.push('Study name is required');
         if (!formData.protocolNumber) issues.push('Protocol number is required');
@@ -89,13 +140,7 @@ const ReviewConfirmationStep = ({
                 <Alert
                     type="error"
                     title="Please complete required fields"
-                    message={
-                        <ul className="list-disc list-inside space-y-1">
-                            {validationIssues.map((issue, index) => (
-                                <li key={index}>{issue}</li>
-                            ))}
-                        </ul>
-                    }
+                    message={validationIssues.join(', ')}
                 />
             )}
 
@@ -124,7 +169,7 @@ const ReviewConfirmationStep = ({
                         <span className="font-medium text-gray-700">Owning Organization:</span>
                         <p className="text-gray-900">{
                             formData.organizationId
-                                ? getOrganizationName(Number(formData.organizationId))
+                                ? getOrganizationName(formData.organizationId)
                                 : 'Not specified'
                         }</p>
                     </div>

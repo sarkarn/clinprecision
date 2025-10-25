@@ -1,12 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import FormField from '../../components/FormField';
 import { StudyOrganizationService } from '../../../../../services/StudyOrganizationService';
-import StudyService from '../../../../../services/StudyService';
+import { Organization as ImportedOrganization } from '../../../../../types/study/StudyOrganization.types';
+
+interface LookupItem {
+    id: number | string;
+    label?: string;
+    name?: string;
+    description?: string;
+}
+
+interface Organization {
+    id: string | number;
+    name: string;
+    organizationType?: {
+        name: string;
+    };
+}
+
+interface LookupData {
+    studyPhases?: LookupItem[];
+    studyStatuses?: LookupItem[];
+    regulatoryStatuses?: LookupItem[];
+}
+
+interface BasicInformationStepProps {
+    formData: {
+        name?: string;
+        protocolNumber?: string;
+        studyPhaseId?: number | string;
+        studyType?: string;
+        studyStatusId?: number | string;
+        organizationId?: number | null;
+        sponsor?: string;
+        description?: string;
+    };
+    onFieldChange: (name: string, value: any) => void;
+    getFieldError: (fieldName: string) => string | undefined;
+    hasFieldError: (fieldName: string) => boolean;
+    lookupData?: LookupData;
+    availableOrganizations?: Organization[] | null;
+}
+
+interface SelectOption {
+    value: string;
+    label: string;
+    description?: string;
+    entity?: Organization;
+}
 
 /**
  * Step 1: Basic Study Information
  */
-const BasicInformationStep = ({
+const BasicInformationStep: React.FC<BasicInformationStepProps> = ({
     formData,
     onFieldChange,
     getFieldError,
@@ -14,42 +60,42 @@ const BasicInformationStep = ({
     lookupData = { studyPhases: [], studyStatuses: [], regulatoryStatuses: [] },
     availableOrganizations: providedOrganizations = null
 }) => {
-    const [organizationList, setOrganizationList] = useState([]);
-    const [loadingOrganizations, setLoadingOrganizations] = useState(true);
-    const [organizationError, setOrganizationError] = useState(null);
+    const [organizationList, setOrganizationList] = useState<Organization[]>([]);
+    const [loadingOrganizations, setLoadingOrganizations] = useState<boolean>(true);
+    const [organizationError, setOrganizationError] = useState<string | null>(null);
 
     // Transform lookup data to options format
-    const studyPhases = (lookupData.studyPhases || []).map(phase => ({
-        value: phase.id, // Use ID as value for backend
+    const studyPhases: SelectOption[] = (lookupData.studyPhases || []).map(phase => ({
+        value: String(phase.id), // Convert to string for FormField
         label: phase.label || phase.name || `Phase ${phase.id}`, // Handle both 'label' and 'name' fields with fallback
         description: phase.description || ''
     })).filter(option => option.value != null && option.label);
 
-    const studyStatuses = (lookupData.studyStatuses || []).map(status => ({
-        value: status.id, // Use ID as value for backend
+    const studyStatuses: SelectOption[] = (lookupData.studyStatuses || []).map(status => ({
+        value: String(status.id), // Convert to string for FormField
         label: status.label || status.name || `Status ${status.id}`, // Handle both 'label' and 'name' fields with fallback
         description: status.description || ''
     })).filter(option => option.value != null && option.label);
 
-    const regulatoryStatuses = (lookupData.regulatoryStatuses || []).map(regStatus => ({
-        value: regStatus.id, // Use ID as value for backend
+    const regulatoryStatuses: SelectOption[] = (lookupData.regulatoryStatuses || []).map(regStatus => ({
+        value: String(regStatus.id), // Convert to string for FormField
         label: regStatus.label || regStatus.name || `Regulatory ${regStatus.id}`, // Handle both 'label' and 'name' fields with fallback
         description: regStatus.description || ''
     })).filter(option => option.value != null && option.label);
 
-    const organizationOptions = organizationList.map(org => ({
-        value: org.id,
+    const organizationOptions: SelectOption[] = organizationList.map(org => ({
+        value: String(org.id),
         label: `${org.name}${org.organizationType ? ` (${org.organizationType.name})` : ''}`,
         entity: org
     })).filter(option => option.value != null && option.label);
 
     // Handle organization selection change
-    const handleOrganizationChange = (fieldName, value) => {
+    const handleOrganizationChange = (fieldName: string, value: any): void => {
         const numericValue = value !== '' && !Number.isNaN(Number(value)) ? Number(value) : null;
         onFieldChange(fieldName, numericValue);
 
         if (numericValue) {
-            const selectedOrg = organizationList.find(org => org.id === numericValue);
+            const selectedOrg = organizationList.find(org => String(org.id) === String(value));
             if (selectedOrg) {
                 onFieldChange('sponsor', selectedOrg.name);
             }
@@ -58,10 +104,10 @@ const BasicInformationStep = ({
 
     // Load organizations for sponsor dropdown
     useEffect(() => {
-        const initialiseOrganizations = async () => {
+        const initialiseOrganizations = async (): Promise<void> => {
             try {
                 setLoadingOrganizations(true);
-                let orgs = providedOrganizations;
+                let orgs: Organization[] | null = providedOrganizations;
 
                 if (!Array.isArray(orgs) || orgs.length === 0) {
                     orgs = await StudyOrganizationService.getAllOrganizations();
@@ -81,7 +127,7 @@ const BasicInformationStep = ({
         initialiseOrganizations();
     }, [providedOrganizations]);
 
-    const studyTypeOptions = [
+    const studyTypeOptions: SelectOption[] = [
         { value: 'interventional', label: 'Interventional' },
         { value: 'observational', label: 'Observational' },
         { value: 'expanded-access', label: 'Expanded Access' }
@@ -137,10 +183,10 @@ const BasicInformationStep = ({
                     label="Study Phase"
                     name="studyPhaseId"
                     type="select"
-                    value={formData.studyPhaseId || ''}
+                    value={formData.studyPhaseId != null ? String(formData.studyPhaseId) : ''}
                     onChange={(fieldName, value) => {
                         // Convert to number if it's a valid number, otherwise keep as string
-                        const numValue = !isNaN(value) && value !== '' ? Number(value) : value;
+                        const numValue = !isNaN(Number(value)) && value !== '' ? Number(value) : value;
                         onFieldChange(fieldName, numValue);
                     }}
                     error={getFieldError('studyPhaseId')}
@@ -169,7 +215,7 @@ const BasicInformationStep = ({
                     label="Current Status"
                     name="studyStatusId"
                     type="select"
-                    value={formData.studyStatusId}
+                    value={formData.studyStatusId != null ? String(formData.studyStatusId) : ''}
                     onChange={onFieldChange}
                     error={getFieldError('studyStatusId')}
                     touched={hasFieldError('studyStatusId')}
@@ -184,7 +230,7 @@ const BasicInformationStep = ({
                     label="Owning Organization"
                     name="organizationId"
                     type="select"
-                    value={formData.organizationId != null ? formData.organizationId : ''}
+                    value={formData.organizationId != null ? String(formData.organizationId) : ''}
                     onChange={handleOrganizationChange}
                     error={getFieldError('organizationId') || organizationError}
                     touched={hasFieldError('organizationId')}

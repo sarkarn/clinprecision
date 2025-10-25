@@ -1,22 +1,38 @@
 import React from 'react';
 import FormField from '../../components/FormField';
 
+interface TimelinePersonnelStepProps {
+    formData: {
+        plannedStartDate?: string;
+        plannedEndDate?: string;
+        estimatedDuration?: string;
+        principalInvestigator?: string;
+        studyCoordinator?: string;
+        medicalMonitor?: string;
+        primaryObjective?: string;
+        secondaryObjectives?: string[];
+    };
+    onFieldChange: (name: string, value: any) => void;
+    getFieldError: (fieldName: string) => string | undefined;
+    hasFieldError: (fieldName: string) => boolean;
+}
+
 /**
  * Step 2: Timeline and Personnel Information
  */
-const TimelinePersonnelStep = ({
+const TimelinePersonnelStep: React.FC<TimelinePersonnelStepProps> = ({
     formData,
     onFieldChange,
     getFieldError,
     hasFieldError
 }) => {
     // Calculate estimated duration when dates change
-    const calculateDuration = (startDate, endDate) => {
+    const calculateDuration = (startDate: string, endDate: string): string => {
         if (!startDate || !endDate) return '';
 
         const start = new Date(startDate);
         const end = new Date(endDate);
-        const diffTime = Math.abs(end - start);
+        const diffTime = Math.abs(end.getTime() - start.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const diffMonths = Math.round(diffDays / 30);
         const diffYears = Math.round(diffDays / 365);
@@ -30,7 +46,7 @@ const TimelinePersonnelStep = ({
         }
     };
 
-    const handleDateChange = (fieldName, value) => {
+    const handleDateChange = (fieldName: string, value: string): void => {
         onFieldChange(fieldName, value);
 
         // Auto-calculate duration if both dates are present
@@ -88,7 +104,7 @@ const TimelinePersonnelStep = ({
                         touched={hasFieldError('estimatedDuration')}
                         placeholder="e.g., 2 years"
                         helpText="Auto-calculated from dates"
-                        disabled={formData.plannedStartDate && formData.plannedEndDate}
+                        disabled={!!(formData.plannedStartDate && formData.plannedEndDate)}
                     />
                 </div>
             </div>

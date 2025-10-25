@@ -4,7 +4,7 @@ import { useStudyForm } from '../hooks/useStudyForm';
 import { useWizardNavigation } from '../hooks/useWizardNavigation';
 import ProgressIndicator from '../components/ProgressIndicator';
 import { LoadingOverlay, Alert, Button } from '../components/UIComponents';
-import StudyService from '../../../../services/StudyService';
+import StudyService, { StudyLookupData as ServiceLookupData } from '../../../../services/StudyService';
 import { StudyOrganizationService } from '../../../../services/StudyOrganizationService';
 
 // Step Components
@@ -13,10 +13,49 @@ import TimelinePersonnelStep from './steps/TimelinePersonnelStep';
 import OrganizationsRegulatoryStep from './steps/OrganizationsRegulatoryStep';
 import ReviewConfirmationStep from './steps/ReviewConfirmationStep';
 
+interface Organization {
+    id: string | number;
+    name: string;
+    code?: string;
+    organizationType?: {
+        id: number;
+        name: string;
+    };
+}
+
+interface LookupItem {
+    id: number | string;
+    label?: string;
+    name?: string;
+    description?: string;
+}
+
+interface LookupData {
+    studyPhases: LookupItem[];
+    studyStatuses: LookupItem[];
+    regulatoryStatuses: LookupItem[];
+}
+
+interface StepDefinition {
+    id: string;
+    title: string;
+    subtitle: string;
+    description: string;
+}
+
+interface StudyMetadata {
+    studyCoordinator?: string;
+    medicalMonitor?: string;
+    secondaryObjectives?: string[];
+    estimatedDuration?: string;
+    ethicsApproval?: boolean;
+    fdaInd?: boolean;
+}
+
 /**
  * Multi-step Study Creation Wizard
  */
-const StudyCreationWizard = () => {
+const StudyCreationWizard: React.FC = () => {
     const navigate = useNavigate();
 
     // Form and wizard state
@@ -48,18 +87,18 @@ const StudyCreationWizard = () => {
     } = useWizardNavigation(4);
 
     // Component state
-    const [availableOrganizations, setAvailableOrganizations] = useState([]);
-    const [lookupData, setLookupData] = useState({
+    const [availableOrganizations, setAvailableOrganizations] = useState<Organization[]>([]);
+    const [lookupData, setLookupData] = useState<LookupData>({
         studyPhases: [],
         studyStatuses: [],
         regulatoryStatuses: []
     });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitError, setSubmitError] = useState(null);
-    const [showExitConfirm, setShowExitConfirm] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [showExitConfirm, setShowExitConfirm] = useState<boolean>(false);
 
     // Step definitions
-    const steps = [
+    const steps: StepDefinition[] = [
         {
             id: 'basic',
             title: 'Basic Info',
@@ -88,18 +127,20 @@ const StudyCreationWizard = () => {
 
     // Load organizations and lookup data on component mount
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchData = async (): Promise<void> => {
             try {
                 // Fetch organizations via clinops-service proxy
                 const orgs = await StudyOrganizationService.getAllOrganizations();
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
 
                 // Fetch lookup data
-                const lookups = await StudyService.getStudyLookupData();
+                const lookups: ServiceLookupData = await StudyService.getStudyLookupData();
+                
+                // Transform service format to local format
                 setLookupData({
-                    studyPhases: Array.isArray(lookups.studyPhases) ? lookups.studyPhases : [],
-                    studyStatuses: Array.isArray(lookups.studyStatuses) ? lookups.studyStatuses : [],
-                    regulatoryStatuses: Array.isArray(lookups.regulatoryStatuses) ? lookups.regulatoryStatuses : []
+                    studyPhases: Array.isArray(lookups.phases) ? lookups.phases.map(p => ({ id: p.value, label: p.label })) : [],
+                    studyStatuses: Array.isArray(lookups.statuses) ? lookups.statuses.map(s => ({ id: s.value, label: s.label })) : [],
+                    regulatoryStatuses: Array.isArray(lookups.regulatoryStatuses) ? lookups.regulatoryStatuses.map(r => ({ id: r.value, label: r.label })) : []
                 });
             } catch (err) {
                 console.error('Error fetching data:', err);
@@ -116,7 +157,7 @@ const StudyCreationWizard = () => {
     }, []);
 
     // Validate current step
-    const validateCurrentStep = () => {
+    const validateCurrentStep = (): boolean => {
         switch (currentStep) {
             case 0: // Basic Information
                 const basicFields = ['name', 'protocolNumber', 'studyPhaseId', 'organizationId', 'sponsor'];
@@ -155,7 +196,7 @@ const StudyCreationWizard = () => {
     };
 
     // Handle next step
-    const handleNext = () => {
+    const handleNext = (): void => {
         if (validateCurrentStep()) {
             markStepCompleted(currentStep);
             nextStep();
@@ -163,19 +204,19 @@ const StudyCreationWizard = () => {
     };
 
     // Handle previous step
-    const handlePrevious = () => {
+    const handlePrevious = (): void => {
         previousStep();
     };
 
     // Handle step click
-    const handleStepClick = (stepIndex) => {
+    const handleStepClick = (stepIndex: number): void => {
         if (stepIndex <= currentStep || isStepCompleted(stepIndex)) {
             goToStep(stepIndex);
         }
     };
 
     // Handle form submission
-    const handleSubmit = async () => {
+    const handleSubmit = async (): Promise<void> => {
         if (!validateForm()) {
             setSubmitError('Please complete all required fields before submitting.');
             return;
@@ -186,7 +227,7 @@ const StudyCreationWizard = () => {
 
         try {
             // Prepare data for API
-            const apiData = { ...formData };
+            const apiData: any = { ...formData };
 
             if (typeof apiData.organizationId === 'string') {
                 apiData.organizationId = apiData.organizationId ? Number(apiData.organizationId) : null;
@@ -196,7 +237,7 @@ const StudyCreationWizard = () => {
             if (apiData.studyCoordinator || apiData.medicalMonitor || apiData.secondaryObjectives ||
                 typeof apiData.ethicsApproval !== 'undefined' || typeof apiData.fdaInd !== 'undefined' ||
                 apiData.estimatedDuration) {
-                const metadata = {};
+                const metadata: StudyMetadata = {};
                 // Keep these as top-level fields for database columns:
                 // - principalInvestigator (maps to principal_investigator column)
                 // - studyType (maps to study_type column) 
@@ -246,7 +287,7 @@ const StudyCreationWizard = () => {
                 }
             });
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating study:', error);
             setSubmitError(
                 error.response?.data?.message ||
@@ -259,7 +300,7 @@ const StudyCreationWizard = () => {
     };
 
     // Handle exit confirmation
-    const handleExit = () => {
+    const handleExit = (): void => {
         if (isDirty) {
             setShowExitConfirm(true);
         } else {
@@ -268,7 +309,7 @@ const StudyCreationWizard = () => {
     };
 
     // Render current step content
-    const renderStepContent = () => {
+    const renderStepContent = (): React.ReactNode => {
         switch (currentStep) {
             case 0:
                 return (
@@ -297,6 +338,7 @@ const StudyCreationWizard = () => {
                         onFieldChange={updateField}
                         getFieldError={getFieldError}
                         hasFieldError={hasFieldError}
+                        lookupData={lookupData}
                     />
                 );
             case 3:
@@ -359,7 +401,7 @@ const StudyCreationWizard = () => {
                             {hasStepError(currentStep) && (
                                 <Alert
                                     type="error"
-                                    message={getStepError(currentStep)}
+                                    message={getStepError(currentStep) || ''}
                                     className="mb-6"
                                 />
                             )}

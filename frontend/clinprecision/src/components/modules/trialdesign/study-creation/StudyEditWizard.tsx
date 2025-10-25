@@ -4,7 +4,7 @@ import { useStudyForm } from '../hooks/useStudyForm';
 import { useWizardNavigation } from '../hooks/useWizardNavigation';
 import ProgressIndicator from '../components/ProgressIndicator';
 import { LoadingOverlay, Alert, Button } from '../components/UIComponents';
-import StudyService from '../../../../services/StudyService';
+import StudyService, { StudyLookupData as ServiceLookupData } from '../../../../services/StudyService';
 import { StudyOrganizationService } from '../../../../services/StudyOrganizationService';
 
 // Step Components
@@ -13,13 +13,65 @@ import TimelinePersonnelStep from './steps/TimelinePersonnelStep';
 import OrganizationsRegulatoryStep from './steps/OrganizationsRegulatoryStep';
 import ReviewConfirmationStep from './steps/ReviewConfirmationStep';
 
+interface Organization {
+    id: string | number;
+    name: string;
+    code?: string;
+    organizationType?: {
+        id: number;
+        name: string;
+    };
+}
+
+interface LookupItem {
+    id: number | string;
+    label?: string;
+    name?: string;
+    value?: string;
+    description?: string;
+}
+
+interface LookupData {
+    studyPhases: LookupItem[];
+    studyStatuses: LookupItem[];
+    regulatoryStatuses: LookupItem[];
+}
+
+interface StepDefinition {
+    id: string;
+    title: string;
+    subtitle: string;
+    description: string;
+}
+
+interface StudyMetadata {
+    studyCoordinator?: string;
+    medicalMonitor?: string;
+    secondaryObjectives?: string[];
+    estimatedDuration?: string;
+    ethicsApproval?: boolean;
+    fdaInd?: boolean;
+}
+
+interface StudyData {
+    [key: string]: any;
+    phase?: string;
+    status?: string;
+    studyPhaseId?: number;
+    studyStatusId?: number;
+    regulatoryStatusId?: number;
+    regulatoryStatus?: string | { id?: number; name?: string; code?: string };
+    metadata?: string;
+    organizations?: any[];
+}
+
 // Transform study data from API format to form format
-const transformStudyDataForForm = (studyData, lookupData) => {
+const transformStudyDataForForm = (studyData: StudyData, lookupData: LookupData): any => {
     console.log('=== TRANSFORMING STUDY DATA ===');
     console.log('Original API response:', studyData);
     console.log('Available lookup data:', lookupData);
 
-    const transformed = {
+    const transformed: any = {
         ...studyData,
         // Ensure organization data is in the expected format
         organizations: studyData.organizations || []
@@ -147,9 +199,9 @@ const transformStudyDataForForm = (studyData, lookupData) => {
  * Multi-step Study Edit Wizard
  * Identical to StudyCreationWizard but loads existing study data for editing
  */
-const StudyEditWizard = () => {
+const StudyEditWizard: React.FC = () => {
     const navigate = useNavigate();
-    const { studyId } = useParams();
+    const { studyId } = useParams<{ studyId: string }>();
 
     // Form and wizard state
     const {
@@ -182,20 +234,20 @@ const StudyEditWizard = () => {
     } = useWizardNavigation(4);
 
     // Component state
-    const [availableOrganizations, setAvailableOrganizations] = useState([]);
-    const [lookupData, setLookupData] = useState({
+    const [availableOrganizations, setAvailableOrganizations] = useState<Organization[]>([]);
+    const [lookupData, setLookupData] = useState<LookupData>({
         studyPhases: [],
         studyStatuses: [],
         regulatoryStatuses: []
     });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitError, setSubmitError] = useState(null);
-    const [showExitConfirm, setShowExitConfirm] = useState(false);
-    const [isLoadingStudy, setIsLoadingStudy] = useState(true);
-    const [loadError, setLoadError] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [showExitConfirm, setShowExitConfirm] = useState<boolean>(false);
+    const [isLoadingStudy, setIsLoadingStudy] = useState<boolean>(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     // Step definitions
-    const steps = [
+    const steps: StepDefinition[] = [
         {
             id: 'basic',
             title: 'Basic Info',
@@ -224,14 +276,14 @@ const StudyEditWizard = () => {
 
     // Load study data and organizations/lookup data on component mount
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchData = async (): Promise<void> => {
             try {
                 setIsLoadingStudy(true);
                 setLoadError(null);
 
                 // Fetch existing study data
                 console.log('Fetching study with ID:', studyId);
-                const studyData = await StudyService.getStudyById(studyId);
+                const studyData = await StudyService.getStudyById(studyId!);
                 console.log('Raw study data from API:', studyData);
 
                 // Fetch organizations and lookup data in parallel
@@ -241,10 +293,12 @@ const StudyEditWizard = () => {
                 ]);
 
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
-                const finalLookupData = {
-                    studyPhases: Array.isArray(lookups.studyPhases) ? lookups.studyPhases : [],
-                    studyStatuses: Array.isArray(lookups.studyStatuses) ? lookups.studyStatuses : [],
-                    regulatoryStatuses: Array.isArray(lookups.regulatoryStatuses) ? lookups.regulatoryStatuses : []
+                
+                // Transform service format to local format
+                const finalLookupData: LookupData = {
+                    studyPhases: Array.isArray(lookups.phases) ? lookups.phases.map(p => ({ id: p.value, label: p.label, value: p.value })) : [],
+                    studyStatuses: Array.isArray(lookups.statuses) ? lookups.statuses.map(s => ({ id: s.value, label: s.label, value: s.value })) : [],
+                    regulatoryStatuses: Array.isArray(lookups.regulatoryStatuses) ? lookups.regulatoryStatuses.map(r => ({ id: r.value, label: r.label, value: r.value })) : []
                 };
                 setLookupData(finalLookupData);
 
@@ -254,7 +308,7 @@ const StudyEditWizard = () => {
                 updateFields(transformedData);
                 console.log('updateFields called successfully');
 
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Error loading study data:', err);
                 setLoadError(err.message || 'Failed to load study data');
             } finally {
@@ -283,19 +337,19 @@ const StudyEditWizard = () => {
     }, [formData]);
 
     // Handle form submission
-    const handleSubmit = async () => {
+    const handleSubmit = async (): Promise<void> => {
         try {
             setIsSubmitting(true);
             setSubmitError(null);
 
             // Prepare data for API
-            const apiData = { ...formData };
+            const apiData: any = { ...formData };
 
             // Handle metadata fields (only put non-database fields in metadata)
             if (apiData.studyCoordinator || apiData.medicalMonitor || apiData.secondaryObjectives ||
                 typeof apiData.ethicsApproval !== 'undefined' || typeof apiData.fdaInd !== 'undefined' ||
                 apiData.estimatedDuration) {
-                const metadata = {};
+                const metadata: StudyMetadata = {};
                 // Keep these as top-level fields for database columns:
                 // - principalInvestigator (maps to principal_investigator column)
                 // - studyType (maps to study_type column) 
@@ -334,7 +388,7 @@ const StudyEditWizard = () => {
             console.log('Submitting study update:', apiData);
 
             // Update the study
-            const response = await StudyService.updateStudy(studyId, apiData);
+            const response = await StudyService.updateStudy(studyId!, apiData);
             console.log('Study updated successfully:', response);
 
             // Navigate back to study list
@@ -345,7 +399,7 @@ const StudyEditWizard = () => {
                 }
             });
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating study:', error);
             setSubmitError(
                 error.response?.data?.message ||
@@ -358,7 +412,7 @@ const StudyEditWizard = () => {
     };
 
     // Handle exit confirmation
-    const handleExit = () => {
+    const handleExit = (): void => {
         if (isDirty) {
             setShowExitConfirm(true);
         } else {
@@ -367,7 +421,7 @@ const StudyEditWizard = () => {
     };
 
     // Render current step content
-    const renderStepContent = () => {
+    const renderStepContent = (): React.ReactNode => {
         switch (currentStep) {
             case 0:
                 return (
@@ -417,10 +471,13 @@ const StudyEditWizard = () => {
     if (isLoadingStudy) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <LoadingOverlay isLoading={true} />
                 <div className="text-center">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Study Data</h2>
-                    <p className="text-gray-600">Please wait while we fetch the study information...</p>
+                    <LoadingOverlay isLoading={true} message="Loading study data...">
+                        <div>
+                            <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Study Data</h2>
+                            <p className="text-gray-600">Please wait while we fetch the study information...</p>
+                        </div>
+                    </LoadingOverlay>
                 </div>
             </div>
         );
@@ -485,7 +542,7 @@ const StudyEditWizard = () => {
                     <ProgressIndicator
                         steps={steps}
                         currentStep={currentStep}
-                        completedSteps={steps.map((_, index) => isStepCompleted(index))}
+                        completedSteps={steps.map((_, index) => index).filter(index => isStepCompleted(index))}
                         onStepClick={goToStep}
                     />
                 </div>
@@ -493,51 +550,50 @@ const StudyEditWizard = () => {
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="bg-white rounded-lg shadow-sm">
-                    {/* Step Content */}
-                    <div className="p-8">
-                        {renderStepContent()}
-                    </div>
-
-                    {/* Navigation Buttons */}
-                    <div className="flex items-center justify-between px-8 py-6 bg-gray-50 border-t rounded-b-lg">
-                        <div>
-                            {!isFirstStep && (
-                                <Button
-                                    onClick={previousStep}
-                                    variant="outline"
-                                    disabled={isSubmitting}
-                                >
-                                    Previous
-                                </Button>
-                            )}
+                <LoadingOverlay isLoading={isSubmitting} message="Updating study...">
+                    <div className="bg-white rounded-lg shadow-sm">
+                        {/* Step Content */}
+                        <div className="p-8">
+                            {renderStepContent()}
                         </div>
 
-                        <div className="flex items-center space-x-4">
-                            {!isLastStep ? (
-                                <Button
-                                    onClick={nextStep}
-                                    disabled={!canGoNext || isSubmitting}
-                                    className="bg-blue-600 text-white hover:bg-blue-700"
-                                >
-                                    Next
-                                </Button>
-                            ) : (
-                                <Button
-                                    onClick={handleSubmit}
-                                    disabled={!isValid || isSubmitting}
-                                    className="bg-green-600 text-white hover:bg-green-700"
-                                >
-                                    {isSubmitting ? 'Updating...' : 'Update Study'}
-                                </Button>
-                            )}
+                        {/* Navigation Buttons */}
+                        <div className="flex items-center justify-between px-8 py-6 bg-gray-50 border-t rounded-b-lg">
+                            <div>
+                                {!isFirstStep && (
+                                    <Button
+                                        onClick={previousStep}
+                                        variant="outline"
+                                        disabled={isSubmitting}
+                                    >
+                                        Previous
+                                    </Button>
+                                )}
+                            </div>
+
+                            <div className="flex items-center space-x-4">
+                                {!isLastStep ? (
+                                    <Button
+                                        onClick={nextStep}
+                                        disabled={!canGoNext || isSubmitting}
+                                        className="bg-blue-600 text-white hover:bg-blue-700"
+                                    >
+                                        Next
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={handleSubmit}
+                                        disabled={!isValid || isSubmitting}
+                                        className="bg-green-600 text-white hover:bg-green-700"
+                                    >
+                                        {isSubmitting ? 'Updating...' : 'Update Study'}
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
+                </LoadingOverlay>
             </div>
-
-            {/* Loading Overlay */}
-            <LoadingOverlay isLoading={isSubmitting} />
 
             {/* Error Alert */}
             {submitError && (
