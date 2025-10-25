@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FC } from 'react';
 import {
     TrendingUp,
     TrendingDown,
@@ -8,24 +8,76 @@ import {
     CheckCircle2,
     GitBranch,
     AlertCircle,
-    RefreshCw
+    RefreshCw,
+    LucideIcon
 } from 'lucide-react';
 import ProgressiveLoader, { LiveIndicator } from './ProgressiveLoader';
+
+// Type Definitions
+interface Metrics {
+    activeStudies?: number;
+    draftProtocols?: number;
+    completedStudies?: number;
+    totalAmendments?: number;
+}
+
+interface TrendData {
+    change: number;
+    direction: 'up' | 'down' | 'neutral';
+    period: string;
+}
+
+interface BreakdownItem {
+    label: string;
+    value: number;
+    color: string;
+}
+
+interface DetailData {
+    title: string;
+    breakdown: BreakdownItem[];
+}
+
+interface MetricCardProps {
+    title: string;
+    value?: number;
+    description: string;
+    icon: LucideIcon;
+    color: string;
+    bgColor: string;
+    metricType: MetricType;
+    onClick?: (metricType: MetricType) => void;
+}
+
+interface MetricDetailProps {
+    metricType: MetricType | null;
+}
+
+interface EnhancedDashboardMetricsProps {
+    metrics?: Metrics;
+    loading?: boolean;
+    error?: string | null;
+    onRefresh?: () => void;
+    isDataFresh?: boolean;
+    className?: string;
+}
+
+type MetricType = 'activeStudies' | 'draftProtocols' | 'completedStudies' | 'totalAmendments';
 
 /**
  * Enhanced Dashboard Metrics Component
  * Provides rich visual representation of study design metrics with interactive elements
  */
-const EnhancedDashboardMetrics = ({
+const EnhancedDashboardMetrics: FC<EnhancedDashboardMetricsProps> = ({
     metrics,
-    loading,
-    error,
+    loading = false,
+    error = null,
     onRefresh,
-    isDataFresh,
+    isDataFresh = true,
     className = ""
 }) => {
-    const [selectedMetric, setSelectedMetric] = useState(null);
-    const [animateNumbers, setAnimateNumbers] = useState(false);
+    const [selectedMetric, setSelectedMetric] = useState<MetricType | null>(null);
+    const [animateNumbers, setAnimateNumbers] = useState<boolean>(false);
 
     // Trigger number animation when metrics change
     useEffect(() => {
@@ -37,8 +89,8 @@ const EnhancedDashboardMetrics = ({
     }, [metrics, loading]);
 
     // Calculate trend indicators (mock data for now - would come from backend)
-    const getTrendData = (metricType) => {
-        const trends = {
+    const getTrendData = (metricType: MetricType): TrendData => {
+        const trends: Record<MetricType, TrendData> = {
             activeStudies: { change: 12, direction: 'up', period: 'vs last month' },
             draftProtocols: { change: -3, direction: 'down', period: 'vs last week' },
             completedStudies: { change: 5, direction: 'up', period: 'vs last quarter' },
@@ -47,7 +99,7 @@ const EnhancedDashboardMetrics = ({
         return trends[metricType] || { change: 0, direction: 'neutral', period: '' };
     };
 
-    const getTrendIcon = (direction) => {
+    const getTrendIcon = (direction: TrendData['direction']): React.ReactElement => {
         switch (direction) {
             case 'up': return <TrendingUp className="w-3 h-3 text-green-500" />;
             case 'down': return <TrendingDown className="w-3 h-3 text-red-500" />;
@@ -55,7 +107,7 @@ const EnhancedDashboardMetrics = ({
         }
     };
 
-    const getTrendColor = (direction) => {
+    const getTrendColor = (direction: TrendData['direction']): string => {
         switch (direction) {
             case 'up': return 'text-green-600';
             case 'down': return 'text-red-600';
@@ -63,13 +115,13 @@ const EnhancedDashboardMetrics = ({
         }
     };
 
-    const formatNumber = (value) => {
+    const formatNumber = (value?: number): string => {
         if (loading) return '...';
         if (value === undefined || value === null) return '–';
         return value.toLocaleString();
     };
 
-    const MetricCard = ({
+    const MetricCard: FC<MetricCardProps> = ({
         title,
         value,
         description,
@@ -147,10 +199,10 @@ const EnhancedDashboardMetrics = ({
         );
     };
 
-    const MetricDetail = ({ metricType }) => {
+    const MetricDetail: FC<MetricDetailProps> = ({ metricType }) => {
         if (!metricType || !metrics) return null;
 
-        const details = {
+        const details: Record<MetricType, DetailData> = {
             activeStudies: {
                 title: 'Active Studies Details',
                 breakdown: [
@@ -218,7 +270,7 @@ const EnhancedDashboardMetrics = ({
         <ProgressiveLoader
             isLoading={loading}
             hasError={!!error}
-            errorMessage={error}
+            errorMessage={error || undefined}
             skeletonType="metrics"
         >
             <div className="space-y-6">
