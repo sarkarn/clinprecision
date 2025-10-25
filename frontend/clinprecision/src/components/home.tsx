@@ -4,7 +4,6 @@ import TopNavigationHeader from "./shared/TopNavigationHeader";
 import StudyDesignModule from "./modules/trialdesign/StudyDesignModule";
 import DataCaptureModule from "./modules/datacapture/DataCaptureModule";
 import SubjectManagementModule from "./modules/subjectmanagement/SubjectManagementModule";
-import BreadcrumbNavigation from "./shared/BreadcrumbNavigation";
 import { useAuth } from "./login/AuthContext";
 import { useRoleBasedNavigation } from "../hooks/useRoleBasedNavigation";
 
@@ -376,7 +375,6 @@ const Home: React.FC = () => {
                 {/* Main Content Area - CONTINUED IN NEXT PART */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <TopNavigationHeader />
-                    <BreadcrumbNavigation />
                     <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
                         <Routes>
                             {/* Default dashboard route with comprehensive hero section */}

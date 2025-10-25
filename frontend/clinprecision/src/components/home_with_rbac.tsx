@@ -1,17 +1,15 @@
+import React from "react";
 import { Link, Routes, Route } from "react-router-dom";
 import Logout from "./login/Logout";
 import TopNavigationHeader from "./shared/TopNavigationHeader";
 import StudyDesignModule from "./modules/trialdesign/StudyDesignModule";
 import DataCaptureModule from "./modules/datacapture/DataCaptureModule";
-import DQManagement from "./modules/dqmgmt/DQManagement";
-import AdminModule from "./modules/admin/AdminModule";
-import BreadcrumbNavigation from "./BreadcrumbNavigation";
 import { useAuth } from "./login/AuthContext";
 import { useRoleBasedNavigation } from "../hooks/useRoleBasedNavigation";
 
-export default function Home() {
+const HomeWithRBAC: React.FC = () => {
     const { user } = useAuth();
-    const { hasModuleAccess, hasCategoryAccess, userRoleDisplay, getModulePermissions } = useRoleBasedNavigation();
+    const { hasModuleAccess, hasCategoryAccess, userRoleDisplay } = useRoleBasedNavigation();
 
     return (
         <>
@@ -159,7 +157,7 @@ export default function Home() {
                                         <Link to="/audit-trail" className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-all duration-200 border border-transparent hover:border-purple-200">
                                             <div className="flex items-center justify-center h-5 w-5 mr-3 text-purple-400 group-hover:text-purple-600">
                                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
@@ -294,13 +292,22 @@ export default function Home() {
                 {/* Main Content Area */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <TopNavigationHeader />
-                    <BreadcrumbNavigation />
                     <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
                         <Routes>
                             <Route path="/study-design" element={<StudyDesignModule />} />
                             <Route path="/datacapture-management" element={<DataCaptureModule />} />
-                            <Route path="/dq-management" element={<DQManagement />} />
-                            <Route path="/user-management" element={<AdminModule />} />
+                            <Route path="/dq-management" element={
+                                <div className="bg-white rounded-lg shadow p-8 text-center">
+                                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Data Quality Management</h2>
+                                    <p className="text-gray-600">Data quality and validation module coming soon.</p>
+                                </div>
+                            } />
+                            <Route path="/user-management" element={
+                                <div className="bg-white rounded-lg shadow p-8 text-center">
+                                    <h2 className="text-2xl font-bold text-gray-900 mb-4">User Management</h2>
+                                    <p className="text-gray-600">User administration module coming soon.</p>
+                                </div>
+                            } />
 
                             {/* Placeholder routes for new modules */}
                             <Route path="/subject-management" element={
@@ -345,4 +352,6 @@ export default function Home() {
             </div>
         </>
     );
-}
+};
+
+export default HomeWithRBAC;
