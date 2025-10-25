@@ -1,15 +1,57 @@
 import { useState, useCallback } from 'react';
 
 /**
+ * Step errors map
+ */
+export interface StepErrors {
+  [stepIndex: number]: string;
+}
+
+/**
+ * Return type for useWizardNavigation hook
+ */
+export interface UseWizardNavigationReturn {
+  // Current state
+  currentStep: number;
+  completedSteps: number[];
+  stepErrors: StepErrors;
+  
+  // Navigation
+  goToStep: (stepIndex: number) => void;
+  nextStep: () => void;
+  previousStep: () => void;
+  
+  // Step management
+  markStepCompleted: (stepIndex?: number) => void;
+  markStepIncomplete: (stepIndex?: number) => void;
+  setStepError: (stepIndex: number, error: string) => void;
+  clearStepError: (stepIndex: number) => void;
+  
+  // Computed states
+  canGoNext: boolean;
+  canGoPrevious: boolean;
+  isCurrentStepCompleted: boolean;
+  isFirstStep: boolean;
+  isLastStep: boolean;
+  progressPercentage: number;
+  
+  // Helpers
+  isStepCompleted: (stepIndex: number) => boolean;
+  hasStepError: (stepIndex: number) => boolean;
+  getStepError: (stepIndex: number) => string | undefined;
+  resetWizard: () => void;
+}
+
+/**
  * Custom hook for managing multi-step wizard navigation
  */
-export const useWizardNavigation = (totalSteps) => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [completedSteps, setCompletedSteps] = useState(new Set());
-  const [stepErrors, setStepErrors] = useState({});
+export const useWizardNavigation = (totalSteps: number): UseWizardNavigationReturn => {
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [stepErrors, setStepErrors] = useState<StepErrors>({});
 
   // Navigate to a specific step
-  const goToStep = useCallback((stepIndex) => {
+  const goToStep = useCallback((stepIndex: number) => {
     if (stepIndex >= 0 && stepIndex < totalSteps) {
       setCurrentStep(stepIndex);
     }
@@ -30,7 +72,7 @@ export const useWizardNavigation = (totalSteps) => {
   }, [currentStep]);
 
   // Mark a step as completed
-  const markStepCompleted = useCallback((stepIndex = currentStep) => {
+  const markStepCompleted = useCallback((stepIndex: number = currentStep) => {
     setCompletedSteps(prev => new Set([...prev, stepIndex]));
     setStepErrors(prev => {
       const newErrors = { ...prev };
@@ -40,7 +82,7 @@ export const useWizardNavigation = (totalSteps) => {
   }, [currentStep]);
 
   // Mark a step as incomplete
-  const markStepIncomplete = useCallback((stepIndex = currentStep) => {
+  const markStepIncomplete = useCallback((stepIndex: number = currentStep) => {
     setCompletedSteps(prev => {
       const newSet = new Set(prev);
       newSet.delete(stepIndex);
@@ -49,7 +91,7 @@ export const useWizardNavigation = (totalSteps) => {
   }, [currentStep]);
 
   // Set error for a step
-  const setStepError = useCallback((stepIndex, error) => {
+  const setStepError = useCallback((stepIndex: number, error: string) => {
     setStepErrors(prev => ({
       ...prev,
       [stepIndex]: error
@@ -57,7 +99,7 @@ export const useWizardNavigation = (totalSteps) => {
   }, []);
 
   // Clear error for a step
-  const clearStepError = useCallback((stepIndex) => {
+  const clearStepError = useCallback((stepIndex: number) => {
     setStepErrors(prev => {
       const newErrors = { ...prev };
       delete newErrors[stepIndex];
@@ -75,17 +117,17 @@ export const useWizardNavigation = (totalSteps) => {
   const isCurrentStepCompleted = completedSteps.has(currentStep);
 
   // Check if a specific step is completed
-  const isStepCompleted = useCallback((stepIndex) => {
+  const isStepCompleted = useCallback((stepIndex: number): boolean => {
     return completedSteps.has(stepIndex);
   }, [completedSteps]);
 
   // Check if a specific step has errors
-  const hasStepError = useCallback((stepIndex) => {
+  const hasStepError = useCallback((stepIndex: number): boolean => {
     return Boolean(stepErrors[stepIndex]);
   }, [stepErrors]);
 
   // Get error for a specific step
-  const getStepError = useCallback((stepIndex) => {
+  const getStepError = useCallback((stepIndex: number): string | undefined => {
     return stepErrors[stepIndex];
   }, [stepErrors]);
 
