@@ -2,17 +2,38 @@ import React from 'react';
 import { Filter, SortAsc } from 'lucide-react';
 import SearchBar from './SearchBar';
 
+interface FilterOption {
+    label: string;
+    value: string;
+}
+
+interface ListFilter {
+    label: string;
+    value: string;
+    options: FilterOption[];
+    currentValue?: string;
+}
+
+interface SortOption {
+    label: string;
+    value: string;
+}
+
+interface ListControlsProps {
+    onSearch: (searchTerm: string) => void;
+    filters?: ListFilter[];
+    onFilterChange: (filterName: string, value: string) => void;
+    sortOptions?: SortOption[];
+    currentSort?: string;
+    onSortChange: (value: string) => void;
+    searchPlaceholder?: string;
+    className?: string;
+}
+
 /**
  * Universal List Controls component with search, filter, and sort
- * @param {function} onSearch - Search callback
- * @param {Array} filters - Array of filter objects: [{label, value, options: [{label, value}]}]
- * @param {function} onFilterChange - Filter change callback (filterName, value)
- * @param {Array} sortOptions - Array of sort options: [{label, value}]
- * @param {string} currentSort - Current sort value
- * @param {function} onSortChange - Sort change callback
- * @param {string} searchPlaceholder - Search placeholder text
  */
-const ListControls = ({
+const ListControls: React.FC<ListControlsProps> = ({
     onSearch,
     filters = [],
     onFilterChange,

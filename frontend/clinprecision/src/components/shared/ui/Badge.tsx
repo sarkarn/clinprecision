@@ -1,12 +1,16 @@
 import React from 'react';
 
+interface BadgeProps {
+    variant?: 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'blue' | 'violet' | 'amber';
+    size?: 'sm' | 'md' | 'lg';
+    children: React.ReactNode;
+    className?: string;
+}
+
 /**
  * Badge component for status indicators
- * @param {string} variant - 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'blue' | 'violet' | 'amber'
- * @param {string} size - 'sm' | 'md' | 'lg'
- * @param {ReactNode} children - Badge content
  */
-const Badge = ({
+const Badge: React.FC<BadgeProps> = ({
     variant = 'neutral',
     size = 'md',
     children,

@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 
+interface SearchBarProps {
+    onSearch: (searchTerm: string) => void;
+    placeholder?: string;
+    debounceMs?: number;
+    className?: string;
+}
+
 /**
  * Universal SearchBar component with debounce
- * @param {function} onSearch - Callback with search term (debounced)
- * @param {string} placeholder - Placeholder text
- * @param {number} debounceMs - Debounce delay in milliseconds (default 300ms)
  */
-const SearchBar = ({
+const SearchBar: React.FC<SearchBarProps> = ({
     onSearch,
     placeholder = "Search...",
     debounceMs = 300,

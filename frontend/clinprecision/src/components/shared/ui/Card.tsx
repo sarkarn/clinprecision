@@ -1,13 +1,21 @@
 import React from 'react';
 
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+    children: React.ReactNode;
+    className?: string;
+    hoverable?: boolean;
+    onClick?: () => void;
+}
+
+interface CardSubComponentProps {
+    children: React.ReactNode;
+    className?: string;
+}
+
 /**
  * Reusable Card component for consistent layouts
- * @param {ReactNode} children - Card content
- * @param {string} className - Additional CSS classes
- * @param {boolean} hoverable - Add hover effect
- * @param {function} onClick - Click handler
  */
-export const Card = ({
+export const Card: React.FC<CardProps> = ({
     children,
     className = "",
     hoverable = false,
@@ -30,7 +38,7 @@ export const Card = ({
 /**
  * Card Header component
  */
-export const CardHeader = ({ children, className = "" }) => (
+export const CardHeader: React.FC<CardSubComponentProps> = ({ children, className = "" }) => (
     <div className={`px-6 py-4 border-b border-gray-200 ${className}`}>
         {children}
     </div>
@@ -39,7 +47,7 @@ export const CardHeader = ({ children, className = "" }) => (
 /**
  * Card Body component
  */
-export const CardBody = ({ children, className = "" }) => (
+export const CardBody: React.FC<CardSubComponentProps> = ({ children, className = "" }) => (
     <div className={`px-6 py-4 ${className}`}>
         {children}
     </div>
@@ -48,7 +56,7 @@ export const CardBody = ({ children, className = "" }) => (
 /**
  * Card Actions component
  */
-export const CardActions = ({ children, className = "" }) => (
+export const CardActions: React.FC<CardSubComponentProps> = ({ children, className = "" }) => (
     <div className={`px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-lg flex items-center justify-end gap-2 ${className}`}>
         {children}
     </div>

@@ -1,15 +1,18 @@
 import React from 'react';
 
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+    variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+    size?: 'sm' | 'md' | 'lg';
+    children?: React.ReactNode;
+    icon?: React.ComponentType<{ className?: string }>;
+    disabled?: boolean;
+    className?: string;
+}
+
 /**
  * Reusable Button component with variant support
- * @param {string} variant - 'primary' | 'secondary' | 'danger' | 'ghost'
- * @param {string} size - 'sm' | 'md' | 'lg'
- * @param {ReactNode} children - Button content
- * @param {ReactNode} icon - Optional icon (Lucide component)
- * @param {boolean} disabled - Disabled state
- * @param {string} className - Additional CSS classes
  */
-const Button = ({
+const Button: React.FC<ButtonProps> = ({
     variant = 'primary',
     size = 'md',
     children,

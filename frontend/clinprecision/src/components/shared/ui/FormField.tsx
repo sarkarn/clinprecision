@@ -1,20 +1,29 @@
 import React, { useState } from 'react';
 import { AlertCircle, HelpCircle } from 'lucide-react';
 
+interface FieldOption {
+    value: string;
+    label: string;
+}
+
+interface FormFieldProps extends Omit<React.InputHTMLAttributes<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>, 'type' | 'onChange'> {
+    label: string;
+    name: string;
+    type?: 'text' | 'email' | 'number' | 'select' | 'textarea';
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+    error?: string;
+    helpText?: string;
+    required?: boolean;
+    options?: FieldOption[];
+    placeholder?: string;
+    className?: string;
+}
+
 /**
  * Enhanced FormField with validation and help text
- * @param {string} label - Field label
- * @param {string} name - Field name
- * @param {string} type - Input type ('text', 'email', 'number', 'select', 'textarea')
- * @param {string} value - Field value
- * @param {function} onChange - Change handler
- * @param {string} error - Error message
- * @param {string} helpText - Help text tooltip
- * @param {boolean} required - Required field
- * @param {Array} options - Options for select (array of {value, label})
- * @param {string} placeholder - Placeholder text
  */
-const FormField = ({
+const FormField: React.FC<FormFieldProps> = ({
     label,
     name,
     type = 'text',
@@ -37,7 +46,7 @@ const FormField = ({
             : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
         }`;
 
-    const renderInput = () => {
+    const renderInput = (): React.ReactElement => {
         if (type === 'select') {
             return (
                 <select
@@ -45,7 +54,7 @@ const FormField = ({
                     value={value}
                     onChange={onChange}
                     className={baseInputStyles}
-                    {...props}
+                    {...props as React.SelectHTMLAttributes<HTMLSelectElement>}
                 >
                     <option value="">{placeholder || 'Select...'}</option>
                     {options.map(opt => (
@@ -66,7 +75,7 @@ const FormField = ({
                     placeholder={placeholder}
                     rows={4}
                     className={baseInputStyles}
-                    {...props}
+                    {...props as React.TextareaHTMLAttributes<HTMLTextAreaElement>}
                 />
             );
         }
@@ -79,7 +88,7 @@ const FormField = ({
                 onChange={onChange}
                 placeholder={placeholder}
                 className={baseInputStyles}
-                {...props}
+                {...props as React.InputHTMLAttributes<HTMLInputElement>}
             />
         );
     };
