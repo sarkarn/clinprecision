@@ -1,14 +1,51 @@
 import React, { useState, useEffect, useRef } from 'react';
-import PropTypes from 'prop-types';
 import { Calendar, Clock, CalendarDays } from 'lucide-react';
 import FieldWrapper from './FieldWrapper';
 import { useFormField } from '../FormContext';
+
+interface ValidationConfig {
+    noFutureDates?: boolean;
+    noPastDates?: boolean;
+    custom?: (value: Date | null) => string | null | undefined;
+}
+
+interface FieldWrapperCompatibleField {
+    id: string;
+    name?: string;
+    label?: string;
+    required?: boolean;
+}
+
+interface DateInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value' | 'type'> {
+    id: string;
+    name?: string;
+    label: string;
+    value?: string | Date | null;
+    onChange?: (value: string | null) => void;
+    onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+    onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
+    required?: boolean;
+    readOnly?: boolean;
+    disabled?: boolean;
+    placeholder?: string;
+    min?: string;
+    max?: string;
+    step?: string;
+    fieldType?: 'date' | 'time' | 'datetime' | 'datetime-local';
+    format?: string;
+    showTimeZone?: boolean;
+    relativeDates?: string[];
+    context?: 'general' | 'study' | 'template' | 'patient';
+    validation?: ValidationConfig;
+    className?: string;
+    style?: React.CSSProperties;
+}
 
 /**
  * DateInput - Reusable date/time input field component
  * Supports date, time, datetime, with validation and clinical contexts
  */
-const DateInput = ({
+const DateInput: React.FC<DateInputProps> = ({
     id,
     name,
     label,
@@ -23,17 +60,17 @@ const DateInput = ({
     min,
     max,
     step,
-    fieldType = 'date', // 'date', 'time', 'datetime', 'datetime-local'
+    fieldType = 'date',
     format = 'YYYY-MM-DD',
     showTimeZone = false,
-    relativeDates = [], // e.g., ['today', 'yesterday', '+1 week']
+    relativeDates = [],
     context = 'general',
     validation = {},
     className = '',
     style = {},
     ...props
 }) => {
-    const inputRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const [internalValue, setInternalValue] = useState('');
     const [isValid, setIsValid] = useState(true);
     const [validationMessage, setValidationMessage] = useState('');
@@ -42,19 +79,12 @@ const DateInput = ({
     // Use form context if available
     const formField = useFormField(id);
     const fieldValue = formField?.value ?? value;
-    const fieldError = formField?.error;
+    const fieldError = formField?.errors[0];
 
-    // Initialize internal value
-    useEffect(() => {
-        if (fieldValue) {
-            setInternalValue(formatValueForInput(fieldValue));
-        } else {
-            setInternalValue('');
-        }
-    }, [fieldValue, fieldType]);
-
-    // Format value for input element
-    const formatValueForInput = (val) => {
+    /**
+     * Format value for input element
+     */
+    const formatValueForInput = (val: string | Date | null): string => {
         if (!val) return '';
 
         const date = new Date(val);
@@ -73,20 +103,34 @@ const DateInput = ({
         }
     };
 
-    // Parse input value to Date object
-    const parseInputValue = (inputVal) => {
+    /**
+     * Initialize internal value
+     */
+    useEffect(() => {
+        if (fieldValue) {
+            setInternalValue(formatValueForInput(fieldValue));
+        } else {
+            setInternalValue('');
+        }
+    }, [fieldValue, fieldType]);
+
+    /**
+     * Parse input value to Date object
+     */
+    const parseInputValue = (inputVal: string): Date | null => {
         if (!inputVal) return null;
 
         try {
-            let date;
+            let date: Date;
             switch (fieldType) {
-                case 'time':
+                case 'time': {
                     // Combine with today's date for time-only inputs
                     const today = new Date();
                     const [hours, minutes] = inputVal.split(':');
                     date = new Date(today.getFullYear(), today.getMonth(), today.getDate(),
                         parseInt(hours), parseInt(minutes));
                     break;
+                }
                 case 'datetime':
                 case 'datetime-local':
                     date = new Date(inputVal);
@@ -102,9 +146,31 @@ const DateInput = ({
         }
     };
 
-    // Validate date value
-    const validateValue = (dateValue) => {
-        const errors = [];
+    /**
+     * Format date for display
+     */
+    const formatDateForDisplay = (date: Date): string => {
+        if (!date) return '';
+
+        switch (fieldType) {
+            case 'time':
+                return date.toLocaleTimeString(undefined, {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            case 'datetime':
+            case 'datetime-local':
+                return date.toLocaleString();
+            default:
+                return date.toLocaleDateString();
+        }
+    };
+
+    /**
+     * Validate date value
+     */
+    const validateValue = (dateValue: Date | null): string[] => {
+        const errors: string[] = [];
 
         // Required validation
         if (required && !dateValue) {
@@ -157,26 +223,10 @@ const DateInput = ({
         return errors;
     };
 
-    // Format date for display
-    const formatDateForDisplay = (date) => {
-        if (!date) return '';
-
-        switch (fieldType) {
-            case 'time':
-                return date.toLocaleTimeString(undefined, {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            case 'datetime':
-            case 'datetime-local':
-                return date.toLocaleString();
-            default:
-                return date.toLocaleDateString();
-        }
-    };
-
-    // Handle input change
-    const handleInputChange = (e) => {
+    /**
+     * Handle input change
+     */
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const inputValue = e.target.value;
         setInternalValue(inputValue);
 
@@ -186,16 +236,18 @@ const DateInput = ({
         setIsValid(errors.length === 0);
         setValidationMessage(errors[0] || '');
 
-        // Call onChange with Date object or formatted string
+        // Call onChange with ISO string or null
         const outputValue = dateValue ? dateValue.toISOString() : null;
         onChange?.(outputValue);
-        formField?.onChange?.(outputValue);
+        formField?.setValue?.(outputValue);
     };
 
-    // Handle relative date selection
-    const handleRelativeDateSelect = (relativeDate) => {
+    /**
+     * Handle relative date selection
+     */
+    const handleRelativeDateSelect = (relativeDate: string) => {
         const today = new Date();
-        let targetDate;
+        let targetDate: Date;
 
         switch (relativeDate) {
             case 'today':
@@ -228,13 +280,15 @@ const DateInput = ({
 
         const outputValue = targetDate.toISOString();
         onChange?.(outputValue);
-        formField?.onChange?.(outputValue);
+        formField?.setValue?.(outputValue);
 
         setShowRelativeOptions(false);
     };
 
-    // Calculate age if this is a birth date field
-    const calculateAge = () => {
+    /**
+     * Calculate age if this is a birth date field
+     */
+    const calculateAge = (): number | null => {
         if (!fieldValue || !id.toLowerCase().includes('birth')) return null;
 
         const birthDate = new Date(fieldValue);
@@ -249,8 +303,10 @@ const DateInput = ({
         return age >= 0 ? age : null;
     };
 
-    // Get input type based on field type
-    const getInputType = () => {
+    /**
+     * Get input type based on field type
+     */
+    const getInputType = (): 'date' | 'time' | 'datetime-local' => {
         switch (fieldType) {
             case 'time':
                 return 'time';
@@ -262,7 +318,9 @@ const DateInput = ({
         }
     };
 
-    // Get appropriate icon
+    /**
+     * Get appropriate icon
+     */
     const getIcon = () => {
         switch (fieldType) {
             case 'time':
@@ -301,12 +359,17 @@ const DateInput = ({
         ...props
     };
 
+    const fieldForWrapper: FieldWrapperCompatibleField = {
+        id,
+        name,
+        label,
+        required
+    };
+
     return (
         <FieldWrapper
-            id={id}
-            label={label}
-            required={required}
-            error={fieldError || (!isValid ? validationMessage : '')}
+            field={fieldForWrapper}
+            errors={[fieldError || (!isValid ? validationMessage : '')].filter(Boolean)}
             context={context}
         >
             <div className="relative">
@@ -369,31 +432,6 @@ const DateInput = ({
             )}
         </FieldWrapper>
     );
-};
-
-DateInput.propTypes = {
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string,
-    label: PropTypes.string.isRequired,
-    value: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
-    onChange: PropTypes.func,
-    onBlur: PropTypes.func,
-    onFocus: PropTypes.func,
-    required: PropTypes.bool,
-    readOnly: PropTypes.bool,
-    disabled: PropTypes.bool,
-    placeholder: PropTypes.string,
-    min: PropTypes.string,
-    max: PropTypes.string,
-    step: PropTypes.string,
-    fieldType: PropTypes.oneOf(['date', 'time', 'datetime', 'datetime-local']),
-    format: PropTypes.string,
-    showTimeZone: PropTypes.bool,
-    relativeDates: PropTypes.arrayOf(PropTypes.string),
-    context: PropTypes.oneOf(['general', 'study', 'template', 'patient']),
-    validation: PropTypes.object,
-    className: PropTypes.string,
-    style: PropTypes.object
 };
 
 export default DateInput;

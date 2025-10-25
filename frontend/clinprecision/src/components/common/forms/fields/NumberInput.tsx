@@ -18,7 +18,11 @@ interface FieldWrapperCompatibleField {
     label?: string;
     required?: boolean;
     metadata?: {
-        referenceRange?: ReferenceRange;
+        referenceRange?: {
+            min: number;
+            max: number;
+            unit?: string;
+        };
         units?: string;
     };
 }
@@ -304,8 +308,13 @@ const NumberInput: React.FC<NumberInputProps> = ({
         name,
         label,
         required,
-        metadata: {
-            referenceRange: showReferenceRange ? referenceRange : undefined,
+        metadata: showReferenceRange && referenceRange?.min !== undefined && referenceRange?.max !== undefined ? {
+            referenceRange: {
+                min: referenceRange.min,
+                max: referenceRange.max
+            },
+            units
+        } : {
             units
         }
     };
