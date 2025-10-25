@@ -26,13 +26,71 @@ import {
     CheckCircle2,
     FileText,
     GitBranch,
-    XCircle
+    XCircle,
+    LucideIcon
 } from 'lucide-react';
+
+interface Study {
+    id: string | number;
+    name?: string;
+    title?: string;
+    protocolNumber?: string;
+    protocol?: string;
+    version: string | number;
+    versionStatus: string;
+    status: string;
+    phase: string;
+    sites: number;
+    currentEnrollment?: number;
+    enrolledSubjects?: number;
+    targetEnrollment?: number;
+    plannedSubjects?: number;
+    principalInvestigator: string;
+    amendments?: number;
+    tags?: string[];
+    updatedAt?: string;
+    modifiedBy?: string;
+}
+
+interface LookupOption {
+    value: string;
+    label: string;
+}
+
+interface StatusBadgeProps {
+    status: string;
+    versionStatus: string;
+}
+
+interface VersionBadgeProps {
+    version: string | number;
+    versionStatus: string;
+    amendments?: number;
+}
+
+interface ActionMenuProps {
+    study: Study;
+}
+
+interface StudyListGridProps {
+    onCreateNew?: () => void;
+    onViewStudy?: (study: Study) => void;
+    onEditStudy?: (study: Study) => void;
+    onDeleteStudy?: (study: Study) => void;
+    onDesignStudy?: (study: Study) => void;
+    onManageProtocols?: (study: Study) => void;
+    onBulkActions?: (action: string, studyIds: Set<string | number>) => void;
+}
+
+interface StatusConfig {
+    color: string;
+    icon: LucideIcon;
+}
 
 /**
  * Modern study list component with versioning support
  */
-const StudyListGrid = ({
+const StudyListGrid: React.FC<StudyListGridProps> = ({
     onCreateNew,
     onViewStudy,
     onEditStudy,
@@ -41,23 +99,21 @@ const StudyListGrid = ({
     onManageProtocols,
     onBulkActions
 }) => {
-    const [studies, setStudies] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
-    const [showFilters, setShowFilters] = useState(false);
-    const [selectedStudyForVersion, setSelectedStudyForVersion] = useState(null);
+    const [studies, setStudies] = useState<Study[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [showFilters, setShowFilters] = useState<boolean>(false);
+    const [selectedStudyForVersion, setSelectedStudyForVersion] = useState<Study | null>(null);
 
     // Lookup data state for filters
-    const [studyPhases, setStudyPhases] = useState([]);
-    const [studyStatuses, setStudyStatuses] = useState([]);
-    const [loadingFilters, setLoadingFilters] = useState(true);
+    const [studyPhases, setStudyPhases] = useState<LookupOption[]>([]);
+    const [studyStatuses, setStudyStatuses] = useState<LookupOption[]>([]);
+    const [loadingFilters, setLoadingFilters] = useState<boolean>(true);
 
     // Study versioning hook
     const {
         createVersion,
         getVersionHistory,
-        getVersionStatus,
-        formatVersionDisplay,
         AMENDMENT_TYPES,
         VERSION_STATUS
     } = useStudyVersioning();
@@ -71,11 +127,11 @@ const StudyListGrid = ({
     });
 
     // Load studies data
-    const loadStudies = useCallback(async () => {
+    const loadStudies = useCallback(async (): Promise<void> => {
         console.log('Loading studies...');
         setLoading(true);
         try {
-            const studiesData = await StudyService.getStudies();
+            const studiesData = await StudyService.getStudies() as Study[];
             console.log('Studies loaded:', studiesData);
             setStudies(studiesData);
             dataGrid.updateData(studiesData);
@@ -95,18 +151,18 @@ const StudyListGrid = ({
 
     // Load lookup data for filters
     useEffect(() => {
-        const fetchFilterData = async () => {
+        const fetchFilterData = async (): Promise<void> => {
             try {
                 setLoadingFilters(true);
-                const lookupData = await StudyService.getStudyLookupData();
+                const lookupData = await StudyService.getStudyLookupData() as any;
 
                 // Transform data for filter dropdowns
-                const phaseOptions = (lookupData.phases || []).map(phase => ({
+                const phaseOptions: LookupOption[] = (lookupData.phases || []).map((phase: any) => ({
                     value: phase.label || phase.displayName || phase.value,
                     label: phase.label || phase.displayName || phase.value
                 }));
 
-                const statusOptions = (lookupData.statuses || []).map(status => ({
+                const statusOptions: LookupOption[] = (lookupData.statuses || []).map((status: any) => ({
                     value: status.label || status.displayName || status.value,
                     label: status.label || status.displayName || status.value
                 }));
@@ -140,9 +196,9 @@ const StudyListGrid = ({
     }, []);
 
     // Status badge component
-    const StatusBadge = ({ status, versionStatus }) => {
-        const getStatusConfig = (status) => {
-            const configs = {
+    const StatusBadge: React.FC<StatusBadgeProps> = ({ status, versionStatus }) => {
+        const getStatusConfig = (status: string): StatusConfig => {
+            const configs: Record<string, StatusConfig> = {
                 ACTIVE: { color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
                 RECRUITING: { color: 'bg-blue-100 text-blue-800', icon: Users },
                 DRAFT: { color: 'bg-gray-100 text-gray-800', icon: FileText },
@@ -168,9 +224,9 @@ const StudyListGrid = ({
     };
 
     // Version badge component
-    const VersionBadge = ({ version, versionStatus, amendments }) => {
-        const getVersionColor = (status) => {
-            const colors = {
+    const VersionBadge: React.FC<VersionBadgeProps> = ({ version, versionStatus, amendments }) => {
+        const getVersionColor = (status: string): string => {
+            const colors: Record<string, string> = {
                 DRAFT: 'bg-gray-100 text-gray-700',
                 PROTOCOL_REVIEW: 'bg-yellow-100 text-yellow-700',
                 APPROVED: 'bg-green-100 text-green-700',
@@ -187,7 +243,7 @@ const StudyListGrid = ({
                     <GitBranch className="w-3 h-3 mr-1" />
                     v{version}
                 </span>
-                {amendments > 0 && (
+                {amendments && amendments > 0 && (
                     <span className="text-xs text-gray-500">
                         {amendments} amendment{amendments > 1 ? 's' : ''}
                     </span>
@@ -197,8 +253,8 @@ const StudyListGrid = ({
     };
 
     // Action menu component
-    const ActionMenu = ({ study }) => {
-        const [isOpen, setIsOpen] = useState(false);
+    const ActionMenu: React.FC<ActionMenuProps> = ({ study }) => {
+        const [isOpen, setIsOpen] = useState<boolean>(false);
 
         return (
             <div className="relative">
@@ -271,7 +327,7 @@ const StudyListGrid = ({
     };
 
     // Grid view component
-    const GridView = () => (
+    const GridView: React.FC = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {dataGrid?.items && dataGrid.items.length > 0 ? dataGrid.items.map((study) => (
                 <div key={study.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -331,7 +387,7 @@ const StudyListGrid = ({
     );
 
     // Table view component
-    const TableView = () => (
+    const TableView: React.FC = () => (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -461,7 +517,7 @@ const StudyListGrid = ({
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                                <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                                     {loading ? 'Loading studies...' : 'No studies found.'}
                                 </td>
                             </tr>
@@ -548,7 +604,7 @@ const StudyListGrid = ({
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                                 <select
-                                    value={dataGrid.filters.status || ''}
+                                    value={(dataGrid.filters.status as string) || ''}
                                     onChange={(e) => dataGrid.handleFilterChange('status', e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                                     disabled={loadingFilters}
@@ -565,7 +621,7 @@ const StudyListGrid = ({
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Phase</label>
                                 <select
-                                    value={dataGrid.filters.phase || ''}
+                                    value={(dataGrid.filters.phase as string) || ''}
                                     onChange={(e) => dataGrid.handleFilterChange('phase', e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                                     disabled={loadingFilters}
@@ -584,7 +640,7 @@ const StudyListGrid = ({
                                 <input
                                     type="text"
                                     placeholder="Filter by sponsor"
-                                    value={dataGrid.filters.sponsor || ''}
+                                    value={(dataGrid.filters.sponsor as string) || ''}
                                     onChange={(e) => dataGrid.handleFilterChange('sponsor', e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                                 />
@@ -595,7 +651,7 @@ const StudyListGrid = ({
                                 <input
                                     type="text"
                                     placeholder="Filter by PI"
-                                    value={dataGrid.filters.principalInvestigator || ''}
+                                    value={(dataGrid.filters.principalInvestigator as string) || ''}
                                     onChange={(e) => dataGrid.handleFilterChange('principalInvestigator', e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                                 />

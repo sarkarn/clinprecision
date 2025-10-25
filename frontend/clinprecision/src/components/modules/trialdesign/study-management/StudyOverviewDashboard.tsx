@@ -23,25 +23,139 @@ import {
     MoreHorizontal,
     Plus,
     Eye,
-    Archive
+    Archive,
+    LucideIcon
 } from 'lucide-react';
+
+interface Study {
+    id: string | number;
+    title: string;
+    protocol: string;
+    version: string;
+    versionStatus: string;
+    status: string;
+    phase: string;
+    indication: string;
+    therapeuticArea: string;
+    sponsor: string;
+    principalInvestigator: string;
+    studyCoordinator: string;
+    sites: number;
+    activeSites: number;
+    plannedSubjects: number;
+    enrolledSubjects: number;
+    screenedSubjects: number;
+    randomizedSubjects: number;
+    completedSubjects: number;
+    withdrawnSubjects: number;
+    startDate: string;
+    estimatedCompletion: string;
+    lastModified: string;
+    modifiedBy: string;
+    description: string;
+    primaryEndpoint: string;
+    secondaryEndpoints: string[];
+    inclusionCriteria: string[];
+    exclusionCriteria: string[];
+    timeline: {
+        screening: string;
+        treatment: string;
+        followUp: string;
+    };
+    amendments: Amendment[];
+    documents: Document[];
+    metrics: {
+        enrollmentRate: number;
+        screeningSuccessRate: number;
+        retentionRate: number;
+        complianceRate: number;
+        queryRate: number;
+    };
+    recentActivities: RecentActivity[];
+}
+
+interface Amendment {
+    version: string;
+    type: string;
+    date: string;
+    reason: string;
+    status: string;
+}
+
+interface Document {
+    name: string;
+    type: string;
+    size: string;
+    lastModified: string;
+    status: string;
+}
+
+interface RecentActivity {
+    type: string;
+    message: string;
+    date: string;
+    user: string;
+}
+
+interface UploadedDocument {
+    id: number;
+    fileName: string;
+    documentType: string;
+    fileSize: number;
+    description?: string;
+    uploadedAt: string;
+    status: string;
+}
+
+interface DocumentStats {
+    total: number;
+    types: Array<{
+        type: string;
+        count: number;
+    }>;
+}
+
+interface StudyOverviewDashboardProps {
+    studyId: string | number;
+    onBack?: () => void;
+    onEdit?: (study: Study) => void;
+    onCreateVersion?: (study: Study) => void;
+}
+
+interface StatCardProps {
+    icon: LucideIcon;
+    label: string;
+    value: string | number;
+    subValue?: string;
+    trend?: string;
+    color?: string;
+}
+
+interface ProgressBarProps {
+    label: string;
+    current: number;
+    total: number;
+    color?: string;
+}
+
+type TabId = 'overview' | 'enrollment' | 'timeline' | 'documents' | 'amendments';
 
 /**
  * Comprehensive study overview dashboard
  */
-const StudyOverviewDashboard = ({
+const StudyOverviewDashboard: React.FC<StudyOverviewDashboardProps> = ({
     studyId,
     onBack,
     onEdit,
     onCreateVersion
 }) => {
-    const [study, setStudy] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('overview');
-    const [showUploadModal, setShowUploadModal] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [documentStats, setDocumentStats] = useState({ total: 0, types: [] });
-    const [uploadedDocuments, setUploadedDocuments] = useState([]);
+    const [study, setStudy] = useState<Study | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [activeTab, setActiveTab] = useState<TabId>('overview');
+    const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
+    const [uploading, setUploading] = useState<boolean>(false);
+    const [documentStats, setDocumentStats] = useState<DocumentStats>({ total: 0, types: [] });
+    const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
 
     useEffect(() => {
         if (studyId) {
@@ -59,13 +173,13 @@ const StudyOverviewDashboard = ({
         }
     }, [studyId]);
 
-    const loadStudyDetails = async () => {
+    const loadStudyDetails = async (): Promise<void> => {
         setLoading(true);
         try {
             console.log('Loading study overview for ID:', studyId);
 
             // Call the real API to get study overview data
-            const studyData = await StudyService.getStudyOverview(studyId);
+            const studyData = await StudyService.getStudyById(studyId) as any as Study;
 
             console.log('Study overview loaded successfully:', studyData);
             setStudy(studyData);
@@ -85,8 +199,8 @@ const StudyOverviewDashboard = ({
     };
 
     // Update document statistics based on uploaded documents
-    const updateDocumentStats = () => {
-        const typeCount = {};
+    const updateDocumentStats = (): void => {
+        const typeCount: Record<string, number> = {};
         uploadedDocuments.forEach(doc => {
             typeCount[doc.documentType] = (typeCount[doc.documentType] || 0) + 1;
         });
@@ -103,9 +217,9 @@ const StudyOverviewDashboard = ({
     };
 
     // Handle document upload
-    const handleUploadSuccess = (uploadedDocument) => {
+    const handleUploadSuccess = (uploadedDocument: any): void => {
         // Add document to local state
-        const newDocument = {
+        const newDocument: UploadedDocument = {
             id: Date.now(), // Simple ID generation for demo
             ...uploadedDocument,
             uploadedAt: new Date().toISOString(),
@@ -121,7 +235,7 @@ const StudyOverviewDashboard = ({
         setShowUploadModal(false);
     };
 
-    const handleUploadCancel = () => {
+    const handleUploadCancel = (): void => {
         setShowUploadModal(false);
     };
 
@@ -131,7 +245,7 @@ const StudyOverviewDashboard = ({
     }, [uploadedDocuments]);
 
     // Mock data fallback function
-    const getMockStudyData = (id) => {
+    const getMockStudyData = (id: string | number): Study => {
         return {
             id: id,
             title: 'Phase III Oncology Trial - Advanced NSCLC',
@@ -260,7 +374,7 @@ const StudyOverviewDashboard = ({
         };
     };
 
-    const getStatusIcon = (status) => {
+    const getStatusIcon = (status: string): React.ReactElement => {
         switch (status) {
             case 'ACTIVE': return <CheckCircle2 className="w-5 h-5 text-green-500" />;
             case 'RECRUITING': return <Users className="w-5 h-5 text-blue-500" />;
@@ -271,7 +385,7 @@ const StudyOverviewDashboard = ({
         }
     };
 
-    const StatCard = ({ icon: Icon, label, value, subValue, trend, color = 'blue' }) => (
+    const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, subValue, trend, color = 'blue' }) => (
         <div className="bg-white p-6 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between">
                 <div className={`p-2 rounded-lg bg-${color}-50`}>
@@ -292,7 +406,7 @@ const StudyOverviewDashboard = ({
         </div>
     );
 
-    const ProgressBar = ({ label, current, total, color = 'blue' }) => {
+    const ProgressBar: React.FC<ProgressBarProps> = ({ label, current, total, color = 'blue' }) => {
         const percentage = total > 0 ? (current / total) * 100 : 0;
 
         return (
@@ -340,25 +454,25 @@ const StudyOverviewDashboard = ({
                 actions={[
                     {
                         label: 'Manage Forms',
-                        variant: 'outline',
+                        variant: 'secondary' as const,
                         icon: FileText,
                         onClick: () => window.open(`/study-design/study/${studyId}/forms`, '_blank')
                     },
                     {
                         label: 'Design Study',
-                        variant: 'outline',
+                        variant: 'secondary' as const,
                         icon: Target,
                         onClick: () => window.open(`/study-design/study/${studyId}/design/basic-info`, '_blank')
                     },
                     {
                         label: 'New Version',
-                        variant: 'outline',
+                        variant: 'secondary' as const,
                         icon: GitBranch,
                         onClick: () => onCreateVersion?.(study)
                     },
                     {
                         label: 'Edit Study',
-                        variant: 'primary',
+                        variant: 'primary' as const,
                         icon: Edit,
                         onClick: () => onEdit?.(study)
                     }
@@ -378,11 +492,11 @@ const StudyOverviewDashboard = ({
                 <div className="border-b border-gray-200">
                     <nav className="flex space-x-8 px-6">
                         {[
-                            { id: 'overview', label: 'Overview', icon: Activity },
-                            { id: 'enrollment', label: 'Enrollment', icon: Users },
-                            { id: 'timeline', label: 'Timeline', icon: Calendar },
-                            { id: 'documents', label: 'Documents', icon: FileText },
-                            { id: 'amendments', label: 'Amendments', icon: GitBranch }
+                            { id: 'overview' as TabId, label: 'Overview', icon: Activity },
+                            { id: 'enrollment' as TabId, label: 'Enrollment', icon: Users },
+                            { id: 'timeline' as TabId, label: 'Timeline', icon: Calendar },
+                            { id: 'documents' as TabId, label: 'Documents', icon: FileText },
+                            { id: 'amendments' as TabId, label: 'Amendments', icon: GitBranch }
                         ].map(({ id, label, icon: Icon }) => (
                             <button
                                 key={id}

@@ -1,7 +1,22 @@
-// src/components/modules/trialdesign/study-management/EnhancedStudyListGrid.jsx
+// src/components/modules/trialdesign/study-management/EnhancedStudyListGrid.tsx
+
+// Temporary mock for empty useStatusSynchronization hook
+const useStatusSynchronization = (options?: any) => ({
+    isConnected: false,
+    connectionStatus: 'disconnected' as const,
+    lastUpdate: null,
+    statusCache: new Map(),
+    pendingUpdates: [],
+    syncErrors: [],
+    getCachedStatus: (id?: any) => null,
+    subscribeToStudy: (id?: any) => {},
+    requestStatusComputation: (id?: any) => {},
+    refreshStatus: async (id?: any) => {}
+});
+
 import React, { useState, useEffect, useMemo } from 'react';
 import StudyService from '../../../../services/StudyService';
-import { useStatusSynchronization } from '../../../../hooks/useStatusSynchronization';
+// import { useStatusSynchronization } from '../../../../hooks/useStatusSynchronization';
 import StatusIndicator, { CompactStatusIndicator } from '../../../shared/status/StatusIndicator';
 import {
     Search,
@@ -25,14 +40,75 @@ import {
     Download,
     Grid,
     List,
-    Activity
+    Activity,
+    AlertTriangle,
+    Clock
 } from 'lucide-react';
+
+interface Study {
+    id: string | number;
+    title?: string;
+    protocolNumber?: string;
+    sponsor?: string;
+    principalInvestigator?: string;
+    status: string;
+    phase: string;
+    sites?: number;
+    enrolledSubjects?: number;
+    plannedSubjects?: number;
+    lastUpdated?: string;
+    updatedAt?: string;
+    originalStatus?: string;
+    isRealtime?: boolean;
+}
+
+interface StatusUpdate {
+    status: string;
+    timestamp: string;
+    updatedAt: Date;
+}
+
+interface Notification {
+    id: number;
+    message: string;
+    type: 'status' | 'study' | 'info' | 'error';
+    timestamp: Date;
+}
+
+interface StatusUpdateEvent extends Event {
+    detail: {
+        studyId: string | number;
+        status: string;
+        timestamp: string;
+    };
+}
+
+interface StudyUpdateEvent extends Event {
+    detail: {
+        studyId: string | number;
+    };
+}
+
+interface EnhancedStudyListGridProps {
+    onStudySelect?: (study: Study) => void;
+    onStudyEdit?: (study: Study) => void;
+    onCreateVersion?: (study: Study) => void;
+    onManageProtocols?: (study: Study) => void;
+    showActions?: boolean;
+    selectable?: boolean;
+    multiSelect?: boolean;
+    className?: string;
+}
+
+type ViewMode = 'grid' | 'list';
+type SortField = 'lastUpdated' | 'title' | 'status' | 'phase' | 'startDate' | 'enrolledSubjects';
+type SortDirection = 'asc' | 'desc';
 
 /**
  * Enhanced Study List Grid with Real-time Status Updates
  * Displays studies with live status synchronization and advanced filtering
  */
-const EnhancedStudyListGrid = ({
+const EnhancedStudyListGrid: React.FC<EnhancedStudyListGridProps> = ({
     onStudySelect,
     onStudyEdit,
     onCreateVersion,
@@ -43,25 +119,25 @@ const EnhancedStudyListGrid = ({
     className = ''
 }) => {
     // State management
-    const [studies, setStudies] = useState([]);
-    const [filteredStudies, setFilteredStudies] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [selectedStudies, setSelectedStudies] = useState(new Set());
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const [studies, setStudies] = useState<Study[]>([]);
+    const [filteredStudies, setFilteredStudies] = useState<Study[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [selectedStudies, setSelectedStudies] = useState<Set<string | number>>(new Set());
+    const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
     // Search and filter state
-    const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [phaseFilter, setPhaseFilter] = useState('all');
-    const [sortField, setSortField] = useState('lastModified');
-    const [sortDirection, setSortDirection] = useState('desc');
-    const [showFilters, setShowFilters] = useState(false);
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [phaseFilter, setPhaseFilter] = useState<string>('all');
+    const [sortField, setSortField] = useState<SortField>('lastUpdated');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+    const [showFilters, setShowFilters] = useState<boolean>(false);
 
     // Real-time updates state
-    const [lastBulkUpdate, setLastBulkUpdate] = useState(null);
-    const [statusUpdates, setStatusUpdates] = useState(new Map());
-    const [notifications, setNotifications] = useState([]);
+    const [lastBulkUpdate, setLastBulkUpdate] = useState<Date | null>(null);
+    const [statusUpdates, setStatusUpdates] = useState<Map<string | number, StatusUpdate>>(new Map());
+    const [notifications, setNotifications] = useState<Notification[]>([]);
 
     // Real-time status synchronization for global updates
     const {
@@ -92,38 +168,40 @@ const EnhancedStudyListGrid = ({
 
     // Listen for custom events
     useEffect(() => {
-        const handleCustomStatusUpdate = (event) => {
-            const { studyId, status, timestamp } = event.detail;
+        const handleCustomStatusUpdate = (event: Event): void => {
+            const customEvent = event as StatusUpdateEvent;
+            const { studyId, status, timestamp } = customEvent.detail;
             updateStudyStatus(studyId, status, timestamp);
             addNotification(`Study ${studyId} status updated to ${status}`, 'status');
         };
 
-        const handleCustomStudyUpdate = (event) => {
-            const { studyId } = event.detail;
+        const handleCustomStudyUpdate = (event: Event): void => {
+            const customEvent = event as StudyUpdateEvent;
+            const { studyId } = customEvent.detail;
             addNotification(`Study ${studyId} data updated`, 'study');
             // Refresh specific study data
             refreshStudyData(studyId);
         };
 
-        window.addEventListener('statusUpdate', handleCustomStatusUpdate);
-        window.addEventListener('studyUpdate', handleCustomStudyUpdate);
+        window.addEventListener('statusUpdate', handleCustomStatusUpdate as EventListener);
+        window.addEventListener('studyUpdate', handleCustomStudyUpdate as EventListener);
 
         return () => {
-            window.removeEventListener('statusUpdate', handleCustomStatusUpdate);
-            window.removeEventListener('studyUpdate', handleCustomStudyUpdate);
+            window.removeEventListener('statusUpdate', handleCustomStatusUpdate as EventListener);
+            window.removeEventListener('studyUpdate', handleCustomStudyUpdate as EventListener);
         };
     }, []);
 
     /**
      * Load studies from API
      */
-    const loadStudies = async () => {
+    const loadStudies = async (): Promise<void> => {
         setLoading(true);
         setError(null);
 
         try {
             console.log('Loading studies with real-time enhancement...');
-            const studiesData = await StudyService.getStudies();
+            const studiesData = await StudyService.getStudies() as Study[];
 
             // Enhance with real-time status if available
             const enhancedStudies = studiesData.map(study => {
@@ -145,8 +223,9 @@ const EnhancedStudyListGrid = ({
 
         } catch (err) {
             console.error('Error loading studies:', err);
-            setError(err.message);
-            addNotification(`Failed to load studies: ${err.message}`, 'error');
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            setError(errorMessage);
+            addNotification(`Failed to load studies: ${errorMessage}`, 'error');
         } finally {
             setLoading(false);
         }
@@ -155,7 +234,7 @@ const EnhancedStudyListGrid = ({
     /**
      * Handle global status updates
      */
-    function handleGlobalStatusUpdate(data) {
+    function handleGlobalStatusUpdate(data: any): void {
         const { studyId, status, timestamp } = data;
         updateStudyStatus(studyId, status, timestamp);
         addNotification(`Study ${studyId} status: ${status}`, 'status');
@@ -164,14 +243,14 @@ const EnhancedStudyListGrid = ({
     /**
      * Handle sync errors
      */
-    function handleSyncError(error) {
+    function handleSyncError(error: Error): void {
         addNotification(`Sync error: ${error.message}`, 'error');
     }
 
     /**
      * Update study status in real-time
      */
-    const updateStudyStatus = (studyId, newStatus, timestamp) => {
+    const updateStudyStatus = (studyId: string | number, newStatus: string, timestamp: string): void => {
         setStatusUpdates(prev => {
             const newUpdates = new Map(prev);
             newUpdates.set(studyId, {
@@ -199,9 +278,9 @@ const EnhancedStudyListGrid = ({
     /**
      * Refresh specific study data
      */
-    const refreshStudyData = async (studyId) => {
+    const refreshStudyData = async (studyId: string | number): Promise<void> => {
         try {
-            const updatedStudy = await StudyService.getStudyById(studyId);
+            const updatedStudy = await StudyService.getStudyById(studyId) as Study;
             setStudies(prev => prev.map(study =>
                 study.id === studyId ? { ...study, ...updatedStudy, isRealtime: false } : study
             ));
@@ -213,8 +292,8 @@ const EnhancedStudyListGrid = ({
     /**
      * Add notification
      */
-    const addNotification = (message, type) => {
-        const notification = {
+    const addNotification = (message: string, type: Notification['type']): void => {
+        const notification: Notification = {
             id: Date.now(),
             message,
             type,
@@ -234,7 +313,7 @@ const EnhancedStudyListGrid = ({
     /**
      * Filter and sort studies
      */
-    const filterAndSortStudies = () => {
+    const filterAndSortStudies = (): void => {
         let filtered = [...studies];
 
         // Apply search filter
@@ -260,8 +339,8 @@ const EnhancedStudyListGrid = ({
 
         // Apply sorting
         filtered.sort((a, b) => {
-            let aValue = a[sortField];
-            let bValue = b[sortField];
+            let aValue: any = a[sortField as keyof Study];
+            let bValue: any = b[sortField as keyof Study];
 
             // Handle special cases
             if (sortField === 'lastUpdated' || sortField === 'startDate') {
@@ -269,14 +348,14 @@ const EnhancedStudyListGrid = ({
                 bValue = new Date(bValue || 0);
             }
 
-            if (sortField === 'enrolledSubjects' || sortField === 'plannedSubjects') {
+            if (sortField === 'enrolledSubjects') {
                 aValue = parseInt(aValue) || 0;
                 bValue = parseInt(bValue) || 0;
             }
 
             if (typeof aValue === 'string') {
                 aValue = aValue.toLowerCase();
-                bValue = bValue.toLowerCase();
+                bValue = (bValue as string).toLowerCase();
             }
 
             const result = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
@@ -289,7 +368,7 @@ const EnhancedStudyListGrid = ({
     /**
      * Handle sort change
      */
-    const handleSort = (field) => {
+    const handleSort = (field: SortField): void => {
         if (sortField === field) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
         } else {
@@ -301,7 +380,7 @@ const EnhancedStudyListGrid = ({
     /**
      * Handle study selection
      */
-    const handleStudySelection = (studyId, selected) => {
+    const handleStudySelection = (studyId: string | number, selected: boolean): void => {
         const newSelection = new Set(selectedStudies);
 
         if (selected) {
@@ -337,7 +416,7 @@ const EnhancedStudyListGrid = ({
     /**
      * Render header with controls
      */
-    const renderHeader = () => {
+    const renderHeader = (): React.ReactElement => {
         const unreadNotifications = notifications.filter(n => n.type === 'error' || n.type === 'status').length;
 
         return (
@@ -354,7 +433,9 @@ const EnhancedStudyListGrid = ({
                                     <Zap className="w-3 h-3" />
                                 </div>
                             ) : (
-                                <WifiOff className="w-4 h-4 text-red-500" title="Real-time updates unavailable" />
+                                <div title="Real-time updates unavailable">
+                                    <WifiOff className="w-4 h-4 text-red-500" />
+                                </div>
                             )}
 
                             {pendingUpdates.length > 0 && (
@@ -473,7 +554,7 @@ const EnhancedStudyListGrid = ({
                                 <div className="flex gap-2">
                                     <select
                                         value={sortField}
-                                        onChange={(e) => setSortField(e.target.value)}
+                                        onChange={(e) => setSortField(e.target.value as SortField)}
                                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
                                     >
                                         <option value="lastUpdated">Last Updated</option>
@@ -543,7 +624,7 @@ const EnhancedStudyListGrid = ({
     /**
      * Render study card for grid view
      */
-    const renderStudyCard = (study) => {
+    const renderStudyCard = (study: Study): React.ReactElement => {
         const isSelected = selectedStudies.has(study.id);
         const realtimeUpdate = statusUpdates.get(study.id);
 
@@ -635,7 +716,7 @@ const EnhancedStudyListGrid = ({
                     <div className="flex items-center justify-between text-xs text-gray-500">
                         <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            Updated {new Date(study.lastUpdated || study.updatedAt).toLocaleDateString()}
+                            Updated {new Date(study.lastUpdated || study.updatedAt || '').toLocaleDateString()}
                         </div>
 
                         {realtimeUpdate && (
