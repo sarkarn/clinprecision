@@ -1,19 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getVisitDetails } from '../../../../services/data-capture/DataEntryService';
+import { getVisitDetails } from '../../../services/data-capture/DataEntryService';
 
-export default function FormList() {
-    const { subjectId, visitId } = useParams();
-    const [visitDetails, setVisitDetails] = useState(null);
+// Interface definitions
+interface Form {
+    id: number;
+    name: string;
+    status: 'complete' | 'incomplete' | 'not_started';
+    lastUpdated?: string;
+}
+
+interface VisitDetails {
+    visitName: string;
+    subjectId: string;
+    visitDate: string;
+    status: 'complete' | 'incomplete' | 'not_started';
+    forms: Form[];
+}
+
+const FormList: React.FC = () => {
+    const { subjectId, visitId } = useParams<{ subjectId: string; visitId: string }>();
+    const [visitDetails, setVisitDetails] = useState<VisitDetails | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchVisitDetails = async () => {
             setLoading(true);
             try {
-                const details = await getVisitDetails(subjectId, visitId);
+                const details = await getVisitDetails(subjectId!, visitId!) as any;
                 setVisitDetails(details);
             } catch (error) {
                 console.error('Error fetching visit details:', error);
@@ -26,7 +42,7 @@ export default function FormList() {
         fetchVisitDetails();
     }, [subjectId, visitId]);
 
-    const getStatusBadgeClass = (status) => {
+    const getStatusBadgeClass = (status: string): string => {
         switch (status) {
             case 'complete':
                 return 'bg-green-100 text-green-800';
@@ -38,7 +54,7 @@ export default function FormList() {
         }
     };
 
-    const getStatusLabel = (status) => {
+    const getStatusLabel = (status: string): string => {
         switch (status) {
             case 'complete':
                 return 'Complete';
@@ -50,12 +66,12 @@ export default function FormList() {
         }
     };
 
-    const getCompletionPercentage = () => {
+    const getCompletionPercentage = (): number => {
         if (!visitDetails?.forms || visitDetails.forms.length === 0) {
             return 0;
         }
 
-        const completedForms = visitDetails.forms.filter(form => form.status === 'complete').length;
+        const completedForms = visitDetails.forms.filter((form: Form) => form.status === 'complete').length;
         return Math.round((completedForms / visitDetails.forms.length) * 100);
     };
 
@@ -152,7 +168,7 @@ export default function FormList() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {visitDetails.forms.map(form => (
+                        {visitDetails.forms.map((form: Form) => (
                             <div key={form.id} className="border border-gray-200 rounded-md overflow-hidden hover:shadow-md transition-shadow">
                                 <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
                                     <h5 className="font-medium">{form.name}</h5>
@@ -194,4 +210,6 @@ export default function FormList() {
             </div>
         </div>
     );
-}
+};
+
+export default FormList;

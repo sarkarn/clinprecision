@@ -1,25 +1,102 @@
-// FormEntry.jsx
+// FormEntry.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getFormDefinition, getFormData, saveFormData } from '../../../../services/data-capture/DataEntryService';
+import { getFormDefinition, getFormData, saveFormData } from '../../../services/data-capture/DataEntryService';
+// @ts-ignore
 import ValidationErrors from '../validation/ValidationErrors';
-import ValidationEngine from '../../../../services/quality/ValidationEngine';
-import OptionLoaderService from '../../../../services/OptionLoaderService';
+import ValidationEngine from '../../../services/quality/ValidationEngine';
+import OptionLoaderService from '../../../services/OptionLoaderService';
 
-export default function FormEntry() {
-    const { subjectId, visitId, formId } = useParams();
-    const [formDefinition, setFormDefinition] = useState(null);
-    const [formData, setFormData] = useState({});
+// Interface definitions
+interface FieldOption {
+    value: string;
+    label: string;
+    description?: string;
+}
+
+interface FieldMetadata {
+    required?: boolean;
+    placeholder?: string;
+    description?: string;
+    units?: string;
+    minValue?: number;
+    maxValue?: number;
+    rows?: number;
+    maxLength?: number;
+    checkboxLabel?: string;
+    codeListCategory?: string;
+    formula?: string;
+    options?: FieldOption[];
+}
+
+interface FormField {
+    id: string;
+    label: string;
+    type: 'text' | 'textarea' | 'number' | 'date' | 'time' | 'radio' | 'checkbox' | 'select' | 'multiselect' | 'checkbox-group' | 'datetime' | 'datetime-local' | 'calculated';
+    metadata?: FieldMetadata;
+}
+
+interface FormDefinition {
+    name: string;
+    description: string;
+    fields: FormField[];
+}
+
+interface FormDataType {
+    [key: string]: any;
+    status?: string;
+    lastUpdated?: string;
+}
+
+interface ValidationError {
+    message: string;
+}
+
+interface ValidationWarning {
+    message: string;
+}
+
+interface ValidationResult {
+    valid: boolean;
+    fieldErrors?: { [key: string]: ValidationError[] };
+    fieldWarnings?: { [key: string]: ValidationWarning[] };
+    errors?: any[];
+}
+
+interface FieldValidationResult {
+    errors?: ValidationError[];
+    warnings?: ValidationWarning[];
+}
+
+interface CompletionStats {
+    completed: number;
+    total: number;
+    requiredCompleted: number;
+    requiredTotal: number;
+    percentage: number;
+}
+
+interface LoadContext {
+    studyId: string;
+    subjectId: string;
+    visitId: string;
+    formId: string;
+}
+
+const FormEntry: React.FC = () => {
+    const { subjectId, visitId, formId } = useParams<{ subjectId: string; visitId: string; formId: string }>();
+    const [formDefinition, setFormDefinition] = useState<FormDefinition | null>(null);
+    const [formData, setFormData] = useState<FormDataType>({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
-    const [saveError, setSaveError] = useState(null);
-    const [validationErrors, setValidationErrors] = useState([]);
-    const [fieldErrors, setFieldErrors] = useState({});
-    const [fieldWarnings, setFieldWarnings] = useState({});
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [validationErrors, setValidationErrors] = useState<any[]>([]);
+    const [fieldErrors, setFieldErrors] = useState<{ [key: string]: ValidationError[] }>({});
+    const [fieldWarnings, setFieldWarnings] = useState<{ [key: string]: ValidationWarning[] }>({});
     const [isDirty, setIsDirty] = useState(false);
-    const [fieldOptions, setFieldOptions] = useState({}); // {fieldId: options[]}
-    const [loadingOptions, setLoadingOptions] = useState({}); // {fieldId: boolean}
+    const [fieldOptions, setFieldOptions] = useState<{ [key: string]: FieldOption[] }>({}); // {fieldId: options[]}
+    const [loadingOptions, setLoadingOptions] = useState<{ [key: string]: boolean }>({}); // {fieldId: boolean}
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -27,11 +104,11 @@ export default function FormEntry() {
             setLoading(true);
             try {
                 // Get the form definition (fields, metadata, etc.)
-                const definition = await getFormDefinition(formId);
+                const definition = await getFormDefinition(formId!) as any;
                 setFormDefinition(definition);
 
                 // Get any existing data for this form/subject/visit
-                const data = await getFormData(subjectId, visitId, formId);
+                const data = await getFormData(subjectId!, visitId!, formId!) as any;
                 setFormData(data || {});
             } catch (error) {
                 console.error('Error fetching form data:', error);
@@ -51,11 +128,11 @@ export default function FormEntry() {
             // Get current study ID from URL or context
             const studyId = window.location.pathname.split('/')[2]; // Assuming /studies/{studyId}/...
 
-            const context = {
+            const context: LoadContext = {
                 studyId,
-                subjectId,
-                visitId,
-                formId
+                subjectId: subjectId!,
+                visitId: visitId!,
+                formId: formId!
             };
 
             console.log('🔍 [FormEntry] Starting to load options for fields...');
@@ -77,11 +154,11 @@ export default function FormEntry() {
         loadAllOptions();
     }, [formDefinition, subjectId, visitId, formId]);
 
-    const loadFieldOptions = async (field, context) => {
+    const loadFieldOptions = async (field: FormField, context: LoadContext) => {
         setLoadingOptions(prev => ({ ...prev, [field.id]: true }));
 
         try {
-            const options = await OptionLoaderService.loadFieldOptions(field, context);
+            const options = await OptionLoaderService.loadFieldOptions(field, context) as any;
             console.log(`✅ [FormEntry] Loaded ${options.length} options for field ${field.id}:`, options);
             setFieldOptions(prev => ({ ...prev, [field.id]: options }));
         } catch (error) {
@@ -93,7 +170,7 @@ export default function FormEntry() {
         }
     };
 
-    const handleInputChange = (fieldId, value) => {
+    const handleInputChange = (fieldId: string, value: any) => {
         setFormData(prev => ({
             ...prev,
             [fieldId]: value
@@ -101,11 +178,11 @@ export default function FormEntry() {
         setIsDirty(true);
     };
 
-    const validateForm = () => {
+    const validateForm = (): boolean => {
         if (!formDefinition?.fields) return true;
 
         // Use ValidationEngine for comprehensive validation
-        const result = ValidationEngine.validateForm(formData, formDefinition);
+        const result = ValidationEngine.validateForm(formData, formDefinition) as any as ValidationResult;
 
         // Update state with validation results
         setFieldErrors(result.fieldErrors || {});
@@ -116,10 +193,10 @@ export default function FormEntry() {
     };
 
     // Field-level validation on blur for immediate feedback
-    const handleFieldBlur = (fieldId) => {
+    const handleFieldBlur = (fieldId: string) => {
         if (!formDefinition?.fields) return;
 
-        const field = formDefinition.fields.find(f => f.id === fieldId);
+        const field = formDefinition.fields.find((f: FormField) => f.id === fieldId);
         if (!field) return;
 
         // Validate single field
@@ -128,7 +205,7 @@ export default function FormEntry() {
             formData[fieldId],
             field.metadata,
             formData
-        );
+        ) as any as FieldValidationResult;
 
         // Update field-level errors and warnings
         setFieldErrors(prev => ({
@@ -142,7 +219,7 @@ export default function FormEntry() {
         }));
     };
 
-    const handleSave = async (status = 'incomplete') => {
+    const handleSave = async (status: string = 'incomplete') => {
         if (!validateForm()) return;
 
         setSaving(true);
@@ -153,11 +230,11 @@ export default function FormEntry() {
             // Calculate current completion stats to send to backend
             const currentCompletion = calculateCompletion();
 
-            await saveFormData(subjectId, visitId, formId, {
+            await saveFormData(subjectId!, visitId!, formId!, {
                 ...formData,
                 status,
                 lastUpdated: new Date().toISOString()
-            }, currentCompletion);
+            }, currentCompletion) as any;
 
             setIsDirty(false);
             setSaveSuccess(true);
@@ -171,7 +248,7 @@ export default function FormEntry() {
                     navigate(`/datacapture-management/subjects/${subjectId}/visits/${visitId}`);
                 }, 1500);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving form data:', error);
             setSaveError(error.message || 'Failed to save form data. Please try again.');
         } finally {
@@ -179,7 +256,7 @@ export default function FormEntry() {
         }
     };
 
-    const renderField = (field) => {
+    const renderField = (field: FormField): JSX.Element => {
         const value = formData[field.id] || '';
         const hasError = fieldErrors[field.id] && fieldErrors[field.id].length > 0;
         const hasWarning = fieldWarnings[field.id] && fieldWarnings[field.id].length > 0;
@@ -188,9 +265,9 @@ export default function FormEntry() {
         const borderColor = hasError ? 'border-red-500' : (hasWarning ? 'border-yellow-400' : 'border-gray-300');
         const fieldClass = `border ${borderColor} rounded-md w-full px-3 py-2 focus:outline-none focus:ring-2 ${hasError ? 'focus:ring-red-500' : 'focus:ring-blue-500'}`;
 
-        const renderValidationMessages = () => (
+        const renderValidationMessages = (): JSX.Element => (
             <>
-                {hasError && fieldErrors[field.id].map((error, idx) => (
+                {hasError && fieldErrors[field.id].map((error: ValidationError, idx: number) => (
                     <div key={`error-${idx}`} className="text-red-600 text-sm mt-1 flex items-start">
                         <svg className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -198,7 +275,7 @@ export default function FormEntry() {
                         {error.message}
                     </div>
                 ))}
-                {hasWarning && fieldWarnings[field.id].map((warning, idx) => (
+                {hasWarning && fieldWarnings[field.id].map((warning: ValidationWarning, idx: number) => (
                     <div key={`warning-${idx}`} className="text-orange-600 text-sm mt-1 flex items-start">
                         <svg className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -274,7 +351,7 @@ export default function FormEntry() {
                             </div>
                         ) : (
                             <div className="space-y-2">
-                                {radioOptions.map((option, i) => (
+                                {radioOptions.map((option: FieldOption, i: number) => (
                                     <div key={i} className="flex items-center">
                                         <input
                                             type="radio"
@@ -347,7 +424,7 @@ export default function FormEntry() {
                             <option value="">
                                 {isLoadingOptions ? 'Loading options...' : 'Select an option'}
                             </option>
-                            {options.map((option, i) => (
+                            {options.map((option: FieldOption, i: number) => (
                                 <option key={i} value={option.value} title={option.description}>
                                     {option.label}
                                 </option>
@@ -380,7 +457,7 @@ export default function FormEntry() {
                                 multiple
                                 value={selectedValues}
                                 onChange={(e) => {
-                                    const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                    const selected = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
                                     handleInputChange(field.id, selected);
                                 }}
                                 onBlur={() => handleFieldBlur(field.id)}
@@ -388,7 +465,7 @@ export default function FormEntry() {
                                 size={Math.min(multiselectOptions.length, 6)}
                                 disabled={isLoadingMultiselectOptions}
                             >
-                                {multiselectOptions.map((option, i) => (
+                                {multiselectOptions.map((option: FieldOption, i: number) => (
                                     <option key={i} value={option.value} title={option.description}>
                                         {option.label}
                                     </option>
@@ -397,15 +474,15 @@ export default function FormEntry() {
                         )}
                         {selectedValues.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1">
-                                {selectedValues.map((val, idx) => {
-                                    const opt = multiselectOptions.find(o => o.value === val);
+                                {selectedValues.map((val: string, idx: number) => {
+                                    const opt = multiselectOptions.find((o: FieldOption) => o.value === val);
                                     return opt ? (
                                         <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                             {opt.label}
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    const newValues = selectedValues.filter(v => v !== val);
+                                                    const newValues = selectedValues.filter((v: string) => v !== val);
                                                     handleInputChange(field.id, newValues);
                                                 }}
                                                 className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-blue-200"
@@ -438,7 +515,7 @@ export default function FormEntry() {
                             </div>
                         ) : (
                             <div className="space-y-2">
-                                {checkboxGroupOptions.map((option, i) => {
+                                {checkboxGroupOptions.map((option: FieldOption, i: number) => {
                                     const isChecked = checkedValues.includes(option.value);
                                     return (
                                         <div key={i} className="flex items-center">
@@ -448,11 +525,11 @@ export default function FormEntry() {
                                                 value={option.value}
                                                 checked={isChecked}
                                                 onChange={(e) => {
-                                                    let newValues;
+                                                    let newValues: string[];
                                                     if (e.target.checked) {
                                                         newValues = [...checkedValues, option.value];
                                                     } else {
-                                                        newValues = checkedValues.filter(v => v !== option.value);
+                                                        newValues = checkedValues.filter((v: string) => v !== option.value);
                                                     }
                                                     handleInputChange(field.id, newValues);
                                                     // Validate after selection
@@ -474,8 +551,8 @@ export default function FormEntry() {
                         )}
                         {checkedValues.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1">
-                                {checkedValues.map((val, idx) => {
-                                    const opt = checkboxGroupOptions.find(o => o.value === val);
+                                {checkedValues.map((val: string, idx: number) => {
+                                    const opt = checkboxGroupOptions.find((o: FieldOption) => o.value === val);
                                     return opt ? (
                                         <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                             {opt.label}
@@ -558,12 +635,12 @@ export default function FormEntry() {
     };
 
     // Calculate field completion statistics
-    const calculateCompletion = () => {
-        if (!formDefinition?.fields) return { completed: 0, total: 0, percentage: 0 };
+    const calculateCompletion = (): CompletionStats => {
+        if (!formDefinition?.fields) return { completed: 0, total: 0, requiredCompleted: 0, requiredTotal: 0, percentage: 0 };
 
         const totalFields = formDefinition.fields.length;
-        const requiredFields = formDefinition.fields.filter(f => f.metadata?.required);
-        const completedFields = formDefinition.fields.filter(field => {
+        const requiredFields = formDefinition.fields.filter((f: FormField) => f.metadata?.required);
+        const completedFields = formDefinition.fields.filter((field: FormField) => {
             const value = formData[field.id];
             // Check if field has a value (handles strings, numbers, booleans, arrays)
             if (field.type === 'checkbox') {
@@ -575,7 +652,7 @@ export default function FormEntry() {
             return value !== undefined && value !== null && value !== '';
         });
 
-        const completedRequiredFields = requiredFields.filter(field => {
+        const completedRequiredFields = requiredFields.filter((field: FormField) => {
             const value = formData[field.id];
             if (field.type === 'checkbox') {
                 return value === true;
@@ -661,7 +738,7 @@ export default function FormEntry() {
             )}
 
             <div className="space-y-6 mb-8">
-                {formDefinition.fields.map((field, index) => {
+                {formDefinition.fields.map((field: FormField, index: number) => {
                     const value = formData[field.id];
                     const isCompleted = field.type === 'checkbox'
                         ? value === true
@@ -757,4 +834,6 @@ export default function FormEntry() {
             </div>
         </div>
     );
-}
+};
+
+export default FormEntry;
