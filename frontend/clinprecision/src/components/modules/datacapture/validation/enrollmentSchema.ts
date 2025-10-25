@@ -52,3 +52,18 @@ export const completeEnrollmentSchema = yup.object({
   ...demographicsSchema.fields,
   ...studySiteSchema.fields,
 });
+
+/**
+ * Type inference for demographics form data
+ */
+export type DemographicsFormData = yup.InferType<typeof demographicsSchema>;
+
+/**
+ * Type inference for study/site form data
+ */
+export type StudySiteFormData = yup.InferType<typeof studySiteSchema>;
+
+/**
+ * Type inference for complete enrollment form data
+ */
+export type CompleteEnrollmentFormData = yup.InferType<typeof completeEnrollmentSchema>;
