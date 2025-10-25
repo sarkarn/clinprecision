@@ -1,19 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getSubjectById } from '../../../../services/SubjectService';
+import { getSubjectById } from '../../../services/SubjectService';
 
-export default function VisitList() {
-    const { subjectId } = useParams();
-    const [subject, setSubject] = useState(null);
+// Interface definitions
+interface Visit {
+    id: number;
+    visitName: string;
+    timepoint: number;
+    visitDate?: string;
+    status: 'complete' | 'incomplete' | 'not_started' | 'scheduled' | 'missed';
+}
+
+interface Subject {
+    subjectId: string;
+    studyName?: string;
+    armName?: string;
+    visits?: Visit[];
+}
+
+const VisitList: React.FC = () => {
+    const { subjectId } = useParams<{ subjectId: string }>();
+    const [subject, setSubject] = useState<Subject | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchSubjectData = async () => {
             setLoading(true);
             try {
-                const subjectData = await getSubjectById(subjectId);
+                const subjectData = await getSubjectById(subjectId!) as any;
                 setSubject(subjectData);
             } catch (error) {
                 console.error('Error fetching subject data:', error);
@@ -26,7 +42,7 @@ export default function VisitList() {
         fetchSubjectData();
     }, [subjectId]);
 
-    const getStatusBadgeClass = (status) => {
+    const getStatusBadgeClass = (status: string): string => {
         switch (status) {
             case 'complete':
                 return 'bg-green-100 text-green-800';
@@ -42,7 +58,7 @@ export default function VisitList() {
         }
     };
 
-    const getStatusLabel = (status) => {
+    const getStatusLabel = (status: string): string => {
         switch (status) {
             case 'complete':
                 return 'Complete';
@@ -144,7 +160,7 @@ export default function VisitList() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {subject.visits.map((visit) => (
+                            {subject.visits.map((visit: Visit) => (
                                 <tr key={visit.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap font-medium">
                                         {visit.visitName}
@@ -195,7 +211,7 @@ export default function VisitList() {
                 <h4 className="font-medium mb-3">Visit Schedule Overview</h4>
                 <div className="bg-gray-50 p-4 rounded-md">
                     <div className="flex flex-wrap gap-2">
-                        {subject.visits && subject.visits.map((visit) => (
+                        {subject.visits && subject.visits.map((visit: Visit) => (
                             <div
                                 key={visit.id}
                                 className={`px-3 py-2 rounded-md border ${visit.status === 'complete' ? 'bg-green-50 border-green-200' :
@@ -215,4 +231,6 @@ export default function VisitList() {
             </div>
         </div>
     );
-}
+};
+
+export default VisitList;

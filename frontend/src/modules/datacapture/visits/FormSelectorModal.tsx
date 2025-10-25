@@ -1,8 +1,25 @@
-// src/components/modules/datacapture/visits/FormSelectorModal.jsx
+// FormSelectorModal.tsx
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, Search, Plus, FileText } from 'lucide-react';
-import { addMultipleFormsToVisit, STANDARD_FORM_SETS } from '../../../../utils/visitFormHelpers';
-import FormService from '../../../../services/FormService';
+import { addMultipleFormsToVisit, STANDARD_FORM_SETS } from '../../../utils/visitFormHelpers';
+import FormService from '../../../services/FormService';
+
+// Type definitions
+interface Form {
+    id: number;
+    name: string;
+    formType?: string;
+    description?: string;
+}
+
+interface FormSelectorModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    studyId?: number;
+    visitInstanceId: number;
+    visitType?: string;
+    onFormsAdded?: (formIds: number[]) => void;
+}
 
 /**
  * Modal for selecting and assigning forms to an unscheduled visit
@@ -14,15 +31,8 @@ import FormService from '../../../../services/FormService';
  * - Multi-select forms with checkboxes
  * - Assign selected forms to visit
  * - Success/error feedback
- * 
- * @param {boolean} isOpen - Modal visibility
- * @param {function} onClose - Close handler
- * @param {number} studyId - Study ID (for loading available forms)
- * @param {number} visitInstanceId - Visit instance ID (Long primary key)
- * @param {string} visitType - Visit type (SCREENING, ENROLLMENT, etc.) for smart defaults
- * @param {function} onFormsAdded - Callback after successful form assignment
  */
-const FormSelectorModal = ({
+const FormSelectorModal: React.FC<FormSelectorModalProps> = ({
     isOpen,
     onClose,
     studyId,
@@ -31,16 +41,16 @@ const FormSelectorModal = ({
     onFormsAdded
 }) => {
     // Form state
-    const [availableForms, setAvailableForms] = useState([]);
-    const [selectedFormIds, setSelectedFormIds] = useState([]);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [availableForms, setAvailableForms] = useState<Form[]>([]);
+    const [selectedFormIds, setSelectedFormIds] = useState<number[]>([]);
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     // UI state
-    const [loadingForms, setLoadingForms] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [showError, setShowError] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
+    const [loadingForms, setLoadingForms] = useState<boolean>(false);
+    const [submitting, setSubmitting] = useState<boolean>(false);
+    const [showSuccess, setShowSuccess] = useState<boolean>(false);
+    const [showError, setShowError] = useState<boolean>(false);
+    const [errorMessage, setErrorMessage] = useState<string>('');
 
     /**
      * Fetch available forms for the study
@@ -56,10 +66,10 @@ const FormSelectorModal = ({
         try {
             // Fetch forms from study using FormService
             console.log('[FORM SELECTOR] Loading forms for study:', studyId);
-            const formsData = await FormService.getFormsByStudy(studyId);
+            const formsData = await FormService.getFormsByStudy(studyId!) as any;
             console.log('[FORM SELECTOR] Loaded forms:', formsData);
             setAvailableForms(formsData || []);
-        } catch (error) {
+        } catch (error: any) {
             console.error('[FORM SELECTOR] Error loading forms:', error);
             setErrorMessage('Failed to load forms: ' + (error.response?.data?.error || error.message));
             setShowError(true);
@@ -71,7 +81,7 @@ const FormSelectorModal = ({
     /**
      * Toggle form selection
      */
-    const toggleFormSelection = (formId) => {
+    const toggleFormSelection = (formId: number) => {
         setSelectedFormIds(prev => {
             if (prev.includes(formId)) {
                 return prev.filter(id => id !== formId);
@@ -85,11 +95,11 @@ const FormSelectorModal = ({
      * Use standard forms for visit type
      */
     const useStandardForms = () => {
-        const standardFormNames = STANDARD_FORM_SETS[visitType] || [];
+        const standardFormNames = (STANDARD_FORM_SETS as any)[visitType!] || [];
 
         // Find matching forms by name
         const matchingFormIds = availableForms
-            .filter(form => standardFormNames.some(name =>
+            .filter(form => standardFormNames.some((name: string) =>
                 form.name?.toLowerCase().includes(name.toLowerCase()) ||
                 form.formType?.toLowerCase().includes(name.toLowerCase())
             ))
@@ -103,7 +113,9 @@ const FormSelectorModal = ({
             setShowError(true);
             setTimeout(() => setShowError(false), 3000);
         }
-    };    /**
+    };
+
+    /**
      * Filter forms by search query
      */
     const filteredForms = availableForms.filter(form => {
@@ -153,7 +165,7 @@ const FormSelectorModal = ({
                 handleClose();
             }, 1500);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('[FORM SELECTOR] Error assigning forms:', error);
             setErrorMessage(
                 error.response?.data?.error ||
@@ -236,7 +248,7 @@ const FormSelectorModal = ({
 
                 <div className="p-6">
                     {/* Quick Actions */}
-                    {visitType && STANDARD_FORM_SETS[visitType] && (
+                    {visitType && (STANDARD_FORM_SETS as any)[visitType] && (
                         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <div className="flex items-center justify-between">
                                 <div>

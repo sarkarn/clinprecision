@@ -9,21 +9,61 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import ProtocolDeviationService from '../../../../services/quality/ProtocolDeviationService';
-import { getStudies } from '../../../../services/StudyService';
+import ProtocolDeviationService from '../../../services/quality/ProtocolDeviationService';
+import { getStudies } from '../../../services/StudyService';
 
-const DeviationDashboard = () => {
-    const { studyId: urlStudyId } = useParams();
+// Type definitions
+interface Study {
+    id: number;
+    protocolNumber: string;
+    title?: string;
+    name?: string;
+    status: string;
+}
+
+interface Deviation {
+    id: number;
+    patientId: number;
+    deviationType: string;
+    severity: 'MINOR' | 'MAJOR' | 'CRITICAL';
+    deviationStatus: 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'CLOSED';
+    deviationDate: string;
+    requiresReporting: boolean;
+}
+
+interface Metrics {
+    total: number;
+    bySeverity: {
+        MINOR: number;
+        MAJOR: number;
+        CRITICAL: number;
+    };
+    byType: Record<string, number>;
+    byStatus: Record<string, number>;
+    requiresReporting: number;
+}
+
+interface Filters {
+    severity: string;
+    type: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    requiresReporting: boolean;
+}
+
+const DeviationDashboard: React.FC = () => {
+    const { studyId: urlStudyId } = useParams<{ studyId?: string }>();
     const navigate = useNavigate();
     const location = useLocation();
 
     // State management
-    const [studies, setStudies] = useState([]);
-    const [selectedStudy, setSelectedStudy] = useState(urlStudyId || '');
-    const [deviations, setDeviations] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [metrics, setMetrics] = useState({
+    const [studies, setStudies] = useState<Study[]>([]);
+    const [selectedStudy, setSelectedStudy] = useState<string>(urlStudyId || '');
+    const [deviations, setDeviations] = useState<Deviation[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [metrics, setMetrics] = useState<Metrics>({
         total: 0,
         bySeverity: { MINOR: 0, MAJOR: 0, CRITICAL: 0 },
         byType: {},
@@ -32,7 +72,7 @@ const DeviationDashboard = () => {
     });
 
     // Filters
-    const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState<Filters>({
         severity: 'ALL',
         type: 'ALL',
         status: 'ALL',
@@ -42,8 +82,8 @@ const DeviationDashboard = () => {
     });
 
     // Pagination
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [page, setPage] = useState<number>(0);
+    const [rowsPerPage, setRowsPerPage] = useState<number>(10);
 
     // Load studies on mount
     useEffect(() => {
@@ -64,19 +104,19 @@ const DeviationDashboard = () => {
 
     const loadStudies = async () => {
         try {
-            const studiesData = await getStudies();
+            const studiesData = await getStudies() as any;
             // Filter for active/published studies
-            const activeStudies = studiesData.filter(s =>
+            const activeStudies = studiesData.filter((s: Study) =>
                 s.status === 'ACTIVE' || s.status === 'RECRUITING' || s.status === 'PUBLISHED'
             );
             setStudies(activeStudies);
 
             // If preselected study from navigation state
-            if (location.state?.preselectedStudy) {
-                setSelectedStudy(location.state.preselectedStudy);
+            if ((location.state as any)?.preselectedStudy) {
+                setSelectedStudy((location.state as any).preselectedStudy);
             } else if (activeStudies.length === 1) {
                 // Auto-select if only one study
-                setSelectedStudy(activeStudies[0].id);
+                setSelectedStudy(activeStudies[0].id.toString());
             }
         } catch (err) {
             console.error('Error loading studies:', err);
@@ -88,7 +128,7 @@ const DeviationDashboard = () => {
             setLoading(true);
             setError(null);
 
-            const params = {
+            const params: any = {
                 studyId: selectedStudy,
                 ...(filters.severity !== 'ALL' && { severity: filters.severity }),
                 ...(filters.type !== 'ALL' && { type: filters.type }),
@@ -98,10 +138,10 @@ const DeviationDashboard = () => {
                 ...(filters.requiresReporting && { requiresReporting: true })
             };
 
-            const data = await ProtocolDeviationService.getStudyDeviations(params);
+            const data = await ProtocolDeviationService.getStudyDeviations(params) as any;
             setDeviations(data || []);
             calculateMetrics(data || []);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error fetching deviations:', err);
             setError('Failed to load deviations. Please try again.');
         } finally {
@@ -109,10 +149,10 @@ const DeviationDashboard = () => {
         }
     };
 
-    const calculateMetrics = (deviationList) => {
+    const calculateMetrics = (deviationList: Deviation[]) => {
         const bySeverity = { MINOR: 0, MAJOR: 0, CRITICAL: 0 };
-        const byType = {};
-        const byStatus = {};
+        const byType: Record<string, number> = {};
+        const byStatus: Record<string, number> = {};
         let requiresReporting = 0;
 
         deviationList.forEach(dev => {
@@ -137,21 +177,21 @@ const DeviationDashboard = () => {
         });
     };
 
-    const handleFilterChange = (field, value) => {
+    const handleFilterChange = (field: keyof Filters, value: any) => {
         setFilters(prev => ({ ...prev, [field]: value }));
         setPage(0);
     };
 
-    const handleChangePage = (newPage) => {
+    const handleChangePage = (newPage: number) => {
         setPage(newPage);
     };
 
-    const handleChangeRowsPerPage = (event) => {
+    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLSelectElement>) => {
         setRowsPerPage(parseInt(event.target.value, 10));
         setPage(0);
     };
 
-    const handleViewDeviation = (deviation) => {
+    const handleViewDeviation = (deviation: Deviation) => {
         navigate(`/datacapture/subjects/${deviation.patientId}`, {
             state: { highlightDeviationId: deviation.id }
         });
@@ -159,7 +199,7 @@ const DeviationDashboard = () => {
 
     const handleExport = () => {
         try {
-            const csv = ProtocolDeviationService.exportDeviationsToCsv(deviations);
+            const csv = ProtocolDeviationService.exportDeviationsToCsv(deviations as any);
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -175,7 +215,7 @@ const DeviationDashboard = () => {
         }
     };
 
-    const getSeverityBadgeClass = (severity) => {
+    const getSeverityBadgeClass = (severity: string): string => {
         switch (severity) {
             case 'CRITICAL': return 'bg-red-100 text-red-800 border-red-300';
             case 'MAJOR': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
@@ -184,7 +224,7 @@ const DeviationDashboard = () => {
         }
     };
 
-    const getStatusBadgeClass = (status) => {
+    const getStatusBadgeClass = (status: string): string => {
         switch (status) {
             case 'OPEN': return 'bg-red-100 text-red-800';
             case 'UNDER_REVIEW': return 'bg-yellow-100 text-yellow-800';
@@ -445,7 +485,7 @@ const DeviationDashboard = () => {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {paginatedDeviations.length === 0 ? (
                                         <tr>
-                                            <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
+                                            <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                                                 No deviations found matching the current filters.
                                             </td>
                                         </tr>

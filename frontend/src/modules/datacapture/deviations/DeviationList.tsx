@@ -1,6 +1,43 @@
-// DeviationList.jsx - Display Protocol Deviations
+// DeviationList.tsx - Display Protocol Deviations
 import React, { useState } from 'react';
-import ProtocolDeviationService from '../../../../services/quality/ProtocolDeviationService';
+import ProtocolDeviationService from '../../../services/quality/ProtocolDeviationService';
+
+// Type definitions
+interface Comment {
+    id: number;
+    commentedBy: string;
+    createdAt: string;
+    comment: string;
+}
+
+interface Deviation {
+    id: number;
+    title: string;
+    description: string;
+    severity: 'CRITICAL' | 'MAJOR' | 'MINOR';
+    status: 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'CLOSED';
+    deviationType: string;
+    reportedDate: string;
+    reportedBy: string;
+    requiresReporting: boolean;
+    protocolSection?: string;
+    expectedProcedure?: string;
+    actualProcedure?: string;
+    rootCause?: string;
+    immediateAction?: string;
+    correctiveAction?: string;
+    reportedToSponsor?: boolean;
+    sponsorReportDate?: string;
+    reportedToIrb?: boolean;
+    irbReportDate?: string;
+}
+
+interface DeviationListProps {
+    deviations?: Deviation[];
+    onStatusUpdate?: (deviation: Deviation) => void;
+    onAddComment?: (deviation: Deviation) => void;
+    showFilters?: boolean;
+}
 
 /**
  * Component for displaying protocol deviations with filtering
@@ -11,23 +48,18 @@ import ProtocolDeviationService from '../../../../services/quality/ProtocolDevia
  * - Expandable details for each deviation
  * - Filtering by severity and status
  * - Timeline display with created/updated dates
- * 
- * @param {Array} deviations - Array of deviation objects
- * @param {function} onStatusUpdate - Callback when status is updated
- * @param {function} onAddComment - Callback when comment is added
- * @param {boolean} showFilters - Show filter controls (default: true)
  */
-export default function DeviationList({
+const DeviationList: React.FC<DeviationListProps> = ({
     deviations = [],
     onStatusUpdate,
     onAddComment,
     showFilters = true
-}) {
-    const [severityFilter, setSeverityFilter] = useState('all');
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [expandedDeviation, setExpandedDeviation] = useState(null);
-    const [loadingComments, setLoadingComments] = useState({});
-    const [comments, setComments] = useState({});
+}) => {
+    const [severityFilter, setSeverityFilter] = useState<string>('all');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [expandedDeviation, setExpandedDeviation] = useState<number | null>(null);
+    const [loadingComments, setLoadingComments] = useState<Record<number, boolean>>({});
+    const [comments, setComments] = useState<Record<number, Comment[]>>({});
 
     // Filter deviations based on selected filters
     const filteredDeviations = deviations.filter(deviation => {
@@ -41,7 +73,7 @@ export default function DeviationList({
     });
 
     // Toggle deviation expansion
-    const toggleDeviation = async (deviationId) => {
+    const toggleDeviation = async (deviationId: number) => {
         if (expandedDeviation === deviationId) {
             setExpandedDeviation(null);
         } else {
@@ -55,10 +87,10 @@ export default function DeviationList({
     };
 
     // Load comments for a deviation
-    const loadComments = async (deviationId) => {
+    const loadComments = async (deviationId: number) => {
         setLoadingComments(prev => ({ ...prev, [deviationId]: true }));
         try {
-            const deviationComments = await ProtocolDeviationService.getDeviationComments(deviationId);
+            const deviationComments = await ProtocolDeviationService.getDeviationComments(deviationId) as any;
             setComments(prev => ({ ...prev, [deviationId]: deviationComments }));
         } catch (error) {
             console.error('[DEVIATION_LIST] Error loading comments:', error);
@@ -68,7 +100,7 @@ export default function DeviationList({
     };
 
     // Format date for display
-    const formatDate = (dateString) => {
+    const formatDate = (dateString?: string): string => {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
@@ -81,7 +113,7 @@ export default function DeviationList({
     };
 
     // Get severity icon
-    const getSeverityIcon = (severity) => {
+    const getSeverityIcon = (severity: string): JSX.Element => {
         switch (severity) {
             case 'CRITICAL':
                 return (
@@ -356,4 +388,6 @@ export default function DeviationList({
             )}
         </div>
     );
-}
+};
+
+export default DeviationList;

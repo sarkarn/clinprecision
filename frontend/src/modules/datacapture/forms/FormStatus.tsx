@@ -1,7 +1,13 @@
 import React from 'react';
 
-export default function FormStatus({ status, lastUpdated, showLabel = true }) {
-    const getStatusBadgeClass = (status) => {
+interface FormStatusProps {
+    status: 'complete' | 'incomplete' | 'not_started';
+    lastUpdated?: string;
+    showLabel?: boolean;
+}
+
+const FormStatus: React.FC<FormStatusProps> = ({ status, lastUpdated, showLabel = true }) => {
+    const getStatusBadgeClass = (status: string): string => {
         switch (status) {
             case 'complete':
                 return 'bg-green-100 text-green-800';
@@ -13,7 +19,7 @@ export default function FormStatus({ status, lastUpdated, showLabel = true }) {
         }
     };
 
-    const getStatusLabel = (status) => {
+    const getStatusLabel = (status: string): string => {
         switch (status) {
             case 'complete':
                 return 'Complete';
@@ -37,4 +43,6 @@ export default function FormStatus({ status, lastUpdated, showLabel = true }) {
             )}
         </div>
     );
-}
+};
+
+export default FormStatus;

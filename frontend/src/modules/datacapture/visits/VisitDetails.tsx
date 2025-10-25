@@ -1,16 +1,47 @@
-// VisitDetails.jsx
+// VisitDetails.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getVisitDetails } from '../../../../services/data-capture/DataEntryService';
+import { getVisitDetails } from '../../../services/data-capture/DataEntryService';
+// @ts-ignore - FormSelectorModal not yet converted
 import FormSelectorModal from './FormSelectorModal';
-import ApiService from '../../../../services/ApiService';
+import ApiService from '../../../services/ApiService';
 
-export default function VisitDetails() {
-    const { subjectId, visitId } = useParams();
-    const [visitDetails, setVisitDetails] = useState(null);
-    const [visitMetadata, setVisitMetadata] = useState(null); // Study ID, UUID, etc.
-    const [loading, setLoading] = useState(true);
-    const [showFormSelector, setShowFormSelector] = useState(false);
+// Type definitions
+interface Form {
+    id: number;
+    name: string;
+    status: 'complete' | 'incomplete' | 'not_started';
+    lastUpdated?: string;
+}
+
+interface VisitDetails {
+    visitName: string;
+    subjectId: string;
+    description: string;
+    visitWindowStart?: string;
+    visitWindowEnd?: string;
+    complianceStatus?: 'COMPLIANT' | 'UPCOMING' | 'APPROACHING' | 'OVERDUE' | 'PROTOCOL_VIOLATION';
+    windowDaysBefore?: number;
+    windowDaysAfter?: number;
+    actualVisitDate?: string;
+    visitDate: string;
+    daysOverdue?: number;
+    status: 'complete' | 'incomplete' | 'not_started';
+    timepoint: number;
+    forms: Form[];
+}
+
+interface VisitMetadata {
+    studyId: number;
+    visitType: string;
+}
+
+const VisitDetails: React.FC = () => {
+    const { subjectId, visitId } = useParams<{ subjectId: string; visitId: string }>();
+    const [visitDetails, setVisitDetails] = useState<VisitDetails | null>(null);
+    const [visitMetadata, setVisitMetadata] = useState<VisitMetadata | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [showFormSelector, setShowFormSelector] = useState<boolean>(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -18,12 +49,12 @@ export default function VisitDetails() {
             setLoading(true);
             try {
                 // First, fetch visit metadata (studyId, visitUuid, etc.)
-                const metadataResponse = await ApiService.get(`/clinops-ws/api/v1/visits/${visitId}`);
+                const metadataResponse = await ApiService.get(`/clinops-ws/api/v1/visits/${visitId}`) as any;
                 console.log('[VISIT DETAILS] Visit metadata:', metadataResponse.data);
                 setVisitMetadata(metadataResponse.data);
 
                 // Then fetch form details
-                const details = await getVisitDetails(subjectId, visitId);
+                const details = await getVisitDetails(subjectId!, visitId!) as any;
                 setVisitDetails(details);
             } catch (error) {
                 console.error('Error fetching visit details:', error);
@@ -44,11 +75,11 @@ export default function VisitDetails() {
         const fetchVisitDetails = async () => {
             try {
                 // Fetch updated metadata
-                const metadataResponse = await ApiService.get(`/clinops-ws/api/v1/visits/${visitId}`);
+                const metadataResponse = await ApiService.get(`/clinops-ws/api/v1/visits/${visitId}`) as any;
                 setVisitMetadata(metadataResponse.data);
 
                 // Fetch updated form details
-                const details = await getVisitDetails(subjectId, visitId);
+                const details = await getVisitDetails(subjectId!, visitId!) as any;
                 setVisitDetails(details);
             } catch (error) {
                 console.error('Error reloading visit details:', error);
@@ -60,10 +91,10 @@ export default function VisitDetails() {
     /**
      * Get compliance badge styling based on compliance status
      */
-    const getComplianceBadgeClass = (complianceStatus) => {
+    const getComplianceBadgeClass = (complianceStatus?: string): string => {
         if (!complianceStatus) return 'bg-gray-100 text-gray-700';
 
-        const statusClasses = {
+        const statusClasses: Record<string, string> = {
             'COMPLIANT': 'bg-green-100 text-green-800',
             'UPCOMING': 'bg-blue-100 text-blue-800',
             'APPROACHING': 'bg-yellow-100 text-yellow-800',
@@ -77,10 +108,10 @@ export default function VisitDetails() {
     /**
      * Get human-readable compliance status label
      */
-    const getComplianceLabel = (complianceStatus) => {
+    const getComplianceLabel = (complianceStatus?: string): string => {
         if (!complianceStatus) return 'N/A';
 
-        const labels = {
+        const labels: Record<string, string> = {
             'COMPLIANT': 'Compliant',
             'UPCOMING': 'Upcoming',
             'APPROACHING': 'Due Soon',
@@ -91,7 +122,7 @@ export default function VisitDetails() {
         return labels[complianceStatus] || complianceStatus;
     };
 
-    const getStatusBadgeClass = (status) => {
+    const getStatusBadgeClass = (status: string): string => {
         switch (status) {
             case 'complete':
                 return 'bg-green-100 text-green-800';
@@ -104,7 +135,7 @@ export default function VisitDetails() {
         }
     };
 
-    const getStatusLabel = (status) => {
+    const getStatusLabel = (status: string): string => {
         switch (status) {
             case 'complete':
                 return 'Complete';
@@ -196,12 +227,12 @@ export default function VisitDetails() {
                                     : new Date(visitDetails.visitDate).toLocaleDateString()
                                 }
                             </p>
-                            {visitDetails.daysOverdue > 0 && (
+                            {visitDetails.daysOverdue && visitDetails.daysOverdue > 0 && (
                                 <p className="text-xs text-red-600 font-semibold mt-1">
                                     ⚠️ {visitDetails.daysOverdue} day{visitDetails.daysOverdue !== 1 ? 's' : ''} overdue
                                 </p>
                             )}
-                            {visitDetails.daysOverdue < 0 && Math.abs(visitDetails.daysOverdue) <= 7 && (
+                            {visitDetails.daysOverdue && visitDetails.daysOverdue < 0 && Math.abs(visitDetails.daysOverdue) <= 7 && (
                                 <p className="text-xs text-yellow-600 font-semibold mt-1">
                                     ⏰ Due in {Math.abs(visitDetails.daysOverdue)} day{Math.abs(visitDetails.daysOverdue) !== 1 ? 's' : ''}
                                 </p>
@@ -406,10 +437,12 @@ export default function VisitDetails() {
                 isOpen={showFormSelector}
                 onClose={() => setShowFormSelector(false)}
                 studyId={visitMetadata?.studyId}
-                visitInstanceId={parseInt(visitId)}
+                visitInstanceId={parseInt(visitId!)}
                 visitType={visitMetadata?.visitType}
                 onFormsAdded={handleFormsAdded}
             />
         </div>
     );
-}
+};
+
+export default VisitDetails;
