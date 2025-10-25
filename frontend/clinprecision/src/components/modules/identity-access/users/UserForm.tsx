@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserService } from '../../../../services/UserService';
 import { UserTypeService } from '../../../../services/auth/UserTypeService';
@@ -6,8 +6,33 @@ import OrganizationService from '../../../../services/OrganizationService';
 import { RoleService } from '../../../../services/auth/RoleService';
 import { useAuth } from '../../../login/AuthContext';
 
-export default function UserForm() {
-    const { userId } = useParams();
+interface UserType {
+    id: number;
+    name: string;
+}
+
+interface Organization {
+    id: number | string;
+    name: string;
+}
+
+interface Role {
+    id: number;
+    name: string;
+}
+
+interface FormData {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    selectedUserTypes: number[];
+    organizationId: string;
+    selectedRoles: number[];
+}
+
+const UserForm: React.FC = () => {
+    const { userId } = useParams<{ userId: string }>();
     const navigate = useNavigate();
     const isEditMode = !!userId;
     const { user } = useAuth();
@@ -19,7 +44,7 @@ export default function UserForm() {
         }
     }, [user, navigate, isEditMode, userId]);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         firstName: '',
         lastName: '',
         email: '',
@@ -29,11 +54,11 @@ export default function UserForm() {
         selectedRoles: [],
     });
 
-    const [availableUserTypes, setAvailableUserTypes] = useState([]);
-    const [availableOrganizations, setAvailableOrganizations] = useState([]);
-    const [availableRoles, setAvailableRoles] = useState([]);
+    const [availableUserTypes, setAvailableUserTypes] = useState<UserType[]>([]);
+    const [availableOrganizations, setAvailableOrganizations] = useState<Organization[]>([]);
+    const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
     useEffect(() => {
@@ -46,23 +71,23 @@ export default function UserForm() {
                     OrganizationService.getAllOrganizations(),
                     RoleService.getSystemRoles(),  // Only system roles for user creation
                 ]);
-                setAvailableUserTypes(Array.isArray(userTypesData) ? userTypesData : []);
-                setAvailableOrganizations(Array.isArray(orgsData) ? orgsData : []);
-                setAvailableRoles(Array.isArray(rolesData) ? rolesData : []);
+                setAvailableUserTypes(Array.isArray(userTypesData) ? userTypesData as any : []);
+                setAvailableOrganizations(Array.isArray(orgsData) ? orgsData as any : []);
+                setAvailableRoles(Array.isArray(rolesData) ? rolesData as any : []);
 
                 // If in edit mode, fetch user data
                 if (isEditMode) {
-                    const userData = await UserService.getUserById(userId);
-                    const userTypeIds = await UserService.getUserTypes(userId);
+                    const userData = await UserService.getUserById(userId as any);
+                    const userTypeIds = await UserService.getUserTypes(userId as any);
                     // TODO: Fetch user's organization and roles if available
                     setFormData({
-                        firstName: userData.firstName || '',
-                        lastName: userData.lastName || '',
-                        email: userData.email || '',
+                        firstName: (userData as any).firstName || '',
+                        lastName: (userData as any).lastName || '',
+                        email: (userData as any).email || '',
                         password: '', // Don't populate password in edit mode
-                        selectedUserTypes: userTypeIds || [],
-                        organizationId: userData.organizationId || '',
-                        selectedRoles: userData.roleIds || [],
+                        selectedUserTypes: userTypeIds as any || [],
+                        organizationId: (userData as any).organizationId || '',
+                        selectedRoles: (userData as any).roleIds || [],
                     });
                 }
 
@@ -77,7 +102,7 @@ export default function UserForm() {
         fetchData();
     }, [userId, isEditMode]);
 
-    const handleChange = (e) => {
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -85,7 +110,7 @@ export default function UserForm() {
         }));
     };
 
-    const handleUserTypeChange = (e) => {
+    const handleUserTypeChange = (e: ChangeEvent<HTMLInputElement>) => {
         const typeId = parseInt(e.target.value);
         const isChecked = e.target.checked;
 
@@ -102,14 +127,14 @@ export default function UserForm() {
         }
     };
 
-    const handleOrganizationChange = (e) => {
+    const handleOrganizationChange = (e: ChangeEvent<HTMLSelectElement>) => {
         setFormData(prev => ({
             ...prev,
             organizationId: e.target.value
         }));
     };
 
-    const handleRoleChange = (e) => {
+    const handleRoleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const roleId = parseInt(e.target.value);
         const isChecked = e.target.checked;
         if (isChecked) {
@@ -125,13 +150,13 @@ export default function UserForm() {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         try {
             setLoading(true);
             setError(null);
 
-            const userData = {
+            const userData: any = {
                 firstName: formData.firstName,
                 lastName: formData.lastName,
                 email: formData.email,
@@ -146,23 +171,23 @@ export default function UserForm() {
 
             let userIdValue;
             if (isEditMode) {
-                await UserService.updateUser(userId, userData);
+                await UserService.updateUser(userId as any, userData);
                 userIdValue = userId;
             } else {
                 const result = await UserService.createUser(userData);
-                userIdValue = result.userId;
+                userIdValue = (result as any).userId;
             }
 
             // Update user types (existing logic)
-            const currentTypes = await UserService.getUserTypes(userIdValue);
-            for (const typeId of currentTypes) {
+            const currentTypes = await UserService.getUserTypes(userIdValue as any);
+            for (const typeId of currentTypes as any) {
                 if (!formData.selectedUserTypes.includes(typeId)) {
-                    await UserService.removeUserType(userIdValue, typeId);
+                    await UserService.removeUserType(userIdValue as any, typeId as any);
                 }
             }
             for (const typeId of formData.selectedUserTypes) {
-                if (!currentTypes.includes(typeId)) {
-                    await UserService.assignUserType(userIdValue, typeId);
+                if (!(currentTypes as any).includes(typeId)) {
+                    await UserService.assignUserType(userIdValue as any, typeId as any);
                 }
             }
 
@@ -369,4 +394,6 @@ export default function UserForm() {
             )}
         </div>
     );
-}
+};
+
+export default UserForm;

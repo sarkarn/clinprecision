@@ -1,16 +1,52 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, ChangeEvent, FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { UserStudyRoleService } from '../../../../services/auth/UserStudyRoleService';
 import { UserService } from '../../../../services/UserService';
 import StudyService from '../../../../services/StudyService';
 import { RoleService } from '../../../../services/auth/RoleService';
 
-export default function UserStudyRoleForm() {
+interface User {
+    id: number | string;
+    firstName: string;
+    lastName: string;
+    email: string;
+}
+
+interface Study {
+    id: number | string;
+    title: string;
+}
+
+interface Role {
+    id: number | string;
+    name: string;
+    code: string;
+}
+
+interface FormData {
+    userId: string;
+    studyId: string;
+    roleCode: string;
+    startDate: string;
+    endDate: string;
+    active: boolean;
+    notes: string;
+}
+
+interface ValidationErrors {
+    userId?: string;
+    studyId?: string;
+    roleCode?: string;
+    startDate?: string;
+    endDate?: string;
+}
+
+const UserStudyRoleForm: React.FC = () => {
     const navigate = useNavigate();
-    const { id } = useParams();
+    const { id } = useParams<{ id: string }>();
     const isEditing = !!id;
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         userId: '',
         studyId: '',
         roleCode: '',
@@ -20,12 +56,12 @@ export default function UserStudyRoleForm() {
         notes: ''
     });
 
-    const [users, setUsers] = useState([]);
-    const [studies, setStudies] = useState([]);
-    const [roles, setRoles] = useState([]);
+    const [users, setUsers] = useState<User[]>([]);
+    const [studies, setStudies] = useState<Study[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [validationErrors, setValidationErrors] = useState({});
+    const [error, setError] = useState<string | null>(null);
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
     const loadReferenceData = useCallback(async () => {
         try {
@@ -35,9 +71,9 @@ export default function UserStudyRoleForm() {
                 RoleService.getNonSystemRoles()  // Only non-system roles for study assignments
             ]);
 
-            setUsers(usersData);
-            setStudies(studiesData);
-            setRoles(rolesData);
+            setUsers(usersData as any);
+            setStudies(studiesData as any);
+            setRoles(rolesData as any);
         } catch (err) {
             setError('Failed to load reference data');
             console.error('Error loading reference data:', err);
@@ -47,10 +83,10 @@ export default function UserStudyRoleForm() {
     const loadUserStudyRole = useCallback(async () => {
         try {
             setLoading(true);
-            const data = await UserStudyRoleService.getUserStudyRoleById(id);
+            const data = await UserStudyRoleService.getUserStudyRoleById(id as any) as any;
 
             // Helper function to safely format date
-            const formatDate = (dateValue) => {
+            const formatDate = (dateValue: any): string => {
                 if (!dateValue) return '';
 
                 // If it's already a string in YYYY-MM-DD format, return it
@@ -77,8 +113,8 @@ export default function UserStudyRoleForm() {
             };
 
             setFormData({
-                userId: data.userId || '',
-                studyId: data.studyId || '',
+                userId: data.userId?.toString() || '',
+                studyId: data.studyId?.toString() || '',
                 roleCode: data.roleCode || '',
                 startDate: formatDate(data.startDate),
                 endDate: formatDate(data.endDate),
@@ -100,8 +136,8 @@ export default function UserStudyRoleForm() {
         }
     }, [id, isEditing, loadReferenceData, loadUserStudyRole]);
 
-    const validateForm = () => {
-        const errors = {};
+    const validateForm = (): boolean => {
+        const errors: ValidationErrors = {};
 
         if (!formData.userId) {
             errors.userId = 'User is required';
@@ -127,7 +163,7 @@ export default function UserStudyRoleForm() {
         return Object.keys(errors).length === 0;
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -142,7 +178,7 @@ export default function UserStudyRoleForm() {
             console.log('Form data before conversion:', formData);
 
             // More robust ID parsing
-            const parseUserId = (userIdValue) => {
+            const parseUserId = (userIdValue: string): number | null => {
                 if (!userIdValue) return null;
 
                 // If it's already a number, return it
@@ -167,7 +203,9 @@ export default function UserStudyRoleForm() {
                 endDate: formData.endDate ? `${formData.endDate}T23:59:59` : null
             };
 
-            console.log('Submit data after conversion:', submitData);            // Additional safety check before sending
+            console.log('Submit data after conversion:', submitData);
+
+            // Additional safety check before sending
             if (!submitData.userId || isNaN(submitData.userId)) {
                 console.log('userId validation failed:', {
                     originalUserId: formData.userId,
@@ -191,13 +229,13 @@ export default function UserStudyRoleForm() {
             }
 
             if (isEditing) {
-                await UserStudyRoleService.updateUserStudyRole(id, submitData);
+                await UserStudyRoleService.updateUserStudyRole(id as any, submitData as any);
             } else {
-                await UserStudyRoleService.createUserStudyRole(submitData);
+                await UserStudyRoleService.createUserStudyRole(submitData as any);
             }
 
             navigate('/user-management/user-study-roles');
-        } catch (err) {
+        } catch (err: any) {
             setError(isEditing ? 'Failed to update assignment' : 'Failed to create assignment');
             console.error('Error saving user study role:', err);
 
@@ -210,15 +248,16 @@ export default function UserStudyRoleForm() {
         }
     };
 
-    const handleInputChange = (e) => {
-        const { name, value, type, checked } = e.target;
+    const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const target = e.target as HTMLInputElement;
+        const { name, value, type, checked } = target;
         setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
 
         // Clear validation error when user starts typing
-        if (validationErrors[name]) {
+        if (validationErrors[name as keyof ValidationErrors]) {
             setValidationErrors(prev => ({
                 ...prev,
                 [name]: ''
@@ -230,7 +269,7 @@ export default function UserStudyRoleForm() {
         navigate('/identity-access/study-assignments');
     };
 
-    const getUserDisplayName = (user) => {
+    const getUserDisplayName = (user: User): string => {
         return `${user.firstName} ${user.lastName} (${user.email})`;
     };
 
@@ -451,4 +490,6 @@ export default function UserStudyRoleForm() {
             </div>
         </div>
     );
-}
+};
+
+export default UserStudyRoleForm;

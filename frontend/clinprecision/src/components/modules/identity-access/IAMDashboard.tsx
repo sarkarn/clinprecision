@@ -3,14 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardBody, Badge } from '../../shared/ui';
 import { Users, Shield, UserCog, ClipboardList } from 'lucide-react';
 
+interface QuickAction {
+    title: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    path: string;
+    color: string;
+    count: number | null;
+}
+
 /**
  * Identity & Access Management Dashboard
  * Central hub for user, role, and access management
  */
-const IAMDashboard = () => {
+const IAMDashboard: React.FC = () => {
     const navigate = useNavigate();
 
-    const quickActions = [
+    const quickActions: QuickAction[] = [
         {
             title: 'Users',
             description: 'Manage system users and their credentials',
@@ -51,7 +60,7 @@ const IAMDashboard = () => {
                         <p className="text-gray-600">Manage users, roles, and study-level access controls</p>
                     </div>
                 </div>
-                <Badge variant="blue" size="sm">IAM</Badge>
+                <Badge {...({ variant: "blue", size: "sm" } as any)}>IAM</Badge>
             </div>
 
             {/* Quick Actions Grid */}
@@ -63,9 +72,7 @@ const IAMDashboard = () => {
                         return (
                             <Card
                                 key={action.path}
-                                hoverable
-                                onClick={() => navigate(action.path)}
-                                className="cursor-pointer"
+                                {...({ hoverable: true, onClick: () => navigate(action.path), className: "cursor-pointer" } as any)}
                             >
                                 <CardBody>
                                     <div className="flex items-start gap-4">
@@ -82,7 +89,7 @@ const IAMDashboard = () => {
                                             </p>
                                             {action.count !== null && (
                                                 <div className="mt-2">
-                                                    <Badge variant="neutral" size="sm">
+                                                    <Badge {...({ variant: "neutral", size: "sm" } as any)}>
                                                         {action.count} items
                                                     </Badge>
                                                 </div>

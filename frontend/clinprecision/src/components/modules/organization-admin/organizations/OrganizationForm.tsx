@@ -1,13 +1,28 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { OrganizationService } from "../../../../services/OrganizationService";
 
-export default function OrganizationForm() {
-    const { id } = useParams();
+interface FormData {
+    name: string;
+    externalId: string;
+    addressLine1: string;
+    addressLine2: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    phone: string;
+    email: string;
+    website: string;
+    status: string;
+}
+
+const OrganizationForm: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const isEditMode = !!id;
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         name: "",
         externalId: "",
         addressLine1: "",
@@ -23,7 +38,7 @@ export default function OrganizationForm() {
     });
 
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
     useEffect(() => {
@@ -33,7 +48,7 @@ export default function OrganizationForm() {
 
                 // If in edit mode, fetch organization data
                 if (isEditMode) {
-                    const orgData = await OrganizationService.getOrganizationById(id);
+                    const orgData = await OrganizationService.getOrganizationById(id as any) as any;
                     console.log("Loaded organization data:", orgData); // Debug log
                     setFormData({
                         name: orgData.name || "",
@@ -63,7 +78,7 @@ export default function OrganizationForm() {
         fetchData();
     }, [id, isEditMode]);
 
-    const handleChange = (e) => {
+    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -71,7 +86,7 @@ export default function OrganizationForm() {
         }));
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         try {
             setLoading(true);
@@ -81,9 +96,9 @@ export default function OrganizationForm() {
             const organizationData = { ...formData };
 
             if (isEditMode) {
-                await OrganizationService.updateOrganization(id, organizationData);
+                await OrganizationService.updateOrganization(id as any, organizationData as any);
             } else {
-                await OrganizationService.createOrganization(organizationData);
+                await OrganizationService.createOrganization(organizationData as any);
             }
 
             setSuccess(true);
@@ -364,4 +379,6 @@ export default function OrganizationForm() {
             )}
         </div>
     );
-}
+};
+
+export default OrganizationForm;

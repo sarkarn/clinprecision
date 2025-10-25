@@ -3,28 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import { getStudyById } from '../../../services/StudyService';
 import { Study } from '../../../types';
 
-interface CRF {
-    id?: string | number;
-    name: string;
-    type: string;
-    description?: string;
-}
-
-interface Visit {
-    id?: string | number;
-    name: string;
-    timepoint: number;
-    description?: string;
-    crfs?: CRF[];
-}
-
-interface StudyArm {
-    id?: string | number;
-    name: string;
-    description?: string;
-    visits?: Visit[];
-}
-
 type TabType = 'details' | 'arms';
 
 const StudyViewPage: React.FC = () => {
@@ -146,7 +124,7 @@ const StudyViewPage: React.FC = () => {
                             Planned Start Date
                         </label>
                         <div className="bg-gray-50 border border-gray-300 rounded-md w-full p-2 text-gray-700">
-                            {study.plannedStartDate}
+                            {study.plannedStartDate || study.startDate || 'Not specified'}
                         </div>
                     </div>
                     <div>
@@ -154,7 +132,7 @@ const StudyViewPage: React.FC = () => {
                             Planned End Date
                         </label>
                         <div className="bg-gray-50 border border-gray-300 rounded-md w-full p-2 text-gray-700">
-                            {study.plannedEndDate}
+                            {study.plannedEndDate || study.endDate || 'Not specified'}
                         </div>
                     </div>
                     <div>
@@ -162,7 +140,7 @@ const StudyViewPage: React.FC = () => {
                             Sponsor
                         </label>
                         <div className="bg-gray-50 border border-gray-300 rounded-md w-full p-2 text-gray-700">
-                            {study.sponsor}
+                            {study.sponsor || study.sponsorName || 'Not specified'}
                         </div>
                     </div>
                     <div>
@@ -170,7 +148,7 @@ const StudyViewPage: React.FC = () => {
                             Principal Investigator
                         </label>
                         <div className="bg-gray-50 border border-gray-300 rounded-md w-full p-2 text-gray-700">
-                            {study.principalInvestigator}
+                            {study.principalInvestigator || 'Not specified'}
                         </div>
                     </div>
                 </div>

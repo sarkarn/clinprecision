@@ -1,19 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserStudyRoleService } from '../../../../services/auth/UserStudyRoleService';
 import { UserService } from '../../../../services/UserService';
 import StudyService from '../../../../services/StudyService';
 import { RoleService } from '../../../../services/auth/RoleService';
 
-export default function UserStudyRoleBulkAssignment() {
+interface User {
+    id: number | string;
+    firstName: string;
+    lastName: string;
+    email: string;
+}
+
+interface Study {
+    id: number | string;
+    title: string;
+}
+
+interface Role {
+    id: number | string;
+    name: string;
+    code: string;
+}
+
+interface Assignment {
+    userId: number;
+    studyId: number;
+    roleCode: string;
+    startDate: string | null;
+    endDate: string | null;
+    active: boolean;
+    notes: string;
+}
+
+const UserStudyRoleBulkAssignment: React.FC = () => {
     const navigate = useNavigate();
 
-    const [users, setUsers] = useState([]);
-    const [studies, setStudies] = useState([]);
-    const [roles, setRoles] = useState([]);
+    const [users, setUsers] = useState<User[]>([]);
+    const [studies, setStudies] = useState<Study[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
 
     // Assignment configuration
     const [selectedStudy, setSelectedStudy] = useState('');
@@ -24,11 +52,11 @@ export default function UserStudyRoleBulkAssignment() {
     const [notes, setNotes] = useState('');
 
     // User selection
-    const [selectedUsers, setSelectedUsers] = useState([]);
+    const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [userSearchTerm, setUserSearchTerm] = useState('');
 
     // Preview assignments
-    const [assignments, setAssignments] = useState([]);
+    const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [showPreview, setShowPreview] = useState(false);
 
     useEffect(() => {
@@ -47,9 +75,9 @@ export default function UserStudyRoleBulkAssignment() {
                 RoleService.getNonSystemRoles()  // Only non-system roles for study assignments
             ]);
 
-            setUsers(usersData);
-            setStudies(studiesData);
-            setRoles(rolesData);
+            setUsers(usersData as any);
+            setStudies(studiesData as any);
+            setRoles(rolesData as any);
         } catch (err) {
             setError('Failed to load reference data');
             console.error('Error loading reference data:', err);
@@ -75,7 +103,7 @@ export default function UserStudyRoleBulkAssignment() {
         setAssignments(newAssignments);
     };
 
-    const getFilteredUsers = () => {
+    const getFilteredUsers = (): User[] => {
         if (!userSearchTerm) return users;
 
         const term = userSearchTerm.toLowerCase();
@@ -86,7 +114,7 @@ export default function UserStudyRoleBulkAssignment() {
         );
     };
 
-    const handleUserSelection = (userId, checked) => {
+    const handleUserSelection = (userId: number | string, checked: boolean) => {
         if (checked) {
             setSelectedUsers(prev => [...prev, userId.toString()]);
         } else {
@@ -94,7 +122,7 @@ export default function UserStudyRoleBulkAssignment() {
         }
     };
 
-    const handleSelectAllUsers = (checked) => {
+    const handleSelectAllUsers = (checked: boolean) => {
         if (checked) {
             const filteredUserIds = getFilteredUsers().map(user => user.id.toString());
             setSelectedUsers(filteredUserIds);
@@ -103,7 +131,7 @@ export default function UserStudyRoleBulkAssignment() {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
         if (assignments.length === 0) {
@@ -116,7 +144,7 @@ export default function UserStudyRoleBulkAssignment() {
         setSuccess(null);
 
         try {
-            const result = await UserStudyRoleService.createMultipleUserStudyRoles(assignments);
+            const result = await UserStudyRoleService.createMultipleUserStudyRoles(assignments as any) as any;
             setSuccess(`Successfully created ${result.length} role assignments`);
 
             // Clear form after successful submission
@@ -127,7 +155,7 @@ export default function UserStudyRoleBulkAssignment() {
             setAssignments([]);
             setShowPreview(false);
 
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to create bulk assignments');
             console.error('Error creating bulk assignments:', err);
 
@@ -143,16 +171,16 @@ export default function UserStudyRoleBulkAssignment() {
         navigate('/user-management/user-study-roles');
     };
 
-    const getUserDisplayName = (user) => {
+    const getUserDisplayName = (user: User): string => {
         return `${user.firstName} ${user.lastName} (${user.email})`;
     };
 
-    const getStudyName = (studyId) => {
+    const getStudyName = (studyId: number): string => {
         const study = studies.find(s => s.id === studyId);
         return study ? study.title : 'Unknown Study';
     };
 
-    const getRoleName = (roleCode) => {
+    const getRoleName = (roleCode: string): string => {
         const role = roles.find(r => r.code === roleCode);
         return role ? role.name : roleCode;
     };
@@ -472,4 +500,6 @@ export default function UserStudyRoleBulkAssignment() {
             </div>
         </div>
     );
-}
+};
+
+export default UserStudyRoleBulkAssignment;

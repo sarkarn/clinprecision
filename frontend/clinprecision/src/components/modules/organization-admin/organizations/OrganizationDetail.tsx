@@ -1,20 +1,55 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { OrganizationService } from "../../../../services/OrganizationService";
 
-export default function OrganizationDetail() {
-    const { id } = useParams();
+interface Organization {
+    id: number | string;
+    name: string;
+    externalId?: string;
+    status?: string;
+    email?: string;
+    phone?: string;
+    website?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+}
+
+interface Contact {
+    id: number | string;
+    contactName: string;
+    title?: string;
+    department?: string;
+    email?: string;
+    phone?: string;
+    isPrimary?: boolean;
+}
+
+interface ContactFormData {
+    contactName: string;
+    title: string;
+    department: string;
+    email: string;
+    phone: string;
+    isPrimary: boolean;
+}
+
+const OrganizationDetail: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const [organization, setOrganization] = useState(null);
-    const [contacts, setContacts] = useState([]);
+    const [organization, setOrganization] = useState<Organization | null>(null);
+    const [contacts, setContacts] = useState<Contact[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Contact form state
     const [showContactForm, setShowContactForm] = useState(false);
-    const [editingContactId, setEditingContactId] = useState(null);
-    const [contactFormData, setContactFormData] = useState({
+    const [editingContactId, setEditingContactId] = useState<number | string | null>(null);
+    const [contactFormData, setContactFormData] = useState<ContactFormData>({
         contactName: "",
         title: "",
         department: "",
@@ -30,12 +65,12 @@ export default function OrganizationDetail() {
 
                 // Fetch organization and contacts in parallel
                 const [orgData, contactsData] = await Promise.all([
-                    OrganizationService.getOrganizationById(id),
-                    OrganizationService.getOrganizationContacts(id)
+                    OrganizationService.getOrganizationById(id as any),
+                    OrganizationService.getOrganizationContacts(id as any)
                 ]);
 
-                setOrganization(orgData);
-                setContacts(contactsData);
+                setOrganization(orgData as any);
+                setContacts(contactsData as any);
                 setError(null);
             } catch (err) {
                 console.error("Error fetching organization details:", err);
@@ -70,7 +105,7 @@ export default function OrganizationDetail() {
         setShowContactForm(true);
     };
 
-    const handleEditContact = (contact) => {
+    const handleEditContact = (contact: Contact) => {
         setContactFormData({
             contactName: contact.contactName,
             title: contact.title || "",
@@ -83,7 +118,7 @@ export default function OrganizationDetail() {
         setShowContactForm(true);
     };
 
-    const handleContactChange = (e) => {
+    const handleContactChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
         setContactFormData(prev => ({
             ...prev,
@@ -91,12 +126,12 @@ export default function OrganizationDetail() {
         }));
     };
 
-    const handleSubmitContact = async (e) => {
+    const handleSubmitContact = async (e: FormEvent) => {
         e.preventDefault();
         try {
             if (editingContactId) {
                 // Update existing contact
-                await OrganizationService.updateOrganizationContact(id, editingContactId, contactFormData);
+                await OrganizationService.updateOrganizationContact(id as any, editingContactId as any, contactFormData as any);
 
                 // Update the contact in the list
                 setContacts(contacts.map(contact =>
@@ -104,8 +139,8 @@ export default function OrganizationDetail() {
                 ));
             } else {
                 // Add new contact
-                const newContact = await OrganizationService.addOrganizationContact(id, contactFormData);
-                setContacts([...contacts, newContact]);
+                const newContact = await OrganizationService.addOrganizationContact(id as any, contactFormData as any);
+                setContacts([...contacts, newContact as any]);
             }
 
             // Close form and reset state
@@ -125,10 +160,10 @@ export default function OrganizationDetail() {
         }
     };
 
-    const handleDeleteContact = async (contactId) => {
+    const handleDeleteContact = async (contactId: number | string) => {
         if (window.confirm("Are you sure you want to delete this contact?")) {
             try {
-                await OrganizationService.deleteOrganizationContact(id, contactId);
+                await OrganizationService.deleteOrganizationContact(id as any, contactId as any);
                 setContacts(contacts.filter(contact => contact.id !== contactId));
             } catch (err) {
                 console.error("Error deleting contact:", err);
@@ -455,4 +490,6 @@ export default function OrganizationDetail() {
             </div>
         </div>
     );
-}
+};
+
+export default OrganizationDetail;

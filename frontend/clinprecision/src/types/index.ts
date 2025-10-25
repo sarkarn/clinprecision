@@ -52,15 +52,28 @@ export interface Study extends BaseEntity {
   description?: string;
   sponsorId?: number;
   sponsorName?: string;
+  sponsor?: string; // Alternative sponsor field
   therapeuticArea?: string;
   indication?: string;
   startDate?: string;
   endDate?: string;
+  plannedStartDate?: string; // Planned start date (can be different from actual)
+  plannedEndDate?: string; // Planned end date (can be different from actual)
   estimatedEnrollment?: number;
   actualEnrollment?: number;
   organizationId?: number;
+  principalInvestigator?: string; // PI for the study
+  arms?: StudyArm[]; // Study arms with visits
   // Legacy compatibility
   protocolNo?: string;
+}
+
+// Study Arm definition for Study.arms
+export interface StudyArm {
+  id?: string | number;
+  name: string;
+  description?: string;
+  visits?: Visit[];
 }
 
 export interface StudyListResponse {
@@ -162,6 +175,13 @@ export type VisitType =
   | 'EARLY_TERMINATION'
   | 'FOLLOW_UP';
 
+export interface CRF {
+  id?: string | number;
+  name: string;
+  type: string;
+  description?: string;
+}
+
 export interface Visit extends BaseEntity {
   visitId?: string;
   patientId?: number;
@@ -169,7 +189,9 @@ export interface Visit extends BaseEntity {
   siteId?: number;
   visitType?: VisitType;
   visitName?: string;
+  name?: string; // Visit name (alternative to visitName)
   visitNumber?: number;
+  timepoint?: number; // Day/timepoint in study schedule
   scheduledDate?: string;
   actualDate?: string;
   visitDate?: string; // Legacy compatibility
@@ -177,6 +199,8 @@ export interface Visit extends BaseEntity {
   windowStart?: string;
   windowEnd?: string;
   notes?: string;
+  description?: string; // Visit description
+  crfs?: CRF[]; // CRFs associated with this visit
 }
 
 // ============================================================================

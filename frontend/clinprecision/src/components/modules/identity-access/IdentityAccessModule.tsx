@@ -15,7 +15,7 @@ import StudyTeamManagement from './roles/StudyTeamManagement';
  * Identity & Access Management Module Router
  * Handles user authentication, roles, and study team assignments
  */
-const IdentityAccessModule = () => {
+const IdentityAccessModule: React.FC = () => {
     return (
         <Routes>
             <Route path="/" element={<IAMDashboard />} />

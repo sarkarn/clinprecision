@@ -1,18 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserStudyRoleService } from '../../../../services/auth/UserStudyRoleService';
 import { UserService } from '../../../../services/UserService';
 import StudyService from '../../../../services/StudyService';
 import { RoleService } from '../../../../services/auth/RoleService';
 
-export default function UserStudyRoleList() {
-    const [userStudyRoles, setUserStudyRoles] = useState([]);
-    const [filteredRoles, setFilteredRoles] = useState([]);
-    const [users, setUsers] = useState([]);
-    const [studies, setStudies] = useState([]);
-    const [roles, setRoles] = useState([]);
+interface User {
+    id: number | string;
+    firstName: string;
+    lastName: string;
+    email: string;
+}
+
+interface Study {
+    id: number | string;
+    title: string;
+}
+
+interface Role {
+    id: number | string;
+    name: string;
+}
+
+interface UserStudyRole {
+    id: number | string;
+    userId: number | string;
+    studyId: number | string;
+    roleCode: string;
+    startDate: string;
+    endDate?: string;
+    active: boolean;
+}
+
+const UserStudyRoleList: React.FC = () => {
+    const [userStudyRoles, setUserStudyRoles] = useState<UserStudyRole[]>([]);
+    const [filteredRoles, setFilteredRoles] = useState<UserStudyRole[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
+    const [studies, setStudies] = useState<Study[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Filters
     const [selectedUser, setSelectedUser] = useState('');
@@ -26,8 +53,7 @@ export default function UserStudyRoleList() {
     const [itemsPerPage] = useState(10);
 
     // Selection for bulk operations
-    const [selectedItems, setSelectedItems] = useState([]);
-    const [showBulkActions, setShowBulkActions] = useState(false);
+    const [selectedItems, setSelectedItems] = useState<(number | string)[]>([]);
 
     useEffect(() => {
         loadData();
@@ -46,9 +72,9 @@ export default function UserStudyRoleList() {
                 RoleService.getNonSystemRoles()  // Only non-system roles for study assignments
             ]);
 
-            setUsers(usersData);
-            setStudies(studiesData);
-            setRoles(rolesData);
+            setUsers(usersData as any);
+            setStudies(studiesData as any);
+            setRoles(rolesData as any);
 
             // Load all user study roles - we'll filter on frontend for better UX
             // In production, consider server-side filtering for large datasets
@@ -65,7 +91,7 @@ export default function UserStudyRoleList() {
         try {
             // Use the new get all endpoint instead of aggregating by study
             const allRoles = await UserStudyRoleService.getAllUserStudyRoles();
-            setUserStudyRoles(allRoles);
+            setUserStudyRoles(allRoles as any);
         } catch (err) {
             console.error('Error loading user study roles:', err);
             setError('Failed to load user study role assignments');
@@ -125,10 +151,10 @@ export default function UserStudyRoleList() {
         setCurrentPage(1); // Reset to first page when filtering
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id: number | string) => {
         if (window.confirm('Are you sure you want to delete this role assignment?')) {
             try {
-                await UserStudyRoleService.deleteUserStudyRole(id);
+                await UserStudyRoleService.deleteUserStudyRole(id as any);
                 await loadUserStudyRoles(); // Reload data
             } catch (err) {
                 setError('Failed to delete role assignment');
@@ -144,7 +170,11 @@ export default function UserStudyRoleList() {
         if (!endDate) return;
 
         try {
-            await UserStudyRoleService.deactivateUserStudyRoles(selectedItems, endDate);
+            await UserStudyRoleService.deactivateUserStudyRoles({
+                ids: selectedItems.map(id => id.toString()),
+                endDate,
+                updatedBy: 'current-user' // TODO: Get from auth context
+            } as any);
             setSelectedItems([]);
             await loadUserStudyRoles();
         } catch (err) {
@@ -153,7 +183,7 @@ export default function UserStudyRoleList() {
         }
     };
 
-    const handleSelectAll = (e) => {
+    const handleSelectAll = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
             const currentPageItems = getCurrentPageItems().map(role => role.id);
             setSelectedItems(currentPageItems);
@@ -162,7 +192,7 @@ export default function UserStudyRoleList() {
         }
     };
 
-    const handleSelectItem = (id, checked) => {
+    const handleSelectItem = (id: number | string, checked: boolean) => {
         if (checked) {
             setSelectedItems(prev => [...prev, id]);
         } else {
@@ -170,7 +200,7 @@ export default function UserStudyRoleList() {
         }
     };
 
-    const getCurrentPageItems = () => {
+    const getCurrentPageItems = (): UserStudyRole[] => {
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         return filteredRoles.slice(startIndex, endIndex);
@@ -178,23 +208,23 @@ export default function UserStudyRoleList() {
 
     const totalPages = Math.ceil(filteredRoles.length / itemsPerPage);
 
-    const getUserName = (userId) => {
+    const getUserName = (userId: number | string): string => {
         const user = users.find(u => u.id === userId);
         return user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
     };
 
-    const getStudyName = (studyId) => {
+    const getStudyName = (studyId: number | string): string => {
         const study = studies.find(s => s.id === studyId);
         return study ? study.title : 'Unknown Study';
     };
 
-    const getRoleName = (roleCode) => {
+    const getRoleName = (roleCode: string): string => {
         // roleCode in assignment is actually the role.name
         const role = roles.find(r => r.name === roleCode);
         return role ? role.name : roleCode;
     };
 
-    const formatDate = (dateString) => {
+    const formatDate = (dateString?: string): string => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString();
     };
@@ -506,4 +536,6 @@ export default function UserStudyRoleList() {
             )}
         </div>
     );
-}
+};
+
+export default UserStudyRoleList;

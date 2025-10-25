@@ -3,14 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardBody, Badge } from '../../shared/ui';
 import { Building2, Network, Settings } from 'lucide-react';
 
+interface QuickAction {
+    title: string;
+    description: string;
+    icon: any;
+    path: string;
+    color: string;
+    count: number | null;
+    disabled?: boolean;
+}
+
 /**
  * Organization Administration Dashboard
  * Central hub for managing sponsor organizations and CROs
  */
-const OrgDashboard = () => {
+const OrgDashboard: React.FC = () => {
     const navigate = useNavigate();
 
-    const quickActions = [
+    const quickActions: QuickAction[] = [
         {
             title: 'Organizations',
             description: 'Manage sponsor companies and CROs',
@@ -53,7 +63,7 @@ const OrgDashboard = () => {
                         <p className="text-gray-600">Manage sponsor organizations, CROs, and corporate structures</p>
                     </div>
                 </div>
-                <Badge variant="violet" size="sm">ORG</Badge>
+                <Badge {...({ variant: "violet", size: "sm" } as any)}>ORG</Badge>
             </div>
 
             {/* Quick Actions Grid */}
@@ -79,7 +89,7 @@ const OrgDashboard = () => {
                                             <h4 className="text-lg font-semibold text-gray-900 mb-1">
                                                 {action.title}
                                                 {action.disabled && (
-                                                    <Badge variant="neutral" size="sm" className="ml-2">Coming Soon</Badge>
+                                                    <Badge {...({ variant: "neutral", size: "sm", className: "ml-2" } as any)}>Coming Soon</Badge>
                                                 )}
                                             </h4>
                                             <p className="text-sm text-gray-600">
@@ -87,7 +97,7 @@ const OrgDashboard = () => {
                                             </p>
                                             {action.count !== null && (
                                                 <div className="mt-2">
-                                                    <Badge variant="neutral" size="sm">
+                                                    <Badge {...({ variant: "neutral", size: "sm" } as any)}>
                                                         {action.count} items
                                                     </Badge>
                                                 </div>
@@ -122,7 +132,7 @@ const OrgDashboard = () => {
                                 <p className="text-sm text-gray-600">Active Organizations</p>
                                 <p className="text-2xl font-bold text-gray-900 mt-1">--</p>
                             </div>
-                            <Badge variant="success" className="self-start">Active</Badge>
+                            <Badge {...({ variant: "success", className: "self-start" } as any)}>Active</Badge>
                         </div>
                     </CardBody>
                 </Card>

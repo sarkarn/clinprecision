@@ -10,7 +10,7 @@ import OrganizationDetail from './organizations/OrganizationDetail';
  * Organization Administration Module Router
  * Handles sponsor organizations and hierarchy management
  */
-const OrganizationAdminModule = () => {
+const OrganizationAdminModule: React.FC = () => {
     return (
         <Routes>
             <Route path="/" element={<OrgDashboard />} />

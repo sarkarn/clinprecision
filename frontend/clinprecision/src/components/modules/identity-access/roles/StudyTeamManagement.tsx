@@ -1,24 +1,60 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { UserStudyRoleService } from '../../../../services/auth/UserStudyRoleService';
 import StudyService from '../../../../services/StudyService';
 import { UserService } from '../../../../services/UserService';
 import { RoleService } from '../../../../services/auth/RoleService';
 
-export default function StudyTeamManagement() {
-    const { studyId } = useParams();
+interface User {
+    id: number | string;
+    firstName: string;
+    lastName: string;
+    email: string;
+}
 
-    const [study, setStudy] = useState(null);
-    const [teamMembers, setTeamMembers] = useState([]);
-    const [availableUsers, setAvailableUsers] = useState([]);
-    const [roles, setRoles] = useState([]);
+interface Study {
+    id: number | string;
+    title: string;
+}
+
+interface Role {
+    id: number | string;
+    name: string;
+    code: string;
+}
+
+interface TeamMember {
+    id: number | string;
+    userId: number | string;
+    studyId: number | string;
+    roleCode: string;
+    startDate: string;
+    endDate?: string;
+    active: boolean;
+}
+
+interface NewMemberForm {
+    userId: string;
+    roleCode: string;
+    startDate: string;
+    endDate: string;
+    active: boolean;
+}
+
+const StudyTeamManagement: React.FC = () => {
+    const { studyId } = useParams<{ studyId: string }>();
+
+    const [study, setStudy] = useState<Study | null>(null);
+    const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+    const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
 
     // Add new member form
     const [showAddForm, setShowAddForm] = useState(false);
-    const [newMember, setNewMember] = useState({
+    const [newMember, setNewMember] = useState<NewMemberForm>({
         userId: '',
         roleCode: '',
         startDate: new Date().toISOString().split('T')[0],
@@ -42,16 +78,16 @@ export default function StudyTeamManagement() {
             setError(null);
 
             const [studyData, teamData, usersData, rolesData] = await Promise.all([
-                StudyService.getStudyById(studyId),
-                UserStudyRoleService.getStudyTeamMembers(studyId),
+                StudyService.getStudyById(studyId as any),
+                UserStudyRoleService.getStudyTeamMembers(studyId as any),
                 UserService.getAllUsers(),
                 RoleService.getNonSystemRoles()  // Only non-system roles for study team management
             ]);
 
-            setStudy(studyData);
-            setTeamMembers(teamData);
-            setAvailableUsers(usersData);
-            setRoles(rolesData);
+            setStudy(studyData as any);
+            setTeamMembers(teamData as any);
+            setAvailableUsers(usersData as any);
+            setRoles(rolesData as any);
         } catch (err) {
             setError('Failed to load study team data');
             console.error('Error loading study team data:', err);
@@ -60,18 +96,18 @@ export default function StudyTeamManagement() {
         }
     };
 
-    const handleAddMember = async (e) => {
+    const handleAddMember = async (e: FormEvent) => {
         e.preventDefault();
 
         try {
             const memberData = {
                 ...newMember,
                 userId: parseInt(newMember.userId),
-                studyId: parseInt(studyId),
+                studyId: parseInt(studyId as string),
                 endDate: newMember.endDate || null
             };
 
-            await UserStudyRoleService.createUserStudyRole(memberData);
+            await UserStudyRoleService.createUserStudyRole(memberData as any);
 
             setSuccess('Team member added successfully');
             setShowAddForm(false);
@@ -91,10 +127,10 @@ export default function StudyTeamManagement() {
         }
     };
 
-    const handleRemoveMember = async (assignmentId, userName) => {
+    const handleRemoveMember = async (assignmentId: number | string, userName: string) => {
         if (window.confirm(`Are you sure you want to remove ${userName} from the study team?`)) {
             try {
-                await UserStudyRoleService.deleteUserStudyRole(assignmentId);
+                await UserStudyRoleService.deleteUserStudyRole(assignmentId as any);
                 setSuccess('Team member removed successfully');
                 await loadStudyTeamData();
             } catch (err) {
@@ -104,12 +140,16 @@ export default function StudyTeamManagement() {
         }
     };
 
-    const handleDeactivateMember = async (assignmentId, userName) => {
+    const handleDeactivateMember = async (assignmentId: number | string, userName: string) => {
         const endDate = prompt('Enter end date (YYYY-MM-DD):');
         if (!endDate) return;
 
         try {
-            await UserStudyRoleService.deactivateUserStudyRoles([assignmentId], endDate);
+            await UserStudyRoleService.deactivateUserStudyRoles({
+                ids: [assignmentId.toString()],
+                endDate,
+                updatedBy: 'current-user' // TODO: Get from auth context
+            } as any);
             setSuccess(`${userName} deactivated successfully`);
             await loadStudyTeamData();
         } catch (err) {
@@ -118,7 +158,7 @@ export default function StudyTeamManagement() {
         }
     };
 
-    const getFilteredTeamMembers = () => {
+    const getFilteredTeamMembers = (): TeamMember[] => {
         let filtered = [...teamMembers];
 
         // Filter by role
@@ -136,22 +176,22 @@ export default function StudyTeamManagement() {
         return filtered;
     };
 
-    const getUserName = (userId) => {
+    const getUserName = (userId: number | string): string => {
         const user = availableUsers.find(u => u.id === userId);
         return user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
     };
 
-    const getUserEmail = (userId) => {
+    const getUserEmail = (userId: number | string): string => {
         const user = availableUsers.find(u => u.id === userId);
         return user ? user.email : 'Unknown Email';
     };
 
-    const getRoleName = (roleCode) => {
+    const getRoleName = (roleCode: string): string => {
         const role = roles.find(r => r.code === roleCode);
         return role ? role.name : roleCode;
     };
 
-    const formatDate = (dateString) => {
+    const formatDate = (dateString?: string): string => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString();
     };
@@ -494,4 +534,6 @@ export default function StudyTeamManagement() {
             )}
         </div>
     );
-}
+};
+
+export default StudyTeamManagement;

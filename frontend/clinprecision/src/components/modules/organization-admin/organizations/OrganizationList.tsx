@@ -1,14 +1,46 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import OrganizationService from "../../../../services/OrganizationService";
 import { Card, CardBody, CardActions, Button, Badge, ListControls, BreadcrumbNavigation } from "../../../shared/ui";
 import { Building2, MapPin, Eye, Edit2, Trash2, Plus } from "lucide-react";
 
-export default function OrganizationList() {
-    const [organizations, setOrganizations] = useState([]);
-    const [filteredOrganizations, setFilteredOrganizations] = useState([]);
+interface Organization {
+    id: number | string;
+    name: string;
+    city?: string;
+    country?: string;
+    status: string;
+    type?: string;
+    createdAt?: string;
+}
+
+interface FilterOption {
+    label: string;
+    value: string;
+}
+
+interface Filter {
+    label: string;
+    value: string;
+    currentValue: string;
+    options: FilterOption[];
+}
+
+interface SortOption {
+    label: string;
+    value: string;
+}
+
+interface BreadcrumbItem {
+    label: string;
+    path?: string;
+}
+
+const OrganizationList: React.FC = () => {
+    const [organizations, setOrganizations] = useState<Organization[]>([]);
+    const [filteredOrganizations, setFilteredOrganizations] = useState<Organization[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [sortBy, setSortBy] = useState('name');
@@ -26,7 +58,7 @@ export default function OrganizationList() {
         try {
             setLoading(true);
             const orgsData = await OrganizationService.getAllOrganizations();
-            setOrganizations(orgsData);
+            setOrganizations(orgsData as any);
             setError(null);
         } catch (err) {
             console.error("Error fetching organization data:", err);
@@ -63,7 +95,7 @@ export default function OrganizationList() {
                 const locB = `${b.city || ''} ${b.country || ''}`;
                 return locA.localeCompare(locB);
             } else if (sortBy === 'date') {
-                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+                return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
             }
             return 0;
         });
@@ -75,18 +107,18 @@ export default function OrganizationList() {
         navigate('/organization-admin/organizations/create');
     };
 
-    const handleEditOrganization = (id) => {
+    const handleEditOrganization = (id: number | string) => {
         navigate(`/organization-admin/organizations/edit/${id}`);
     };
 
-    const handleViewOrganization = (id) => {
+    const handleViewOrganization = (id: number | string) => {
         navigate(`/organization-admin/organizations/view/${id}`);
     };
 
-    const handleDeleteOrganization = async (id) => {
+    const handleDeleteOrganization = async (id: number | string) => {
         if (window.confirm("Are you sure you want to delete this organization?")) {
             try {
-                await OrganizationService.deleteOrganization(id);
+                await OrganizationService.deleteOrganization(id as any);
                 setOrganizations(organizations.filter(org => org.id !== id));
             } catch (err) {
                 console.error("Error deleting organization:", err);
@@ -95,27 +127,45 @@ export default function OrganizationList() {
         }
     };
 
-    const getStatusVariant = (status) => {
+    const getStatusVariant = (status: string): string => {
         if (status === 'active') return 'success';
         if (status === 'inactive') return 'neutral';
         return 'warning';
     };
 
-    const breadcrumbItems = [
+    const breadcrumbItems: BreadcrumbItem[] = [
         { label: 'Organization Administration', path: '/organization-admin' },
         { label: 'Organizations' }
     ];
 
+    const filters: Filter[] = [
+        {
+            label: 'Status',
+            value: 'status',
+            currentValue: statusFilter,
+            options: [
+                { label: 'Active', value: 'active' },
+                { label: 'Inactive', value: 'inactive' }
+            ]
+        }
+    ];
+
+    const sortOptions: SortOption[] = [
+        { label: 'Name (A-Z)', value: 'name' },
+        { label: 'Location', value: 'location' },
+        { label: 'Recently Added', value: 'date' }
+    ];
+
     return (
         <div className="p-6">
-            <BreadcrumbNavigation items={breadcrumbItems} />
+            <BreadcrumbNavigation {...({ items: breadcrumbItems } as any)} />
 
             <div className="mb-6 flex justify-between items-center">
                 <div>
                     <h3 className="text-2xl font-bold text-gray-900">Organizations</h3>
                     <p className="text-sm text-gray-600 mt-1">Manage sponsor organizations and CROs</p>
                 </div>
-                <Button variant="primary" icon={Plus} onClick={handleCreateOrganization}>
+                <Button {...({ variant: "primary", icon: Plus, onClick: handleCreateOrganization } as any)}>
                     Create New Organization
                 </Button>
             </div>
@@ -127,27 +177,15 @@ export default function OrganizationList() {
             )}
 
             <ListControls
-                onSearch={setSearchTerm}
-                searchPlaceholder="Search by name or location..."
-                filters={[
-                    {
-                        label: 'Status',
-                        value: 'status',
-                        currentValue: statusFilter,
-                        options: [
-                            { label: 'Active', value: 'active' },
-                            { label: 'Inactive', value: 'inactive' }
-                        ]
-                    }
-                ]}
-                onFilterChange={(name, value) => setStatusFilter(value)}
-                sortOptions={[
-                    { label: 'Name (A-Z)', value: 'name' },
-                    { label: 'Location', value: 'location' },
-                    { label: 'Recently Added', value: 'date' }
-                ]}
-                currentSort={sortBy}
-                onSortChange={setSortBy}
+                {...({
+                    onSearch: setSearchTerm,
+                    searchPlaceholder: "Search by name or location...",
+                    filters: filters,
+                    onFilterChange: (name: string, value: string) => setStatusFilter(value),
+                    sortOptions: sortOptions,
+                    currentSort: sortBy,
+                    onSortChange: setSortBy
+                } as any)}
             />
 
             {loading ? (
@@ -194,7 +232,7 @@ export default function OrganizationList() {
                                 {/* Organization Type/Details */}
                                 {org.type && (
                                     <div className="mt-3">
-                                        <Badge variant="violet" size="sm">
+                                        <Badge {...({ variant: "violet", size: "sm" } as any)}>
                                             {org.type}
                                         </Badge>
                                     </div>
@@ -203,8 +241,7 @@ export default function OrganizationList() {
                                 {/* Status */}
                                 <div className="mt-2">
                                     <Badge
-                                        variant={getStatusVariant(org.status)}
-                                        size="sm"
+                                        {...({ variant: getStatusVariant(org.status), size: "sm" } as any)}
                                     >
                                         {org.status
                                             ? org.status.charAt(0).toUpperCase() + org.status.slice(1)
@@ -215,26 +252,17 @@ export default function OrganizationList() {
 
                             <CardActions>
                                 <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    icon={Eye}
-                                    onClick={() => handleViewOrganization(org.id)}
+                                    {...({ variant: "ghost", size: "sm", icon: Eye, onClick: () => handleViewOrganization(org.id) } as any)}
                                 >
                                     View
                                 </Button>
                                 <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    icon={Edit2}
-                                    onClick={() => handleEditOrganization(org.id)}
+                                    {...({ variant: "ghost", size: "sm", icon: Edit2, onClick: () => handleEditOrganization(org.id) } as any)}
                                 >
                                     Edit
                                 </Button>
                                 <Button
-                                    variant="danger"
-                                    size="sm"
-                                    icon={Trash2}
-                                    onClick={() => handleDeleteOrganization(org.id)}
+                                    {...({ variant: "danger", size: "sm", icon: Trash2, onClick: () => handleDeleteOrganization(org.id) } as any)}
                                 >
                                     Delete
                                 </Button>
@@ -252,4 +280,6 @@ export default function OrganizationList() {
             )}
         </div>
     );
-}
+};
+
+export default OrganizationList;

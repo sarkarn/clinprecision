@@ -1,11 +1,19 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { UserTypeService } from "../../../../services/auth/UserTypeService";
 
-export default function UserTypeList() {
-    const [userTypes, setUserTypes] = useState([]);
+interface UserType {
+    id: number | string;
+    name: string;
+    code?: string;
+    category?: string;
+    description?: string;
+}
+
+const UserTypeList: React.FC = () => {
+    const [userTypes, setUserTypes] = useState<UserType[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -16,7 +24,7 @@ export default function UserTypeList() {
         try {
             setLoading(true);
             const data = await UserTypeService.getAllUserTypes();
-            setUserTypes(data);
+            setUserTypes(data as any);
             setError(null);
         } catch (err) {
             console.error("Error fetching user types:", err);
@@ -30,14 +38,14 @@ export default function UserTypeList() {
         navigate('/identity-access/user-types/create');
     };
 
-    const handleEditUserType = (id) => {
+    const handleEditUserType = (id: number | string) => {
         navigate(`/identity-access/user-types/edit/${id}`);
     };
 
-    const handleDeleteUserType = async (id) => {
+    const handleDeleteUserType = async (id: number | string) => {
         if (window.confirm("Are you sure you want to delete this user type?")) {
             try {
-                await UserTypeService.deleteUserType(id);
+                await UserTypeService.deleteUserType(id as any);
                 // Refresh the list after deletion
                 fetchUserTypes();
             } catch (err) {
@@ -47,7 +55,7 @@ export default function UserTypeList() {
         }
     };
 
-    const getCategoryLabel = (category) => {
+    const getCategoryLabel = (category?: string): string => {
         if (!category) return 'Unknown';
 
         // Convert ENUM_NAME to Enum Name format
@@ -141,4 +149,6 @@ export default function UserTypeList() {
             )}
         </div>
     );
-}
+};
+
+export default UserTypeList;

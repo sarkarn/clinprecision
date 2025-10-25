@@ -1,20 +1,27 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { UserTypeService } from "../../../../services/auth/UserTypeService";
 
-export default function UserTypeForm() {
-    const { id } = useParams();
+interface FormData {
+    name: string;
+    description: string;
+    code: string;
+    category: string;
+}
+
+const UserTypeForm: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const isEditMode = !!id;
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         name: "",
         description: "",
         code: "",
         category: ""
     });
     const [loading, setLoading] = useState(isEditMode);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
     // User type categories
@@ -36,12 +43,12 @@ export default function UserTypeForm() {
     const fetchUserType = async () => {
         try {
             setLoading(true);
-            const data = await UserTypeService.getUserTypeById(id);
+            const data = await UserTypeService.getUserTypeById(id as any);
             setFormData({
-                name: data.name || "",
-                description: data.description || "",
-                code: data.code || "",
-                category: data.category || ""
+                name: (data as any).name || "",
+                description: (data as any).description || "",
+                code: (data as any).code || "",
+                category: (data as any).category || ""
             });
             setError(null);
         } catch (err) {
@@ -52,7 +59,7 @@ export default function UserTypeForm() {
         }
     };
 
-    const handleChange = (e) => {
+    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -60,14 +67,14 @@ export default function UserTypeForm() {
         }));
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         try {
             setLoading(true);
             setError(null);
 
             if (isEditMode) {
-                await UserTypeService.updateUserType(id, formData);
+                await UserTypeService.updateUserType(id as any, formData);
             } else {
                 await UserTypeService.createUserType(formData);
             }
@@ -155,7 +162,7 @@ export default function UserTypeForm() {
                             name="description"
                             value={formData.description}
                             onChange={handleChange}
-                            rows="3"
+                            rows={3}
                             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>
@@ -214,4 +221,6 @@ export default function UserTypeForm() {
             )}
         </div>
     );
-}
+};
+
+export default UserTypeForm;

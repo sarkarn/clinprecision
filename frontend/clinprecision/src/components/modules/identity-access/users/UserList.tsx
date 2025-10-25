@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserService } from '../../../../services/UserService';
 import { UserTypeService } from '../../../../services/auth/UserTypeService';
@@ -6,12 +6,49 @@ import { useAuth } from '../../../login/AuthContext';
 import { Card, CardHeader, CardBody, CardActions, Button, Badge, ListControls, BreadcrumbNavigation } from '../../../shared/ui';
 import { User, Mail, Edit2, Trash2, Plus } from 'lucide-react';
 
-export default function UserList() {
-    const [users, setUsers] = useState([]);
-    const [filteredUsers, setFilteredUsers] = useState([]);
-    const [userTypes, setUserTypes] = useState([]);
+interface UserItem {
+    userId: number | string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    status?: string;
+    userTypes?: (number | string)[];
+    createdAt?: string;
+}
+
+interface UserType {
+    id: number | string;
+    name: string;
+}
+
+interface FilterOption {
+    label: string;
+    value: string;
+}
+
+interface Filter {
+    label: string;
+    value: string;
+    currentValue: string;
+    options: FilterOption[];
+}
+
+interface SortOption {
+    label: string;
+    value: string;
+}
+
+interface BreadcrumbItem {
+    label: string;
+    path?: string;
+}
+
+const UserList: React.FC = () => {
+    const [users, setUsers] = useState<UserItem[]>([]);
+    const [filteredUsers, setFilteredUsers] = useState<UserItem[]>([]);
+    const [userTypes, setUserTypes] = useState<UserType[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [sortBy, setSortBy] = useState('name');
@@ -32,10 +69,10 @@ export default function UserList() {
         try {
             setLoading(true);
             const usersData = await UserService.getAllUsers();
-            setUsers(usersData);
+            setUsers(usersData as any);
 
             const userTypesData = await UserTypeService.getAllUserTypes();
-            setUserTypes(userTypesData);
+            setUserTypes(userTypesData as any);
 
             setError(null);
         } catch (err) {
@@ -75,7 +112,7 @@ export default function UserList() {
             } else if (sortBy === 'email') {
                 return a.email.localeCompare(b.email);
             } else if (sortBy === 'date') {
-                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+                return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
             }
             return 0;
         });
@@ -87,14 +124,14 @@ export default function UserList() {
         navigate('/identity-access/users/create');
     };
 
-    const handleEditUser = (userId) => {
+    const handleEditUser = (userId: number | string) => {
         navigate(`/identity-access/users/edit/${userId}`);
     };
 
-    const handleDeleteUser = async (userId) => {
+    const handleDeleteUser = async (userId: number | string) => {
         if (window.confirm('Are you sure you want to delete this user?')) {
             try {
-                await UserService.deleteUser(userId);
+                await UserService.deleteUser(userId as any);
                 fetchData();
             } catch (err) {
                 console.error(`Error deleting user ${userId}:`, err);
@@ -103,28 +140,28 @@ export default function UserList() {
         }
     };
 
-    const getUserTypeNames = (user) => {
+    const getUserTypeNames = (user: UserItem): string[] => {
         if (!user.userTypes || !user.userTypes.length) return [];
         return user.userTypes
             .map(typeId => {
                 const userType = userTypes.find(type => type.id === typeId);
                 return userType ? userType.name : null;
             })
-            .filter(Boolean);
+            .filter(Boolean) as string[];
     };
 
-    const getInitials = (firstName, lastName) => {
+    const getInitials = (firstName: string, lastName: string): string => {
         return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
     };
 
-    const breadcrumbItems = [
+    const breadcrumbItems: BreadcrumbItem[] = [
         { label: 'Identity & Access', path: '/identity-access' },
         { label: 'Users' }
     ];
 
     return (
         <div className="p-6">
-            <BreadcrumbNavigation items={breadcrumbItems} />
+            <BreadcrumbNavigation {...({ items: breadcrumbItems } as any)} />
 
             <div className="mb-6 flex justify-between items-center">
                 <div>
@@ -132,7 +169,7 @@ export default function UserList() {
                     <p className="text-sm text-gray-600 mt-1">Manage system users and their access</p>
                 </div>
                 {isAuthenticated && (
-                    <Button variant="primary" icon={Plus} onClick={handleCreateUser}>
+                    <Button {...({ variant: "primary", icon: Plus, onClick: handleCreateUser } as any)}>
                         Create New User
                     </Button>
                 )}
@@ -145,27 +182,29 @@ export default function UserList() {
             )}
 
             <ListControls
-                onSearch={setSearchTerm}
-                searchPlaceholder="Search by name or email..."
-                filters={[
-                    {
-                        label: 'Status',
-                        value: 'status',
-                        currentValue: statusFilter,
-                        options: [
-                            { label: 'Active', value: 'active' },
-                            { label: 'Inactive', value: 'inactive' }
-                        ]
-                    }
-                ]}
-                onFilterChange={(name, value) => setStatusFilter(value)}
-                sortOptions={[
-                    { label: 'Name (A-Z)', value: 'name' },
-                    { label: 'Email', value: 'email' },
-                    { label: 'Recently Added', value: 'date' }
-                ]}
-                currentSort={sortBy}
-                onSortChange={setSortBy}
+                {...({
+                    onSearch: setSearchTerm,
+                    searchPlaceholder: "Search by name or email...",
+                    filters: [
+                        {
+                            label: 'Status',
+                            value: 'status',
+                            currentValue: statusFilter,
+                            options: [
+                                { label: 'Active', value: 'active' },
+                                { label: 'Inactive', value: 'inactive' }
+                            ]
+                        }
+                    ],
+                    onFilterChange: (name: string, value: string) => setStatusFilter(value),
+                    sortOptions: [
+                        { label: 'Name (A-Z)', value: 'name' },
+                        { label: 'Email', value: 'email' },
+                        { label: 'Recently Added', value: 'date' }
+                    ],
+                    currentSort: sortBy,
+                    onSortChange: setSortBy
+                } as any)}
             />
 
             {loading ? (
@@ -186,8 +225,8 @@ export default function UserList() {
                         const initials = getInitials(userItem.firstName, userItem.lastName);
 
                         return (
-                            <Card key={userItem.userId} hoverable>
-                                <CardBody className="pb-2">
+                            <Card key={userItem.userId} {...({ hoverable: true } as any)}>
+                                <CardBody {...({ className: "pb-2" } as any)}>
                                     <div className="flex items-start gap-3">
                                         {/* Avatar */}
                                         <div className="flex-shrink-0">
@@ -213,20 +252,22 @@ export default function UserList() {
                                     <div className="mt-3 flex flex-wrap gap-1.5">
                                         {userTypeNames.length > 0 ? (
                                             userTypeNames.map((typeName, idx) => (
-                                                <Badge key={idx} variant="blue" size="sm">
+                                                <Badge key={idx} {...({ variant: "blue", size: "sm" } as any)}>
                                                     {typeName}
                                                 </Badge>
                                             ))
                                         ) : (
-                                            <Badge variant="neutral" size="sm">No Types</Badge>
+                                            <Badge {...({ variant: "neutral", size: "sm" } as any)}>No Types</Badge>
                                         )}
                                     </div>
 
                                     {/* Status */}
                                     <div className="mt-2">
                                         <Badge
-                                            variant={userItem.status === 'active' || !userItem.status ? 'success' : 'neutral'}
-                                            size="sm"
+                                            {...({
+                                                variant: userItem.status === 'active' || !userItem.status ? 'success' : 'neutral',
+                                                size: "sm"
+                                            } as any)}
                                         >
                                             {userItem.status === 'active' || !userItem.status ? 'Active' : 'Inactive'}
                                         </Badge>
@@ -235,18 +276,22 @@ export default function UserList() {
 
                                 <CardActions>
                                     <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        icon={Edit2}
-                                        onClick={() => handleEditUser(userItem.userId)}
+                                        {...({
+                                            variant: "ghost",
+                                            size: "sm",
+                                            icon: Edit2,
+                                            onClick: () => handleEditUser(userItem.userId)
+                                        } as any)}
                                     >
                                         Edit
                                     </Button>
                                     <Button
-                                        variant="danger"
-                                        size="sm"
-                                        icon={Trash2}
-                                        onClick={() => handleDeleteUser(userItem.userId)}
+                                        {...({
+                                            variant: "danger",
+                                            size: "sm",
+                                            icon: Trash2,
+                                            onClick: () => handleDeleteUser(userItem.userId)
+                                        } as any)}
                                     >
                                         Delete
                                     </Button>
@@ -265,4 +310,6 @@ export default function UserList() {
             )}
         </div>
     );
-}
+};
+
+export default UserList;
