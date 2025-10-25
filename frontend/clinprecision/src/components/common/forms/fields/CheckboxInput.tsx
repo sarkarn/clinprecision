@@ -1,14 +1,57 @@
 import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
 import { Check, Minus } from 'lucide-react';
 import FieldWrapper from './FieldWrapper';
 import { useFormField } from '../FormContext';
+
+type OptionValue = string | number;
+
+interface CheckboxOption {
+    value: OptionValue;
+    label: string;
+    disabled?: boolean;
+    description?: string;
+}
+
+type NormalizedOption = string | CheckboxOption;
+
+interface ValidationConfig {
+    custom?: (selection: OptionValue[]) => string | null | undefined;
+}
+
+interface FieldWrapperCompatibleField {
+    id: string;
+    name?: string;
+    label?: string;
+    required?: boolean;
+}
+
+interface CheckboxInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value' | 'type'> {
+    id: string;
+    name?: string;
+    label: string;
+    value?: boolean | string | OptionValue[];
+    onChange?: (value: boolean | string | OptionValue[]) => void;
+    onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+    onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
+    options?: NormalizedOption[];
+    required?: boolean;
+    readOnly?: boolean;
+    disabled?: boolean;
+    multiple?: boolean;
+    layout?: 'vertical' | 'horizontal' | 'grid';
+    maxSelections?: number;
+    indeterminate?: boolean;
+    context?: 'general' | 'study' | 'template' | 'patient';
+    validation?: ValidationConfig;
+    className?: string;
+    style?: React.CSSProperties;
+}
 
 /**
  * CheckboxInput - Reusable checkbox input field component
  * Supports single checkbox, checkbox groups, and indeterminate state
  */
-const CheckboxInput = ({
+const CheckboxInput: React.FC<CheckboxInputProps> = ({
     id,
     name,
     label,
@@ -16,12 +59,12 @@ const CheckboxInput = ({
     onChange,
     onBlur,
     onFocus,
-    options = [], // For checkbox groups
+    options = [],
     required = false,
     readOnly = false,
     disabled = false,
-    multiple = false, // True for checkbox groups
-    layout = 'vertical', // 'vertical', 'horizontal', 'grid'
+    multiple = false,
+    layout = 'vertical',
     maxSelections,
     indeterminate = false,
     context = 'general',
@@ -30,44 +73,48 @@ const CheckboxInput = ({
     style = {},
     ...props
 }) => {
-    const [selectedValues, setSelectedValues] = useState([]);
-    const [validationMessage, setValidationMessage] = useState('');
+    const [selectedValues, setSelectedValues] = useState<OptionValue[]>([]);
+    const [validationMessage, setValidationMessage] = useState<string>('');
 
     // Use form context if available
     const formField = useFormField(id);
     const fieldValue = formField?.value ?? value;
-    const fieldError = formField?.error;
+    const fieldError = formField?.errors[0];
 
     // Initialize selected values
     useEffect(() => {
         if (multiple) {
             // Checkbox group
-            const values = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+            const values = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue as OptionValue] : []);
             setSelectedValues(values);
         } else {
             // Single checkbox
-            setSelectedValues(fieldValue ? [fieldValue] : []);
+            setSelectedValues(fieldValue ? [fieldValue as OptionValue] : []);
         }
     }, [fieldValue, multiple]);
 
-    // Normalize options to consistent format
-    const normalizeOptions = (opts) => {
+    /**
+     * Normalize options to consistent format
+     */
+    const normalizeOptions = (opts: NormalizedOption[]): CheckboxOption[] => {
         return opts.map(option => {
             if (typeof option === 'string') {
                 return { value: option, label: option };
             }
             return {
                 value: option.value,
-                label: option.label || option.value,
+                label: option.label || String(option.value),
                 disabled: option.disabled,
                 description: option.description
             };
         });
     };
 
-    // Validate selected values
-    const validateSelection = (selection) => {
-        const errors = [];
+    /**
+     * Validate selected values
+     */
+    const validateSelection = (selection: OptionValue[]): string[] => {
+        const errors: string[] = [];
 
         // Required validation
         if (required && (!selection || selection.length === 0)) {
@@ -90,10 +137,12 @@ const CheckboxInput = ({
         return errors;
     };
 
-    // Handle single checkbox change
-    const handleSingleCheckboxChange = (checked) => {
+    /**
+     * Handle single checkbox change
+     */
+    const handleSingleCheckboxChange = (checked: boolean) => {
         const newValue = checked;
-        const newSelection = newValue ? [newValue] : [];
+        const newSelection: OptionValue[] = [];
 
         setSelectedValues(newSelection);
 
@@ -101,12 +150,14 @@ const CheckboxInput = ({
         setValidationMessage(errors[0] || '');
 
         onChange?.(newValue);
-        formField?.onChange?.(newValue);
+        formField?.setValue?.(newValue);
     };
 
-    // Handle checkbox group change
-    const handleGroupCheckboxChange = (optionValue, checked) => {
-        let newSelection;
+    /**
+     * Handle checkbox group change
+     */
+    const handleGroupCheckboxChange = (optionValue: OptionValue, checked: boolean) => {
+        let newSelection: OptionValue[];
 
         if (checked) {
             newSelection = [...selectedValues, optionValue];
@@ -120,10 +171,12 @@ const CheckboxInput = ({
         setValidationMessage(errors[0] || '');
 
         onChange?.(newSelection);
-        formField?.onChange?.(newSelection);
+        formField?.setValue?.(newSelection);
     };
 
-    // Handle select all/none for checkbox groups
+    /**
+     * Handle select all/none for checkbox groups
+     */
     const handleSelectAll = () => {
         const normalizedOptions = normalizeOptions(options);
         const enabledOptions = normalizedOptions.filter(opt => !opt.disabled);
@@ -136,11 +189,13 @@ const CheckboxInput = ({
         setValidationMessage(errors[0] || '');
 
         onChange?.(newSelection);
-        formField?.onChange?.(newSelection);
+        formField?.setValue?.(newSelection);
     };
 
-    // Get layout classes
-    const getLayoutClasses = () => {
+    /**
+     * Get layout classes
+     */
+    const getLayoutClasses = (): string => {
         switch (layout) {
             case 'horizontal':
                 return 'flex flex-wrap gap-4';
@@ -151,7 +206,9 @@ const CheckboxInput = ({
         }
     };
 
-    // Render single checkbox
+    /**
+     * Render single checkbox
+     */
     const renderSingleCheckbox = () => {
         const isChecked = selectedValues.length > 0;
 
@@ -191,7 +248,9 @@ const CheckboxInput = ({
         );
     };
 
-    // Render checkbox group
+    /**
+     * Render checkbox group
+     */
     const renderCheckboxGroup = () => {
         const normalizedOptions = normalizeOptions(options);
 
@@ -230,7 +289,7 @@ const CheckboxInput = ({
 
                         return (
                             <label
-                                key={option.value}
+                                key={String(option.value)}
                                 className={`flex items-start cursor-pointer ${isDisabled ? 'cursor-not-allowed opacity-50' : ''
                                     }`}
                             >
@@ -279,14 +338,19 @@ const CheckboxInput = ({
         );
     };
 
+    const fieldForWrapper: FieldWrapperCompatibleField = {
+        id,
+        name,
+        label,
+        required
+    };
+
     if (multiple) {
         // Checkbox group
         return (
             <FieldWrapper
-                id={id}
-                label={label}
-                required={required}
-                error={fieldError || validationMessage}
+                field={fieldForWrapper}
+                errors={[fieldError || validationMessage].filter(Boolean)}
                 context={context}
             >
                 {renderCheckboxGroup()}
@@ -305,42 +369,6 @@ const CheckboxInput = ({
             </div>
         );
     }
-};
-
-CheckboxInput.propTypes = {
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string,
-    label: PropTypes.string.isRequired,
-    value: PropTypes.oneOfType([
-        PropTypes.bool,
-        PropTypes.string,
-        PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number]))
-    ]),
-    onChange: PropTypes.func,
-    onBlur: PropTypes.func,
-    onFocus: PropTypes.func,
-    options: PropTypes.arrayOf(
-        PropTypes.oneOfType([
-            PropTypes.string,
-            PropTypes.shape({
-                value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-                label: PropTypes.string,
-                disabled: PropTypes.bool,
-                description: PropTypes.string
-            })
-        ])
-    ),
-    required: PropTypes.bool,
-    readOnly: PropTypes.bool,
-    disabled: PropTypes.bool,
-    multiple: PropTypes.bool,
-    layout: PropTypes.oneOf(['vertical', 'horizontal', 'grid']),
-    maxSelections: PropTypes.number,
-    indeterminate: PropTypes.bool,
-    context: PropTypes.oneOf(['general', 'study', 'template', 'patient']),
-    validation: PropTypes.object,
-    className: PropTypes.string,
-    style: PropTypes.object
 };
 
 export default CheckboxInput;

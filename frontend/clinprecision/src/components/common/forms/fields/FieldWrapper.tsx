@@ -1,11 +1,52 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { ReactNode } from 'react';
+
+interface FieldMetadata {
+    required?: boolean;
+    helpText?: string;
+    description?: string;
+    clinicalSignificance?: boolean;
+    referenceRange?: {
+        min: number;
+        max: number;
+        unit?: string;
+    };
+    units?: string;
+}
+
+interface Field {
+    id: string;
+    name?: string;
+    label?: string;
+    required?: boolean;
+    metadata?: FieldMetadata;
+}
+
+interface CustomStyles {
+    wrapper?: React.CSSProperties;
+    label?: React.CSSProperties;
+    input?: React.CSSProperties;
+    helpText?: React.CSSProperties;
+    errors?: React.CSSProperties;
+}
+
+interface FieldWrapperProps {
+    field: Field;
+    children: ReactNode;
+    errors?: string[];
+    context?: 'general' | 'study' | 'template' | 'patient';
+    customStyles?: CustomStyles;
+    showLabel?: boolean;
+    showErrors?: boolean;
+    showHelpText?: boolean;
+    showRequired?: boolean;
+    className?: string;
+}
 
 /**
  * FieldWrapper - Common wrapper for all form fields
  * Provides consistent layout, labeling, error display, and help text
  */
-export const FieldWrapper = ({
+export const FieldWrapper: React.FC<FieldWrapperProps> = ({
     field,
     children,
     errors = [],
@@ -113,25 +154,6 @@ export const FieldWrapper = ({
             )}
         </div>
     );
-};
-
-FieldWrapper.propTypes = {
-    field: PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string,
-        label: PropTypes.string,
-        required: PropTypes.bool,
-        metadata: PropTypes.object
-    }).isRequired,
-    children: PropTypes.node.isRequired,
-    errors: PropTypes.array,
-    context: PropTypes.oneOf(['general', 'study', 'template', 'patient']),
-    customStyles: PropTypes.object,
-    showLabel: PropTypes.bool,
-    showErrors: PropTypes.bool,
-    showHelpText: PropTypes.bool,
-    showRequired: PropTypes.bool,
-    className: PropTypes.string
 };
 
 export default FieldWrapper;

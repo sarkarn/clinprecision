@@ -1,12 +1,61 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { useFormValidation } from '../FormContext';
 import { FieldWrapper } from './FieldWrapper';
+
+interface FieldMetadata {
+    placeholder?: string;
+    maxLength?: number;
+    minLength?: number;
+    pattern?: string;
+    required?: boolean;
+    helpText?: string;
+    description?: string;
+}
+
+interface Field {
+    id: string;
+    name?: string;
+    label?: string;
+    placeholder?: string;
+    required?: boolean;
+    metadata?: FieldMetadata;
+}
+
+interface FieldConfig {
+    placeholder?: string;
+    maxLength?: number;
+    minLength?: number;
+    pattern?: string;
+    mask?: string;
+    allowAutocomplete?: boolean;
+    suggestions?: string[];
+}
+
+interface CustomStyles {
+    wrapper?: React.CSSProperties;
+    label?: React.CSSProperties;
+    input?: React.CSSProperties;
+    helpText?: React.CSSProperties;
+    errors?: React.CSSProperties;
+}
+
+interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
+    field: Field;
+    value?: string;
+    onChange: (value: string) => void;
+    mode?: 'entry' | 'view' | 'edit';
+    isReadOnly?: boolean;
+    errors?: string[];
+    context?: 'general' | 'study' | 'template' | 'patient';
+    config?: FieldConfig;
+    customStyles?: CustomStyles;
+    className?: string;
+}
 
 /**
  * TextInput - Reusable text input field component
  */
-export const TextInput = ({
+export const TextInput: React.FC<TextInputProps> = ({
     field,
     value = '',
     onChange,
@@ -24,37 +73,28 @@ export const TextInput = ({
     const hasError = fieldErrors.length > 0;
 
     // Merge field metadata with config
-    const fieldConfig = {
+    const fieldConfig: FieldConfig = {
         placeholder: field.placeholder || field.metadata?.placeholder || '',
         maxLength: field.metadata?.maxLength || config.maxLength,
         minLength: field.metadata?.minLength || config.minLength,
         pattern: field.metadata?.pattern || config.pattern,
         mask: config.mask,
         allowAutocomplete: config.allowAutocomplete,
+        suggestions: config.suggestions,
         ...config
     };
 
-    // Handle input change
-    const handleChange = (e) => {
-        let newValue = e.target.value;
-
-        // Apply input mask if provided
-        if (fieldConfig.mask) {
-            newValue = applyInputMask(newValue, fieldConfig.mask);
-        }
-
-        onChange(newValue);
-    };
-
-    // Apply input mask
-    const applyInputMask = (value, mask) => {
-        // Simple mask implementation (X = letter, 0 = number, - = literal)
+    /**
+     * Apply input mask
+     * Simple mask implementation (X = letter, 0 = number, - = literal)
+     */
+    const applyInputMask = (inputValue: string, mask: string): string => {
         let maskedValue = '';
         let valueIndex = 0;
 
-        for (let maskIndex = 0; maskIndex < mask.length && valueIndex < value.length; maskIndex++) {
+        for (let maskIndex = 0; maskIndex < mask.length && valueIndex < inputValue.length; maskIndex++) {
             const maskChar = mask[maskIndex];
-            const valueChar = value[valueIndex];
+            const valueChar = inputValue[valueIndex];
 
             if (maskChar === 'X' && /[A-Za-z]/.test(valueChar)) {
                 maskedValue += valueChar.toUpperCase();
@@ -80,7 +120,23 @@ export const TextInput = ({
         return maskedValue;
     };
 
-    // Get input classes
+    /**
+     * Handle input change
+     */
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let newValue = e.target.value;
+
+        // Apply input mask if provided
+        if (fieldConfig.mask) {
+            newValue = applyInputMask(newValue, fieldConfig.mask);
+        }
+
+        onChange(newValue);
+    };
+
+    /**
+     * Get input classes
+     */
     const getInputClasses = () => {
         const baseClasses = "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2";
         const errorClasses = hasError
@@ -93,7 +149,9 @@ export const TextInput = ({
         return `${baseClasses} ${errorClasses} ${readOnlyClasses} ${className}`;
     };
 
-    // Render autocomplete suggestions (if enabled)
+    /**
+     * Render autocomplete suggestions (if enabled)
+     */
     const renderAutocomplete = () => {
         if (!fieldConfig.allowAutocomplete || !fieldConfig.suggestions) {
             return null;
@@ -139,19 +197,6 @@ export const TextInput = ({
             {renderAutocomplete()}
         </FieldWrapper>
     );
-};
-
-TextInput.propTypes = {
-    field: PropTypes.object.isRequired,
-    value: PropTypes.string,
-    onChange: PropTypes.func.isRequired,
-    mode: PropTypes.string,
-    isReadOnly: PropTypes.bool,
-    errors: PropTypes.array,
-    context: PropTypes.string,
-    config: PropTypes.object,
-    customStyles: PropTypes.object,
-    className: PropTypes.string
 };
 
 export default TextInput;

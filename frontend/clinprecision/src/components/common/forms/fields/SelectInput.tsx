@@ -1,14 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react';
-import PropTypes from 'prop-types';
 import { ChevronDown, Check, X, Search } from 'lucide-react';
 import FieldWrapper from './FieldWrapper';
 import { useFormField } from '../FormContext';
+
+type OptionValue = string | number;
+
+interface SelectOption {
+    value: OptionValue;
+    label: string;
+    group?: string;
+    disabled?: boolean;
+    description?: string;
+}
+
+type NormalizedOption = string | SelectOption;
+
+interface ValidationConfig {
+    custom?: (selection: OptionValue[]) => string | null | undefined;
+}
+
+interface FieldWrapperCompatibleField {
+    id: string;
+    name?: string;
+    label?: string;
+    required?: boolean;
+}
+
+interface SelectInputProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'value' | 'type'> {
+    id: string;
+    name?: string;
+    label: string;
+    value?: OptionValue | OptionValue[];
+    onChange?: (value: OptionValue | OptionValue[] | null) => void;
+    onBlur?: (e: React.FocusEvent<HTMLButtonElement>) => void;
+    onFocus?: (e: React.FocusEvent<HTMLButtonElement>) => void;
+    options?: NormalizedOption[];
+    required?: boolean;
+    readOnly?: boolean;
+    disabled?: boolean;
+    placeholder?: string;
+    multiple?: boolean;
+    searchable?: boolean;
+    allowCustom?: boolean;
+    maxSelections?: number;
+    groupBy?: string;
+    context?: 'general' | 'study' | 'template' | 'patient';
+    validation?: ValidationConfig;
+    className?: string;
+    style?: React.CSSProperties;
+}
 
 /**
  * SelectInput - Reusable select/dropdown input field component
  * Supports single select, multi-select, searchable options, and custom options
  */
-const SelectInput = ({
+const SelectInput: React.FC<SelectInputProps> = ({
     id,
     name,
     label,
@@ -32,43 +78,45 @@ const SelectInput = ({
     style = {},
     ...props
 }) => {
-    const selectRef = useRef(null);
-    const dropdownRef = useRef(null);
+    const selectRef = useRef<HTMLButtonElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filteredOptions, setFilteredOptions] = useState([]);
-    const [selectedOptions, setSelectedOptions] = useState([]);
+    const [filteredOptions, setFilteredOptions] = useState<SelectOption[]>([]);
+    const [selectedOptions, setSelectedOptions] = useState<OptionValue[]>([]);
     const [customOption, setCustomOption] = useState('');
     const [validationMessage, setValidationMessage] = useState('');
 
     // Use form context if available
     const formField = useFormField(id);
     const fieldValue = formField?.value ?? value;
-    const fieldError = formField?.error;
+    const fieldError = formField?.errors[0];
 
     // Initialize selected options
     useEffect(() => {
         if (fieldValue !== undefined && fieldValue !== null) {
             if (multiple) {
                 const values = Array.isArray(fieldValue) ? fieldValue : [fieldValue];
-                setSelectedOptions(values);
+                setSelectedOptions(values as OptionValue[]);
             } else {
-                setSelectedOptions(fieldValue ? [fieldValue] : []);
+                setSelectedOptions(fieldValue ? [fieldValue as OptionValue] : []);
             }
         } else {
             setSelectedOptions([]);
         }
     }, [fieldValue, multiple]);
 
-    // Normalize options to consistent format
-    const normalizeOptions = (opts) => {
+    /**
+     * Normalize options to consistent format
+     */
+    const normalizeOptions = (opts: NormalizedOption[]): SelectOption[] => {
         return opts.map(option => {
             if (typeof option === 'string') {
                 return { value: option, label: option };
             }
             return {
                 value: option.value,
-                label: option.label || option.value,
+                label: option.label || String(option.value),
                 group: option.group,
                 disabled: option.disabled,
                 description: option.description
@@ -76,7 +124,9 @@ const SelectInput = ({
         });
     };
 
-    // Filter options based on search term
+    /**
+     * Filter options based on search term
+     */
     useEffect(() => {
         const normalized = normalizeOptions(options);
         if (!searchTerm) {
@@ -84,30 +134,34 @@ const SelectInput = ({
         } else {
             const filtered = normalized.filter(option =>
                 option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                option.value.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                String(option.value).toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (option.description && option.description.toLowerCase().includes(searchTerm.toLowerCase()))
             );
             setFilteredOptions(filtered);
         }
     }, [options, searchTerm]);
 
-    // Group options if groupBy is specified
-    const getGroupedOptions = () => {
+    /**
+     * Group options if groupBy is specified
+     */
+    const getGroupedOptions = (): Record<string, SelectOption[]> => {
         if (!groupBy) return { '': filteredOptions };
 
-        const grouped = filteredOptions.reduce((acc, option) => {
-            const group = option[groupBy] || 'Other';
-            if (!acc[group]) acc[group] = [];
-            acc[group].push(option);
+        const grouped = filteredOptions.reduce<Record<string, SelectOption[]>>((acc, option) => {
+            const groupKey = option.group || 'Other';
+            if (!acc[groupKey]) acc[groupKey] = [];
+            acc[groupKey].push(option);
             return acc;
         }, {});
 
         return grouped;
     };
 
-    // Validate selected values
-    const validateSelection = (selection) => {
-        const errors = [];
+    /**
+     * Validate selected values
+     */
+    const validateSelection = (selection: OptionValue[]): string[] => {
+        const errors: string[] = [];
 
         // Required validation
         if (required && (!selection || selection.length === 0)) {
@@ -130,9 +184,11 @@ const SelectInput = ({
         return errors;
     };
 
-    // Handle option selection
-    const handleOptionSelect = (option) => {
-        let newSelection;
+    /**
+     * Handle option selection
+     */
+    const handleOptionSelect = (option: SelectOption) => {
+        let newSelection: OptionValue[];
 
         if (multiple) {
             const isSelected = selectedOptions.includes(option.value);
@@ -155,17 +211,19 @@ const SelectInput = ({
         // Call onChange with appropriate format
         const outputValue = multiple ? newSelection : (newSelection[0] || null);
         onChange?.(outputValue);
-        formField?.onChange?.(outputValue);
+        formField?.setValue?.(outputValue);
 
         // Clear search term
         setSearchTerm('');
     };
 
-    // Handle custom option addition
+    /**
+     * Handle custom option addition
+     */
     const handleCustomOptionAdd = () => {
         if (!customOption.trim() || !allowCustom) return;
 
-        const newOption = {
+        const newOption: SelectOption = {
             value: customOption.trim(),
             label: customOption.trim()
         };
@@ -179,8 +237,10 @@ const SelectInput = ({
         setCustomOption('');
     };
 
-    // Handle option removal (for multi-select)
-    const handleOptionRemove = (valueToRemove) => {
+    /**
+     * Handle option removal (for multi-select)
+     */
+    const handleOptionRemove = (valueToRemove: OptionValue) => {
         const newSelection = selectedOptions.filter(val => val !== valueToRemove);
         setSelectedOptions(newSelection);
 
@@ -189,25 +249,29 @@ const SelectInput = ({
 
         const outputValue = multiple ? newSelection : null;
         onChange?.(outputValue);
-        formField?.onChange?.(outputValue);
+        formField?.setValue?.(outputValue);
     };
 
-    // Get display value for selected options
-    const getDisplayValue = () => {
+    /**
+     * Get display value for selected options
+     */
+    const getDisplayValue = (): string => {
         if (selectedOptions.length === 0) return placeholder;
 
         if (multiple) {
             return `${selectedOptions.length} selected`;
         } else {
             const option = normalizeOptions(options).find(opt => opt.value === selectedOptions[0]);
-            return option ? option.label : selectedOptions[0];
+            return option ? option.label : String(selectedOptions[0]);
         }
     };
 
-    // Handle click outside to close dropdown
+    /**
+     * Handle click outside to close dropdown
+     */
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
                 setSearchTerm('');
             }
@@ -217,8 +281,10 @@ const SelectInput = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Handle keyboard navigation
-    const handleKeyDown = (e) => {
+    /**
+     * Handle keyboard navigation
+     */
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Escape') {
             setIsOpen(false);
             setSearchTerm('');
@@ -230,12 +296,17 @@ const SelectInput = ({
 
     const groupedOptions = getGroupedOptions();
 
+    const fieldForWrapper: FieldWrapperCompatibleField = {
+        id,
+        name,
+        label,
+        required
+    };
+
     return (
         <FieldWrapper
-            id={id}
-            label={label}
-            required={required}
-            error={fieldError || validationMessage}
+            field={fieldForWrapper}
+            errors={[fieldError || validationMessage].filter(Boolean)}
             context={context}
         >
             <div className="relative" ref={dropdownRef}>
@@ -244,11 +315,11 @@ const SelectInput = ({
                     <div className="mb-2 flex flex-wrap gap-1">
                         {selectedOptions.map(selectedValue => {
                             const option = normalizeOptions(options).find(opt => opt.value === selectedValue);
-                            const displayLabel = option ? option.label : selectedValue;
+                            const displayLabel = option ? option.label : String(selectedValue);
 
                             return (
                                 <span
-                                    key={selectedValue}
+                                    key={String(selectedValue)}
                                     className="inline-flex items-center px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded"
                                 >
                                     {displayLabel}
@@ -353,7 +424,7 @@ const SelectInput = ({
 
                                             return (
                                                 <button
-                                                    key={option.value}
+                                                    key={String(option.value)}
                                                     type="button"
                                                     onClick={() => !isDisabled && handleOptionSelect(option)}
                                                     disabled={isDisabled}
@@ -383,45 +454,6 @@ const SelectInput = ({
             </div>
         </FieldWrapper>
     );
-};
-
-SelectInput.propTypes = {
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string,
-    label: PropTypes.string.isRequired,
-    value: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.number,
-        PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number]))
-    ]),
-    onChange: PropTypes.func,
-    onBlur: PropTypes.func,
-    onFocus: PropTypes.func,
-    options: PropTypes.arrayOf(
-        PropTypes.oneOfType([
-            PropTypes.string,
-            PropTypes.shape({
-                value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-                label: PropTypes.string,
-                group: PropTypes.string,
-                disabled: PropTypes.bool,
-                description: PropTypes.string
-            })
-        ])
-    ),
-    required: PropTypes.bool,
-    readOnly: PropTypes.bool,
-    disabled: PropTypes.bool,
-    placeholder: PropTypes.string,
-    multiple: PropTypes.bool,
-    searchable: PropTypes.bool,
-    allowCustom: PropTypes.bool,
-    maxSelections: PropTypes.number,
-    groupBy: PropTypes.string,
-    context: PropTypes.oneOf(['general', 'study', 'template', 'patient']),
-    validation: PropTypes.object,
-    className: PropTypes.string,
-    style: PropTypes.object
 };
 
 export default SelectInput;
