@@ -1,7 +1,13 @@
+import React, { ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 import { Navigate } from "react-router-dom";
 
-export default function ProtectedRoute({ children, requiredRole }) {
+interface ProtectedRouteProps {
+    children: ReactNode;
+    requiredRole?: string;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
     const { user, isLoading } = useAuth();
 
     // Show loading spinner while authentication is initializing
@@ -19,5 +25,7 @@ export default function ProtectedRoute({ children, requiredRole }) {
     if (requiredRole && user.role !== requiredRole) {
         return <Navigate to="/" />;
     }
-    return children;
-}
+    return <>{children}</>;
+};
+
+export default ProtectedRoute;

@@ -5,10 +5,15 @@
  */
 
 import { useLocation } from 'react-router-dom';
-import TopNavigationHeader from '../../shared/TopNavigationHeader';
+import TopNavigationHeader from './TopNavigationHeader';
 // ... other imports
 
-const YourModule = () => {
+interface AdditionalLink {
+    to: string;
+    text: string;
+}
+
+const YourModule: React.FC = () => {
     const location = useLocation();
 
     // Check if module is being accessed directly or through Home

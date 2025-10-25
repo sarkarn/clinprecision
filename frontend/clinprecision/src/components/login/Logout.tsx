@@ -1,7 +1,8 @@
+import React from "react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 
-export default function Logout() {
+const Logout: React.FC = () => {
     const auth = useAuth();
     const navigate = useNavigate();
 
@@ -15,4 +16,6 @@ export default function Logout() {
             Logout
         </button>
     );
-}
+};
+
+export default Logout;

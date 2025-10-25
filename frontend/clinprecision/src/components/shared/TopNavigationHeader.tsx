@@ -1,27 +1,39 @@
+import React from 'react';
 import { Link } from "react-router-dom";
 import { Bell, ListTodo, Mail } from 'lucide-react';
 import Logout from "../login/Logout";
 import { useAuth } from "../login/AuthContext";
 
+interface AdditionalLink {
+    to: string;
+    text: string;
+}
+
+interface TopNavigationHeaderProps {
+    showFullNavigation?: boolean;
+    additionalLinks?: AdditionalLink[];
+    className?: string;
+}
+
 /**
  * Reusable Top Navigation Header Component
  * Used across all modules for consistency
  */
-export default function TopNavigationHeader({
+const TopNavigationHeader: React.FC<TopNavigationHeaderProps> = ({
     showFullNavigation = false,
     additionalLinks = [],
     className = ""
-}) {
+}) => {
     const { user } = useAuth();
 
     // Get user initial safely
-    const getUserInitial = () => {
+    const getUserInitial = (): string => {
         if (!user) return "?";
         return user.email ? user.email.charAt(0).toUpperCase() : "?";
     };
 
     // Get display name safely
-    const getDisplayName = () => {
+    const getDisplayName = (): string => {
         if (!user) return "";
         return user.email || "User";
     };
@@ -156,4 +168,6 @@ export default function TopNavigationHeader({
             </div>
         </header>
     );
-}
+};
+
+export default TopNavigationHeader;

@@ -1,7 +1,16 @@
-// src/components/shared/PatientStatusBadge.jsx
+// src/components/shared/PatientStatusBadge.tsx
 import React from 'react';
 import Badge from '../shared/ui/Badge';
 import PatientStatusService from '../../services/data-capture/PatientStatusService';
+
+type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'blue' | 'violet' | 'amber';
+type BadgeSize = 'sm' | 'md' | 'lg';
+
+interface PatientStatusBadgeProps {
+    status: string;
+    size?: BadgeSize;
+    className?: string;
+}
 
 /**
  * Specialized badge component for patient status display
@@ -18,12 +27,12 @@ import PatientStatusService from '../../services/data-capture/PatientStatusServi
  * - ACTIVE → violet (purple)
  * - COMPLETED → neutral (gray)
  * - WITHDRAWN → danger (red)
- * 
- * @param {string} status - Patient status (REGISTERED, SCREENING, etc.)
- * @param {string} size - Badge size: 'sm', 'md', 'lg' (default: 'md')
- * @param {string} className - Additional CSS classes
  */
-const PatientStatusBadge = ({ status, size = 'md', className = '' }) => {
+const PatientStatusBadge: React.FC<PatientStatusBadgeProps> = ({ 
+    status, 
+    size = 'md', 
+    className = '' 
+}) => {
 
     if (!status) {
         return (
@@ -34,7 +43,7 @@ const PatientStatusBadge = ({ status, size = 'md', className = '' }) => {
     }
 
     // Get badge variant using service utility
-    const variant = PatientStatusService.getStatusBadgeVariant(status);
+    const variant = PatientStatusService.getStatusBadgeVariant(status) as BadgeVariant;
 
     // Format status for display
     const formattedStatus = PatientStatusService.formatStatus(status);

@@ -1,4 +1,4 @@
-// src/components/shared/status/StatusIndicator.jsx
+// src/components/shared/status/StatusIndicator.tsx
 import React, { useState, useEffect } from 'react';
 import {
     CheckCircle2,
@@ -13,11 +13,45 @@ import {
     Zap
 } from 'lucide-react';
 
+type StatusType = 'DRAFT' | 'PLANNING' | 'APPROVED' | 'ACTIVE' | 'COMPLETED' | 'TERMINATED' | 'SUSPENDED';
+type ConnectionStatusType = 'connected' | 'connecting' | 'disconnected' | 'failed';
+type SizeType = 'sm' | 'md' | 'lg';
+
+interface StatusIndicatorProps {
+    status: StatusType;
+    lastUpdated?: Date | string;
+    isRealTime?: boolean;
+    showLastUpdated?: boolean;
+    showIcon?: boolean;
+    showBadge?: boolean;
+    size?: SizeType;
+    className?: string;
+    onClick?: () => void | null;
+    computationInProgress?: boolean;
+    connectionStatus?: ConnectionStatusType;
+}
+
+interface CompactStatusIndicatorProps {
+    status: StatusType;
+    isRealTime?: boolean;
+    connectionStatus?: ConnectionStatusType;
+}
+
+interface DetailedStatusCardProps {
+    status: StatusType;
+    lastUpdated?: Date | string;
+    isRealTime?: boolean;
+    connectionStatus?: ConnectionStatusType;
+    computationInProgress?: boolean;
+    onRefresh?: (() => void) | null;
+    additionalInfo?: Record<string, any>;
+}
+
 /**
  * Real-time Status Indicator Component
  * Displays study status with real-time updates and visual indicators
  */
-const StatusIndicator = ({
+const StatusIndicator: React.FC<StatusIndicatorProps> = ({
     status,
     lastUpdated,
     isRealTime = false,
@@ -133,7 +167,7 @@ const StatusIndicator = ({
 
         const updateTimeAgo = () => {
             const now = new Date();
-            const diff = now - new Date(lastUpdated);
+            const diff = now.getTime() - new Date(lastUpdated).getTime();
             const seconds = Math.floor(diff / 1000);
             const minutes = Math.floor(seconds / 60);
             const hours = Math.floor(minutes / 60);
@@ -170,7 +204,7 @@ const StatusIndicator = ({
     /**
      * Get connection indicator
      */
-    const renderConnectionIndicator = () => {
+    const renderConnectionIndicator = (): React.ReactElement | null => {
         if (!isRealTime) return null;
 
         const connectionConfig = {
@@ -193,7 +227,7 @@ const StatusIndicator = ({
     /**
      * Get computation indicator
      */
-    const renderComputationIndicator = () => {
+    const renderComputationIndicator = (): React.ReactElement | null => {
         if (!computationInProgress) return null;
 
         return (
@@ -206,7 +240,7 @@ const StatusIndicator = ({
     /**
      * Render main status badge
      */
-    const renderStatusBadge = () => {
+    const renderStatusBadge = (): React.ReactElement => {
         const Icon = statusConfig.icon;
 
         return (
@@ -219,7 +253,7 @@ const StatusIndicator = ({
                     ${onClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}
                     ${className}
                 `}
-                onClick={onClick}
+                onClick={onClick || undefined}
                 title={statusConfig.description}
             >
                 {showIcon && (
@@ -235,7 +269,7 @@ const StatusIndicator = ({
     /**
      * Render status with additional info
      */
-    const renderStatusWithInfo = () => {
+    const renderStatusWithInfo = (): React.ReactElement => {
         return (
             <div className={`flex flex-col ${sizeConfig.gap}`}>
                 {renderStatusBadge()}
@@ -265,7 +299,11 @@ const StatusIndicator = ({
 /**
  * Compact Status Indicator for tables and lists
  */
-export const CompactStatusIndicator = ({ status, isRealTime = false, connectionStatus = 'connected' }) => {
+export const CompactStatusIndicator: React.FC<CompactStatusIndicatorProps> = ({ 
+    status, 
+    isRealTime = false, 
+    connectionStatus = 'connected' 
+}) => {
     return (
         <StatusIndicator
             status={status}
@@ -281,7 +319,7 @@ export const CompactStatusIndicator = ({ status, isRealTime = false, connectionS
 /**
  * Detailed Status Card with full information
  */
-export const DetailedStatusCard = ({
+export const DetailedStatusCard: React.FC<DetailedStatusCardProps> = ({
     status,
     lastUpdated,
     isRealTime = false,
@@ -290,7 +328,17 @@ export const DetailedStatusCard = ({
     onRefresh = null,
     additionalInfo = {}
 }) => {
-    const statusConfig = StatusIndicator.defaultProps?.STATUS_CONFIG?.[status] || {
+    const STATUS_CONFIG: any = {
+        DRAFT: { color: 'gray', bgColor: 'bg-gray-50', textColor: 'text-gray-700', borderColor: 'border-gray-200', label: 'Draft' },
+        PLANNING: { color: 'blue', bgColor: 'bg-blue-50', textColor: 'text-blue-700', borderColor: 'border-blue-200', label: 'Planning' },
+        APPROVED: { color: 'green', bgColor: 'bg-green-50', textColor: 'text-green-700', borderColor: 'border-green-200', label: 'Approved' },
+        ACTIVE: { color: 'emerald', bgColor: 'bg-emerald-50', textColor: 'text-emerald-700', borderColor: 'border-emerald-200', label: 'Active' },
+        COMPLETED: { color: 'purple', bgColor: 'bg-purple-50', textColor: 'text-purple-700', borderColor: 'border-purple-200', label: 'Completed' },
+        TERMINATED: { color: 'red', bgColor: 'bg-red-50', textColor: 'text-red-700', borderColor: 'border-red-200', label: 'Terminated' },
+        SUSPENDED: { color: 'yellow', bgColor: 'bg-yellow-50', textColor: 'text-yellow-700', borderColor: 'border-yellow-200', label: 'Suspended' }
+    };
+
+    const statusConfig = STATUS_CONFIG[status] || {
         color: 'gray',
         bgColor: 'bg-gray-50',
         textColor: 'text-gray-700',

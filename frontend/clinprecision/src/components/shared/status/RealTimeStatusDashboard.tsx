@@ -1,4 +1,4 @@
-// src/components/shared/status/RealTimeStatusDashboard.jsx
+// src/components/shared/status/RealTimeStatusDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { useStatusSynchronization } from '../../../hooks/useStatusSynchronization';
 import StatusIndicator, { DetailedStatusCard } from './StatusIndicator';
@@ -18,11 +18,33 @@ import {
     TrendingUp
 } from 'lucide-react';
 
+type ConnectionStatusType = 'connected' | 'connecting' | 'disconnected' | 'failed';
+
+interface ExpandedSections {
+    connection: boolean;
+    status: boolean;
+    updates: boolean;
+    errors: boolean;
+    metrics: boolean;
+}
+
+interface RealTimeStatusDashboardProps {
+    studyId?: string | null;
+    enableGlobalUpdates?: boolean;
+    showConnectionStatus?: boolean;
+    showMetrics?: boolean;
+    showPendingUpdates?: boolean;
+    showErrors?: boolean;
+    autoRefresh?: boolean;
+    refreshInterval?: number;
+    className?: string;
+}
+
 /**
  * Real-time Status Dashboard Component
  * Provides comprehensive real-time status monitoring and synchronization
  */
-const RealTimeStatusDashboard = ({
+const RealTimeStatusDashboard: React.FC<RealTimeStatusDashboardProps> = ({
     studyId = null,
     enableGlobalUpdates = false,
     showConnectionStatus = true,
@@ -33,7 +55,7 @@ const RealTimeStatusDashboard = ({
     refreshInterval = 30000, // 30 seconds
     className = ''
 }) => {
-    const [expandedSections, setExpandedSections] = useState({
+    const [expandedSections, setExpandedSections] = useState<ExpandedSections>({
         connection: true,
         status: true,
         updates: false,
@@ -41,7 +63,7 @@ const RealTimeStatusDashboard = ({
         metrics: false
     });
     const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(autoRefresh);
-    const [lastManualRefresh, setLastManualRefresh] = useState(null);
+    const [lastManualRefresh, setLastManualRefresh] = useState<Date | null>(null);
 
     // Use status synchronization hook
     const {
@@ -63,13 +85,13 @@ const RealTimeStatusDashboard = ({
         studyId,
         enableGlobalUpdates,
         autoConnect: true,
-        onStatusUpdate: (data) => {
+        onStatusUpdate: (data: any) => {
             console.log('Dashboard received status update:', data);
         },
-        onError: (error) => {
+        onError: (error: any) => {
             console.error('Dashboard sync error:', error);
         }
-    });
+    }) as any;
 
     // Auto-refresh effect
     useEffect(() => {
@@ -105,7 +127,7 @@ const RealTimeStatusDashboard = ({
     /**
      * Toggle section expansion
      */
-    const toggleSection = (section) => {
+    const toggleSection = (section: keyof ExpandedSections) => {
         setExpandedSections(prev => ({
             ...prev,
             [section]: !prev[section]
@@ -121,10 +143,10 @@ const RealTimeStatusDashboard = ({
     /**
      * Render connection status section
      */
-    const renderConnectionStatus = () => {
+    const renderConnectionStatus = (): React.ReactElement | null => {
         if (!showConnectionStatus) return null;
 
-        const getConnectionColor = () => {
+        const getConnectionColor = (): string => {
             switch (connectionStatus) {
                 case 'connected': return 'text-green-600 bg-green-50 border-green-200';
                 case 'connecting': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
@@ -188,7 +210,7 @@ const RealTimeStatusDashboard = ({
                             <div>
                                 <h4 className="text-sm font-medium text-gray-700 mb-2">Subscribed Topics:</h4>
                                 <div className="flex flex-wrap gap-1">
-                                    {connectionStats.subscribedTopics.map(topic => (
+                                    {connectionStats.subscribedTopics.map((topic: string) => (
                                         <span key={topic} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
                                             {topic}
                                         </span>
@@ -205,7 +227,7 @@ const RealTimeStatusDashboard = ({
     /**
      * Render current status section
      */
-    const renderCurrentStatus = () => {
+    const renderCurrentStatus = (): React.ReactElement => {
         return (
             <div className="border border-gray-200 rounded-lg p-4">
                 <div
@@ -243,8 +265,8 @@ const RealTimeStatusDashboard = ({
                                 status={currentStatus.status}
                                 lastUpdated={currentStatus.updatedAt}
                                 isRealTime={isConnected}
-                                connectionStatus={connectionStatus}
-                                computationInProgress={pendingUpdates.some(u => u.type === 'computation')}
+                                connectionStatus={connectionStatus as ConnectionStatusType}
+                                computationInProgress={pendingUpdates.some((u: any) => u.type === 'computation')}
                                 onRefresh={handleManualRefresh}
                                 additionalInfo={{
                                     'Version': currentStatus.version || 'N/A',
@@ -275,7 +297,7 @@ const RealTimeStatusDashboard = ({
     /**
      * Render pending updates section
      */
-    const renderPendingUpdates = () => {
+    const renderPendingUpdates = (): React.ReactElement | null => {
         if (!showPendingUpdates) return null;
 
         return (
@@ -312,7 +334,7 @@ const RealTimeStatusDashboard = ({
                             <p className="text-sm text-gray-500 text-center py-4">No pending updates</p>
                         ) : (
                             <div className="space-y-2 max-h-48 overflow-y-auto">
-                                {pendingUpdates.slice(0, 10).map(update => (
+                                {pendingUpdates.slice(0, 10).map((update: any) => (
                                     <div key={update.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                         <div className="flex items-center gap-2">
                                             <div className={`w-2 h-2 rounded-full ${update.type === 'status' ? 'bg-green-500' :
@@ -345,7 +367,7 @@ const RealTimeStatusDashboard = ({
     /**
      * Render errors section
      */
-    const renderErrors = () => {
+    const renderErrors = (): React.ReactElement | null => {
         if (!showErrors || syncErrors.length === 0) return null;
 
         return (
@@ -375,7 +397,7 @@ const RealTimeStatusDashboard = ({
                 {expandedSections.errors && (
                     <div className="mt-4">
                         <div className="space-y-2 max-h-48 overflow-y-auto">
-                            {syncErrors.map((error, index) => (
+                            {syncErrors.map((error: any, index: number) => (
                                 <div key={index} className="p-2 bg-white border border-red-200 rounded">
                                     <div className="flex items-start justify-between">
                                         <div>
@@ -401,7 +423,7 @@ const RealTimeStatusDashboard = ({
     /**
      * Render settings section
      */
-    const renderSettings = () => {
+    const renderSettings = (): React.ReactElement => {
         return (
             <div className="border border-gray-200 rounded-lg p-4">
                 <div

@@ -1,6 +1,41 @@
 import React, { useMemo } from 'react';
-import PropTypes from 'prop-types';
 import { useCodeList } from '../../hooks/useCodeList';
+
+type CodeListCategory = 
+    | 'REGULATORY_STATUS' 
+    | 'STUDY_PHASE' 
+    | 'STUDY_STATUS' 
+    | 'AMENDMENT_TYPE' 
+    | 'VISIT_TYPE';
+
+interface CodeListOption {
+    id: string;
+    value: string;
+    label: string;
+    description?: string;
+}
+
+interface CodeListDropdownProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> {
+    category: CodeListCategory;
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>, selectedOption?: CodeListOption) => void;
+    onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
+    name?: string;
+    id?: string;
+    className?: string;
+    placeholder?: string;
+    disabled?: boolean;
+    required?: boolean;
+    allowEmpty?: boolean;
+    emptyText?: string;
+    filters?: Record<string, any>;
+    transformData?: ((data: any[]) => any[]) | null;
+    showDescription?: boolean;
+    searchable?: boolean;
+    loading?: boolean;
+    error?: string | null;
+    'data-testid'?: string;
+}
 
 /**
  * Universal CodeListDropdown Component
@@ -15,16 +50,8 @@ import { useCodeList } from '../../hooks/useCodeList';
  * - Consistent styling and behavior
  * - Accessibility support
  * - Custom data transformation
- * 
- * Usage:
- *   <CodeListDropdown 
- *     category="STUDY_PHASE" 
- *     value={selectedPhase}
- *     onChange={handlePhaseChange}
- *     placeholder="Select Phase..."
- *   />
  */
-export const CodeListDropdown = ({
+export const CodeListDropdown: React.FC<CodeListDropdownProps> = ({
     category,
     value,
     onChange,
@@ -55,7 +82,7 @@ export const CodeListDropdown = ({
     } = useCodeList(category, {
         filters,
         transformData
-    });
+    }) as any;
 
     // Use external loading/error states if provided, otherwise use hook states
     const loading = externalLoading || hookLoading;
@@ -69,7 +96,7 @@ export const CodeListDropdown = ({
         }
 
         const term = searchTerm.toLowerCase();
-        return options.filter(option =>
+        return options.filter((option: CodeListOption) =>
             option.label.toLowerCase().includes(term) ||
             option.value.toLowerCase().includes(term) ||
             (option.description && option.description.toLowerCase().includes(term))
@@ -86,9 +113,9 @@ export const CodeListDropdown = ({
   `.trim();
 
     // Handle change events
-    const handleChange = (e) => {
+    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedValue = e.target.value;
-        const selectedOption = options.find(opt => opt.value === selectedValue);
+        const selectedOption = options.find((opt: CodeListOption) => opt.value === selectedValue);
 
         if (onChange) {
             onChange(e, selectedOption);
@@ -176,7 +203,7 @@ export const CodeListDropdown = ({
                         </option>
                     )}
 
-                    {filteredOptions.map((option) => (
+                    {filteredOptions.map((option: CodeListOption) => (
                         <option
                             key={option.id}
                             value={option.value}
@@ -221,7 +248,7 @@ export const CodeListDropdown = ({
                     </option>
                 )}
 
-                {options.map((option) => (
+                {options.map((option: CodeListOption) => (
                     <option
                         key={option.id}
                         value={option.value}
@@ -243,39 +270,13 @@ export const CodeListDropdown = ({
     );
 };
 
-CodeListDropdown.propTypes = {
-    category: PropTypes.oneOf([
-        'REGULATORY_STATUS',
-        'STUDY_PHASE',
-        'STUDY_STATUS',
-        'AMENDMENT_TYPE',
-        'VISIT_TYPE'
-    ]).isRequired,
-    value: PropTypes.string,
-    onChange: PropTypes.func,
-    onBlur: PropTypes.func,
-    name: PropTypes.string,
-    id: PropTypes.string,
-    className: PropTypes.string,
-    placeholder: PropTypes.string,
-    disabled: PropTypes.bool,
-    required: PropTypes.bool,
-    allowEmpty: PropTypes.bool,
-    emptyText: PropTypes.string,
-    filters: PropTypes.object,
-    transformData: PropTypes.func,
-    showDescription: PropTypes.bool,
-    searchable: PropTypes.bool,
-    loading: PropTypes.bool,
-    error: PropTypes.string,
-    'data-testid': PropTypes.string
-};
-
 /**
  * Specialized dropdown components for common use cases
  */
 
-export const RegulatoryStatusDropdown = (props) => (
+interface SpecializedDropdownProps extends Omit<CodeListDropdownProps, 'category'> {}
+
+export const RegulatoryStatusDropdown: React.FC<SpecializedDropdownProps> = (props) => (
     <CodeListDropdown
         category="REGULATORY_STATUS"
         placeholder="Select Regulatory Status..."
@@ -284,7 +285,7 @@ export const RegulatoryStatusDropdown = (props) => (
     />
 );
 
-export const StudyPhaseDropdown = (props) => (
+export const StudyPhaseDropdown: React.FC<SpecializedDropdownProps> = (props) => (
     <CodeListDropdown
         category="STUDY_PHASE"
         placeholder="Select Study Phase..."
@@ -293,7 +294,7 @@ export const StudyPhaseDropdown = (props) => (
     />
 );
 
-export const StudyStatusDropdown = (props) => (
+export const StudyStatusDropdown: React.FC<SpecializedDropdownProps> = (props) => (
     <CodeListDropdown
         category="STUDY_STATUS"
         placeholder="Select Study Status..."
@@ -301,7 +302,7 @@ export const StudyStatusDropdown = (props) => (
     />
 );
 
-export const AmendmentTypeDropdown = (props) => (
+export const AmendmentTypeDropdown: React.FC<SpecializedDropdownProps> = (props) => (
     <CodeListDropdown
         category="AMENDMENT_TYPE"
         placeholder="Select Amendment Type..."
@@ -310,7 +311,7 @@ export const AmendmentTypeDropdown = (props) => (
     />
 );
 
-export const VisitTypeDropdown = (props) => (
+export const VisitTypeDropdown: React.FC<SpecializedDropdownProps> = (props) => (
     <CodeListDropdown
         category="VISIT_TYPE"
         placeholder="Select Visit Type..."

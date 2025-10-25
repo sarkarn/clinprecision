@@ -2,12 +2,25 @@ import React from 'react';
 import { ChevronRight, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+interface BreadcrumbItem {
+    label: string;
+    path?: string;
+}
+
+interface BreadcrumbNavigationProps {
+    items?: BreadcrumbItem[];
+    showHome?: boolean;
+    className?: string;
+}
+
 /**
  * Dynamic Breadcrumb Navigation component
- * @param {Array} items - Array of breadcrumb items: [{label, path}]
- * @param {boolean} showHome - Show home icon as first item
  */
-const BreadcrumbNavigation = ({ items = [], showHome = true, className = "" }) => {
+const BreadcrumbNavigation: React.FC<BreadcrumbNavigationProps> = ({ 
+    items = [], 
+    showHome = true, 
+    className = "" 
+}) => {
     return (
         <nav className={`flex items-center text-sm text-gray-600 mb-4 ${className}`}>
             {showHome && (
