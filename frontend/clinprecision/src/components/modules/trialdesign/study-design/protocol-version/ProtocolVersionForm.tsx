@@ -1,12 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Info, Calendar, FileText, Users } from 'lucide-react';
 
+// Type definitions
+interface AmendmentTypeOption {
+    value: string;
+    label: string;
+    description: string;
+}
+
+interface FormData {
+    versionNumber: string;
+    description: string;
+    amendmentType: string;
+    amendmentReason: string;
+    changesSummary: string;
+    impactAssessment: string;
+    effectiveDate: string;
+    requiresRegulatoryApproval: boolean;
+    notifyStakeholders: boolean;
+    additionalNotes: string;
+}
+
+interface FormErrors {
+    [key: string]: string | undefined;
+    versionNumber?: string;
+    description?: string;
+    amendmentType?: string;
+    amendmentReason?: string;
+    changesSummary?: string;
+    effectiveDate?: string;
+}
+
+type FormMode = 'create' | 'edit';
+
+interface ProtocolVersionFormProps {
+    mode?: FormMode;
+    initialData?: Partial<FormData>;
+    onSubmit: (formData: FormData) => void;
+    onCancel: () => void;
+    suggestedVersionNumber?: string;
+    amendmentTypes?: AmendmentTypeOption[];
+    loading?: boolean;
+    isInitialVersion?: boolean;
+}
+
 /**
  * Protocol Version Form Component
  * Handles creation and editing of protocol versions
  */
-const ProtocolVersionForm = ({
-    mode = 'create', // 'create' | 'edit'
+const ProtocolVersionForm: React.FC<ProtocolVersionFormProps> = ({
+    mode = 'create',
     initialData = {},
     onSubmit,
     onCancel,
@@ -15,7 +58,7 @@ const ProtocolVersionForm = ({
     loading = false,
     isInitialVersion = false
 }) => {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         versionNumber: '',
         description: '',
         amendmentType: isInitialVersion ? 'MINOR' : '',
@@ -28,8 +71,8 @@ const ProtocolVersionForm = ({
         additionalNotes: ''
     });
 
-    const [errors, setErrors] = useState({});
-    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [errors, setErrors] = useState<FormErrors>({});
+    const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
     // Initialize form data
     useEffect(() => {
@@ -77,7 +120,7 @@ const ProtocolVersionForm = ({
     }, [isInitialVersion]);
 
     // Handle input changes
-    const handleInputChange = (field, value) => {
+    const handleInputChange = (field: keyof FormData, value: string | boolean): void => {
         setFormData(prev => ({
             ...prev,
             [field]: value
@@ -93,8 +136,8 @@ const ProtocolVersionForm = ({
     };
 
     // Validate form
-    const validateForm = () => {
-        const newErrors = {};
+    const validateForm = (): boolean => {
+        const newErrors: FormErrors = {};
 
         // Version number validation
         if (!formData.versionNumber.trim()) {
@@ -141,7 +184,7 @@ const ProtocolVersionForm = ({
     };
 
     // Handle form submission
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -152,7 +195,7 @@ const ProtocolVersionForm = ({
     };
 
     // Get amendment type options
-    const getAmendmentTypeOptions = () => {
+    const getAmendmentTypeOptions = (): AmendmentTypeOption[] => {
         // For initial versions, pre-select MINOR but show all options except INITIAL
         return amendmentTypes.filter(type => type.value !== 'INITIAL').map(type => ({
             value: type.value,

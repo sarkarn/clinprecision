@@ -101,14 +101,14 @@ const StudyListGrid = ({
                 const lookupData = await StudyService.getStudyLookupData();
 
                 // Transform data for filter dropdowns
-                const phaseOptions = (lookupData.studyPhases || []).map(phase => ({
-                    value: phase.label || phase.displayName,
-                    label: phase.label || phase.displayName
+                const phaseOptions = (lookupData.phases || []).map(phase => ({
+                    value: phase.label || phase.displayName || phase.value,
+                    label: phase.label || phase.displayName || phase.value
                 }));
 
-                const statusOptions = (lookupData.studyStatuses || []).map(status => ({
-                    value: status.label || status.displayName,
-                    label: status.label || status.displayName
+                const statusOptions = (lookupData.statuses || []).map(status => ({
+                    value: status.label || status.displayName || status.value,
+                    label: status.label || status.displayName || status.value
                 }));
 
                 setStudyPhases(phaseOptions);
@@ -277,8 +277,8 @@ const StudyListGrid = ({
                 <div key={study.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">{study.title}</h3>
-                            <p className="text-sm text-gray-600 mb-2">{study.protocol}</p>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">{study.name || study.title}</h3>
+                            <p className="text-sm text-gray-600 mb-2">{study.protocolNumber || study.protocol}</p>
                             <VersionBadge
                                 version={study.version}
                                 versionStatus={study.versionStatus}
@@ -302,7 +302,7 @@ const StudyListGrid = ({
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-500">Subjects:</span>
-                            <span className="font-medium">{study.enrolledSubjects}/{study.plannedSubjects}</span>
+                            <span className="font-medium">{study.currentEnrollment || study.enrolledSubjects || 0}/{study.targetEnrollment || study.plannedSubjects || 0}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-500">PI:</span>
@@ -418,8 +418,8 @@ const StudyListGrid = ({
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col">
-                                        <div className="text-sm font-medium text-gray-900">{study.title}</div>
-                                        <div className="text-sm text-gray-500">{study.protocol}</div>
+                                        <div className="text-sm font-medium text-gray-900">{study.name || study.title}</div>
+                                        <div className="text-sm text-gray-500">{study.protocolNumber || study.protocol}</div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -437,11 +437,11 @@ const StudyListGrid = ({
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     <div className="flex flex-col">
-                                        <span>{study.enrolledSubjects}/{study.plannedSubjects}</span>
+                                        <span>{study.currentEnrollment || study.enrolledSubjects || 0}/{study.targetEnrollment || study.plannedSubjects || 0}</span>
                                         <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                                             <div
                                                 className="bg-blue-600 h-1.5 rounded-full"
-                                                style={{ width: `${(study.enrolledSubjects / study.plannedSubjects) * 100}%` }}
+                                                style={{ width: `${((study.currentEnrollment || study.enrolledSubjects || 0) / (study.targetEnrollment || study.plannedSubjects || 1)) * 100}%` }}
                                             ></div>
                                         </div>
                                     </div>

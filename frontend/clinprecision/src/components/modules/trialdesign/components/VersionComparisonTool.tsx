@@ -2,28 +2,80 @@ import React, { useState } from 'react';
 import { ArrowRight, GitCompare, Eye, EyeOff, Plus, Minus, Edit3, Info } from 'lucide-react';
 import { Button } from '../components/UIComponents';
 
+// Type definitions
+interface Version {
+    id: string;
+    version: string;
+    title: string;
+    summary: string;
+    status: string;
+    type: string;
+    publishedDate: string;
+    createdBy: string;
+    subjectsEnrolled: number;
+    changes?: any[];
+}
+
+interface ComparisonSummary {
+    totalChanges: number;
+    additions: number;
+    modifications: number;
+    deletions: number;
+    impactLevel: ImpactLevel;
+}
+
+interface ChangeSection {
+    id: string;
+    name: string;
+    type: ChangeType;
+    impactLevel: ImpactLevel;
+    oldValue: string | null;
+    newValue: string;
+    justification: string;
+    reviewer: string;
+    reviewDate: string;
+}
+
+interface ComparisonData {
+    summary: ComparisonSummary;
+    sections: ChangeSection[];
+}
+
+type ChangeType = 'ADDITION' | 'MODIFICATION' | 'DELETION';
+type ImpactLevel = 'HIGH' | 'MEDIUM' | 'LOW';
+type CompareMode = 'side-by-side' | 'unified' | 'change-only';
+type ChangeFilter = 'all' | 'additions' | 'modifications' | 'deletions';
+
+interface VersionComparisonToolProps {
+    versions: Version[];
+    selectedVersions?: Version[];
+    onVersionSelect?: (version: Version) => void;
+    isVisible: boolean;
+    onClose: () => void;
+}
+
 /**
  * Version Comparison Tool Component
  * Advanced tool for comparing protocol versions with detailed change tracking
  */
-const VersionComparisonTool = ({
+const VersionComparisonTool: React.FC<VersionComparisonToolProps> = ({
     versions,
     selectedVersions = [],
     onVersionSelect,
     isVisible,
     onClose
 }) => {
-    const [compareMode, setCompareMode] = useState('side-by-side'); // 'side-by-side', 'unified', 'change-only'
-    const [showMinorChanges, setShowMinorChanges] = useState(true);
-    const [expandedSections, setExpandedSections] = useState(new Set());
-    const [changeFilter, setChangeFilter] = useState('all'); // 'all', 'additions', 'modifications', 'deletions'
+    const [compareMode, setCompareMode] = useState<CompareMode>('side-by-side');
+    const [showMinorChanges, setShowMinorChanges] = useState<boolean>(true);
+    const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+    const [changeFilter, setChangeFilter] = useState<ChangeFilter>('all');
 
     // Ensure we have exactly 2 versions for comparison
     const versionA = selectedVersions[0];
     const versionB = selectedVersions[1];
 
     // Mock comparison data - in real implementation, this would come from API
-    const getComparisonData = () => {
+    const getComparisonData = (): ComparisonData | null => {
         if (!versionA || !versionB) return null;
 
         return {
@@ -108,7 +160,7 @@ const VersionComparisonTool = ({
     const comparisonData = getComparisonData();
 
     // Toggle section expansion
-    const toggleSection = (sectionId) => {
+    const toggleSection = (sectionId: string): void => {
         const newExpanded = new Set(expandedSections);
         if (newExpanded.has(sectionId)) {
             newExpanded.delete(sectionId);
@@ -119,7 +171,7 @@ const VersionComparisonTool = ({
     };
 
     // Get change type color
-    const getChangeTypeColor = (type) => {
+    const getChangeTypeColor = (type: ChangeType): string => {
         switch (type) {
             case 'ADDITION':
                 return 'bg-green-50 border-green-200 text-green-800';
@@ -133,7 +185,7 @@ const VersionComparisonTool = ({
     };
 
     // Get impact level color
-    const getImpactLevelColor = (level) => {
+    const getImpactLevelColor = (level: ImpactLevel): string => {
         switch (level) {
             case 'HIGH':
                 return 'bg-red-100 text-red-800';
@@ -147,7 +199,7 @@ const VersionComparisonTool = ({
     };
 
     // Get change type icon
-    const getChangeTypeIcon = (type) => {
+    const getChangeTypeIcon = (type: ChangeType): React.ReactElement => {
         switch (type) {
             case 'ADDITION':
                 return <Plus className="h-4 w-4 text-green-600" />;
@@ -161,13 +213,13 @@ const VersionComparisonTool = ({
     };
 
     // Filter changes based on current filter
-    const getFilteredChanges = () => {
+    const getFilteredChanges = (): ChangeSection[] => {
         if (!comparisonData) return [];
 
         let filtered = comparisonData.sections;
 
         if (changeFilter !== 'all') {
-            const filterMap = {
+            const filterMap: Record<Exclude<ChangeFilter, 'all'>, ChangeType> = {
                 'additions': 'ADDITION',
                 'modifications': 'MODIFICATION',
                 'deletions': 'DELETION'
@@ -247,7 +299,7 @@ const VersionComparisonTool = ({
                                 <label className="text-sm font-medium text-gray-700">View:</label>
                                 <select
                                     value={compareMode}
-                                    onChange={(e) => setCompareMode(e.target.value)}
+                                    onChange={(e) => setCompareMode(e.target.value as CompareMode)}
                                     className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     <option value="side-by-side">Side by Side</option>
@@ -260,7 +312,7 @@ const VersionComparisonTool = ({
                                 <label className="text-sm font-medium text-gray-700">Filter:</label>
                                 <select
                                     value={changeFilter}
-                                    onChange={(e) => setChangeFilter(e.target.value)}
+                                    onChange={(e) => setChangeFilter(e.target.value as ChangeFilter)}
                                     className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     <option value="all">All Changes</option>

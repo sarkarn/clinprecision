@@ -8,16 +8,54 @@ import {
     AlertTriangle,
     Edit2,
     Eye,
-    GitBranch
+    GitBranch,
+    LucideIcon
 } from 'lucide-react';
 import { ProtocolVersionMiniTimeline } from './ProtocolVersionTimeline';
 import { ProtocolVersionQuickActions } from './ProtocolVersionActions';
 
-/**
- * Protocol Version Panel Component
- * Displays in the StudyDesignDashboard showing current protocol version status and actions
- */
-const ProtocolVersionPanel = ({
+type QuickActionVersion = NonNullable<React.ComponentProps<typeof ProtocolVersionQuickActions>['version']>;
+type TimelineVersions = NonNullable<React.ComponentProps<typeof ProtocolVersionMiniTimeline>['versions']>;
+type TimelineVersion = TimelineVersions[number];
+
+type ProtocolVersionStatus = QuickActionVersion['status'] | 'PROTOCOL_REVIEW';
+
+type ProtocolVersion = QuickActionVersion &
+    Partial<TimelineVersion> &
+    Record<string, unknown>;
+
+interface StatusDisplay {
+    icon: LucideIcon;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+    label: string;
+}
+
+interface ActionDefinition {
+    label: string;
+    icon: LucideIcon;
+    onClick?: () => void;
+    variant: 'primary' | 'success' | 'secondary';
+    disabled?: boolean;
+}
+
+interface ProtocolVersionPanelProps {
+    studyId?: string;
+    studyName?: string;
+    currentProtocolVersion?: ProtocolVersion | null;
+    protocolVersions?: ProtocolVersion[];
+    loading?: boolean;
+    onCreateVersion?: () => void;
+    onManageVersions?: () => void;
+    onEditVersion?: (versionId: string | number) => void;
+    onSubmitReview?: (versionId: string | number) => void;
+    onApproveVersion?: (versionId: string | number) => void;
+    onActivateVersion?: (versionId: string | number) => void;
+    compact?: boolean;
+}
+
+const ProtocolVersionPanel: React.FC<ProtocolVersionPanelProps> = ({
     studyId,
     studyName,
     currentProtocolVersion,
@@ -31,9 +69,10 @@ const ProtocolVersionPanel = ({
     onActivateVersion,
     compact = false
 }) => {
-    // Get status display information
-    const getStatusDisplay = (version) => {
-        if (!version) return null;
+    const getStatusDisplay = (version?: ProtocolVersion | null): StatusDisplay | null => {
+        if (!version || !version.status) {
+            return null;
+        }
 
         switch (version.status) {
             case 'DRAFT':
@@ -44,6 +83,7 @@ const ProtocolVersionPanel = ({
                     borderColor: 'border-gray-300',
                     label: 'Draft'
                 };
+            case 'UNDER_REVIEW':
             case 'PROTOCOL_REVIEW':
                 return {
                     icon: Clock,
@@ -51,6 +91,14 @@ const ProtocolVersionPanel = ({
                     bgColor: 'bg-yellow-100',
                     borderColor: 'border-yellow-300',
                     label: 'Under Review'
+                };
+            case 'AMENDMENT_REVIEW':
+                return {
+                    icon: Clock,
+                    color: 'text-blue-600',
+                    bgColor: 'bg-blue-100',
+                    borderColor: 'border-blue-300',
+                    label: 'Pending Approval'
                 };
             case 'APPROVED':
                 return {
@@ -61,6 +109,7 @@ const ProtocolVersionPanel = ({
                     label: 'Approved'
                 };
             case 'ACTIVE':
+            case 'PUBLISHED':
                 return {
                     icon: Play,
                     color: 'text-blue-600',
@@ -90,13 +139,12 @@ const ProtocolVersionPanel = ({
                     color: 'text-gray-600',
                     bgColor: 'bg-gray-100',
                     borderColor: 'border-gray-300',
-                    label: version.status
+                    label: String(version.status)
                 };
         }
     };
 
-    // Get primary action based on version status
-    const getPrimaryAction = () => {
+    const getPrimaryAction = (): ActionDefinition | null => {
         if (!currentProtocolVersion) {
             return {
                 label: 'Create Initial Version',
@@ -106,19 +154,23 @@ const ProtocolVersionPanel = ({
             };
         }
 
+        const versionId = currentProtocolVersion.id;
+
         switch (currentProtocolVersion.status) {
             case 'DRAFT':
                 return {
                     label: 'Submit for Review',
                     icon: Clock,
-                    onClick: () => onSubmitReview?.(currentProtocolVersion.id),
+                    onClick: versionId !== undefined && onSubmitReview ? () => onSubmitReview(versionId) : undefined,
                     variant: 'primary'
                 };
+            case 'UNDER_REVIEW':
             case 'PROTOCOL_REVIEW':
+            case 'AMENDMENT_REVIEW':
                 return {
                     label: 'Under Review',
                     icon: Clock,
-                    onClick: null,
+                    onClick: undefined,
                     variant: 'secondary',
                     disabled: true
                 };
@@ -126,10 +178,11 @@ const ProtocolVersionPanel = ({
                 return {
                     label: 'Activate Version',
                     icon: Play,
-                    onClick: () => onActivateVersion?.(currentProtocolVersion.id),
+                    onClick: versionId !== undefined && onActivateVersion ? () => onActivateVersion(versionId) : undefined,
                     variant: 'success'
                 };
             case 'ACTIVE':
+            case 'PUBLISHED':
                 return {
                     label: 'Create Amendment',
                     icon: Plus,
@@ -141,11 +194,9 @@ const ProtocolVersionPanel = ({
         }
     };
 
-    // Get secondary actions
-    const getSecondaryActions = () => {
-        const actions = [];
+    const getSecondaryActions = (): ActionDefinition[] => {
+        const actions: ActionDefinition[] = [];
 
-        // Always show manage versions if there are versions
         if (protocolVersions.length > 0) {
             actions.push({
                 label: 'Manage Versions',
@@ -155,12 +206,12 @@ const ProtocolVersionPanel = ({
             });
         }
 
-        // Show edit if version is editable
         if (currentProtocolVersion?.status === 'DRAFT') {
+            const versionId = currentProtocolVersion.id;
             actions.push({
                 label: 'Edit',
                 icon: Edit2,
-                onClick: () => onEditVersion?.(currentProtocolVersion.id),
+                onClick: versionId !== undefined && onEditVersion ? () => onEditVersion(versionId) : undefined,
                 variant: 'secondary'
             });
         }
@@ -168,7 +219,7 @@ const ProtocolVersionPanel = ({
         return actions;
     };
 
-    const statusDisplay = currentProtocolVersion ? getStatusDisplay(currentProtocolVersion) : null;
+    const statusDisplay = getStatusDisplay(currentProtocolVersion);
     const primaryAction = getPrimaryAction();
     const secondaryActions = getSecondaryActions();
 
@@ -233,9 +284,19 @@ const ProtocolVersionPanel = ({
         );
     }
 
+    const totalActiveVersions = protocolVersions.filter(
+        (version) => version.status === 'ACTIVE' || version.status === 'PUBLISHED'
+    ).length;
+
+    const totalInDevelopment = protocolVersions.filter((version) =>
+        version.status === 'DRAFT' ||
+        version.status === 'PROTOCOL_REVIEW' ||
+        version.status === 'UNDER_REVIEW' ||
+        version.status === 'AMENDMENT_REVIEW'
+    ).length;
+
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
                 <div className="flex items-center gap-2">
                     <FileText className="h-6 w-6 text-blue-600" />
@@ -249,7 +310,7 @@ const ProtocolVersionPanel = ({
                         const ActionIcon = action.icon;
                         return (
                             <button
-                                key={index}
+                                key={`${action.label}-${index}`}
                                 onClick={action.onClick}
                                 className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
@@ -277,10 +338,8 @@ const ProtocolVersionPanel = ({
                 </div>
             </div>
 
-            {/* Content */}
             <div className="p-6">
                 {!currentProtocolVersion ? (
-                    // No protocol version created
                     <div className="text-center py-8">
                         <div className="w-16 h-16 mx-auto mb-4 bg-blue-50 rounded-full flex items-center justify-center">
                             <FileText className="h-8 w-8 text-blue-600" />
@@ -300,10 +359,8 @@ const ProtocolVersionPanel = ({
                         </button>
                     </div>
                 ) : (
-                    // Show current version information
                     <div className="space-y-6">
-                        {/* Current Version Status */}
-                        <div className={`p-4 rounded-lg border-2 ${statusDisplay?.borderColor} ${statusDisplay?.bgColor}`}>
+                        <div className={`p-4 rounded-lg border-2 ${statusDisplay?.borderColor ?? 'border-gray-200'} ${statusDisplay?.bgColor ?? 'bg-gray-50'}`}>
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-3">
                                     {statusDisplay && (
@@ -326,7 +383,6 @@ const ProtocolVersionPanel = ({
                                     </div>
                                 </div>
 
-                                {/* Quick Actions */}
                                 <ProtocolVersionQuickActions
                                     version={currentProtocolVersion}
                                     onSubmitReview={onSubmitReview}
@@ -339,14 +395,12 @@ const ProtocolVersionPanel = ({
                                 />
                             </div>
 
-                            {/* Description */}
                             <div className="mt-4">
                                 <p className="text-gray-700 text-sm">
                                     {currentProtocolVersion.description}
                                 </p>
                             </div>
 
-                            {/* Timeline for multiple versions */}
                             {protocolVersions.length > 1 && (
                                 <div className="mt-4 pt-4 border-t border-gray-200">
                                     <ProtocolVersionMiniTimeline
@@ -358,7 +412,6 @@ const ProtocolVersionPanel = ({
                             )}
                         </div>
 
-                        {/* Key Information */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="text-center p-4 bg-gray-50 rounded-lg">
                                 <div className="text-2xl font-bold text-gray-900">
@@ -371,7 +424,7 @@ const ProtocolVersionPanel = ({
 
                             <div className="text-center p-4 bg-gray-50 rounded-lg">
                                 <div className="text-2xl font-bold text-gray-900">
-                                    {protocolVersions.filter(v => v.status === 'ACTIVE').length}
+                                    {totalActiveVersions}
                                 </div>
                                 <div className="text-sm text-gray-600">
                                     Active Versions
@@ -380,7 +433,7 @@ const ProtocolVersionPanel = ({
 
                             <div className="text-center p-4 bg-gray-50 rounded-lg">
                                 <div className="text-2xl font-bold text-gray-900">
-                                    {protocolVersions.filter(v => v.status === 'DRAFT' || v.status === 'PROTOCOL_REVIEW').length}
+                                    {totalInDevelopment}
                                 </div>
                                 <div className="text-sm text-gray-600">
                                     In Development
@@ -388,7 +441,6 @@ const ProtocolVersionPanel = ({
                             </div>
                         </div>
 
-                        {/* Status-specific information */}
                         {currentProtocolVersion.status === 'PROTOCOL_REVIEW' && (
                             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <div className="flex items-center gap-2 mb-2">

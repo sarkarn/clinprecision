@@ -48,10 +48,26 @@ api.interceptors.request.use(
     const token = localStorage.getItem(AuthStorageKeys.AUTH_TOKEN);
     if (token) {
       console.log('*** ApiService: Auth token found, adding to headers');
+      // Ensure headers object exists - use proper axios headers type
+      if (!config.headers) {
+        config.headers = {} as any;
+      }
+      // Set Authorization header using both methods for compatibility
+      config.headers['Authorization'] = `Bearer ${token}`;
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('*** ApiService: Authorization header set:', config.headers.Authorization);
+      console.log('*** ApiService: All headers:', JSON.stringify(config.headers));
     } else {
-      console.log('*** ApiService: No auth token found');
+      console.log('*** ApiService: No auth token found in localStorage');
     }
+    
+    console.log('*** ApiService: Final request config:', {
+      url: config.url,
+      method: config.method,
+      baseURL: config.baseURL,
+      hasAuthHeader: !!config.headers?.Authorization,
+      fullURL: `${config.baseURL}${config.url}`
+    });
     
     return config;
   },

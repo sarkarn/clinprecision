@@ -10,29 +10,45 @@ import type { ApiResponse } from '../types';
 export type ProtocolVersionStatus =
   | 'DRAFT'
   | 'UNDER_REVIEW'
+  | 'PROTOCOL_REVIEW'
+  | 'AMENDMENT_REVIEW'
   | 'APPROVED'
+  | 'ACTIVE'
   | 'PUBLISHED'
+  | 'SUPERSEDED'
+  | 'WITHDRAWN'
   | 'ARCHIVED'
   | 'REJECTED';
 
 export interface ProtocolVersion {
-  id?: number;
+  id?: string | number;
   uuid?: string;
-  studyId?: number;
+  studyId?: string | number;
   studyUuid?: string;
   versionNumber?: string;
   versionName?: string;
-  status?: ProtocolVersionStatus;
+  status?: ProtocolVersionStatus | string;
   effectiveDate?: string;
   expirationDate?: string;
   description?: string;
   amendmentReason?: string;
-  approvedBy?: string;
+  amendmentType?: string | null;
+  changesSummary?: string | null;
+  approvedBy?: string | number;
   approvedDate?: string;
-  createdBy?: string;
+  createdBy?: string | number;
   createdDate?: string;
-  modifiedBy?: string;
+  modifiedBy?: string | number;
   modifiedDate?: string;
+  statusInfo?: {
+    label?: string;
+    color?: string;
+    canEdit?: boolean;
+    canSubmit?: boolean;
+    canApprove?: boolean;
+    canActivate?: boolean;
+    [key: string]: unknown;
+  };
 }
 
 export interface ProtocolVersionCreateData {

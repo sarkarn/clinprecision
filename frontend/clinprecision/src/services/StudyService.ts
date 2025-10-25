@@ -20,17 +20,24 @@ export const fetchStudies = async (): Promise<Study[]> => {
   try {
     const response = await ApiService.get(API_PATH);
     
-    // Backend returns { success: boolean, data: Study[] }
-    const apiResponse = response.data as ApiResponse<Study[]>;
+    // Backend returns array directly (not wrapped in ApiResponse)
+    if (Array.isArray(response.data)) {
+      console.log('✅ Successfully fetched', response.data.length, 'studies');
+      return response.data as Study[];
+    }
     
-    if (apiResponse.success && Array.isArray(apiResponse.data)) {
+    // Fallback: Check if wrapped in ApiResponse format { success: boolean, data: Study[] }
+    const apiResponse = response.data as ApiResponse<Study[]>;
+    if (apiResponse?.success && Array.isArray(apiResponse.data)) {
+      console.log('✅ Successfully fetched', apiResponse.data.length, 'studies from apiResponse.data');
       return apiResponse.data;
     }
     
-    console.warn('Unexpected response format from studies endpoint:', apiResponse);
+    console.warn('⚠️ Unexpected response format from studies endpoint:', response.data);
+    console.warn('⚠️ Returning empty array');
     return [];
   } catch (error) {
-    console.error('Error fetching studies:', error);
+    console.error('❌ Error fetching studies:', error);
     throw error;
   }
 };
@@ -134,15 +141,24 @@ export interface DashboardMetrics {
 }
 
 export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
-  console.log('Fetching dashboard metrics from:', `${ANALYTICS_API_PATH}/dashboard`);
+  console.log('Fetching dashboard metrics from:', `${ANALYTICS_API_PATH}/dashboard-metrics`);
   try {
-    const response = await ApiService.get(`${ANALYTICS_API_PATH}/dashboard`);
-    const apiResponse = response.data as ApiResponse<DashboardMetrics>;
+    const response = await ApiService.get(`${ANALYTICS_API_PATH}/dashboard-metrics`);
     
-    if (apiResponse.success && apiResponse.data) {
+    // Check if data is returned directly (not wrapped)
+    if (response.data && typeof response.data === 'object' && !response.data.success) {
+      console.log('✅ Dashboard metrics received (direct format)');
+      return response.data as DashboardMetrics;
+    }
+    
+    // Check if wrapped in ApiResponse format
+    const apiResponse = response.data as ApiResponse<DashboardMetrics>;
+    if (apiResponse?.success && apiResponse.data) {
+      console.log('✅ Dashboard metrics received (wrapped format)');
       return apiResponse.data;
     }
     
+    console.warn('⚠️ No dashboard metrics data, using fallback');
     // Return fallback metrics if API fails
     return {
       activeStudies: 0,
@@ -154,10 +170,10 @@ export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
       lastUpdated: new Date().toISOString()
     };
   } catch (error) {
-    console.error('Error fetching dashboard metrics:', error);
+    console.error('❌ Error fetching dashboard metrics:', error);
     throw error;
   }
-};
+};;
 
 /**
  * Fetch study lookup data (phases, statuses, etc.)
@@ -169,17 +185,30 @@ export interface StudyLookupData {
   studyTypes: Array<{ value: string; label: string }>;
 }
 
+/**
+ * Fetch combined lookup data from individual metadata endpoints
+ * Fetches study phases, statuses, and regulatory statuses
+ */
 export const fetchStudyLookupData = async (): Promise<StudyLookupData> => {
-  console.log('Fetching study lookup data from:', `${METADATA_API_PATH}/lookup`);
+  console.log('Fetching study lookup data from individual metadata endpoints');
   try {
-    const response = await ApiService.get(`${METADATA_API_PATH}/lookup`);
-    const apiResponse = response.data as ApiResponse<StudyLookupData>;
+    // Fetch all metadata in parallel
+    const [phasesResponse, statusesResponse, regulatoryStatusesResponse] = await Promise.all([
+      ApiService.get(`${METADATA_API_PATH}/study-phases`),
+      ApiService.get(`${METADATA_API_PATH}/study-statuses`),
+      ApiService.get(`${METADATA_API_PATH}/regulatory-statuses`)
+    ]);
     
-    if (apiResponse.success && apiResponse.data) {
-      return apiResponse.data;
-    }
+    // Combine results into lookup data object
+    const lookupData: StudyLookupData = {
+      phases: Array.isArray(phasesResponse.data) ? phasesResponse.data : [],
+      statuses: Array.isArray(statusesResponse.data) ? statusesResponse.data : [],
+      regulatoryStatuses: Array.isArray(regulatoryStatusesResponse.data) ? regulatoryStatusesResponse.data : [],
+      studyTypes: [] // TODO: Add study types endpoint when available
+    };
     
-    throw new Error('Failed to fetch lookup data');
+    console.log('Successfully fetched lookup data:', lookupData);
+    return lookupData;
   } catch (error) {
     console.error('Error fetching lookup data:', error);
     throw error;

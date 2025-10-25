@@ -9,14 +9,74 @@ import {
     AlertTriangle,
     Clock,
     FileText,
-    GitBranch
+    GitBranch,
+    LucideIcon
 } from 'lucide-react';
+
+// Type definitions
+interface StatusInfo {
+    canEdit?: boolean;
+    canSubmit?: boolean;
+    canApprove?: boolean;
+    canActivate?: boolean;
+    label?: string;
+}
+
+interface ProtocolVersion {
+    id?: string | number;
+    status: ProtocolVersionStatus;
+    statusInfo?: StatusInfo;
+    versionNumber?: string;
+    [key: string]: any;
+}
+
+type ProtocolVersionStatus = 
+    | 'DRAFT' 
+    | 'UNDER_REVIEW'
+    | 'PROTOCOL_REVIEW'
+    | 'AMENDMENT_REVIEW' 
+    | 'APPROVED' 
+    | 'ACTIVE'
+    | 'PUBLISHED'
+    | 'SUPERSEDED' 
+    | 'WITHDRAWN';
+
+type ActionVariant = 'primary' | 'success' | 'danger' | 'warning' | 'secondary';
+
+interface ActionDefinition {
+    key: string;
+    label: string;
+    icon: LucideIcon;
+    onClick?: (versionId: string | number) => void;
+    variant: ActionVariant;
+    always?: boolean;
+    disabled?: boolean;
+    confirmMessage?: string;
+    tooltip?: string;
+}
+
+interface ProtocolVersionActionsProps {
+    version: ProtocolVersion | null;
+    studyStatus?: string | null;
+    onEdit?: (versionId: string | number) => void;
+    onSubmitReview?: (versionId: string | number) => void;
+    onApprove?: (versionId: string | number) => void;
+    onActivate?: (versionId: string | number) => void;
+    onDelete?: (versionId: string | number) => void;
+    onView?: (versionId: string | number) => void;
+    onCreateAmendment?: (versionId: string | number) => void;
+    canEdit?: boolean;
+    canApprove?: boolean;
+    canActivate?: boolean;
+    loading?: boolean;
+    compact?: boolean;
+}
 
 /**
  * Protocol Version Actions Component
  * Displays context-sensitive action buttons based on protocol version status
  */
-const ProtocolVersionActions = ({
+const ProtocolVersionActions: React.FC<ProtocolVersionActionsProps> = ({
     version,
     studyStatus = null,
     onEdit,
@@ -32,13 +92,14 @@ const ProtocolVersionActions = ({
     loading = false,
     compact = false
 }) => {
-    if (!version) return null;
+    if (!version || version.id === undefined || version.id === null) return null;
 
     const { status, statusInfo } = version;
+    const versionId = version.id;
 
     // Get available actions based on status and permissions
-    const getAvailableActions = () => {
-        const actions = [];
+    const getAvailableActions = (): ActionDefinition[] => {
+        const actions: ActionDefinition[] = [];
 
         // View action - always available
         actions.push({
@@ -114,6 +175,7 @@ const ProtocolVersionActions = ({
                 break;
 
             case 'ACTIVE':
+            case 'PUBLISHED':
                 if (onCreateAmendment) {
                     actions.push({
                         key: 'amend',
@@ -134,7 +196,7 @@ const ProtocolVersionActions = ({
     };
 
     // Get button styling based on variant
-    const getButtonStyle = (variant, isCompact = false) => {
+    const getButtonStyle = (variant: ActionVariant, isCompact = false): string => {
         const baseStyle = isCompact
             ? 'inline-flex items-center px-2 py-1 text-xs font-medium rounded border focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
             : 'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
@@ -155,13 +217,16 @@ const ProtocolVersionActions = ({
     };
 
     // Handle action click with confirmation if needed
-    const handleActionClick = (action) => {
+    const handleActionClick = (action: ActionDefinition): void => {
+        if (versionId === undefined || versionId === null) {
+            return;
+        }
         if (action.confirmMessage) {
             if (window.confirm(action.confirmMessage)) {
-                action.onClick?.(version.id);
+                action.onClick?.(versionId);
             }
         } else {
-            action.onClick?.(version.id);
+            action.onClick?.(versionId);
         }
     };
 
@@ -196,10 +261,14 @@ const ProtocolVersionActions = ({
 /**
  * Status-specific action groups for better organization
  */
-export const ProtocolVersionStatusActions = ({ version, ...props }) => {
+interface ProtocolVersionStatusActionsProps extends Omit<ProtocolVersionActionsProps, 'compact'> {
+    version: ProtocolVersion | null;
+}
+
+export const ProtocolVersionStatusActions: React.FC<ProtocolVersionStatusActionsProps> = ({ version, ...props }) => {
     if (!version) return null;
 
-    const getStatusIcon = (status) => {
+    const getStatusIcon = (status: ProtocolVersionStatus): React.ReactElement => {
         switch (status) {
             case 'DRAFT':
                 return <FileText className="h-4 w-4 text-gray-500" />;
@@ -244,11 +313,15 @@ export const ProtocolVersionStatusActions = ({ version, ...props }) => {
 /**
  * Quick Actions - Minimal action set for list views
  */
-export const ProtocolVersionQuickActions = ({ version, ...props }) => {
-    if (!version) return null;
+interface ProtocolVersionQuickActionsProps extends Omit<ProtocolVersionActionsProps, 'compact' | 'loading'> {
+    version: ProtocolVersion | null;
+}
+
+export const ProtocolVersionQuickActions: React.FC<ProtocolVersionQuickActionsProps> = ({ version, ...props }) => {
+    if (!version || version.id === undefined || version.id === null) return null;
 
     // Only show the most relevant action based on status
-    const getPrimaryAction = () => {
+    const getPrimaryAction = (): ActionDefinition | null => {
         switch (version.status) {
             case 'DRAFT':
                 return {
@@ -283,6 +356,7 @@ export const ProtocolVersionQuickActions = ({ version, ...props }) => {
                 }
                 break;
             case 'ACTIVE':
+            case 'PUBLISHED':
                 if (props.onCreateAmendment) {
                     return {
                         key: 'amend',
@@ -301,11 +375,12 @@ export const ProtocolVersionQuickActions = ({ version, ...props }) => {
     };
 
     const primaryAction = getPrimaryAction();
+    const versionId = version.id;
 
     return (
         <div className="flex items-center gap-1">
             <button
-                onClick={() => props.onView?.(version.id)}
+                onClick={() => props.onView?.(versionId)}
                 className="p-1 text-gray-500 hover:text-gray-700 rounded"
                 title="View Details"
             >
@@ -314,7 +389,7 @@ export const ProtocolVersionQuickActions = ({ version, ...props }) => {
 
             {primaryAction && (
                 <button
-                    onClick={() => primaryAction.onClick?.(version.id)}
+                    onClick={() => primaryAction.onClick?.(versionId)}
                     className={`px-2 py-1 text-xs font-medium rounded ${primaryAction.variant === 'primary'
                         ? 'text-white bg-blue-600 hover:bg-blue-700'
                         : primaryAction.variant === 'success'

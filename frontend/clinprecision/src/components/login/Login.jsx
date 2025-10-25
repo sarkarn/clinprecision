@@ -42,7 +42,7 @@ export default function Login() {
 
         try {
             // Use the LoginService to handle authentication
-            const result = await LoginService.login(email, password);
+            const result = await LoginService.login({ email, password });
 
             // Extract user data
             const { authData } = result;

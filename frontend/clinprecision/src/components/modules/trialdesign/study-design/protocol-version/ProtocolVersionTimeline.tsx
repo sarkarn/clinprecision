@@ -8,11 +8,64 @@ import {
     AlertTriangle,
     Calendar,
     User,
-    ChevronRight
+    ChevronRight,
+    LucideIcon
 } from 'lucide-react';
 
+// Type definitions
+interface StatusDisplay {
+    icon: LucideIcon;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+}
+
+interface ProtocolVersion {
+    id?: string | number;
+    versionNumber?: string;
+    description?: string;
+    status: ProtocolVersionStatus;
+    statusInfo?: {
+        label?: string;
+        [key: string]: any;
+    };
+    amendmentType?: string;
+    amendmentReason?: string;
+    changesSummary?: string;
+    createdDate?: string;
+    createdBy?: string | number;
+    approvedBy?: string;
+    effectiveDate?: string;
+    [key: string]: any;
+}
+
+type ProtocolVersionStatus = 
+    | 'DRAFT' 
+    | 'UNDER_REVIEW'
+    | 'PROTOCOL_REVIEW' 
+    | 'AMENDMENT_REVIEW'
+    | 'APPROVED' 
+    | 'ACTIVE'
+    | 'PUBLISHED'
+    | 'SUPERSEDED' 
+    | 'WITHDRAWN';
+
+interface ProtocolVersionTimelineProps {
+    versions?: ProtocolVersion[];
+    currentVersionId?: string | number | null | undefined;
+    onVersionSelect?: (version: ProtocolVersion) => void;
+    compact?: boolean;
+    maxItems?: number | null;
+}
+
+interface ProtocolVersionMiniTimelineProps {
+    versions?: ProtocolVersion[];
+    currentVersionId?: string | number | null | undefined;
+    onVersionSelect?: (version: ProtocolVersion) => void;
+}
+
 // Get status icon and color - shared utility function
-const getStatusDisplay = (status) => {
+const getStatusDisplay = (status: ProtocolVersionStatus): StatusDisplay => {
     switch (status) {
         case 'DRAFT':
             return {
@@ -21,12 +74,20 @@ const getStatusDisplay = (status) => {
                 bgColor: 'bg-gray-100',
                 borderColor: 'border-gray-300'
             };
+        case 'UNDER_REVIEW':
         case 'PROTOCOL_REVIEW':
             return {
                 icon: Clock,
                 color: 'text-yellow-600',
                 bgColor: 'bg-yellow-100',
                 borderColor: 'border-yellow-300'
+            };
+        case 'AMENDMENT_REVIEW':
+            return {
+                icon: Clock,
+                color: 'text-blue-600',
+                bgColor: 'bg-blue-100',
+                borderColor: 'border-blue-300'
             };
         case 'APPROVED':
             return {
@@ -36,6 +97,7 @@ const getStatusDisplay = (status) => {
                 borderColor: 'border-green-300'
             };
         case 'ACTIVE':
+        case 'PUBLISHED':
             return {
                 icon: Play,
                 color: 'text-blue-600',
@@ -70,7 +132,7 @@ const getStatusDisplay = (status) => {
  * Protocol Version Timeline Component
  * Displays version history in a visual timeline
  */
-const ProtocolVersionTimeline = ({
+const ProtocolVersionTimeline: React.FC<ProtocolVersionTimelineProps> = ({
     versions = [],
     currentVersionId = null,
     onVersionSelect,
@@ -79,7 +141,7 @@ const ProtocolVersionTimeline = ({
 }) => {
     // Sort versions by creation date (newest first)
     const sortedVersions = [...versions].sort((a, b) =>
-        new Date(b.createdDate) - new Date(a.createdDate)
+        new Date(b.createdDate || '').getTime() - new Date(a.createdDate || '').getTime()
     );
 
     // Limit items if maxItems is specified
@@ -88,7 +150,10 @@ const ProtocolVersionTimeline = ({
         : sortedVersions;
 
     // Format date for display
-    const formatDate = (dateString) => {
+    const formatDate = (dateString: string | undefined): string => {
+        if (!dateString) {
+            return 'N/A';
+        }
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
@@ -98,7 +163,10 @@ const ProtocolVersionTimeline = ({
     };
 
     // Format time for display
-    const formatTime = (dateString) => {
+    const formatTime = (dateString: string | undefined): string => {
+        if (!dateString) {
+            return '';
+        }
         const date = new Date(dateString);
         return date.toLocaleTimeString('en-US', {
             hour: '2-digit',
@@ -107,10 +175,13 @@ const ProtocolVersionTimeline = ({
     };
 
     // Get relative time (e.g., "2 days ago")
-    const getRelativeTime = (dateString) => {
+    const getRelativeTime = (dateString: string | undefined): string => {
+        if (!dateString) {
+            return 'N/A';
+        }
         const date = new Date(dateString);
         const now = new Date();
-        const diffInSeconds = Math.floor((now - date) / 1000);
+        const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
         if (diffInSeconds < 60) return 'Just now';
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
@@ -135,7 +206,7 @@ const ProtocolVersionTimeline = ({
                 {displayVersions.map((version, index) => {
                     const statusDisplay = getStatusDisplay(version.status);
                     const StatusIcon = statusDisplay.icon;
-                    const isCurrentVersion = version.id === currentVersionId;
+                    const isCurrentVersion = String(version.id) === String(currentVersionId);
 
                     return (
                         <div
@@ -182,7 +253,7 @@ const ProtocolVersionTimeline = ({
                 {displayVersions.map((version, index) => {
                     const statusDisplay = getStatusDisplay(version.status);
                     const StatusIcon = statusDisplay.icon;
-                    const isCurrentVersion = version.id === currentVersionId;
+                    const isCurrentVersion = String(version.id) === String(currentVersionId);
 
                     return (
                         <div key={version.id} className="relative flex items-start gap-4">
@@ -267,10 +338,12 @@ const ProtocolVersionTimeline = ({
                                 {/* Footer */}
                                 <div className="flex items-center justify-between text-sm text-gray-500 pt-3 border-t border-gray-200">
                                     <div className="flex items-center gap-4">
-                                        <span className="flex items-center gap-1">
-                                            <User className="h-3 w-3" />
-                                            Created by User #{version.createdBy}
-                                        </span>
+                                            {version.createdBy && (
+                                                <span className="flex items-center gap-1">
+                                                    <User className="h-3 w-3" />
+                                                    Created by User #{version.createdBy}
+                                                </span>
+                                            )}
                                         {version.approvedBy && (
                                             <span className="flex items-center gap-1">
                                                 <CheckCircle className="h-3 w-3" />
@@ -307,13 +380,13 @@ const ProtocolVersionTimeline = ({
 /**
  * Mini Timeline - Very compact version for dashboards
  */
-export const ProtocolVersionMiniTimeline = ({
+export const ProtocolVersionMiniTimeline: React.FC<ProtocolVersionMiniTimelineProps> = ({
     versions = [],
     currentVersionId = null,
     onVersionSelect
 }) => {
     const sortedVersions = [...versions].sort((a, b) =>
-        new Date(b.createdDate) - new Date(a.createdDate)
+        new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
     ).slice(0, 5); // Show only last 5 versions
 
     if (sortedVersions.length === 0) return null;

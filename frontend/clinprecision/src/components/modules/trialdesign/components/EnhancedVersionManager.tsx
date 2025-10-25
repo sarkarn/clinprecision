@@ -1,29 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, FC } from 'react';
 import {
     GitBranch, Clock, Users, CheckCircle,
     ChevronRight, ChevronDown,
-    Calendar, FileText, Activity
+    Calendar, FileText, Activity,
+    LucideIcon
 } from 'lucide-react';
+
+// Type Definitions
+interface Version {
+    id: string;
+    version: string;
+    title: string;
+    summary: string;
+    status: VersionStatus;
+    type: VersionType;
+    publishedDate: string;
+    createdBy: string;
+    subjectsEnrolled: number;
+    changes?: any[];
+}
+
+interface PendingRevision {
+    id: string;
+    [key: string]: any;
+}
+
+interface VersionGroup {
+    title: string;
+    versions: Version[];
+    icon: React.ReactElement;
+    color: GroupColor;
+}
+
+type VersionStatus = 'ACTIVE' | 'ARCHIVED' | 'DRAFT';
+type VersionType = 'ORIGINAL' | 'SUBSTANTIAL_AMENDMENT' | 'MINOR_AMENDMENT' | 'ADMINISTRATIVE_CHANGE';
+type GroupBy = 'chronological' | 'type' | 'status';
+type GroupColor = 'green' | 'blue' | 'red' | 'yellow' | 'purple' | 'gray';
+
+interface EnhancedVersionManagerProps {
+    versions: Version[];
+    selectedVersion?: Version | null;
+    onSelectVersion: (version: Version) => void;
+    onCompareVersions: (versions: Version[]) => void;
+    currentVersion: string;
+    pendingRevisions?: PendingRevision[];
+}
+
+interface VersionListProps {
+    versions: Version[];
+    selectedVersion?: Version | null;
+    selectedForComparison: Version[];
+    onSelectVersion: (version: Version) => void;
+    onVersionToggle: (version: Version) => void;
+    getVersionStatusColor: (status: VersionStatus) => string;
+    getRevisionTypeColor: (type: VersionType) => string;
+    getStatusIcon: (status: VersionStatus) => React.ReactElement;
+}
+
+interface VersionTimelineProps extends VersionListProps {}
 
 /**
  * Enhanced Version Management Interface Component
  * Provides improved visual hierarchy and better version status indicators
  */
-const EnhancedVersionManager = ({
+const EnhancedVersionManager: FC<EnhancedVersionManagerProps> = ({
     versions,
-    selectedVersion,
+    selectedVersion = null,
     onSelectVersion,
     onCompareVersions,
     currentVersion,
     pendingRevisions = []
 }) => {
-    const [groupBy, setGroupBy] = useState('chronological'); // 'chronological', 'type', 'status'
-    const [expandedGroups, setExpandedGroups] = useState(new Set(['active', 'recent']));
-    const [selectedForComparison, setSelectedForComparison] = useState([]);
-    const [showTimeline, setShowTimeline] = useState(false);
+    const [groupBy, setGroupBy] = useState<GroupBy>('chronological');
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['active', 'recent']));
+    const [selectedForComparison, setSelectedForComparison] = useState<Version[]>([]);
+    const [showTimeline, setShowTimeline] = useState<boolean>(false);
 
     // Group versions based on selected criteria
-    const getGroupedVersions = () => {
+    const getGroupedVersions = (): [string, VersionGroup][] => {
         switch (groupBy) {
             case 'type':
                 return groupByType(versions);
@@ -35,12 +89,12 @@ const EnhancedVersionManager = ({
         }
     };
 
-    const groupByDate = (versions) => {
+    const groupByDate = (versions: Version[]): [string, VersionGroup][] => {
         const now = new Date();
         const sixMonthsAgo = new Date(now.getTime() - (6 * 30 * 24 * 60 * 60 * 1000));
         const oneYearAgo = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
 
-        const groups = {
+        const groups: Record<string, VersionGroup> = {
             active: {
                 title: 'Current Version',
                 versions: versions.filter(v => v.status === 'ACTIVE'),
@@ -78,17 +132,17 @@ const EnhancedVersionManager = ({
         return Object.entries(groups).filter(([_, group]) => group.versions.length > 0);
     };
 
-    const groupByType = (versions) => {
-        const typeGroups = {
+    const groupByType = (versions: Version[]): [string, VersionGroup][] => {
+        const typeGroups: Record<VersionType, { title: string; color: GroupColor }> = {
             'ORIGINAL': { title: 'Original Protocol', color: 'purple' },
             'SUBSTANTIAL_AMENDMENT': { title: 'Major Amendments', color: 'red' },
             'MINOR_AMENDMENT': { title: 'Minor Amendments', color: 'yellow' },
             'ADMINISTRATIVE_CHANGE': { title: 'Administrative Changes', color: 'blue' }
         };
 
-        const groups = {};
+        const groups: Record<string, VersionGroup> = {};
         Object.entries(typeGroups).forEach(([type, config]) => {
-            const typeVersions = versions.filter(v => v.type === type);
+            const typeVersions = versions.filter(v => v.type === type as VersionType);
             if (typeVersions.length > 0) {
                 groups[type] = {
                     title: config.title,
@@ -102,21 +156,21 @@ const EnhancedVersionManager = ({
         return Object.entries(groups);
     };
 
-    const groupByStatus = (versions) => {
-        const statusGroups = {
+    const groupByStatus = (versions: Version[]): [string, VersionGroup][] => {
+        const statusGroups: Record<VersionStatus, { title: string; color: GroupColor }> = {
             'ACTIVE': { title: 'Active', color: 'green' },
             'ARCHIVED': { title: 'Archived', color: 'gray' },
             'DRAFT': { title: 'Draft', color: 'blue' }
         };
 
-        const groups = {};
+        const groups: Record<string, VersionGroup> = {};
         Object.entries(statusGroups).forEach(([status, config]) => {
-            const statusVersions = versions.filter(v => v.status === status);
+            const statusVersions = versions.filter(v => v.status === status as VersionStatus);
             if (statusVersions.length > 0) {
                 groups[status] = {
                     title: config.title,
                     versions: statusVersions,
-                    icon: getStatusIcon(status),
+                    icon: getStatusIcon(status as VersionStatus),
                     color: config.color
                 };
             }
@@ -126,7 +180,7 @@ const EnhancedVersionManager = ({
     };
 
     // Toggle group expansion
-    const toggleGroup = (groupKey) => {
+    const toggleGroup = (groupKey: string): void => {
         const newExpanded = new Set(expandedGroups);
         if (newExpanded.has(groupKey)) {
             newExpanded.delete(groupKey);
@@ -137,7 +191,7 @@ const EnhancedVersionManager = ({
     };
 
     // Handle version selection for comparison
-    const handleVersionToggle = (version) => {
+    const handleVersionToggle = (version: Version): void => {
         const newSelected = [...selectedForComparison];
         const index = newSelected.findIndex(v => v.id === version.id);
 
@@ -160,7 +214,7 @@ const EnhancedVersionManager = ({
     };
 
     // Get status icon
-    const getStatusIcon = (status) => {
+    const getStatusIcon = (status: VersionStatus): React.ReactElement => {
         switch (status) {
             case 'ACTIVE':
                 return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -174,7 +228,7 @@ const EnhancedVersionManager = ({
     };
 
     // Get version status color
-    const getVersionStatusColor = (status) => {
+    const getVersionStatusColor = (status: VersionStatus): string => {
         switch (status) {
             case 'ACTIVE':
                 return 'bg-green-100 text-green-800 border-green-200';
@@ -188,7 +242,7 @@ const EnhancedVersionManager = ({
     };
 
     // Get revision type color
-    const getRevisionTypeColor = (type) => {
+    const getRevisionTypeColor = (type: VersionType): string => {
         switch (type) {
             case 'SUBSTANTIAL_AMENDMENT':
                 return 'bg-red-100 text-red-800 border-red-200';
@@ -204,8 +258,8 @@ const EnhancedVersionManager = ({
     };
 
     // Get group color classes
-    const getGroupColorClasses = (color) => {
-        const colorMap = {
+    const getGroupColorClasses = (color: GroupColor): string => {
+        const colorMap: Record<GroupColor, string> = {
             green: 'bg-green-50 border-green-200',
             blue: 'bg-blue-50 border-blue-200',
             red: 'bg-red-50 border-red-200',
@@ -234,7 +288,7 @@ const EnhancedVersionManager = ({
                             <label className="text-sm font-medium text-gray-700">Group by:</label>
                             <select
                                 value={groupBy}
-                                onChange={(e) => setGroupBy(e.target.value)}
+                                onChange={(e) => setGroupBy(e.target.value as GroupBy)}
                                 className="text-sm border border-gray-300 rounded px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="chronological">Date</option>
@@ -391,7 +445,7 @@ const EnhancedVersionManager = ({
 };
 
 // Version List Component
-const VersionList = ({
+const VersionList: FC<VersionListProps> = ({
     versions,
     selectedVersion,
     selectedForComparison,
@@ -473,7 +527,7 @@ const VersionList = ({
 };
 
 // Version Timeline Component
-const VersionTimeline = ({
+const VersionTimeline: FC<VersionTimelineProps> = ({
     versions,
     selectedVersion,
     selectedForComparison,
@@ -485,7 +539,7 @@ const VersionTimeline = ({
 }) => {
     // Sort versions by date for timeline
     const sortedVersions = [...versions].sort((a, b) =>
-        new Date(b.publishedDate) - new Date(a.publishedDate)
+        new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime()
     );
 
     return (
