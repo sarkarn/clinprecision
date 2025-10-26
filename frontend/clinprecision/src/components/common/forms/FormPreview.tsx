@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Eye, EyeOff, Smartphone, Tablet, Monitor, Refresh } from 'lucide-react';
+import { Eye, EyeOff, Smartphone, Tablet, Monitor, RefreshCw } from 'lucide-react';
 import FormRenderer from './FormRenderer';
 import { FormProvider } from './FormContext';
 
@@ -433,7 +433,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
                                 className="p-2 text-gray-600 hover:text-gray-900"
                                 title="Generate New Sample Data"
                             >
-                                <Refresh className="h-4 w-4" />
+                                <RefreshCw className="h-4 w-4" />
                             </button>
                         )}
                     </div>

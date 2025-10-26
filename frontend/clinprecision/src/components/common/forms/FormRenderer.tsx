@@ -103,7 +103,7 @@ const FormRenderer: React.FC<FormRendererProps> = ({
     const [isValid, setIsValid] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
-    const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [autoSaveTimeout, setAutoSaveTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
     // Update internal data when external formData changes
     useEffect(() => {

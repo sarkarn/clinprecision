@@ -74,6 +74,19 @@ interface RouteParams {
     [key: string]: string | undefined;
 }
 
+const parseNumericParam = (value?: string): number | null => {
+    if (!value) {
+        return null;
+    }
+    const parsedValue = Number(value);
+    return Number.isNaN(parsedValue) ? null : parsedValue;
+};
+
+type StudyFormCreatePayload = Parameters<typeof StudyFormService.createStudyForm>[0];
+type StudyFormUpdatePayload = Parameters<typeof StudyFormService.updateStudyForm>[1];
+type LibraryFormCreatePayload = Parameters<typeof FormService.createForm>[0];
+type LibraryFormUpdatePayload = Parameters<typeof FormService.updateForm>[1];
+
 declare global {
     interface Window {
         lastFormCreationCall?: string;
@@ -83,6 +96,8 @@ declare global {
 const CRFBuilderIntegration: React.FC = () => {
     const { formId, versionId, studyId } = useParams<RouteParams>();
     const navigate = useNavigate();
+    const numericFormId = parseNumericParam(formId);
+    const numericStudyId = parseNumericParam(studyId);
 
     // Determine if we're in study context
     const isStudyContext = !!studyId;
@@ -187,9 +202,15 @@ const CRFBuilderIntegration: React.FC = () => {
 
                 if (formId) {
                     // Load existing form using appropriate service
-                    const formData = isStudyContext
-                        ? await StudyFormService.getStudyFormById(formId)
-                        : await FormService.getFormById(formId);
+                    let formData: any;
+                    if (isStudyContext) {
+                        if (numericFormId === null) {
+                            throw new Error(`Invalid form ID provided for study context: ${formId}`);
+                        }
+                        formData = await StudyFormService.getStudyFormById(numericFormId);
+                    } else {
+                        formData = await FormService.getFormById(formId);
+                    }
                     setForm(formData);
 
                     // Reconstruct CRF data from the form's fields and structure
@@ -460,10 +481,13 @@ const CRFBuilderIntegration: React.FC = () => {
                 // Update existing form using appropriate service
                 if (isStudyContext) {
                     console.log('Using StudyFormService.updateStudyForm()');
-                    savedForm = await StudyFormService.updateStudyForm(formId, formData);
+                    if (numericFormId === null) {
+                        throw new Error('Invalid form ID; expected numeric value for study form update.');
+                    }
+                    savedForm = await StudyFormService.updateStudyForm(numericFormId, formData as unknown as StudyFormUpdatePayload);
                 } else {
                     console.log('Using FormService.updateForm()');
-                    savedForm = await FormService.updateForm(formId, formData);
+                    savedForm = await FormService.updateForm(formId, formData as unknown as LibraryFormUpdatePayload);
                 }
             } else {
                 console.log('=== CREATING NEW FORM ===');
@@ -473,20 +497,20 @@ const CRFBuilderIntegration: React.FC = () => {
                 console.log('Condition result:', isStudyContext && studyId);
 
                 // Create new form using appropriate service
-                if (isStudyContext && studyId) {
+                if (isStudyContext && numericStudyId !== null) {
                     console.log('*** CONDITION TRUE: STUDY CONTEXT PATH ***');
                     console.log('STUDY CONTEXT DETECTED - Creating study-specific form');
                     console.log('studyId value:', studyId, 'type:', typeof studyId);
                     console.log('isStudyContext value:', isStudyContext);
 
                     // EXPLICIT CHECK: If we're in study context, DO NOT call FormService
-                    if (!isStudyContext || !studyId) {
-                        throw new Error('CRITICAL ERROR: Study context detected but missing studyId or isStudyContext is false');
+                    if (!isStudyContext || numericStudyId === null) {
+                        throw new Error('CRITICAL ERROR: Study context detected but missing a valid studyId or isStudyContext is false');
                     }
 
                     const studyFormData = {
                         ...formData,
-                        studyId: parseInt(studyId)
+                        studyId: numericStudyId
                     };
                     console.log('Study form data being sent:', studyFormData);
                     console.log('*** CALLING StudyFormService.createStudyForm() ***');
@@ -495,7 +519,7 @@ const CRFBuilderIntegration: React.FC = () => {
 
                     // Add a marker to track this call
                     window.lastFormCreationCall = 'StudyFormService.createStudyForm';
-                    savedForm = await StudyFormService.createStudyForm(studyFormData);
+                    savedForm = await StudyFormService.createStudyForm(studyFormData as unknown as StudyFormCreatePayload);
                 } else {
                     console.log('*** CONDITION FALSE: LIBRARY CONTEXT PATH ***');
                     console.log('LIBRARY CONTEXT DETECTED - Creating library/template form');
@@ -506,7 +530,7 @@ const CRFBuilderIntegration: React.FC = () => {
 
                     // Add a marker to track this call
                     window.lastFormCreationCall = 'FormService.createForm';
-                    savedForm = await FormService.createForm(formData);
+                    savedForm = await FormService.createForm(formData as unknown as LibraryFormCreatePayload);
                 }
             }
 
@@ -1406,29 +1430,34 @@ const CRFBuilderIntegration: React.FC = () => {
                 };
 
                 let result: any;
-                if (isStudyContext && studyId) {
+                if (isStudyContext) {
+                    if (numericStudyId === null) {
+                        throw new Error('Invalid studyId; expected numeric value for study form creation.');
+                    }
                     console.log('*** handleSave: STUDY CONTEXT - Using StudyFormService ***');
                     // Add studyId for study-specific forms
                     const studyFormData = {
                         ...newFormData,
-                        studyId: parseInt(studyId),
+                        studyId: numericStudyId,
                         // For study forms, templateId should be null for new forms or a valid Long for template-based forms
-                        templateId: (selectedTemplate && form?.templateId && !isNaN(form.templateId)) ? parseInt(form.templateId) : null
+                        templateId: (selectedTemplate && form?.templateId && !isNaN(form.templateId)) ? parseInt(String(form.templateId), 10) : null
                     };
 
                     console.log('Study form data being sent:', studyFormData);
 
                     if (selectedTemplate && form?.templateId && !Number.isNaN(Number(form.templateId))) {
                         // Create from template - templateId should be a valid Long
+                        const studyFormDataRecord = studyFormData as Record<string, any>;
+                        const templateFormName = typeof studyFormDataRecord.name === 'string' ? studyFormDataRecord.name : 'New Form';
                         result = await StudyFormService.createStudyFormFromTemplate(
-                            studyId,
+                            numericStudyId,
                             parseInt(String(form.templateId), 10),
-                            studyFormData.name,
-                            studyFormData
+                            templateFormName,
+                            studyFormData as Partial<StudyFormCreatePayload>
                         );
                     } else {
                         // Create from scratch - templateId should be null
-                        result = await StudyFormService.createStudyForm(studyFormData);
+                        result = await StudyFormService.createStudyForm(studyFormData as unknown as StudyFormCreatePayload);
                     }
                 } else {
                     console.log('*** handleSave: LIBRARY CONTEXT - Using FormService ***');
@@ -1440,10 +1469,16 @@ const CRFBuilderIntegration: React.FC = () => {
 
                     if (selectedTemplate && form?.templateId) {
                         // Create from template
-                        result = await FormService.createFormFromTemplate(form.templateId, libraryFormData);
+                        const createFormFromTemplate = (FormService as any).createFormFromTemplate;
+                        if (typeof createFormFromTemplate === 'function') {
+                            result = await createFormFromTemplate(form.templateId, libraryFormData as unknown as LibraryFormCreatePayload);
+                        } else {
+                            console.warn('FormService.createFormFromTemplate is not available; falling back to FormService.createForm');
+                            result = await FormService.createForm(libraryFormData as unknown as LibraryFormCreatePayload);
+                        }
                     } else {
                         // Create from scratch
-                        result = await FormService.createForm(libraryFormData);
+                        result = await FormService.createForm(libraryFormData as unknown as LibraryFormCreatePayload);
                     }
                 }
 
@@ -1477,11 +1512,14 @@ const CRFBuilderIntegration: React.FC = () => {
                 console.log('*** handleSave: Updating existing form with ID:', formId);
                 console.log('*** handleSave: Context - isStudyContext:', isStudyContext, 'studyId:', studyId);
 
-                if (isStudyContext && studyId) {
+                if (isStudyContext) {
+                    if (numericStudyId === null || numericFormId === null) {
+                        throw new Error('Invalid IDs; expected numeric study and form IDs for study form update.');
+                    }
                     console.log('*** handleSave: STUDY CONTEXT - Using StudyFormService for update ***');
                     // Update in study context
                     const studyFormData = {
-                        studyId: studyId, // Required field for backend validation
+                        studyId: numericStudyId, // Required field for backend validation
                         name: form?.name || "Updated Form",
                         description: form?.description || "Form updated via CRF Builder",
                         formType: form?.type || form?.formType || "General",
@@ -1493,7 +1531,7 @@ const CRFBuilderIntegration: React.FC = () => {
                     };
 
                     console.log('*** handleSave: Study form data for update:', studyFormData);
-                    await StudyFormService.updateStudyForm(formId, studyFormData);
+                    await StudyFormService.updateStudyForm(numericFormId, studyFormData as unknown as StudyFormUpdatePayload);
                 } else {
                     console.log('*** handleSave: LIBRARY CONTEXT - Using FormService for update ***');
                     // Update in library/template context
@@ -1511,7 +1549,7 @@ const CRFBuilderIntegration: React.FC = () => {
                         createdBy: form?.createdBy || 1 // Default user ID
                     };
 
-                    await FormService.updateForm(formId, updatedFormData);
+                    await FormService.updateForm(formId, updatedFormData as unknown as LibraryFormUpdatePayload);
                 }
 
                 console.log('*** handleSave: Form update completed successfully ***');
@@ -1567,7 +1605,6 @@ const CRFBuilderIntegration: React.FC = () => {
             {/* Fixed Position Success Toast - Always visible at top */}
             {successMessage && (
                 <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
-                    {console.log('*** SUCCESS MESSAGE TOAST RENDERING:', successMessage)}
                     <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 min-w-[320px]">
                         <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1598,7 +1635,6 @@ const CRFBuilderIntegration: React.FC = () => {
             {/* Inline Success Message (original - keep for context) */}
             {successMessage && (
                 <div className="mb-6">
-                    {console.log('*** SUCCESS MESSAGE ALERT RENDERING:', successMessage)}
                     <Alert
                         type="success"
                         title={successMessage.title}
@@ -1973,7 +2009,7 @@ const CRFBuilderIntegration: React.FC = () => {
                                                                 ].map((tab) => (
                                                                     <button
                                                                         key={tab.id}
-                                                                        onClick={() => setMetadataTab(field.id, tab.id)}
+                                                                        onClick={() => setMetadataTab(field.id, tab.id as MetadataTab)}
                                                                         className={`py-2 px-1 border-b-2 font-medium text-xs ${activeMetadataTab[field.id] === tab.id
                                                                             ? 'border-blue-500 text-blue-600'
                                                                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1997,7 +2033,7 @@ const CRFBuilderIntegration: React.FC = () => {
                                                                             metadata: { ...(field.metadata ?? {}), description: e.target.value }
                                                                         })}
                                                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                                        rows="2"
+                                                                        rows={2}
                                                                         placeholder="Field description for documentation"
                                                                     />
                                                                 </div>
@@ -2009,7 +2045,7 @@ const CRFBuilderIntegration: React.FC = () => {
                                                                             metadata: { ...(field.metadata ?? {}), helpText: e.target.value }
                                                                         })}
                                                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                                        rows="2"
+                                                                        rows={2}
                                                                         placeholder="Help text shown to users"
                                                                     />
                                                                 </div>
@@ -2189,7 +2225,7 @@ const CRFBuilderIntegration: React.FC = () => {
                                                                                         }
                                                                                     }}
                                                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                                                                                    rows="5"
+                                                                                    rows={5}
                                                                                     placeholder="Option 1&#10;Option 2&#10;Option 3"
                                                                                     spellCheck="false"
                                                                                 />
@@ -2888,7 +2924,7 @@ const CRFBuilderIntegration: React.FC = () => {
                                                                             }
                                                                         })}
                                                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                                        rows="3"
+                                                                        rows={3}
                                                                         placeholder="Regulatory and compliance notes"
                                                                     />
                                                                 </div>
@@ -3097,7 +3133,7 @@ const CRFBuilderIntegration: React.FC = () => {
 
                                     {/* Template Categories */}
                                     {(() => {
-                                        const categorizedTemplates = availableTemplates.reduce((categories, template) => {
+                                        const categorizedTemplates = availableTemplates.reduce<Record<string, FormTemplate[]>>((categories, template) => {
                                             const category = template.category || 'Other';
                                             if (!categories[category]) categories[category] = [];
                                             categories[category].push(template);
