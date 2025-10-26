@@ -77,7 +77,17 @@ INSERT INTO code_lists (category, code, display_name, description, sort_order, i
 ('STUDY_STATUS', 'ACTIVE', 'Active', 'Study currently active', 2, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-green-100 text-green-800', 'can_edit', true)),
 ('STUDY_STATUS', 'APPROVED', 'Approved', 'Study approved by regulatory', 3, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-blue-100 text-blue-800', 'can_edit', false)),
 ('STUDY_STATUS', 'COMPLETED', 'Completed', 'Study completed', 4, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-purple-100 text-purple-800', 'can_edit', false)),
-('STUDY_STATUS', 'TERMINATED', 'Terminated', 'Study terminated early', 5, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-red-100 text-red-800', 'can_edit', false));
+('STUDY_STATUS', 'TERMINATED', 'Terminated', 'Study terminated early', 5, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-red-100 text-red-800', 'can_edit', false)),
+('STUDY_STATUS', 'PROTOCOL_DEVELOPMENT', 'Protocol Development', 'Protocol being developed and reviewed', 2, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-slate-100 text-slate-800', 'can_edit', true, 'icon', 'edit')),
+('STUDY_STATUS', 'REGULATORY_SUBMISSION', 'Regulatory Submission', 'Submitted to regulatory authorities for approval', 3, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-amber-100 text-amber-800', 'can_edit', true, 'icon', 'send')),
+('STUDY_STATUS', 'REGULATORY_APPROVED', 'Regulatory Approved', 'Approved by regulatory authorities', 4, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-blue-100 text-blue-800', 'can_edit', false, 'icon', 'check-circle')),
+('STUDY_STATUS', 'SITE_ACTIVATION', 'Site Activation', 'Sites being activated for recruitment', 5, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-indigo-100 text-indigo-800', 'can_edit', true, 'icon', 'map-pin')),
+('STUDY_STATUS', 'ENROLLING', 'Enrolling', 'Actively enrolling participants', 7, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-emerald-100 text-emerald-800', 'can_edit', true, 'icon', 'user-plus')),
+('STUDY_STATUS', 'ENROLLMENT_COMPLETE', 'Enrollment Complete', 'All subjects enrolled, follow-up ongoing', 8, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-teal-100 text-teal-800', 'can_edit', true, 'icon', 'user-check')),
+('STUDY_STATUS', 'SUSPENDED', 'Suspended', 'Study temporarily halted', 9, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-orange-100 text-orange-800', 'can_edit', true, 'icon', 'pause-circle')),
+('STUDY_STATUS', 'ON_HOLD', 'On Hold', 'Study paused pending review or decision', 10, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-yellow-100 text-yellow-800', 'can_edit', true, 'icon', 'alert-circle')),
+('STUDY_STATUS', 'WITHDRAWN', 'Withdrawn', 'Study withdrawn before enrollment', 13, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-rose-100 text-rose-800', 'can_edit', false, 'icon', 'arrow-left')),
+('STUDY_STATUS', 'CLOSED', 'Closed', 'Study closed, no further activity', 14, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-gray-200 text-gray-900', 'can_edit', false, 'icon', 'lock'));
 
 -- ===================================================================
 -- VISIT TYPES
@@ -177,6 +187,19 @@ INSERT INTO code_list_usage (category, application_module, usage_type, field_nam
 -- Site Management
 ('SITE_STATUS', 'clinprecision-studydesign-service', 'VALIDATION', 'status', TRUE),
 ('SITE_STATUS', 'frontend-site-management', 'DROPDOWN', 'status', TRUE);
+
+
+
+INSERT INTO code_lists (category, code, display_name, description, sort_order, is_active, system_code, created_by, metadata) VALUES
+('REGULATORY_STATUS', 'NOT_SUBMITTED', 'Not Submitted', 'Not yet submitted to regulatory authority', 1, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-gray-100 text-gray-800', 'icon', 'file')),
+('REGULATORY_STATUS', 'PENDING_SUBMISSION', 'Pending Submission', 'Preparing for regulatory submission', 2, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-yellow-100 text-yellow-800', 'icon', 'clock')),
+('REGULATORY_STATUS', 'SUBMITTED', 'Submitted', 'Submitted to regulatory authority', 3, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-blue-100 text-blue-800', 'icon', 'send')),
+('REGULATORY_STATUS', 'UNDER_REVIEW', 'Under Review', 'Under regulatory review', 4, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-indigo-100 text-indigo-800', 'icon', 'search')),
+('REGULATORY_STATUS', 'ADDITIONAL_INFO_REQUESTED', 'Additional Information Requested', 'Regulatory authority requested more information', 5, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-amber-100 text-amber-800', 'icon', 'message-square')),
+('REGULATORY_STATUS', 'APPROVED', 'Approved', 'Approved by regulatory authority', 6, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-green-100 text-green-800', 'icon', 'check-circle')),
+('REGULATORY_STATUS', 'CONDITIONALLY_APPROVED', 'Conditionally Approved', 'Approved with conditions', 7, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-teal-100 text-teal-800', 'icon', 'check')),
+('REGULATORY_STATUS', 'REJECTED', 'Rejected', 'Rejected by regulatory authority', 8, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-red-100 text-red-800', 'icon', 'x-circle')),
+('REGULATORY_STATUS', 'WITHDRAWN', 'Withdrawn', 'Submission withdrawn', 9, TRUE, TRUE, @system_user_id, JSON_OBJECT('color', 'bg-rose-100 text-rose-800', 'icon', 'arrow-left'));
 
 
 

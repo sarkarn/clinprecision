@@ -49,9 +49,20 @@ export const fetchStudyById = async (studyId: number | string): Promise<Study> =
   console.log(`Fetching study ${studyId} from:`, `${API_PATH}/${studyId}`);
   try {
     const response = await ApiService.get(`${API_PATH}/${studyId}`);
-    const apiResponse = response.data as ApiResponse<Study>;
     
-    if (apiResponse.success && apiResponse.data) {
+    // Log the actual response to debug
+    console.log(`Raw response for study ${studyId}:`, response.data);
+    
+    // Check if data is returned directly (not wrapped in ApiResponse)
+    if (response.data && typeof response.data === 'object' && response.data.id) {
+      console.log('✅ Study data received (direct format)');
+      return response.data as Study;
+    }
+    
+    // Check if wrapped in ApiResponse format
+    const apiResponse = response.data as ApiResponse<Study>;
+    if (apiResponse?.success && apiResponse.data) {
+      console.log('✅ Study data received (wrapped format)');
       return apiResponse.data;
     }
     

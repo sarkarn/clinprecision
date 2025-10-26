@@ -176,7 +176,7 @@ const CRFBuilderIntegration: React.FC = () => {
                     // Fallback to common categories
                     setCodeListCategories([
                         'COUNTRY', 'SEX', 'RACE', 'ETHNIC', 'VISIT_TYPE',
-                        'SITE_STATUS', 'STUDY_PHASE', 'STUDY_STATUS'
+                        'SITE_STATUS', 'STUDY_PHASE_CATEGORY', 'STUDY_STATUS'
                     ]);
                 }
             } catch (error) {
@@ -184,7 +184,7 @@ const CRFBuilderIntegration: React.FC = () => {
                 // Fallback to common categories if API fails
                 setCodeListCategories([
                     'COUNTRY', 'SEX', 'RACE', 'ETHNIC', 'VISIT_TYPE',
-                    'SITE_STATUS', 'STUDY_PHASE', 'STUDY_STATUS'
+                    'SITE_STATUS', 'STUDY_PHASE_CATEGORY', 'STUDY_STATUS'
                 ]);
             } finally {
                 setLoadingCategories(false);

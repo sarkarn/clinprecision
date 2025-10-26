@@ -3,7 +3,7 @@ import { useCodeList } from '../../hooks/useCodeList';
 
 type CodeListCategory = 
     | 'REGULATORY_STATUS' 
-    | 'STUDY_PHASE' 
+    | 'STUDY_PHASE_CATEGORY' 
     | 'STUDY_STATUS' 
     | 'AMENDMENT_TYPE' 
     | 'VISIT_TYPE';
@@ -283,7 +283,7 @@ export const RegulatoryStatusDropdown: React.FC<SpecializedDropdownProps> = (pro
 
 export const StudyPhaseDropdown: React.FC<SpecializedDropdownProps> = (props) => (
     <CodeListDropdown
-        category="STUDY_PHASE"
+        category="STUDY_PHASE_CATEGORY"
         placeholder="Select Study Phase..."
         showDescription
         {...props}

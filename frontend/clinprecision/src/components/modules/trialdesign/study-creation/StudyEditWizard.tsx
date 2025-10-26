@@ -6,6 +6,7 @@ import ProgressIndicator from '../components/ProgressIndicator';
 import { LoadingOverlay, Alert, Button } from '../components/UIComponents';
 import StudyService, { StudyLookupData as ServiceLookupData } from 'services/StudyService';
 import { StudyOrganizationService } from 'services/StudyOrganizationService';
+import { useCodeList } from '../../../../hooks/useCodeList';
 
 // Step Components
 import BasicInformationStep from './steps/BasicInformationStep';
@@ -93,8 +94,8 @@ const transformStudyDataForForm = (studyData: StudyData, lookupData: LookupData)
                     (phaseStr.includes('phase') && label.includes(phaseStr.replace(/phase\s*/i, '').trim()));
             });
             if (phaseMatch) {
-                transformed.studyPhaseId = phaseMatch.id;
-                console.log(`Mapped phase "${studyData.phase}" to ID ${phaseMatch.id} (${phaseMatch.label})`);
+                 transformed.studyPhaseId = String(phaseMatch.id);
+                 console.log(`Mapped phase "${studyData.phase}" to ID ${phaseMatch.id} (${phaseMatch.label}) [as string]`);
             } else {
                 console.warn(`Could not map phase "${studyData.phase}" to any lookup value`);
                 console.log('Available phases:', lookupData.studyPhases.map(p => ({ id: p.id, label: p.label, value: p.value })));
@@ -114,8 +115,8 @@ const transformStudyDataForForm = (studyData: StudyData, lookupData: LookupData)
                     statusStr.includes(label);
             });
             if (statusMatch) {
-                transformed.studyStatusId = statusMatch.id;
-                console.log(`Mapped status "${studyData.status}" to ID ${statusMatch.id} (${statusMatch.label})`);
+                 transformed.studyStatusId = String(statusMatch.id);
+                 console.log(`Mapped status "${studyData.status}" to ID ${statusMatch.id} (${statusMatch.label}) [as string]`);
             } else {
                 console.warn(`Could not map status "${studyData.status}" to any lookup value`);
                 console.log('Available statuses:', lookupData.studyStatuses.map(s => ({ id: s.id, label: s.label, value: s.value })));
@@ -233,6 +234,11 @@ const StudyEditWizard: React.FC = () => {
         getStepError
     } = useWizardNavigation(4);
 
+    // Fetch code lists from CodeList API
+    const { data: studyPhaseData } = useCodeList('STUDY_PHASE_CATEGORY');
+    const { data: studyStatusData } = useCodeList('STUDY_STATUS');
+    const { data: regulatoryStatusData } = useCodeList('REGULATORY_STATUS');
+
     // Component state
     const [availableOrganizations, setAvailableOrganizations] = useState<Organization[]>([]);
     const [lookupData, setLookupData] = useState<LookupData>({
@@ -286,21 +292,18 @@ const StudyEditWizard: React.FC = () => {
                 const studyData = await StudyService.getStudyById(studyId!);
                 console.log('Raw study data from API:', studyData);
 
-                // Fetch organizations and lookup data in parallel
-                const [orgs, lookups] = await Promise.all([
-                    StudyOrganizationService.getAllOrganizations(),
-                    StudyService.getStudyLookupData()
-                ]);
-
+                // Fetch organizations
+                const orgs = await StudyOrganizationService.getAllOrganizations();
                 setAvailableOrganizations(Array.isArray(orgs) ? orgs : []);
                 
-                // Transform service format to local format
+                // Use CodeList data (already fetched by hooks)
                 const finalLookupData: LookupData = {
-                    studyPhases: Array.isArray(lookups.phases) ? lookups.phases.map(p => ({ id: p.value, label: p.label, value: p.value })) : [],
-                    studyStatuses: Array.isArray(lookups.statuses) ? lookups.statuses.map(s => ({ id: s.value, label: s.label, value: s.value })) : [],
-                    regulatoryStatuses: Array.isArray(lookups.regulatoryStatuses) ? lookups.regulatoryStatuses.map(r => ({ id: r.value, label: r.label, value: r.value })) : []
+                    studyPhases: studyPhaseData.map(p => ({ id: p.id, label: p.label, value: p.value })),
+                    studyStatuses: studyStatusData.map(s => ({ id: s.id, label: s.label, value: s.value })),
+                    regulatoryStatuses: regulatoryStatusData.map(r => ({ id: r.id, label: r.label, value: r.value }))
                 };
                 setLookupData(finalLookupData);
+                console.log('Lookup data for transformation:', finalLookupData);
 
                 // Transform study data for form with lookup data for mapping
                 const transformedData = transformStudyDataForForm(studyData, finalLookupData);
@@ -316,10 +319,10 @@ const StudyEditWizard: React.FC = () => {
             }
         };
 
-        if (studyId) {
+        if (studyId && studyPhaseData.length > 0 && studyStatusData.length > 0 && regulatoryStatusData.length > 0) {
             fetchData();
         }
-    }, [studyId]); // Removed updateFields from dependency array to prevent infinite loop
+    }, [studyId, studyPhaseData, studyStatusData, regulatoryStatusData]); // Added code list data as dependencies
 
     // Debug: Log form data changes
     useEffect(() => {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { StudyOrganizationService } from 'services/StudyOrganizationService';
 import { LoadingOverlay, Alert } from '../../components/UIComponents';
+import { useCodeList } from '../../../../../hooks/useCodeList';
 
 interface LookupItem {
     id: number | string;
@@ -47,6 +48,7 @@ interface RoleOption {
 }
 
 interface RegulatoryStatusOption {
+    id: string;
     value: number | string;
     label: string;
     description?: string;
@@ -66,10 +68,16 @@ const OrganizationsRegulatoryStep: React.FC<OrganizationsRegulatoryStepProps> = 
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    // State for regulatory statuses
-    const [regulatoryStatuses, setRegulatoryStatuses] = useState<RegulatoryStatusOption[]>([]);
-    const [loadingLookups, setLoadingLookups] = useState<boolean>(true);
-    const [lookupError, setLookupError] = useState<string | null>(null);
+    // Fetch regulatory statuses from CodeList API
+    const { data: regulatoryStatusData, loading: loadingRegStatuses, error: regStatusError } = useCodeList('REGULATORY_STATUS');
+
+    // Transform CodeList data to options format
+    const regulatoryStatuses: RegulatoryStatusOption[] = regulatoryStatusData.map(status => ({
+        id: status.id, // Numeric database ID (as string)
+        value: status.value, // Code value (e.g., "APPROVED", "SUBMITTED")
+        label: status.label, // Display name (e.g., "Approved", "Submitted")
+        description: status.description || ''
+    }));
 
     // Load available organizations
     useEffect(() => {
@@ -90,76 +98,6 @@ const OrganizationsRegulatoryStep: React.FC<OrganizationsRegulatoryStepProps> = 
 
         fetchOrganizations();
     }, []);
-
-    // Process regulatory status lookup data (use prop data if available, otherwise fetch)
-    useEffect(() => {
-        const processRegulatoryStatuses = async (): Promise<void> => {
-            // Don't re-run if we already have data
-            if (regulatoryStatuses.length > 0) {
-                return;
-            }
-
-            try {
-                setLoadingLookups(true);
-                setLookupError(null);
-
-                let statuses: LookupItem[] = [];
-
-                // Use lookupData prop if available
-                if (lookupData?.regulatoryStatuses && Array.isArray(lookupData.regulatoryStatuses) && lookupData.regulatoryStatuses.length > 0) {
-                    statuses = lookupData.regulatoryStatuses;
-                } else {
-                    // No lookup data provided - will use fallback values
-                    throw new Error('No regulatory status lookup data available');
-                }
-
-                // Transform to options format
-                const statusOptions: RegulatoryStatusOption[] = (statuses || []).map(status => ({
-                    value: status.id, // Use ID as value for backend
-                    label: status.name || status.label || `Status ${status.id}`, // Use 'name' field primarily, fallback to 'label' or ID
-                    description: status.description || ''
-                })).filter(option => option.value != null && option.label);
-
-                setRegulatoryStatuses(statusOptions);
-                setLookupError(null);
-            } catch (err) {
-                console.error('Error processing regulatory statuses:', err);
-                setLookupError('Failed to load regulatory statuses. Using fallback values.');
-
-                // Fallback to default values if everything fails
-                setRegulatoryStatuses([
-                    { value: 1, label: 'Pre-IND' },
-                    { value: 2, label: 'IND Submitted' },
-                    { value: 3, label: 'IND Approved' },
-                    { value: 4, label: 'IDE Required' },
-                    { value: 5, label: 'IDE Approved' },
-                    { value: 6, label: 'Exempt' },
-                    { value: 7, label: 'Not Applicable' }
-                ]);
-            } finally {
-                setLoadingLookups(false);
-            }
-        };
-
-        processRegulatoryStatuses();
-    }, []); // Empty dependency array - only run once
-
-    // Separate effect to handle prop changes
-    useEffect(() => {
-        if (lookupData?.regulatoryStatuses && Array.isArray(lookupData.regulatoryStatuses) && lookupData.regulatoryStatuses.length > 0) {
-            const statusOptions: RegulatoryStatusOption[] = lookupData.regulatoryStatuses.map(status => ({
-                value: status.id,
-                label: status.name || status.label || `Status ${status.id}`,
-                description: status.description || ''
-            })).filter(option => option.value != null && option.label);
-
-            if (statusOptions.length > 0) {
-                setRegulatoryStatuses(statusOptions);
-                setLoadingLookups(false);
-                setLookupError(null);
-            }
-        }
-    }, [lookupData]);
 
     // Memoize role options to prevent unnecessary re-renders
     const roleOptions = useMemo<RoleOption[]>(() => [
@@ -375,25 +313,25 @@ const OrganizationsRegulatoryStep: React.FC<OrganizationsRegulatoryStepProps> = 
                         <select
                             value={formData.regulatoryStatusId != null ? String(formData.regulatoryStatusId) : ''}
                             onChange={(e) => {
-                                // Convert to number if it's a valid number, otherwise keep as string
+                                // Convert to number (backend expects Long/numeric ID)
                                 const value = e.target.value;
                                 const numValue = !isNaN(Number(value)) && value !== '' ? Number(value) : value;
                                 onFieldChange('regulatoryStatusId', numValue);
                             }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            disabled={loadingLookups}
+                            disabled={loadingRegStatuses}
                         >
-                            <option value="">{loadingLookups ? "Loading..." : "Select Status"}</option>
+                            <option value="">{loadingRegStatuses ? "Loading..." : "Select Status"}</option>
                             {filteredRegulatoryOptions.map(option => (
-                                <option key={option.value} value={String(option.value)}>
+                                <option key={option.id} value={option.id}>
                                     {option.label}
                                 </option>
                             ))}
                         </select>
-                        {lookupError && (
-                            <p className="mt-1 text-sm text-amber-600">{lookupError}</p>
+                        {regStatusError && (
+                            <p className="mt-1 text-sm text-amber-600">{regStatusError}</p>
                         )}
-                        {loadingLookups && (
+                        {loadingRegStatuses && (
                             <div className="mt-1 flex items-center text-sm text-gray-500">
                                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

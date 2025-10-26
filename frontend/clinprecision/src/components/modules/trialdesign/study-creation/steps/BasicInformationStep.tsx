@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import FormField from '../../components/FormField';
 import { StudyOrganizationService } from 'services/StudyOrganizationService';
 import { Organization as ImportedOrganization } from '../../../../../types/study/StudyOrganization.types';
+import { useCodeList } from '../../../../../hooks/useCodeList';
 
 interface LookupItem {
     id: number | string;
@@ -64,24 +65,29 @@ const BasicInformationStep: React.FC<BasicInformationStepProps> = ({
     const [loadingOrganizations, setLoadingOrganizations] = useState<boolean>(true);
     const [organizationError, setOrganizationError] = useState<string | null>(null);
 
-    // Transform lookup data to options format
-    const studyPhases: SelectOption[] = (lookupData.studyPhases || []).map(phase => ({
-        value: String(phase.id), // Convert to string for FormField
-        label: phase.label || phase.name || `Phase ${phase.id}`, // Handle both 'label' and 'name' fields with fallback
+    // Fetch study phases and statuses from CodeList API
+    const { data: studyPhaseData, loading: loadingPhases } = useCodeList('STUDY_PHASE_CATEGORY');
+    const { data: studyStatusData, loading: loadingStatuses } = useCodeList('STUDY_STATUS');
+    const { data: regulatoryStatusData, loading: loadingRegStatuses } = useCodeList('REGULATORY_STATUS');
+
+    // Transform CodeList data to options format
+    const studyPhases: SelectOption[] = studyPhaseData.map(phase => ({
+        value: phase.id, // Use numeric database ID (backend expects Long)
+        label: phase.label,
         description: phase.description || ''
-    })).filter(option => option.value != null && option.label);
+    }));
 
-    const studyStatuses: SelectOption[] = (lookupData.studyStatuses || []).map(status => ({
-        value: String(status.id), // Convert to string for FormField
-        label: status.label || status.name || `Status ${status.id}`, // Handle both 'label' and 'name' fields with fallback
+    const studyStatuses: SelectOption[] = studyStatusData.map(status => ({
+        value: status.id, // Use numeric database ID (backend expects Long)
+        label: status.label,
         description: status.description || ''
-    })).filter(option => option.value != null && option.label);
+    }));
 
-    const regulatoryStatuses: SelectOption[] = (lookupData.regulatoryStatuses || []).map(regStatus => ({
-        value: String(regStatus.id), // Convert to string for FormField
-        label: regStatus.label || regStatus.name || `Regulatory ${regStatus.id}`, // Handle both 'label' and 'name' fields with fallback
+    const regulatoryStatuses: SelectOption[] = regulatoryStatusData.map(regStatus => ({
+        value: regStatus.id, // Use numeric database ID (backend expects Long)
+        label: regStatus.label,
         description: regStatus.description || ''
-    })).filter(option => option.value != null && option.label);
+    }));
 
     const organizationOptions: SelectOption[] = organizationList.map(org => ({
         value: String(org.id),
@@ -137,7 +143,10 @@ const BasicInformationStep: React.FC<BasicInformationStepProps> = ({
     console.log('BasicInformationStep - Current form data:', {
         studyPhaseId: formData.studyPhaseId,
         studyPhaseIdType: typeof formData.studyPhaseId,
-        availablePhases: studyPhases.map(p => ({ value: p.value, valueType: typeof p.value, label: p.label }))
+        studyStatusId: formData.studyStatusId,
+        studyStatusIdType: typeof formData.studyStatusId,
+        availablePhases: studyPhases.map(p => ({ value: p.value, valueType: typeof p.value, label: p.label })),
+        availableStatuses: studyStatuses.map(s => ({ value: s.value, valueType: typeof s.value, label: s.label }))
     });
 
     return (
@@ -216,7 +225,11 @@ const BasicInformationStep: React.FC<BasicInformationStepProps> = ({
                     name="studyStatusId"
                     type="select"
                     value={formData.studyStatusId != null ? String(formData.studyStatusId) : ''}
-                    onChange={onFieldChange}
+                    onChange={(fieldName, value) => {
+                        // Convert to number if it's a valid number, otherwise keep as string
+                        const numValue = !isNaN(Number(value)) && value !== '' ? Number(value) : value;
+                        onFieldChange(fieldName, numValue);
+                    }}
                     error={getFieldError('studyStatusId')}
                     touched={hasFieldError('studyStatusId')}
                     options={studyStatuses}
