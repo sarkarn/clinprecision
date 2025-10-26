@@ -1,18 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useRoleBasedNavigation } from '../hooks/useRoleBasedNavigation';
 
-const RoleManagement = () => {
+type UserRole = 
+    | 'SYSTEM_ADMIN'
+    | 'PRINCIPAL_INVESTIGATOR'
+    | 'STUDY_COORDINATOR'
+    | 'DATA_MANAGER'
+    | 'CRA'
+    | 'SITE_USER'
+    | 'MEDICAL_CODER'
+    | 'AUDITOR';
+
+type UserStatus = 'ACTIVE' | 'INACTIVE';
+
+interface User {
+    id: number;
+    name: string;
+    email: string;
+    role: UserRole;
+    status: UserStatus;
+    lastLogin: string | null;
+}
+
+interface NewUser {
+    name: string;
+    email: string;
+    role: UserRole;
+}
+
+interface RoleOption {
+    value: UserRole;
+    label: string;
+    description: string;
+}
+
+const RoleManagement: React.FC = () => {
     const { userRole, userRoleDisplay, getModulePermissions } = useRoleBasedNavigation();
-    const [users, setUsers] = useState([]);
-    const [showAddUser, setShowAddUser] = useState(false);
-    const [newUser, setNewUser] = useState({
+    const [users, setUsers] = useState<User[]>([]);
+    const [showAddUser, setShowAddUser] = useState<boolean>(false);
+    const [newUser, setNewUser] = useState<NewUser>({
         name: '',
         email: '',
         role: 'SITE_USER'
     });
 
     // Available roles for assignment
-    const availableRoles = [
+    const availableRoles: RoleOption[] = [
         { value: 'SYSTEM_ADMIN', label: 'System Administrator', description: 'Full system access and user management' },
         { value: 'PRINCIPAL_INVESTIGATOR', label: 'Principal Investigator', description: 'Study oversight and clinical decisions' },
         { value: 'STUDY_COORDINATOR', label: 'Study Coordinator', description: 'Clinical operations and patient coordination' },
@@ -35,9 +68,9 @@ const RoleManagement = () => {
         ]);
     }, []);
 
-    const handleAddUser = (e) => {
+    const handleAddUser = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const user = {
+        const user: User = {
             id: users.length + 1,
             ...newUser,
             status: 'ACTIVE',
@@ -48,13 +81,13 @@ const RoleManagement = () => {
         setShowAddUser(false);
     };
 
-    const handleRoleChange = (userId, newRole) => {
+    const handleRoleChange = (userId: number, newRole: UserRole) => {
         setUsers(users.map(user =>
             user.id === userId ? { ...user, role: newRole } : user
         ));
     };
 
-    const handleStatusToggle = (userId) => {
+    const handleStatusToggle = (userId: number) => {
         setUsers(users.map(user =>
             user.id === userId ? {
                 ...user,
@@ -63,8 +96,8 @@ const RoleManagement = () => {
         ));
     };
 
-    const getRoleColor = (role) => {
-        const colors = {
+    const getRoleColor = (role: UserRole): string => {
+        const colors: Record<UserRole, string> = {
             'SYSTEM_ADMIN': 'bg-red-100 text-red-800',
             'PRINCIPAL_INVESTIGATOR': 'bg-purple-100 text-purple-800',
             'STUDY_COORDINATOR': 'bg-blue-100 text-blue-800',
@@ -163,7 +196,7 @@ const RoleManagement = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <select
                                             value={user.role}
-                                            onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                                            onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
                                             className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         >
                                             {availableRoles.map(role => (
@@ -228,7 +261,7 @@ const RoleManagement = () => {
                                         type="text"
                                         required
                                         value={newUser.name}
-                                        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setNewUser({ ...newUser, name: e.target.value })}
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -238,7 +271,7 @@ const RoleManagement = () => {
                                         type="email"
                                         required
                                         value={newUser.email}
-                                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setNewUser({ ...newUser, email: e.target.value })}
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -246,7 +279,7 @@ const RoleManagement = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                                     <select
                                         value={newUser.role}
-                                        onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                                        onChange={(e: ChangeEvent<HTMLSelectElement>) => setNewUser({ ...newUser, role: e.target.value as UserRole })}
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
                                         {availableRoles.map(role => (
