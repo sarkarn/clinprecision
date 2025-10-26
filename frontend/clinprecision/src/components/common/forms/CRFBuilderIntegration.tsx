@@ -7,12 +7,80 @@ import FormVersionService from '../../../services/data-capture/FormVersionServic
 import ApiService from '../../../services/ApiService';
 import { Alert } from '../../modules/trialdesign/components/UIComponents';
 
-/**
- * This component acts as a bridge between the CRF Builder (to be implemented) 
- * and our form services. It detects study context and uses appropriate service.
- */
-const CRFBuilderIntegration = () => {
-    const { formId, versionId, studyId } = useParams();
+type FieldMetadata = Record<string, any>;
+
+interface CRFField {
+    id: string;
+    name: string;
+    label?: string;
+    type: string;
+    required?: boolean;
+    metadata?: FieldMetadata;
+    [key: string]: any;
+}
+
+interface CRFSection {
+    id: string;
+    name: string;
+    title?: string;
+    description?: string;
+    type?: string;
+    fields: CRFField[];
+    metadata?: Record<string, any>;
+    [key: string]: any;
+}
+interface CRFData {
+    sections: CRFSection[];
+    fields?: CRFField[];
+}
+
+interface SuccessMessage {
+    title: string;
+    message: string;
+}
+
+interface ErrorMessage {
+    title: string;
+    message: string;
+}
+
+interface FormTemplate {
+    id: number | string;
+    name: string;
+    description?: string;
+    type?: string;
+    structure?: CRFData | string;
+    fields?: CRFField[] | string;
+    category?: string;
+    complexity?: string;
+    estimatedTime?: string;
+    icon?: string;
+    templateId?: string | number;
+    [key: string]: any;
+}
+
+type MetadataTab = 'basic' | 'clinical' | 'standards' | 'coding' | 'quality' | 'regulatory' | 'export';
+
+type SectionExpansionState = Record<string, boolean>;
+type FieldMetadataVisibility = Record<string, boolean>;
+type FieldMetadataTabState = Record<string, MetadataTab>;
+type CodeListOptions = Record<string, string[]>;
+type PreviewDataState = Record<string, any>;
+
+interface RouteParams {
+    formId?: string;
+    versionId?: string;
+    studyId?: string;
+}
+
+declare global {
+    interface Window {
+        lastFormCreationCall?: string;
+    }
+}
+
+const CRFBuilderIntegration: React.FC = () => {
+    const { formId, versionId, studyId } = useParams<RouteParams>();
     const navigate = useNavigate();
 
     // Determine if we're in study context
@@ -34,20 +102,20 @@ const CRFBuilderIntegration = () => {
         console.log('Current pathname:', window.location.pathname);
     }, [formId, versionId, studyId, isStudyContext]);
 
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [form, setForm] = useState(null);
-    const [formVersion, setFormVersion] = useState(null);
-    const [saving, setSaving] = useState(false);
-    const [changes, setChanges] = useState(false);
-    const [expandedSections, setExpandedSections] = useState({});
-    const [showFieldMetadata, setShowFieldMetadata] = useState({});
-    const [previewMode, setPreviewMode] = useState(false);
-    const [previewData, setPreviewData] = useState({});
-    const [activeMetadataTab, setActiveMetadataTab] = useState({});
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [form, setForm] = useState<any>(null);
+    const [formVersion, setFormVersion] = useState<any>(null);
+    const [saving, setSaving] = useState<boolean>(false);
+    const [changes, setChanges] = useState<boolean>(false);
+    const [expandedSections, setExpandedSections] = useState<SectionExpansionState>({});
+    const [showFieldMetadata, setShowFieldMetadata] = useState<FieldMetadataVisibility>({});
+    const [previewMode, setPreviewMode] = useState<boolean>(false);
+    const [previewData, setPreviewData] = useState<PreviewDataState>({});
+    const [activeMetadataTab, setActiveMetadataTab] = useState<FieldMetadataTabState>({});
 
     // Success message state
-    const [successMessage, setSuccessMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState<SuccessMessage | null>(null);
 
     // Monitor successMessage state changes
     useEffect(() => {
@@ -55,23 +123,23 @@ const CRFBuilderIntegration = () => {
     }, [successMessage]);
 
     // Error message state
-    const [errorMessage, setErrorMessage] = useState(null);
+    const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null);
 
     // Template selection for new forms
-    const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-    const [availableTemplates, setAvailableTemplates] = useState([]);
-    const [loadingTemplates, setLoadingTemplates] = useState(false);
-    const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [showTemplateSelector, setShowTemplateSelector] = useState<boolean>(false);
+    const [availableTemplates, setAvailableTemplates] = useState<FormTemplate[]>([]);
+    const [loadingTemplates, setLoadingTemplates] = useState<boolean>(false);
+    const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
 
     // Code list categories for dropdown fields
-    const [codeListCategories, setCodeListCategories] = useState([]);
-    const [loadingCategories, setLoadingCategories] = useState(false);
+    const [codeListCategories, setCodeListCategories] = useState<string[]>([]);
+    const [loadingCategories, setLoadingCategories] = useState<boolean>(false);
 
     // Code list options cache for preview mode
-    const [codeListOptions, setCodeListOptions] = useState({});
+    const [codeListOptions, setCodeListOptions] = useState<CodeListOptions>({});
 
     // CRF data would be loaded from or passed to the CRF Builder component
-    const [crfData, setCrfData] = useState(null);
+    const [crfData, setCrfData] = useState<CRFData>({ sections: [], fields: [] });
 
     // Fetch available code list categories on mount
     useEffect(() => {
@@ -124,7 +192,7 @@ const CRFBuilderIntegration = () => {
                     setForm(formData);
 
                     // Reconstruct CRF data from the form's fields and structure
-                    let reconstructedCrfData = {
+                    let reconstructedCrfData: CRFData = {
                         sections: [],
                         fields: []
                     };
@@ -137,7 +205,7 @@ const CRFBuilderIntegration = () => {
                         // Ensure fields have a 'name' property for compatibility with the form builder
                         const normalizedFields = fields.map(field => {
                             // Clean up options location - migrate from old to new format
-                            const cleanedField = { ...field };
+                            const cleanedField = { ...field } as CRFField;
 
                             // If options are at root level (old format), move them to metadata
                             if (field.options && Array.isArray(field.options) && field.options.length > 0) {
@@ -150,7 +218,7 @@ const CRFBuilderIntegration = () => {
                                     cleanedField.metadata.options = field.options;
                                 }
                                 // Remove from root level
-                                delete cleanedField.options;
+                                delete (cleanedField as any).options;
                             }
 
                             return {
@@ -164,87 +232,38 @@ const CRFBuilderIntegration = () => {
 
                         if (structure.sections && Array.isArray(structure.sections)) {
                             // Reconstruct sections with their fields
-                            reconstructedCrfData.sections = structure.sections.map(section => {
-                                // Check if section.fields contains full field objects or just IDs
-                                let sectionFields = [];
-
-                                if (section.fields && Array.isArray(section.fields)) {
-                                    if (section.fields.length > 0 && typeof section.fields[0] === 'object' && section.fields[0].name) {
-                                        // Fields are already full objects with name, type, etc.
-                                        console.log(`Section "${section.title || section.name || section.id}" has full field objects:`, section.fields);
-                                        sectionFields = section.fields;
-                                    } else if (section.fields.length > 0 && typeof section.fields[0] === 'string') {
-                                        // Fields are IDs, need to map to full field objects
-                                        console.log(`Section "${section.title || section.name || section.id}" has field IDs:`, section.fields);
-                                        console.log(`Available fields for mapping:`, normalizedFields);
-
-                                        sectionFields = normalizedFields.filter(field =>
-                                            section.fields.includes(field.id)
-                                        );
-
-                                        console.log(`Mapped to field objects:`, sectionFields);
-
-                                        // If mapping failed, let's check why
-                                        if (sectionFields.length === 0 && section.fields.length > 0) {
-                                            console.warn(`⚠️ No fields mapped for section "${section.title || section.name || section.id}"`);
-                                            console.log('Available field IDs:', normalizedFields.map(f => f.id));
-                                            console.log('Expected field IDs:', section.fields);
-                                        }
-                                    } else {
-                                        console.warn(`⚠️ Section "${section.title || section.name || section.id}" has empty or invalid fields array:`, section.fields);
+                            reconstructedCrfData.sections = structure.sections.map((section: any, sectionIndex: number) => {
+                                // Populate fields for the section
+                                const populatedFields = (section.fields || []).map((fieldRef: any) => {
+                                    if (typeof fieldRef === 'string') {
+                                        return normalizedFields.find(field => field.id === fieldRef || field.name === fieldRef);
                                     }
-                                } else {
-                                    console.warn(`⚠️ Section "${section.title || section.name || section.id}" has no fields property or it's not an array:`, section.fields);
-                                }
+                                    return fieldRef;
+                                }).filter((field): field is CRFField => !!field);
 
                                 return {
-                                    id: section.id,
-                                    name: section.title || section.name || 'Untitled Section',
+                                    ...section,
+                                    id: section.id || `section-${sectionIndex + 1}`,
+                                    name: section.name || `Section ${sectionIndex + 1}`,
                                     description: section.description || '',
                                     type: section.type || 'regular',
-                                    fields: sectionFields,
-                                    metadata: section.metadata || {
-                                        isRequired: false,
-                                        helpText: '',
-                                        displayOrder: 1
+                                    fields: populatedFields,
+                                    metadata: {
+                                        isRequired: section.metadata?.isRequired ?? false,
+                                        helpText: section.metadata?.helpText ?? '',
+                                        displayOrder: section.metadata?.displayOrder ?? sectionIndex + 1
                                     }
                                 };
                             });
-                        } else if (normalizedFields && normalizedFields.length > 0) {
-                            // If no structure but we have fields, create a default section
-                            console.log('No structure found, creating default section with all fields:', normalizedFields);
-                            reconstructedCrfData.sections = [{
-                                id: 'default_section',
-                                name: 'Form Fields',
-                                description: 'Default section containing all form fields',
-                                type: 'regular',
-                                fields: normalizedFields,
-                                metadata: {
-                                    isRequired: false,
-                                    helpText: '',
-                                    displayOrder: 1
-                                }
-                            }];
-                        } else {
-                            console.warn('⚠️ No structure and no fields found in form data');
+                        } else if (Array.isArray(structure)) {
+                            reconstructedCrfData.sections = structure;
                         }
 
-                        // If no sections were created but we have structure.sections, use them directly
-                        // (but only if they already contain full field objects)
-                        if (reconstructedCrfData.sections.length === 0 &&
-                            formData.structure &&
-                            formData.structure.sections &&
-                            formData.structure.sections.length > 0) {
-
-                            // Check if the first section has field objects with names
-                            const firstSection = formData.structure.sections[0];
-                            if (firstSection.fields &&
-                                firstSection.fields.length > 0 &&
-                                typeof firstSection.fields[0] === 'object' &&
-                                firstSection.fields[0].name) {
-
-                                reconstructedCrfData = formData.structure;
-                            }
+                        // Include any top-level fields
+                        if (structure.fields && Array.isArray(structure.fields)) {
+                            reconstructedCrfData.fields = structure.fields;
+                        } else {
+                            reconstructedCrfData.fields = normalizedFields;
                         }
 
                         // Final safety check: if we have no sections with fields, but we have fields, create a default section
@@ -264,7 +283,6 @@ const CRFBuilderIntegration = () => {
                                 }
                             }];
                         }
-
                     } catch (parseError) {
                         console.warn('Error parsing form data, using default structure:', parseError);
                         // If parsing fails, create empty structure
@@ -276,7 +294,6 @@ const CRFBuilderIntegration = () => {
 
                     console.log('Final reconstructed CRF data:', reconstructedCrfData);
                     setCrfData(reconstructedCrfData);
-
                 } else {
                     // New form - show template selector first
                     console.log('*** NEW FORM: Loading templates and showing selector...');
@@ -306,20 +323,20 @@ const CRFBuilderIntegration = () => {
     }, [formId, versionId]);
 
     // Handle updates from the CRF Builder
-    const handleCrfDataUpdate = (newData) => {
+    const handleCrfDataUpdate = (newData: CRFData) => {
         setCrfData(newData);
         setChanges(true);
     };
 
     // Load available templates
-    const loadTemplates = async () => {
+    const loadTemplates = async (): Promise<void> => {
         try {
             setLoadingTemplates(true);
             // Always use FormService for templates since they're now managed in Admin module
             console.log('Loading templates from admin-ws via FormService.getForms()...');
             const templates = await FormService.getForms();
             console.log('Loaded templates:', templates?.length || 0, 'templates');
-            setAvailableTemplates(templates || []);
+            setAvailableTemplates((templates as FormTemplate[]) || []);
         } catch (err) {
             console.error("Error loading templates:", err);
             setAvailableTemplates([]);
@@ -329,7 +346,7 @@ const CRFBuilderIntegration = () => {
     };
 
     // Handle template selection
-    const handleTemplateSelect = async (template) => {
+    const handleTemplateSelect = async (template: FormTemplate | null) => {
         console.log('*** handleTemplateSelect called with template:', template);
         try {
             setSelectedTemplate(template);
@@ -342,12 +359,12 @@ const CRFBuilderIntegration = () => {
                 console.log('*** Template fields (raw):', template.fields);
 
                 // Parse structure and fields if they are JSON strings
-                let parsedStructure = template.structure;
-                let parsedFields = template.fields;
+                let parsedStructure: CRFData | undefined = (template.structure as CRFData) || undefined;
+                let parsedFields: CRFField[] | undefined = (template.fields as CRFField[]) || undefined;
 
                 if (typeof template.structure === 'string') {
                     try {
-                        parsedStructure = JSON.parse(template.structure);
+                        parsedStructure = JSON.parse(template.structure) as CRFData;
                         console.log('*** Parsed structure from JSON string:', parsedStructure);
                     } catch (e) {
                         console.error('*** Error parsing structure JSON:', e);
@@ -357,7 +374,7 @@ const CRFBuilderIntegration = () => {
 
                 if (typeof template.fields === 'string') {
                     try {
-                        parsedFields = JSON.parse(template.fields);
+                        parsedFields = JSON.parse(template.fields) as CRFField[];
                         console.log('*** Parsed fields from JSON string:', parsedFields);
                     } catch (e) {
                         console.error('*** Error parsing fields JSON:', e);
@@ -410,7 +427,9 @@ const CRFBuilderIntegration = () => {
     };
 
     // Save form (create new or update existing)
-    const handleSaveForm = async (formMetadata) => {
+    const handleSaveForm = async (
+        formMetadata?: Partial<{ name: string; description: string; type: string; version: string; status: string; }>
+    ): Promise<void> => {
         try {
             setSaving(true);
             setError(null);
@@ -420,7 +439,7 @@ const CRFBuilderIntegration = () => {
             console.log('Context Detection:', { isStudyContext, studyId });
             console.log('Form metadata received:', formMetadata);
 
-            const formData = {
+            const formData: Record<string, any> = {
                 name: formMetadata?.name || form?.name || 'Untitled Form',
                 description: formMetadata?.description || form?.description || '',
                 type: formMetadata?.type || form?.type || 'General',
@@ -433,7 +452,7 @@ const CRFBuilderIntegration = () => {
 
             console.log('Base form data prepared:', formData);
 
-            let savedForm;
+            let savedForm: any;
             if (formId) {
                 console.log('=== UPDATING EXISTING FORM ===');
                 console.log('Form ID:', formId);
@@ -506,7 +525,7 @@ const CRFBuilderIntegration = () => {
             console.log('*** SUCCESS MESSAGE SET - Should be visible now ***');
 
             // Auto-dismiss after 5 seconds (increased from 3)
-            setTimeout(() => {
+            window.setTimeout(() => {
                 console.log('*** AUTO-DISMISSING SUCCESS MESSAGE ***');
                 setSuccessMessage(null);
             }, 5000);
@@ -570,7 +589,7 @@ const CRFBuilderIntegration = () => {
     };
 
     // Set active metadata tab
-    const setMetadataTab = (fieldId, tab) => {
+    const setMetadataTab = (fieldId: string, tab: MetadataTab) => {
         setActiveMetadataTab(prev => ({
             ...prev,
             [fieldId]: tab
@@ -578,8 +597,8 @@ const CRFBuilderIntegration = () => {
     };
 
     // Create new section
-    const createSection = (type = 'regular') => {
-        const newSection = {
+    const createSection = (type: 'regular' | 'table' = 'regular') => {
+        const newSection: CRFSection = {
             id: `section_${Date.now()}`,
             name: 'New Section',
             type: type, // 'regular' or 'table'
@@ -588,10 +607,10 @@ const CRFBuilderIntegration = () => {
             metadata: {
                 isRequired: false,
                 helpText: '',
-                displayOrder: (crfData?.sections?.length || 0) + 1
+                displayOrder: (crfData.sections?.length || 0) + 1
             }
         };
-        const updatedData = {
+        const updatedData: CRFData = {
             ...crfData,
             sections: [...(crfData.sections || []), newSection]
         };
@@ -600,8 +619,8 @@ const CRFBuilderIntegration = () => {
     };
 
     // Create new field
-    const createField = (sectionIndex, section) => {
-        const newField = {
+    const createField = (sectionIndex: number, section: CRFSection) => {
+        const newField: CRFField = {
             id: `field_${Date.now()}`,
             name: 'New Field',
             label: 'New Field Label',
@@ -775,29 +794,38 @@ const CRFBuilderIntegration = () => {
     };
 
     // Update section
-    const updateSection = (sectionIndex, updates) => {
+    const updateSection = (sectionIndex: number, updates: Partial<CRFSection>) => {
         const updatedSections = [...crfData.sections];
         updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], ...updates };
         handleCrfDataUpdate({ ...crfData, sections: updatedSections });
     };
 
     // Update field
-    const updateField = (sectionIndex, fieldIndex, updates) => {
+    const updateField = (sectionIndex: number, fieldIndex: number, updates: Partial<CRFField>) => {
         const updatedSections = [...crfData.sections];
         const updatedFields = [...updatedSections[sectionIndex].fields];
-        updatedFields[fieldIndex] = { ...updatedFields[fieldIndex], ...updates };
+        const currentField = updatedFields[fieldIndex];
+        const mergedField: CRFField = {
+            ...currentField,
+            ...updates,
+            ...(updates.metadata
+                ? { metadata: { ...(currentField.metadata ?? {}), ...updates.metadata } }
+                : {})
+        };
+
+        updatedFields[fieldIndex] = mergedField;
         updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], fields: updatedFields };
         handleCrfDataUpdate({ ...crfData, sections: updatedSections });
     };
 
     // Remove section
-    const removeSection = (sectionIndex) => {
+    const removeSection = (sectionIndex: number) => {
         const updatedSections = crfData.sections.filter((_, i) => i !== sectionIndex);
         handleCrfDataUpdate({ ...crfData, sections: updatedSections });
     };
 
     // Remove field
-    const removeField = (sectionIndex, fieldIndex) => {
+    const removeField = (sectionIndex: number, fieldIndex: number) => {
         const updatedSections = [...crfData.sections];
         const updatedFields = updatedSections[sectionIndex].fields.filter((_, i) => i !== fieldIndex);
         updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], fields: updatedFields };
@@ -816,15 +844,15 @@ const CRFBuilderIntegration = () => {
     };
 
     // Load all code list options needed for preview
-    const loadCodeListOptionsForPreview = async () => {
-        const optionsCache = {};
-        const categoriesToLoad = new Set();
+    const loadCodeListOptionsForPreview = async (): Promise<void> => {
+        const optionsCache: CodeListOptions = {};
+        const categoriesToLoad = new Set<string>();
 
         // Find all fields that use code lists
         crfData?.sections?.forEach(section => {
             section.fields?.forEach(field => {
                 if (field.metadata?.codeListCategory) {
-                    categoriesToLoad.add(field.metadata.codeListCategory);
+                    categoriesToLoad.add(field.metadata.codeListCategory as string);
                 }
             });
         });
@@ -837,7 +865,9 @@ const CRFBuilderIntegration = () => {
 
                 if (options && Array.isArray(options)) {
                     // Transform to simple array of strings for compatibility
-                    optionsCache[category] = options.map(opt => opt.name || opt.label || opt.code || opt.value);
+                    optionsCache[category] = options
+                        .map((opt: any) => opt?.name || opt?.label || opt?.code || opt?.value)
+                        .filter((value: any): value is string => typeof value === 'string');
                     console.log(`✅ Loaded ${optionsCache[category].length} options for ${category}`);
                 }
             } catch (error) {
@@ -850,7 +880,7 @@ const CRFBuilderIntegration = () => {
     };
 
     // Handle preview form data changes
-    const handlePreviewDataChange = (fieldId, value) => {
+    const handlePreviewDataChange = (fieldId: string, value: any) => {
         setPreviewData(prev => ({
             ...prev,
             [fieldId]: value
@@ -858,7 +888,7 @@ const CRFBuilderIntegration = () => {
     };
 
     // Export field metadata - Phase 6F Enhancement
-    const exportFieldMetadata = (field, format) => {
+    const exportFieldMetadata = (field: CRFField, format: 'json' | 'csv' | 'excel') => {
         const metadata = {
             fieldName: field.name || field.id,
             fieldLabel: field.label,
@@ -869,11 +899,11 @@ const CRFBuilderIntegration = () => {
             clinicalMetadata: {
                 sdvRequired: field.metadata?.clinicalMetadata?.sdvFlag || false,
                 medicalReview: field.metadata?.clinicalMetadata?.medicalReviewFlag || false,
-                cdashMapping: field.metadata?.clinicalMetadata?.cdashMapping || {},
-                sdtmMapping: field.metadata?.clinicalMetadata?.sdtmMapping || {},
-                medicalCoding: field.metadata?.clinicalMetadata?.medicalCoding || {},
-                dataQuality: field.metadata?.clinicalMetadata?.dataQuality || {},
-                regulatoryMetadata: field.metadata?.clinicalMetadata?.regulatoryMetadata || {}
+                cdashMapping: field.metadata?.clinicalMetadata?.cdashMapping ?? {},
+                sdtmMapping: field.metadata?.clinicalMetadata?.sdtmMapping ?? {},
+                medicalCoding: field.metadata?.clinicalMetadata?.medicalCoding ?? {},
+                dataQuality: field.metadata?.clinicalMetadata?.dataQuality ?? {},
+                regulatoryMetadata: field.metadata?.clinicalMetadata?.regulatoryMetadata ?? {}
             },
             validation: field.validation || {}
         };
@@ -917,7 +947,7 @@ const CRFBuilderIntegration = () => {
     };
 
     // Export all fields metadata in a section
-    const exportAllFieldsMetadata = (section) => {
+    const exportAllFieldsMetadata = (section: CRFSection) => {
         const allMetadata = section.fields.map(field => ({
             fieldName: field.name || field.id,
             fieldLabel: field.label,
@@ -967,7 +997,12 @@ const CRFBuilderIntegration = () => {
     };
 
     // Render field input based on type
-    const renderFieldInput = (field, value, onChange, disabled = false) => {
+    const renderFieldInput = (
+        field: CRFField,
+        value: any,
+        onChange: (fieldId: string, fieldValue: any) => void,
+        disabled = false
+    ): React.ReactNode => {
         const fieldClasses = "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
         const disabledClasses = disabled ? "bg-gray-100 cursor-not-allowed" : "";
 
@@ -1054,7 +1089,7 @@ const CRFBuilderIntegration = () => {
                 // Check if using code list or manual options
                 const selectOptions = field.metadata?.codeListCategory
                     ? codeListOptions[field.metadata.codeListCategory] || []
-                    : field.metadata?.options || [];
+                    : (field.metadata?.options as any[]) || [];
 
                 return (
                     <select
@@ -1068,9 +1103,13 @@ const CRFBuilderIntegration = () => {
                                 ? `Loading ${field.metadata.codeListCategory}...`
                                 : '-- Select an option --'}
                         </option>
-                        {selectOptions.map((option, index) => (
-                            <option key={index} value={option}>{option}</option>
-                        ))}
+                        {selectOptions.map((option, index) => {
+                            const optionValue = typeof option === 'string' ? option : option?.value ?? option?.label ?? '';
+                            const optionLabel = typeof option === 'string' ? option : option?.label ?? optionValue;
+                            return (
+                                <option key={index} value={optionValue}>{optionLabel}</option>
+                            );
+                        })}
                     </select>
                 );
 
@@ -1078,7 +1117,7 @@ const CRFBuilderIntegration = () => {
                 // Check if using code list or manual options
                 const multiselectOptions = field.metadata?.codeListCategory
                     ? codeListOptions[field.metadata.codeListCategory] || []
-                    : field.metadata?.options || [];
+                    : (field.metadata?.options as any[]) || [];
 
                 return (
                     <select
@@ -1092,9 +1131,13 @@ const CRFBuilderIntegration = () => {
                         disabled={disabled || field.metadata?.isReadOnly}
                         size={Math.min(multiselectOptions.length || 3, 5)}
                     >
-                        {multiselectOptions.map((option, index) => (
-                            <option key={index} value={option}>{option}</option>
-                        ))}
+                        {multiselectOptions.map((option, index) => {
+                            const optionValue = typeof option === 'string' ? option : option?.value ?? option?.label ?? '';
+                            const optionLabel = typeof option === 'string' ? option : option?.label ?? optionValue;
+                            return (
+                                <option key={index} value={optionValue}>{optionLabel}</option>
+                            );
+                        })}
                     </select>
                 );
 
@@ -1102,24 +1145,28 @@ const CRFBuilderIntegration = () => {
                 // Check if using code list or manual options
                 const radioOptions = field.metadata?.codeListCategory
                     ? codeListOptions[field.metadata.codeListCategory] || []
-                    : field.metadata?.options || [];
+                    : (field.metadata?.options as any[]) || [];
 
                 return (
                     <div className="space-y-2">
-                        {radioOptions.map((option, index) => (
-                            <label key={index} className="flex items-center">
-                                <input
-                                    type="radio"
-                                    name={field.id}
-                                    value={option}
-                                    checked={value === option}
-                                    onChange={(e) => onChange(field.id, e.target.value)}
-                                    className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                                    disabled={disabled || field.metadata?.isReadOnly}
-                                />
-                                <span className="ml-2 text-sm text-gray-700">{option}</span>
-                            </label>
-                        ))}
+                        {radioOptions.map((option, index) => {
+                            const optionValue = typeof option === 'string' ? option : option?.value ?? option?.label ?? '';
+                            const optionLabel = typeof option === 'string' ? option : option?.label ?? optionValue;
+                            return (
+                                <label key={index} className="flex items-center">
+                                    <input
+                                        type="radio"
+                                        name={field.id}
+                                        value={optionValue}
+                                        checked={value === optionValue}
+                                        onChange={(e) => onChange(field.id, e.target.value)}
+                                        className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                        disabled={disabled || field.metadata?.isReadOnly}
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700">{optionLabel}</span>
+                                </label>
+                            );
+                        })}
                     </div>
                 );
 
@@ -1127,31 +1174,35 @@ const CRFBuilderIntegration = () => {
                 // Check if using code list or manual options
                 const checkboxOptions = field.metadata?.codeListCategory
                     ? codeListOptions[field.metadata.codeListCategory] || []
-                    : field.metadata?.options || [];
+                    : (field.metadata?.options as any[]) || [];
 
                 if (checkboxOptions.length > 0) {
                     // Multiple checkboxes
                     return (
                         <div className="space-y-2">
-                            {checkboxOptions.map((option, index) => (
-                                <label key={index} className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        value={option}
-                                        checked={Array.isArray(value) && value.includes(option)}
-                                        onChange={(e) => {
-                                            const currentValues = Array.isArray(value) ? value : [];
-                                            const newValues = e.target.checked
-                                                ? [...currentValues, option]
-                                                : currentValues.filter(v => v !== option);
-                                            onChange(field.id, newValues);
-                                        }}
-                                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                        disabled={disabled || field.metadata?.isReadOnly}
-                                    />
-                                    <span className="ml-2 text-sm text-gray-700">{option}</span>
-                                </label>
-                            ))}
+                            {checkboxOptions.map((option, index) => {
+                                const optionValue = typeof option === 'string' ? option : option?.value ?? option?.label ?? '';
+                                const optionLabel = typeof option === 'string' ? option : option?.label ?? optionValue;
+                                return (
+                                    <label key={index} className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            value={optionValue}
+                                            checked={Array.isArray(value) && value.includes(optionValue)}
+                                            onChange={(e) => {
+                                                const currentValues = Array.isArray(value) ? value : [];
+                                                const newValues = e.target.checked
+                                                    ? [...currentValues, optionValue]
+                                                    : currentValues.filter(v => v !== optionValue);
+                                                onChange(field.id, newValues);
+                                            }}
+                                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                            disabled={disabled || field.metadata?.isReadOnly}
+                                        />
+                                        <span className="ml-2 text-sm text-gray-700">{optionLabel}</span>
+                                    </label>
+                                );
+                            })}
                         </div>
                     );
                 } else {
@@ -1195,7 +1246,7 @@ const CRFBuilderIntegration = () => {
     };
 
     // Get field width class
-    const getFieldWidthClass = (width) => {
+    const getFieldWidthClass = (width?: string): string => {
         switch (width) {
             case 'half': return 'col-span-6';
             case 'third': return 'col-span-4';
@@ -1205,7 +1256,7 @@ const CRFBuilderIntegration = () => {
     };
 
     // Render preview section
-    const renderPreviewSection = (section) => {
+    const renderPreviewSection = (section: CRFSection): React.ReactElement => {
         if (section.type === 'table' && section.fields?.length > 0) {
             return (
                 <div className="mb-8">
@@ -1281,7 +1332,7 @@ const CRFBuilderIntegration = () => {
     };
 
     // Save form changes
-    const handleSave = async () => {
+    const handleSave = async (): Promise<void> => {
         console.log('*** handleSave: Starting save operation ***');
         console.log('*** handleSave: Context - isStudyContext:', isStudyContext, 'studyId:', studyId);
         console.log('*** handleSave: formId:', formId, 'form:', form);
@@ -1298,7 +1349,7 @@ const CRFBuilderIntegration = () => {
             console.log('*** handleSave: Set saving to true ***');
 
             // Extract fields from sections for the fields property
-            const allFields = [];
+            const allFields: CRFField[] = [];
             crfData?.sections?.forEach(section => {
                 if (section.fields && Array.isArray(section.fields)) {
                     allFields.push(...section.fields);
@@ -1318,7 +1369,7 @@ const CRFBuilderIntegration = () => {
             });
 
             // Create structure object (organized layout information)
-            const structureData = {
+            const structureData: Record<string, any> = {
                 sections: crfData?.sections?.map(section => ({
                     id: section.id,
                     name: section.name,
@@ -1340,7 +1391,7 @@ const CRFBuilderIntegration = () => {
                 console.log('Context check: isStudyContext =', isStudyContext, ', studyId =', studyId);
 
                 // Create new form
-                const newFormData = {
+                const newFormData: Record<string, any> = {
                     name: form?.name || "New Form",
                     description: form?.description || "Form created with CRF Builder",
                     category: form?.type || form?.category || "Custom", // Map type to category
@@ -1353,7 +1404,7 @@ const CRFBuilderIntegration = () => {
                     createdBy: 1 // Default user ID
                 };
 
-                let result;
+                let result: any;
                 if (isStudyContext && studyId) {
                     console.log('*** handleSave: STUDY CONTEXT - Using StudyFormService ***');
                     // Add studyId for study-specific forms
@@ -1366,9 +1417,14 @@ const CRFBuilderIntegration = () => {
 
                     console.log('Study form data being sent:', studyFormData);
 
-                    if (selectedTemplate && form?.templateId && !isNaN(form.templateId)) {
+                    if (selectedTemplate && form?.templateId && !Number.isNaN(Number(form.templateId))) {
                         // Create from template - templateId should be a valid Long
-                        result = await StudyFormService.createStudyFormFromTemplate(studyId, parseInt(form.templateId), studyFormData.name, studyFormData);
+                        result = await StudyFormService.createStudyFormFromTemplate(
+                            studyId,
+                            parseInt(String(form.templateId), 10),
+                            studyFormData.name,
+                            studyFormData
+                        );
                     } else {
                         // Create from scratch - templateId should be null
                         result = await StudyFormService.createStudyForm(studyFormData);
@@ -1398,7 +1454,7 @@ const CRFBuilderIntegration = () => {
                 });
 
                 // Auto-dismiss after 3 seconds
-                setTimeout(() => {
+                window.setTimeout(() => {
                     setSuccessMessage(null);
                 }, 3000);
 
@@ -1466,7 +1522,7 @@ const CRFBuilderIntegration = () => {
                 });
 
                 // Auto-dismiss after 3 seconds
-                setTimeout(() => {
+                window.setTimeout(() => {
                     setSuccessMessage(null);
                 }, 3000);
             }
@@ -1937,7 +1993,7 @@ const CRFBuilderIntegration = () => {
                                                                     <textarea
                                                                         value={field.metadata?.description || ''}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
-                                                                            metadata: { ...field.metadata, description: e.target.value }
+                                                                            metadata: { ...(field.metadata ?? {}), description: e.target.value }
                                                                         })}
                                                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                                         rows="2"
@@ -1949,7 +2005,7 @@ const CRFBuilderIntegration = () => {
                                                                     <textarea
                                                                         value={field.metadata?.helpText || ''}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
-                                                                            metadata: { ...field.metadata, helpText: e.target.value }
+                                                                            metadata: { ...(field.metadata ?? {}), helpText: e.target.value }
                                                                         })}
                                                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                                         rows="2"
@@ -1962,7 +2018,7 @@ const CRFBuilderIntegration = () => {
                                                                         type="text"
                                                                         value={field.metadata?.placeholder || ''}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
-                                                                            metadata: { ...field.metadata, placeholder: e.target.value }
+                                                                            metadata: { ...(field.metadata ?? {}), placeholder: e.target.value }
                                                                         })}
                                                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                                         placeholder="Placeholder text"
@@ -1974,7 +2030,7 @@ const CRFBuilderIntegration = () => {
                                                                         type="text"
                                                                         value={field.metadata?.defaultValue || ''}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
-                                                                            metadata: { ...field.metadata, defaultValue: e.target.value }
+                                                                            metadata: { ...(field.metadata ?? {}), defaultValue: e.target.value }
                                                                         })}
                                                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                                         placeholder="Default value"
@@ -1987,7 +2043,7 @@ const CRFBuilderIntegration = () => {
                                                                     <select
                                                                         value={field.metadata?.fieldWidth || 'full'}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
-                                                                            metadata: { ...field.metadata, fieldWidth: e.target.value }
+                                                                            metadata: { ...(field.metadata ?? {}), fieldWidth: e.target.value }
                                                                         })}
                                                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                                     >
@@ -2006,7 +2062,7 @@ const CRFBuilderIntegration = () => {
                                                                                 type="checkbox"
                                                                                 checked={field.metadata?.isReadOnly || false}
                                                                                 onChange={(e) => updateField(sectionIndex, fieldIndex, {
-                                                                                    metadata: { ...field.metadata, isReadOnly: e.target.checked }
+                                                                                    metadata: { ...(field.metadata ?? {}), isReadOnly: e.target.checked }
                                                                                 })}
                                                                                 className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                                                             />
@@ -2017,7 +2073,7 @@ const CRFBuilderIntegration = () => {
                                                                                 type="checkbox"
                                                                                 checked={field.metadata?.isCalculated || false}
                                                                                 onChange={(e) => updateField(sectionIndex, fieldIndex, {
-                                                                                    metadata: { ...field.metadata, isCalculated: e.target.checked }
+                                                                                    metadata: { ...(field.metadata ?? {}), isCalculated: e.target.checked }
                                                                                 })}
                                                                                 className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                                                             />
@@ -2034,7 +2090,7 @@ const CRFBuilderIntegration = () => {
                                                                             type="text"
                                                                             value={field.metadata?.calculationFormula || ''}
                                                                             onChange={(e) => updateField(sectionIndex, fieldIndex, {
-                                                                                metadata: { ...field.metadata, calculationFormula: e.target.value }
+                                                                                metadata: { ...(field.metadata ?? {}), calculationFormula: e.target.value }
                                                                             })}
                                                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                                             placeholder="e.g., field1 + field2 * 0.1"
@@ -2055,7 +2111,7 @@ const CRFBuilderIntegration = () => {
                                                                                     checked={!field.metadata?.codeListCategory && field.metadata?.codeListCategory !== ''}
                                                                                     onChange={() => updateField(sectionIndex, fieldIndex, {
                                                                                         metadata: {
-                                                                                            ...field.metadata,
+                                                                                            ...(field.metadata ?? {}),
                                                                                             codeListCategory: undefined
                                                                                         }
                                                                                     })}
@@ -2071,7 +2127,7 @@ const CRFBuilderIntegration = () => {
                                                                                     checked={field.metadata?.codeListCategory !== undefined}
                                                                                     onChange={() => updateField(sectionIndex, fieldIndex, {
                                                                                         metadata: {
-                                                                                            ...field.metadata,
+                                                                                            ...(field.metadata ?? {}),
                                                                                             codeListCategory: ''
                                                                                         }
                                                                                     })}
@@ -2113,7 +2169,7 @@ const CRFBuilderIntegration = () => {
                                                                                             ...field,
                                                                                             options: undefined, // Remove old root-level options
                                                                                             metadata: {
-                                                                                                ...field.metadata,
+                                                                                                ...(field.metadata ?? {}),
                                                                                                 options: newOptions // Set new metadata-level options
                                                                                             }
                                                                                         };
@@ -2152,7 +2208,7 @@ const CRFBuilderIntegration = () => {
                                                                                     value={field.metadata?.codeListCategory || ''}
                                                                                     onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                                         metadata: {
-                                                                                            ...field.metadata,
+                                                                                            ...(field.metadata ?? {}),
                                                                                             codeListCategory: e.target.value,
                                                                                             options: [] // Clear manual options when using code list
                                                                                         }
@@ -2201,9 +2257,9 @@ const CRFBuilderIntegration = () => {
                                                                                 checked={field.metadata?.clinicalMetadata?.sdvFlag || false}
                                                                                 onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                                     metadata: {
-                                                                                        ...field.metadata,
+                                                                                        ...(field.metadata ?? {}),
                                                                                         clinicalMetadata: {
-                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            ...(field.metadata?.clinicalMetadata ?? {}),
                                                                                             sdvFlag: e.target.checked
                                                                                         }
                                                                                     }
@@ -2218,9 +2274,9 @@ const CRFBuilderIntegration = () => {
                                                                                 checked={field.metadata?.clinicalMetadata?.medicalReviewFlag || false}
                                                                                 onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                                     metadata: {
-                                                                                        ...field.metadata,
+                                                                                        ...(field.metadata ?? {}),
                                                                                         clinicalMetadata: {
-                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            ...(field.metadata?.clinicalMetadata ?? {}),
                                                                                             medicalReviewFlag: e.target.checked
                                                                                         }
                                                                                     }
@@ -2235,9 +2291,9 @@ const CRFBuilderIntegration = () => {
                                                                                 checked={field.metadata?.clinicalMetadata?.dataReviewFlag || false}
                                                                                 onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                                     metadata: {
-                                                                                        ...field.metadata,
+                                                                                        ...(field.metadata ?? {}),
                                                                                         clinicalMetadata: {
-                                                                                            ...field.metadata?.clinicalMetadata,
+                                                                                            ...(field.metadata?.clinicalMetadata ?? {}),
                                                                                             dataReviewFlag: e.target.checked
                                                                                         }
                                                                                     }
@@ -2263,11 +2319,11 @@ const CRFBuilderIntegration = () => {
                                                                         value={field.metadata?.clinicalMetadata?.cdashMapping?.domain || ''}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                             metadata: {
-                                                                                ...field.metadata,
+                                                                                ...(field.metadata ?? {}),
                                                                                 clinicalMetadata: {
-                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    ...(field.metadata?.clinicalMetadata ?? {}),
                                                                                     cdashMapping: {
-                                                                                        ...field.metadata?.clinicalMetadata?.cdashMapping,
+                                                                                        ...(field.metadata?.clinicalMetadata?.cdashMapping ?? {}),
                                                                                         domain: e.target.value
                                                                                     }
                                                                                 }
@@ -2295,11 +2351,11 @@ const CRFBuilderIntegration = () => {
                                                                         value={field.metadata?.clinicalMetadata?.cdashMapping?.variable || ''}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                             metadata: {
-                                                                                ...field.metadata,
+                                                                                ...(field.metadata ?? {}),
                                                                                 clinicalMetadata: {
-                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    ...(field.metadata?.clinicalMetadata ?? {}),
                                                                                     cdashMapping: {
-                                                                                        ...field.metadata?.clinicalMetadata?.cdashMapping,
+                                                                                        ...(field.metadata?.clinicalMetadata?.cdashMapping ?? {}),
                                                                                         variable: e.target.value
                                                                                     }
                                                                                 }
@@ -2315,11 +2371,11 @@ const CRFBuilderIntegration = () => {
                                                                         value={field.metadata?.clinicalMetadata?.cdashMapping?.core || 'Permissible'}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                             metadata: {
-                                                                                ...field.metadata,
+                                                                                ...(field.metadata ?? {}),
                                                                                 clinicalMetadata: {
-                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    ...(field.metadata?.clinicalMetadata ?? {}),
                                                                                     cdashMapping: {
-                                                                                        ...field.metadata?.clinicalMetadata?.cdashMapping,
+                                                                                        ...(field.metadata?.clinicalMetadata?.cdashMapping ?? {}),
                                                                                         core: e.target.value
                                                                                     }
                                                                                 }
@@ -2338,11 +2394,11 @@ const CRFBuilderIntegration = () => {
                                                                         value={field.metadata?.clinicalMetadata?.cdashMapping?.dataType || 'text'}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                             metadata: {
-                                                                                ...field.metadata,
+                                                                                ...(field.metadata ?? {}),
                                                                                 clinicalMetadata: {
-                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    ...(field.metadata?.clinicalMetadata ?? {}),
                                                                                     cdashMapping: {
-                                                                                        ...field.metadata?.clinicalMetadata?.cdashMapping,
+                                                                                        ...(field.metadata?.clinicalMetadata?.cdashMapping ?? {}),
                                                                                         dataType: e.target.value
                                                                                     }
                                                                                 }
@@ -2369,11 +2425,11 @@ const CRFBuilderIntegration = () => {
                                                                         value={field.metadata?.clinicalMetadata?.sdtmMapping?.domain || ''}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                             metadata: {
-                                                                                ...field.metadata,
+                                                                                ...(field.metadata ?? {}),
                                                                                 clinicalMetadata: {
-                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    ...(field.metadata?.clinicalMetadata ?? {}),
                                                                                     sdtmMapping: {
-                                                                                        ...field.metadata?.clinicalMetadata?.sdtmMapping,
+                                                                                        ...(field.metadata?.clinicalMetadata?.sdtmMapping ?? {}),
                                                                                         domain: e.target.value
                                                                                     }
                                                                                 }
@@ -2390,11 +2446,11 @@ const CRFBuilderIntegration = () => {
                                                                         value={field.metadata?.clinicalMetadata?.sdtmMapping?.variable || ''}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                             metadata: {
-                                                                                ...field.metadata,
+                                                                                ...(field.metadata ?? {}),
                                                                                 clinicalMetadata: {
-                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    ...(field.metadata?.clinicalMetadata ?? {}),
                                                                                     sdtmMapping: {
-                                                                                        ...field.metadata?.clinicalMetadata?.sdtmMapping,
+                                                                                        ...(field.metadata?.clinicalMetadata?.sdtmMapping ?? {}),
                                                                                         variable: e.target.value
                                                                                     }
                                                                                 }
@@ -2410,11 +2466,11 @@ const CRFBuilderIntegration = () => {
                                                                         value={field.metadata?.clinicalMetadata?.sdtmMapping?.origin || 'CRF'}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                             metadata: {
-                                                                                ...field.metadata,
+                                                                                ...(field.metadata ?? {}),
                                                                                 clinicalMetadata: {
-                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    ...(field.metadata?.clinicalMetadata ?? {}),
                                                                                     sdtmMapping: {
-                                                                                        ...field.metadata?.clinicalMetadata?.sdtmMapping,
+                                                                                        ...(field.metadata?.clinicalMetadata?.sdtmMapping ?? {}),
                                                                                         origin: e.target.value
                                                                                     }
                                                                                 }
@@ -2436,11 +2492,11 @@ const CRFBuilderIntegration = () => {
                                                                         value={field.metadata?.clinicalMetadata?.sdtmMapping?.codelist || ''}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                             metadata: {
-                                                                                ...field.metadata,
+                                                                                ...(field.metadata ?? {}),
                                                                                 clinicalMetadata: {
-                                                                                    ...field.metadata?.clinicalMetadata,
+                                                                                    ...(field.metadata?.clinicalMetadata ?? {}),
                                                                                     sdtmMapping: {
-                                                                                        ...field.metadata?.clinicalMetadata?.sdtmMapping,
+                                                                                        ...(field.metadata?.clinicalMetadata?.sdtmMapping ?? {}),
                                                                                         codelist: e.target.value
                                                                                     }
                                                                                 }
@@ -2464,7 +2520,7 @@ const CRFBuilderIntegration = () => {
                                                                                 checked={field.metadata?.clinicalMetadata?.medicalCoding?.meddraRequired || false}
                                                                                 onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                                     metadata: {
-                                                                                        ...field.metadata,
+                                                                                            ...(field.metadata ?? {}),
                                                                                         clinicalMetadata: {
                                                                                             ...field.metadata?.clinicalMetadata,
                                                                                             medicalCoding: {
@@ -2484,7 +2540,7 @@ const CRFBuilderIntegration = () => {
                                                                                 checked={field.metadata?.clinicalMetadata?.medicalCoding?.whodrugRequired || false}
                                                                                 onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                                     metadata: {
-                                                                                        ...field.metadata,
+                                                                                        ...(field.metadata ?? {}),
                                                                                         clinicalMetadata: {
                                                                                             ...field.metadata?.clinicalMetadata,
                                                                                             medicalCoding: {
@@ -2504,7 +2560,7 @@ const CRFBuilderIntegration = () => {
                                                                                 checked={field.metadata?.clinicalMetadata?.medicalCoding?.autoCodeFlag || false}
                                                                                 onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                                     metadata: {
-                                                                                        ...field.metadata,
+                                                                                        ...(field.metadata ?? {}),
                                                                                         clinicalMetadata: {
                                                                                             ...field.metadata?.clinicalMetadata,
                                                                                             medicalCoding: {
@@ -2581,7 +2637,7 @@ const CRFBuilderIntegration = () => {
                                                                                 checked={field.metadata?.clinicalMetadata?.dataQuality?.criticalDataPoint || false}
                                                                                 onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                                     metadata: {
-                                                                                        ...field.metadata,
+                                                                                        ...(field.metadata ?? {}),
                                                                                         clinicalMetadata: {
                                                                                             ...field.metadata?.clinicalMetadata,
                                                                                             dataQuality: {
@@ -2663,7 +2719,7 @@ const CRFBuilderIntegration = () => {
                                                                         value={field.metadata?.clinicalMetadata?.dataQuality?.queryGeneration || 'Auto'}
                                                                         onChange={(e) => updateField(sectionIndex, fieldIndex, {
                                                                             metadata: {
-                                                                                ...field.metadata,
+                                                                                ...(field.metadata ?? {}),
                                                                                 clinicalMetadata: {
                                                                                     ...field.metadata?.clinicalMetadata,
                                                                                     dataQuality: {
