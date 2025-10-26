@@ -71,6 +71,7 @@ interface RouteParams {
     formId?: string;
     versionId?: string;
     studyId?: string;
+    [key: string]: string | undefined;
 }
 
 declare global {

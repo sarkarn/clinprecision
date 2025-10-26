@@ -34,6 +34,9 @@
         "forceConsistentCasingInFileNames": true,
         /* Skip Type Checking of Libraries */
         "skipLibCheck": true,
+        "types": [
+            "jest"
+        ],
         /* Base URL for absolute imports */
         "baseUrl": "src",
         "paths": {
