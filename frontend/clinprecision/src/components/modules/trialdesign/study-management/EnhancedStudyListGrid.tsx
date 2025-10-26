@@ -652,7 +652,7 @@ const EnhancedStudyListGrid: React.FC<EnhancedStudyListGridProps> = ({
                         )}
 
                         <CompactStatusIndicator
-                            status={study.status}
+                            status={study.status as any}
                             isRealTime={study.isRealtime}
                             connectionStatus={connectionStatus}
                         />

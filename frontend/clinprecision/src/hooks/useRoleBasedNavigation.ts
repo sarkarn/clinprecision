@@ -227,7 +227,7 @@ export const useRoleBasedNavigation = (): RoleBasedNavigationHook => {
    */
   const getUserRole = (): UserRole => {
     // Check multiple sources for user role
-    const userObjectRole = user?.role || user?.roles?.[0];
+    const userObjectRole = user?.role;
     const localStorageRole = localStorage.getItem('userRole');
 
     // Prioritize localStorage role if it exists, then user object, then default

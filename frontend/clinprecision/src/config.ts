@@ -8,6 +8,14 @@
  * @migrated-to-ts October 24, 2025
  */
 
+// Declare global process for environment variables (Create React App injects these at build time)
+declare const process: {
+  env: {
+    REACT_APP_API_GATEWAY_HOST?: string;
+    REACT_APP_API_GATEWAY_PORT?: string;
+  };
+};
+
 // ============================================================================
 // Environment Variables
 // ============================================================================

@@ -36,7 +36,7 @@ class WebSocketService implements IWebSocketService {
   private maxReconnectAttempts: number = 5;
   private reconnectInterval: number = 5000; // 5 seconds
   private heartbeatInterval: number = 30000; // 30 seconds
-  private heartbeatTimer: NodeJS.Timeout | null = null;
+  private heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
   private eventListeners: Map<string, Set<WebSocketEventCallback>> = new Map();
   private subscribedTopics: Set<string> = new Set();
   private connectionPromise: Promise<IWebSocketService> | null = null;

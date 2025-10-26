@@ -9,6 +9,15 @@ import {
   IEmailService,
 } from '../types/api/EmailService.types';
 
+// Declare global process for environment variables
+declare const process: {
+  env: {
+    REACT_APP_EMAILJS_PUBLIC_KEY?: string;
+    REACT_APP_EMAILJS_SERVICE_ID?: string;
+    REACT_APP_EMAILJS_TEMPLATE_ID?: string;
+  };
+};
+
 /**
  * EmailService - EmailJS integration for sending emails from frontend
  * 

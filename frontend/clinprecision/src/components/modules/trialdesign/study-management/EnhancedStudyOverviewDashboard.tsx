@@ -592,7 +592,7 @@ const EnhancedStudyOverviewDashboard: React.FC<EnhancedStudyOverviewDashboardPro
         return (
             <div className="mb-6">
                 <RealTimeStatusDashboard
-                    studyId={studyId}
+                    studyId={String(studyId)}
                     enableGlobalUpdates={false}
                     showConnectionStatus={true}
                     showMetrics={true}
@@ -639,10 +639,10 @@ const EnhancedStudyOverviewDashboard: React.FC<EnhancedStudyOverviewDashboardPro
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-lg font-semibold text-gray-900">Study Description</h3>
                         <StatusIndicator
-                            status={study.status}
+                            status={study.status as any}
                             lastUpdated={study.lastModified}
                             isRealTime={isConnected && study.realtimeStatus}
-                            connectionStatus={connectionStatus}
+                            connectionStatus={connectionStatus as any}
                             size="sm"
                         />
                     </div>
@@ -692,9 +692,9 @@ const EnhancedStudyOverviewDashboard: React.FC<EnhancedStudyOverviewDashboardPro
                                 <h3 className="text-lg font-semibold text-gray-900">Status History</h3>
                                 <div className="flex items-center gap-2">
                                     <CompactStatusIndicator
-                                        status={study.status}
+                                        status={study.status as any}
                                         isRealTime={isConnected && study.realtimeStatus}
-                                        connectionStatus={connectionStatus}
+                                        connectionStatus={connectionStatus as any}
                                     />
                                     <button
                                         onClick={handleStatusRefresh}
@@ -712,7 +712,7 @@ const EnhancedStudyOverviewDashboard: React.FC<EnhancedStudyOverviewDashboardPro
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-3">
                                                 <StatusIndicator
-                                                    status={entry.status}
+                                                    status={entry.status as any}
                                                     lastUpdated={entry.timestamp}
                                                     showLastUpdated={false}
                                                     size="sm"

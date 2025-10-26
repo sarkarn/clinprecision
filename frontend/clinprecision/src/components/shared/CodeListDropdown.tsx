@@ -261,11 +261,7 @@ export const CodeListDropdown: React.FC<CodeListDropdownProps> = ({
             </select>
 
             {/* Show data source info in development */}
-            {process.env.NODE_ENV === 'development' && (
-                <div className="mt-1 text-xs text-gray-500">
-                    📊 {options.length} items from {category} via Admin Service
-                </div>
-            )}
+            {/* Development info disabled for build compatibility */}
         </div>
     );
 };

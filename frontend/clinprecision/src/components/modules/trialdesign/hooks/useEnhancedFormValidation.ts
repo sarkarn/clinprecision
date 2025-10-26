@@ -114,7 +114,7 @@ export const useEnhancedFormValidation = <T extends Record<string, any> = Record
   const [validationMode, setValidationMode] = useState<ValidationMode>('progressive');
   const [fieldFocus, setFieldFocus] = useState<FormFocus>({});
   
-  const validationTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const validationTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const validationCache = useRef<Record<string, string | null>>({});
 
   const {

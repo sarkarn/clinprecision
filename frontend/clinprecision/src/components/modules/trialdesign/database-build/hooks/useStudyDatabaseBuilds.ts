@@ -30,7 +30,7 @@ export const useStudyDatabaseBuilds = (studyId?: number): UseStudyDatabaseBuilds
   const [builds, setBuilds] = useState<StudyDatabaseBuild[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  const [refreshInterval, setRefreshInterval] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   /**
    * Fetch builds from backend

@@ -6,6 +6,8 @@ import {
 } from 'services/SubjectService';
 import { getPatientVisits } from 'services/VisitService';
 import ProtocolDeviationService from 'services/quality/ProtocolDeviationService';
+import { startVisit } from 'services/data-capture/DataEntryService';
+import { useAuth } from '../../login/AuthContext';
 // @ts-ignore
 import PatientStatusBadge from '../subjectmanagement/components/PatientStatusBadge';
 // @ts-ignore
@@ -18,6 +20,12 @@ import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVi
 import DeviationModal from './deviations/DeviationModal';
 // @ts-ignore
 import DeviationList from './deviations/DeviationList';
+
+const StatusChangeModalComponent: any = StatusChangeModal;
+const StatusHistoryTimelineComponent: any = StatusHistoryTimeline;
+const UnscheduledVisitModalComponent: any = UnscheduledVisitModal;
+const DeviationModalComponent: any = DeviationModal;
+const DeviationListComponent: any = DeviationList;
 
 // Interface definitions
 interface Subject {
@@ -107,6 +115,7 @@ const getComplianceLabel = (complianceStatus: string | undefined): string => {
 };
 
 const SubjectDetails: React.FC = () => {
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
@@ -148,7 +157,11 @@ const SubjectDetails: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getSubjectById(Number(id)) as any;
+      if (!id) {
+        throw new Error('Subject identifier is missing from the route');
+      }
+
+      const data = await getSubjectById(id) as any;
       setSubject(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load subject details');
@@ -206,7 +219,8 @@ const SubjectDetails: React.FC = () => {
 
   const handleStartVisit = async (visitId: number) => {
     try {
-      await startVisit(visitId) as any;
+      const userId = String(user?.userId ?? user?.userNumericId ?? user?.email ?? 'system');
+      await startVisit(visitId, userId) as any;
       await fetchVisits();
       // Navigate to visit details or form entry
       navigate(`/datacapture/visits/${visitId}`);
@@ -606,7 +620,6 @@ const SubjectDetails: React.FC = () => {
           ) : (
             <DeviationList 
               deviations={deviations}
-              onRefresh={fetchDeviations}
             />
           )}
         </div>
@@ -615,7 +628,10 @@ const SubjectDetails: React.FC = () => {
       {/* Modals */}
       {showStatusModal && (
         <StatusChangeModal
-          subject={subject}
+          isOpen={showStatusModal}
+          patientId={subject.id}
+          patientName={`${subject.firstName || ''} ${subject.lastName || ''}`.trim() || subject.subjectId}
+          currentStatus={subject.status || 'UNKNOWN'}
           onClose={() => setShowStatusModal(false)}
           onStatusChanged={handleStatusChanged}
         />
@@ -623,15 +639,18 @@ const SubjectDetails: React.FC = () => {
 
       {showHistory && (
         <StatusHistoryTimeline
-          subjectId={subject.id}
+          patientId={subject.id}
           onClose={() => setShowHistory(false)}
         />
       )}
 
       {showVisitModal && (
         <UnscheduledVisitModal
-          subjectId={subject.id}
-          studyId={subject.studyId}
+          isOpen={showVisitModal}
+          patientId={subject.id}
+          patientName={`${subject.firstName || ''} ${subject.lastName || ''}`.trim() || subject.subjectId}
+          studyId={subject.studyId || 0}
+          siteId={subject.siteId || 0}
           visitType={visitType}
           onClose={() => setShowVisitModal(false)}
           onVisitCreated={handleVisitCreated}
@@ -640,8 +659,11 @@ const SubjectDetails: React.FC = () => {
 
       {showDeviationModal && (
         <DeviationModal
-          subjectId={subject.id}
-          studyId={subject.studyId}
+          isOpen={showDeviationModal}
+          context={{
+            patientId: subject.id,
+            studySiteId: subject.studySiteId || subject.siteId || 0
+          }}
           onClose={() => setShowDeviationModal(false)}
           onDeviationCreated={handleDeviationCreated}
         />

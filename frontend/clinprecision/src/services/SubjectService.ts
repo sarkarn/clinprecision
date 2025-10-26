@@ -257,11 +257,11 @@ export const transformPatientToSubject = (patient: Patient): Subject => {
  * @example
  * const subjects = await fetchSubjectsByStudy('123');
  */
-export const fetchSubjectsByStudy = async (studyId: string): Promise<Subject[]> => {
+export const fetchSubjectsByStudy = async (studyId: string | number): Promise<Subject[]> => {
   if (USE_MOCK_DATA) {
     console.log('USE_MOCK_DATA flag is true, returning mock subjects');
     await new Promise(resolve => setTimeout(resolve, 500));
-    return mockSubjects.filter(subject => subject.studyId === studyId);
+    return mockSubjects.filter(subject => subject.studyId === String(studyId));
   }
 
   try {
