@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FormProvider } from '../FormContext';
-import { FormRenderer } from '../FormRenderer';
+import FormRenderer from '../FormRenderer';
 import FormPreview from '../FormPreview';
 import FormDesigner from '../FormDesigner';
 
@@ -13,8 +13,55 @@ import FormDesigner from '../FormDesigner';
  * 3. Patient Data Capture - Using forms for actual patient data entry
  */
 
+// Interfaces
+interface FieldOption {
+    value: string;
+    label: string;
+}
+
+interface Field {
+    id: string;
+    type: string;
+    label: string;
+    required?: boolean;
+    readOnly?: boolean;
+    description?: string;
+    value?: any;
+    options?: (string | FieldOption)[];
+    validation?: Record<string, any>;
+    units?: string;
+    min?: number;
+    max?: number;
+    referenceRange?: { min: number; max: number };
+    precision?: number;
+}
+
+interface FormSection {
+    id: string;
+    name: string;
+    description?: string;
+    fields: Field[];
+}
+
+interface FormTemplate {
+    id: string;
+    name: string;
+    version: string;
+    context: string;
+    extends?: string;
+    patientId?: string;
+    visitId?: string;
+    sections: FormSection[];
+}
+
+interface FormTemplates {
+    general: FormTemplate;
+    study: FormTemplate;
+    patient: FormTemplate;
+}
+
 // Example form definitions for different contexts
-const FORM_TEMPLATES = {
+const FORM_TEMPLATES: FormTemplates = {
     // General form template that can be reused
     general: {
         id: 'general_patient_intake',
@@ -129,13 +176,12 @@ const FORM_TEMPLATES = {
                             { value: 'prefer_not_to_say', label: 'Prefer not to say' }
                         ]
                     },
-                    // Study-specific addition
                     {
                         id: 'subject_id',
                         type: 'text',
                         label: 'Subject ID',
                         required: true,
-                        readOnly: true, // Auto-generated
+                        readOnly: true,
                         description: 'Automatically assigned study participant identifier'
                     }
                 ]
@@ -158,7 +204,6 @@ const FORM_TEMPLATES = {
                     }
                 ]
             },
-            // Study-specific section
             {
                 id: 'baseline_vitals',
                 name: 'Baseline Vital Signs',
@@ -307,14 +352,17 @@ const FORM_TEMPLATES = {
     }
 };
 
-const FormIntegrationExamples = () => {
-    const [activeExample, setActiveExample] = useState('library_design');
-    const [selectedForm, setSelectedForm] = useState('general');
-    const [formData, setFormData] = useState({});
-    const [designerForm, setDesignerForm] = useState(FORM_TEMPLATES.general);
+type ExampleType = 'library_design' | 'study_design' | 'patient_capture' | 'reusability';
+type FormContextType = 'general' | 'study' | 'patient';
+
+const FormIntegrationExamples: React.FC = () => {
+    const [activeExample, setActiveExample] = useState<ExampleType>('library_design');
+    const [selectedForm, setSelectedForm] = useState<FormContextType>('general');
+    const [formData, setFormData] = useState<Record<string, any>>({});
+    const [designerForm, setDesignerForm] = useState<FormTemplate>(FORM_TEMPLATES.general);
 
     // Example 1: Form Library Design
-    const renderFormLibraryExample = () => (
+    const renderFormLibraryExample = (): React.ReactElement => (
         <div className="space-y-6">
             <div className="bg-blue-50 p-4 rounded-lg">
                 <h3 className="text-lg font-medium text-blue-900 mb-2">
@@ -334,8 +382,9 @@ const FormIntegrationExamples = () => {
                             <select
                                 value={selectedForm}
                                 onChange={(e) => {
-                                    setSelectedForm(e.target.value);
-                                    setDesignerForm(FORM_TEMPLATES[e.target.value]);
+                                    const newForm = e.target.value as FormContextType;
+                                    setSelectedForm(newForm);
+                                    setDesignerForm(FORM_TEMPLATES[newForm]);
                                 }}
                                 className="px-3 py-1 text-sm border rounded"
                             >
@@ -349,21 +398,15 @@ const FormIntegrationExamples = () => {
 
                 <div className="p-4">
                     <FormDesigner
-                        formDefinition={designerForm}
+                        formDefinition={designerForm as any}
                         context={selectedForm}
-                        mode="design"
-                        onSave={(updatedForm) => {
+                        onSave={(updatedForm: any) => {
                             setDesignerForm(updatedForm);
                             console.log('Form saved:', updatedForm);
                         }}
                         onCancel={() => console.log('Design cancelled')}
                         showPreview={true}
-                        enableSections={true}
-                        enableValidation={true}
-                        customFieldTypes={selectedForm === 'study' ? [
-                            { value: 'vital-sign', label: 'Vital Sign', category: 'clinical' },
-                            { value: 'medication', label: 'Medication', category: 'clinical' }
-                        ] : []}
+                        allowSectionManagement={true}
                     />
                 </div>
             </div>
@@ -371,7 +414,7 @@ const FormIntegrationExamples = () => {
     );
 
     // Example 2: Study-Specific Form Design  
-    const renderStudyDesignExample = () => (
+    const renderStudyDesignExample = (): React.ReactElement => (
         <div className="space-y-6">
             <div className="bg-green-50 p-4 rounded-lg">
                 <h3 className="text-lg font-medium text-green-900 mb-2">
@@ -391,11 +434,9 @@ const FormIntegrationExamples = () => {
                     </div>
                     <div className="p-4">
                         <FormPreview
-                            formDefinition={FORM_TEMPLATES.study}
+                            formDefinition={FORM_TEMPLATES.study as any}
                             context="study"
                             mode="filled"
-                            showDevicePreview={true}
-                            showMetadata={true}
                         />
                     </div>
                 </div>
@@ -407,9 +448,9 @@ const FormIntegrationExamples = () => {
                     </div>
                     <div className="p-4">
                         <FormPreview
-                            formDefinition={FORM_TEMPLATES.study}
+                            formDefinition={FORM_TEMPLATES.study as any}
                             context="study"
-                            mode="structure"
+                            mode="interactive"
                         />
                     </div>
                 </div>
@@ -418,7 +459,7 @@ const FormIntegrationExamples = () => {
     );
 
     // Example 3: Patient Data Capture
-    const renderPatientCaptureExample = () => (
+    const renderPatientCaptureExample = (): React.ReactElement => (
         <div className="space-y-6">
             <div className="bg-purple-50 p-4 rounded-lg">
                 <h3 className="text-lg font-medium text-purple-900 mb-2">
@@ -446,18 +487,15 @@ const FormIntegrationExamples = () => {
                         context="patient"
                         mode="entry"
                         onDataChange={setFormData}
-                        formDefinition={FORM_TEMPLATES.patient}
+                        formDefinition={FORM_TEMPLATES.patient as any}
                     >
                         <FormRenderer
-                            formDefinition={FORM_TEMPLATES.patient}
+                            formDefinition={FORM_TEMPLATES.patient as any}
                             formData={formData}
                             mode="entry"
                             context="patient"
                             onDataChange={setFormData}
-                            showSections={true}
-                            showProgress={true}
-                            showValidation={true}
-                            onSave={(data) => {
+                            onSave={(data: Record<string, any>) => {
                                 console.log('Patient data saved:', data);
                                 alert('Patient data saved successfully!');
                             }}
@@ -473,7 +511,7 @@ const FormIntegrationExamples = () => {
     );
 
     // Example 4: Component Reusability Demonstration
-    const renderReusabilityExample = () => (
+    const renderReusabilityExample = (): React.ReactElement => (
         <div className="space-y-6">
             <div className="bg-orange-50 p-4 rounded-lg">
                 <h3 className="text-lg font-medium text-orange-900 mb-2">
@@ -570,18 +608,19 @@ const FormIntegrationExamples = () => {
                 <div className="border-b border-gray-200">
                     <nav className="-mb-px flex space-x-8">
                         {[
-                            { id: 'library_design', label: 'Form Library Design', icon: '📚' },
-                            { id: 'study_design', label: 'Study-Specific Design', icon: '🔬' },
-                            { id: 'patient_capture', label: 'Patient Data Capture', icon: '👤' },
-                            { id: 'reusability', label: 'Component Reusability', icon: '♻️' }
+                            { id: 'library_design' as ExampleType, label: 'Form Library Design', icon: '📚' },
+                            { id: 'study_design' as ExampleType, label: 'Study-Specific Design', icon: '🔬' },
+                            { id: 'patient_capture' as ExampleType, label: 'Patient Data Capture', icon: '👤' },
+                            { id: 'reusability' as ExampleType, label: 'Component Reusability', icon: '♻️' }
                         ].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveExample(tab.id)}
-                                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeExample === tab.id
+                                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                    activeExample === tab.id
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
+                                }`}
                             >
                                 {tab.icon} {tab.label}
                             </button>
