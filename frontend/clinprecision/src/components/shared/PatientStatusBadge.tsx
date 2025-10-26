@@ -1,7 +1,7 @@
 // src/components/shared/PatientStatusBadge.tsx
 import React from 'react';
 import Badge from '../shared/ui/Badge';
-import PatientStatusService from '../../services/data-capture/PatientStatusService';
+import PatientStatusService from 'services/data-capture/PatientStatusService';
 
 type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'blue' | 'violet' | 'amber';
 type BadgeSize = 'sm' | 'md' | 'lg';

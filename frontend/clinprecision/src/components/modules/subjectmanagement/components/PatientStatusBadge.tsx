@@ -1,7 +1,7 @@
 // src/components/modules/subjectmanagement/components/PatientStatusBadge.tsx
 import React from 'react';
 import Badge from '../../../shared/ui/Badge';
-import PatientStatusService from '../../../../services/data-capture/PatientStatusService';
+import PatientStatusService from 'services/data-capture/PatientStatusService';
 
 interface PatientStatusBadgeProps {
     status: string;

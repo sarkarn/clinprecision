@@ -1,7 +1,7 @@
 // src/components/admin/SiteManagement/AssignUserDialog.js
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus, User, Badge, MapPin, AlertCircle, CheckCircle, Search } from 'lucide-react';
-import { SiteService } from '../../../../services/SiteService';
+import { SiteService } from 'services/SiteService';
 
 const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
   const [formData, setFormData] = useState({

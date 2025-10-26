@@ -10,8 +10,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PatientEnrollmentService from '../../../services/data-capture/PatientEnrollmentService';
-import { getStudies } from '../../../services/StudyService';
+import PatientEnrollmentService from 'services/data-capture/PatientEnrollmentService';
+import { getStudies } from 'services/StudyService';
 
 interface PatientStats {
     totalPatients: number;

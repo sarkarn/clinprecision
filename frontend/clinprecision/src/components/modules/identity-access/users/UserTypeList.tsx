@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserTypeService } from "../../../../services/auth/UserTypeService";
+import { UserTypeService } from "services/auth/UserTypeService";
 
 interface UserType {
     id: number | string;

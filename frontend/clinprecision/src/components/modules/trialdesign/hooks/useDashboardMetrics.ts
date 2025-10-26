@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import StudyService, { DashboardMetrics } from '../../../../services/StudyService';
+import StudyService, { DashboardMetrics } from 'services/StudyService';
 
 /**
  * Enhanced metrics with calculated fields

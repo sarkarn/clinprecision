@@ -11,7 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import BuildStatusBadge from './BuildStatusBadge';
 import BuildProgressBar from './BuildProgressBar';
-import studyDatabaseBuildService from '../../../../../services/StudyDatabaseBuildService';
+import studyDatabaseBuildService from 'services/StudyDatabaseBuildService';
 import type { StudyDatabaseBuild } from '../../../../../types/study/DatabaseBuild.types';
 
 type TabId = 'overview' | 'configuration' | 'validation' | 'timeline';

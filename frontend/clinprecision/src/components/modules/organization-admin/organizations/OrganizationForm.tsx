@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { OrganizationService } from "../../../../services/OrganizationService";
+import { OrganizationService } from "services/OrganizationService";
 
 interface FormData {
     name: string;

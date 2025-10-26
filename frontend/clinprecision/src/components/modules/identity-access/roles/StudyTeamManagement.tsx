@@ -1,9 +1,9 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { UserStudyRoleService } from '../../../../services/auth/UserStudyRoleService';
-import StudyService from '../../../../services/StudyService';
-import { UserService } from '../../../../services/UserService';
-import { RoleService } from '../../../../services/auth/RoleService';
+import { UserStudyRoleService } from 'services/auth/UserStudyRoleService';
+import StudyService from 'services/StudyService';
+import { UserService } from 'services/UserService';
+import { RoleService } from 'services/auth/RoleService';
 
 interface User {
     id: number | string;

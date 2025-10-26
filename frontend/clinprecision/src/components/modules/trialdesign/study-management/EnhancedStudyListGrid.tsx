@@ -15,7 +15,7 @@ const useStatusSynchronization = (options?: any) => ({
 });
 
 import React, { useState, useEffect, useMemo } from 'react';
-import StudyService from '../../../../services/StudyService';
+import StudyService from 'services/StudyService';
 // import { useStatusSynchronization } from '../../../../hooks/useStatusSynchronization';
 import StatusIndicator, { CompactStatusIndicator } from '../../../shared/status/StatusIndicator';
 import {

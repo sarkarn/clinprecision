@@ -1,7 +1,7 @@
 // FormView.tsx - Read-only Form Data Display
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getFormDefinition, getFormData } from '../../../../services/data-capture/DataEntryService';
+import { getFormDefinition, getFormData } from 'services/data-capture/DataEntryService';
 
 // Type definitions
 interface FieldMetadata {

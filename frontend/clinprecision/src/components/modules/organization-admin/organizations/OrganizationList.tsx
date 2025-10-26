@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import OrganizationService from "../../../../services/OrganizationService";
+import OrganizationService from "services/OrganizationService";
 import { Card, CardBody, CardActions, Button, Badge, ListControls, BreadcrumbNavigation } from "../../../shared/ui";
 import { Building2, MapPin, Eye, Edit2, Trash2, Plus } from "lucide-react";
 

@@ -10,9 +10,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStudies } from '../../../services/StudyService';
-import { enrollSubject } from '../../../services/SubjectService';
-import { SiteService } from '../../../services/SiteService';
+import { getStudies } from 'services/StudyService';
+import { enrollSubject } from 'services/SubjectService';
+import { SiteService } from 'services/SiteService';
 
 interface Study {
     id: number;

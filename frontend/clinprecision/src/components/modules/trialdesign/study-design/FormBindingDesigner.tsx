@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FileText, Eye, Link, Unlink, Settings, Search, Filter } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
-import VisitDefinitionService, { VisitDefinition, VisitFormBinding, VisitFormBindingCreateData } from '../../../../services/VisitDefinitionService';
-import StudyService from '../../../../services/StudyService';
-import StudyFormService from '../../../../services/data-capture/StudyFormService';
-import StudyDesignService from '../../../../services/StudyDesignService';
+import VisitDefinitionService, { VisitDefinition, VisitFormBinding, VisitFormBindingCreateData } from 'services/VisitDefinitionService';
+import StudyService from 'services/StudyService';
+import StudyFormService from 'services/data-capture/StudyFormService';
+import StudyDesignService from 'services/StudyDesignService';
 import type { Study } from '../../../../types';
 import type { StudyFormDefinition } from '../../../../types/domain/DataEntry.types';
 

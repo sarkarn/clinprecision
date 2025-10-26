@@ -11,9 +11,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getStudies } from '../../../services/StudyService';
-import { getSubjectsByStudy } from '../../../services/SubjectService';
-import ApiService from '../../../services/ApiService';
+import { getStudies } from 'services/StudyService';
+import { getSubjectsByStudy } from 'services/SubjectService';
+import ApiService from 'services/ApiService';
 // @ts-ignore - Custom hooks to be converted
 import { useStudy } from '../../../hooks/useStudy';
 // @ts-ignore - Custom hooks to be converted
@@ -193,7 +193,7 @@ const SubjectList: React.FC = () => {
         navigate(`${basePath}/subjects/${subjectId}/edit`);
     };
 
-    const handleWithdrawSubject = (subject: Subject) => {
+    const handleWithdrawSubject = (subject: any) => {
         if (normalizeStatus(subject.status) === 'WITHDRAWN') {
             toast.error('This subject has already been withdrawn.');
             return;

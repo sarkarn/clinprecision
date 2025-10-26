@@ -5,8 +5,8 @@ import {
 } from 'lucide-react';
 
 // Services
-import { getStudyById } from '../../../../services/StudyService';
-import StudyDesignService from '../../../../services/StudyDesignService';
+import { getStudyById } from 'services/StudyService';
+import StudyDesignService from 'services/StudyDesignService';
 
 // Types
 import { Study } from '../../../../types';

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import studyDatabaseBuildService from '../../../../../services/StudyDatabaseBuildService';
+import studyDatabaseBuildService from 'services/StudyDatabaseBuildService';
 import { StudyDatabaseBuild, BuildStatus } from '../../../../../types/study/DatabaseBuild.types';
 
 /**

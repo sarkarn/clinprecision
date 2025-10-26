@@ -1,7 +1,7 @@
 // src/components/modules/trialdesign/study-management/DocumentUploadModal.tsx
 import React, { useState } from 'react';
 import { X, Upload, FileText, AlertCircle } from 'lucide-react';
-import StudyDocumentService from '../../../../services/data-capture/StudyDocumentService';
+import StudyDocumentService from 'services/data-capture/StudyDocumentService';
 
 // Type Definitions
 interface DocumentType {

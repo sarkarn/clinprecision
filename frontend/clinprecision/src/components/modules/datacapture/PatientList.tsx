@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PatientEnrollmentService from '../../../services/data-capture/PatientEnrollmentService';
+import PatientEnrollmentService from 'services/data-capture/PatientEnrollmentService';
 
 interface Patient {
     id: number;

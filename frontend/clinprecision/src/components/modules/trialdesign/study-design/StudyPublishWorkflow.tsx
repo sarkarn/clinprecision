@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, XCircle, Eye, FileText, Users, Calendar, Link as LinkIcon, Send, Lock, Unlock } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
-import StudyDesignService from '../../../../services/StudyDesignService';
+import StudyDesignService from 'services/StudyDesignService';
 import useProtocolVersioning from '../hooks/useProtocolVersioning';
 import type { Study } from '../../../../types';
 

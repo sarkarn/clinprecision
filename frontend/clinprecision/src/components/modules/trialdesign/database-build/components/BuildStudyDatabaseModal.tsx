@@ -1,8 +1,8 @@
 import React, { FC, useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { XMarkIcon, ExclamationTriangleIcon, CheckCircleIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { getStudies } from '../../../../../services/StudyServiceModern';
+import { getStudies } from 'services/StudyServiceModern';
 import { useBuildActions } from '../hooks/useBuildActions';
-import studyDatabaseBuildService from '../../../../../services/StudyDatabaseBuildService';
+import studyDatabaseBuildService from 'services/StudyDatabaseBuildService';
 import { useAuth } from '../../../../login/AuthContext';
 import { useStudyNavigation } from '../../hooks/useStudyNavigation';
 import type { StudyDatabaseBuild } from '../../../../../types/study/DatabaseBuild.types';

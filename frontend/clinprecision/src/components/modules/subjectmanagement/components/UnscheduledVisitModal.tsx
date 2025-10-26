@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, Calendar, FileText } from 'lucide-react';
-import VisitService, { getVisitTypeLabel, VISIT_TYPES } from '../../../../services/VisitService';
+import VisitService, { getVisitTypeLabel, VISIT_TYPES } from 'services/VisitService';
 
 interface VisitType {
     id: number;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { UserTypeService } from "../../../../services/auth/UserTypeService";
+import { UserTypeService } from "services/auth/UserTypeService";
 
 interface FormData {
     name: string;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Building, User, Mail, Phone } from 'lucide-react';
 import { Alert, Button } from '../../modules/trialdesign/components/UIComponents';
-import { sendDemoRequestEmail } from '../../../services/EmailService';
+import { sendDemoRequestEmail } from 'services/EmailService';
 
 interface DemoFormData {
     name: string;

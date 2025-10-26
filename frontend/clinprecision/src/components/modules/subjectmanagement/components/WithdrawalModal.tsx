@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, Upload, FileText } from 'lucide-react';
-import PatientStatusService from '../../../../services/data-capture/PatientStatusService';
+import PatientStatusService from 'services/data-capture/PatientStatusService';
 import { useAuth } from '../../../login/AuthContext';
 
 interface WithdrawalReason {

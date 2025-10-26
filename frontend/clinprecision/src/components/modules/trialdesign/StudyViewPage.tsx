@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getStudyById } from '../../../services/StudyService';
+import { getStudyById } from 'services/StudyService';
 import { Study } from '../../../types';
 
 type TabType = 'details' | 'arms';

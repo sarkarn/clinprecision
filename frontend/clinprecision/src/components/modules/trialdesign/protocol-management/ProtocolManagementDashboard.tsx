@@ -17,9 +17,9 @@ import {
     LucideIcon
 } from 'lucide-react';
 import useProtocolVersioning from '../hooks/useProtocolVersioning';
-import StudyService from '../../../../services/StudyService';
+import StudyService from 'services/StudyService';
 import ProtocolVersionManagementModal from '../study-design/protocol-version/ProtocolVersionManagementModal';
-import { ProtocolVersion } from '../../../../services/StudyVersioningService';
+import { ProtocolVersion } from 'services/StudyVersioningService';
 import type { Study } from '../../../../types';
 
 /**

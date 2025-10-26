@@ -1,9 +1,9 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { UserService } from '../../../../services/UserService';
-import { UserTypeService } from '../../../../services/auth/UserTypeService';
-import OrganizationService from '../../../../services/OrganizationService';
-import { RoleService } from '../../../../services/auth/RoleService';
+import { UserService } from 'services/UserService';
+import { UserTypeService } from 'services/auth/UserTypeService';
+import OrganizationService from 'services/OrganizationService';
+import { RoleService } from 'services/auth/RoleService';
 import { useAuth } from '../../../login/AuthContext';
 
 interface UserType {

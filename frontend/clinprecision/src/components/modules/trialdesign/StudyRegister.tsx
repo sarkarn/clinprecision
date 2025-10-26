@@ -1,7 +1,7 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import StudyService from '../../../services/StudyService';
-import { StudyOrganizationService } from '../../../services/StudyOrganizationService';
+import StudyService from 'services/StudyService';
+import { StudyOrganizationService } from 'services/StudyOrganizationService';
 
 interface Organization {
     id: number | string;

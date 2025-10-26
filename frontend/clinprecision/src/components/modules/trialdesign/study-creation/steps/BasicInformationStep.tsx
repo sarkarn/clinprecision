@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import FormField from '../../components/FormField';
-import { StudyOrganizationService } from '../../../../../services/StudyOrganizationService';
+import { StudyOrganizationService } from 'services/StudyOrganizationService';
 import { Organization as ImportedOrganization } from '../../../../../types/study/StudyOrganization.types';
 
 interface LookupItem {

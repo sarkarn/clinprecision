@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Activity, FileText, LucideIcon } from 'lucide-react';
 import { Alert, Button } from '../components/UIComponents';
-import VisitDefinitionService, { VisitDefinition, VisitDefinitionCreateData } from '../../../../services/VisitDefinitionService';
-import StudyService from '../../../../services/StudyService';
-import StudyDesignService from '../../../../services/StudyDesignService';
+import VisitDefinitionService, { VisitDefinition, VisitDefinitionCreateData } from 'services/VisitDefinitionService';
+import StudyService from 'services/StudyService';
+import StudyDesignService from 'services/StudyDesignService';
 import type { Study } from '../../../../types';
 
 // ============================================================================

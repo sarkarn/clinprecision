@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
-import PatientStatusService from '../../../../services/data-capture/PatientStatusService';
+import PatientStatusService from 'services/data-capture/PatientStatusService';
 
 interface TransitionData {
     fromStatus: string;

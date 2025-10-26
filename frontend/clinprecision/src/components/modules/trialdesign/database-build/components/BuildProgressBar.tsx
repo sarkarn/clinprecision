@@ -1,5 +1,5 @@
 import React, { FC } from 'react';
-import studyDatabaseBuildService from '../../../../../services/StudyDatabaseBuildService';
+import studyDatabaseBuildService from 'services/StudyDatabaseBuildService';
 import type { StudyDatabaseBuild } from '../../../../../types/study/DatabaseBuild.types';
 
 type ProgressBarHeight = 'small' | 'medium' | 'large';

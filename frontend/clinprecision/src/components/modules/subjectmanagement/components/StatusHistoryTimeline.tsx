@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getStatusHistory } from '../../../../services/SubjectService';
+import { getStatusHistory } from 'services/SubjectService';
 import PatientStatusBadge from './PatientStatusBadge';
 
 interface StatusHistoryItem {

@@ -1,7 +1,7 @@
 // src/components/modules/trialdesign/study-management/EnhancedStudyOverviewDashboard.tsx
 import React, { useState, useEffect } from 'react';
-import StudyService from '../../../../services/StudyService';
-import StudyDocumentService from '../../../../services/data-capture/StudyDocumentService';
+import StudyService from 'services/StudyService';
+import StudyDocumentService from 'services/data-capture/StudyDocumentService';
 // Temporary mock for useStatusSynchronization until implementation is complete
 const useStatusSynchronization = (options: any) => ({
     isConnected: false,

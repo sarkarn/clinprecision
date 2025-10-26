@@ -1,7 +1,7 @@
 // StudySiteStep.tsx - Study and Site Selection Step
 import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { SiteService } from '../../../../../services/SiteService';
+import { SiteService } from 'services/SiteService';
 
 // Type definitions
 interface Study {

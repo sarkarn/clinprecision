@@ -18,8 +18,8 @@ import {
   Clock,
   XCircle
 } from 'lucide-react';
-import { SiteService } from '../../../../services/SiteService';
-import { OrganizationService } from '../../../../services/OrganizationService';
+import { SiteService } from 'services/SiteService';
+import { OrganizationService } from 'services/OrganizationService';
 
 import CreateSiteDialog from './CreateSiteDialog';
 import SiteDetailsDialog from './SiteDetailsDialog';

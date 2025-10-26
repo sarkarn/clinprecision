@@ -4,7 +4,7 @@ import StudyVersioningService, {
   ProtocolVersionStatus as ServiceProtocolVersionStatus,
   ProtocolVersionCreateData as ServiceProtocolVersionCreateData,
   ProtocolVersionUpdateData as ServiceProtocolVersionUpdateData
-} from '../../../../services/StudyVersioningService';
+} from 'services/StudyVersioningService';
 import {
   ProtocolVersionStatus,
   AmendmentType,

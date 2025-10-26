@@ -9,9 +9,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { getSubjectById } from '../../../services/SubjectService';
-import ApiService from '../../../services/ApiService';
-import { getStudies } from '../../../services/StudyService';
+import { getSubjectById } from 'services/SubjectService';
+import ApiService from 'services/ApiService';
+import { getStudies } from 'services/StudyService';
 
 interface Study {
     id: number;

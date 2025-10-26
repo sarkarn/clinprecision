@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import StudyVersioningService, { ProtocolVersion } from '../../../../services/StudyVersioningService';
+import StudyVersioningService, { ProtocolVersion } from 'services/StudyVersioningService';
 
 // ============================================================================
 // Types
