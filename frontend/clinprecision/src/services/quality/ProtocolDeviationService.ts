@@ -557,6 +557,28 @@ export function getDeviationTypeLabel(type: DeviationType): string {
 }
 
 /**
+ * Normalize deviation type labels for display.
+ */
+export function formatDeviationType(type: DeviationType | string | undefined): string {
+  if (!type) {
+    return 'Unknown';
+  }
+
+  const value = typeof type === 'string' ? type : String(type);
+  const normalized = value.toUpperCase() as DeviationType;
+
+  if ((Object.values(DeviationType) as string[]).includes(normalized)) {
+    return getDeviationTypeLabel(normalized as DeviationType);
+  }
+
+  // Fallback: convert to Title Case while keeping separators readable
+  return value
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+/**
  * Get severity badge CSS classes
  */
 export function getSeverityBadgeClass(severity: DeviationSeverity): string {
@@ -582,6 +604,34 @@ export function getStatusBadgeClass(status: DeviationStatus): string {
 }
 
 /**
+ * Format deviation status into a user-friendly label.
+ */
+export function formatStatus(status: DeviationStatus | string | undefined): string {
+  if (!status) {
+    return 'Unknown';
+  }
+
+  const value = typeof status === 'string' ? status : String(status);
+  const normalized = value.toUpperCase() as DeviationStatus;
+
+  const labels: Record<DeviationStatus, string> = {
+    [DeviationStatus.OPEN]: 'Open',
+    [DeviationStatus.UNDER_REVIEW]: 'Under Review',
+    [DeviationStatus.RESOLVED]: 'Resolved',
+    [DeviationStatus.CLOSED]: 'Closed',
+  };
+
+  if (labels[normalized]) {
+    return labels[normalized];
+  }
+
+  return value
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+/**
  * Get deviation types for dropdown
  */
 export function getDeviationTypes(): DeviationTypeOption[] {
@@ -596,6 +646,26 @@ export function getDeviationTypes(): DeviationTypeOption[] {
     { value: DeviationType.SAFETY, label: 'Safety Issue' },
     { value: DeviationType.OTHER, label: 'Other' },
   ];
+}
+
+/**
+ * Safe date formatter used across deviation dashboards.
+ */
+export function formatDate(date: string | undefined | null, locale?: string): string {
+  if (!date) {
+    return '—';
+  }
+
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) {
+    return date;
+  }
+
+  return parsed.toLocaleDateString(locale || undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 /**
@@ -682,6 +752,70 @@ export function sortByDate(deviations: ProtocolDeviation[], descending = true): 
   });
 }
 
+/**
+ * Convert a list of deviations into CSV text for downloads or reporting.
+ */
+export function exportDeviationsToCsv(deviations: ProtocolDeviation[]): string {
+  const headers = [
+    'Deviation ID',
+    'Patient ID',
+    'Study Site ID',
+    'Deviation Type',
+    'Severity',
+    'Status',
+    'Title',
+    'Requires Reporting',
+    'Deviation Date',
+    'Reported To Sponsor At',
+    'Reported To IRB At',
+    'Resolved At',
+    'Closed At',
+    'Reported By',
+    'Created At',
+    'Updated At',
+  ];
+
+  const escapeValue = (value: unknown): string => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    const normalized = String(value).replace(/\r?\n|\r/g, ' ').trim();
+    if (/[",\n]/.test(normalized)) {
+      return `"${normalized.replace(/"/g, '""')}"`;
+    }
+    return normalized;
+  };
+
+  const boolToYesNo = (value: boolean): string => (value ? 'Yes' : 'No');
+
+  const rows = deviations.map((deviation) => [
+    deviation.id,
+    deviation.patientId,
+    deviation.studySiteId,
+    deviation.deviationType,
+    deviation.severity,
+    deviation.status,
+    deviation.title,
+    boolToYesNo(deviation.requiresReporting),
+    deviation.deviationDate,
+    deviation.reportedToSponsorAt || '',
+    deviation.reportedToIrbAt || '',
+    deviation.resolvedAt || '',
+    deviation.closedAt || '',
+    deviation.reportedBy,
+    deviation.createdAt,
+    deviation.updatedAt,
+  ]);
+
+  const csvLines = [
+    headers.join(','),
+    ...rows.map((row) => row.map(escapeValue).join(',')),
+  ];
+
+  return csvLines.join('\n');
+}
+
 // ==================== Legacy Compatibility ====================
 
 /**
@@ -706,11 +840,14 @@ const ProtocolDeviationService = {
   
   // Utility functions
   getDeviationTypeLabel,
+  formatDeviationType,
   getSeverityBadgeClass,
   getStatusBadgeClass,
+  formatStatus,
   getDeviationTypes,
   getSeverityLevels,
   getStatusOptions,
+  formatDate,
   filterBySeverity,
   filterByStatus,
   filterByType,
@@ -719,6 +856,7 @@ const ProtocolDeviationService = {
   getUnreported: getUnreportedDeviations,
   sortBySeverity,
   sortByDate,
+  exportDeviationsToCsv,
 };
 
 export default ProtocolDeviationService;

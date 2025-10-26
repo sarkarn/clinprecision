@@ -1,6 +1,5 @@
 import React from 'react';
-import { Tag, Tooltip } from 'antd';
-import { LockOutlined, UnlockOutlined } from '@ant-design/icons';
+import { Lock, Unlock } from 'lucide-react';
 
 interface LockStatusIndicatorProps {
     isLocked: boolean;
@@ -11,19 +10,23 @@ interface LockStatusIndicatorProps {
  * Component to display lock status for studies and forms
  */
 const LockStatusIndicator: React.FC<LockStatusIndicatorProps> = ({ isLocked, entityType }) => {
-    const color = isLocked ? 'red' : 'green';
-    const icon = isLocked ? <LockOutlined /> : <UnlockOutlined />;
+    const Icon = isLocked ? Lock : Unlock;
     const text = isLocked ? 'Locked' : 'Unlocked';
     const tooltip = isLocked
         ? `This ${entityType} is locked and cannot be modified`
         : `This ${entityType} is unlocked and can be modified`;
+    const colorClasses = isLocked
+        ? 'border-red-300 bg-red-100 text-red-800'
+        : 'border-green-300 bg-green-100 text-green-800';
 
     return (
-        <Tooltip title={tooltip}>
-            <Tag color={color} icon={icon}>
-                {text}
-            </Tag>
-        </Tooltip>
+        <span
+            className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium border rounded-full ${colorClasses}`}
+            title={tooltip}
+        >
+            <Icon className="h-3 w-3" aria-hidden="true" />
+            <span>{text}</span>
+        </span>
     );
 };
 

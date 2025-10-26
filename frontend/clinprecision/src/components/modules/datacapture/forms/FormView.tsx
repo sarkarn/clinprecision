@@ -1,5 +1,5 @@
 // FormView.tsx - Read-only Form Data Display
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getFormDefinition, getFormData } from 'services/data-capture/DataEntryService';
 
@@ -45,7 +45,7 @@ const FormView: React.FC = () => {
                 setFormDefinition(definition);
 
                 // Get form data
-                const data = await getFormData(subjectId!, visitId!, formId!) as any;
+                const data = await getFormData(visitId!, formId!) as any;
                 setFormData(data || {});
             } catch (error: any) {
                 console.error('Error fetching form data:', error);
@@ -57,7 +57,7 @@ const FormView: React.FC = () => {
         fetchFormData();
     }, [subjectId, visitId, formId]);
 
-    const renderFieldValue = (field: FormField): JSX.Element => {
+    const renderFieldValue = (field: FormField): ReactNode => {
         const value = formData[field.id];
 
         if (value === undefined || value === null || value === '') {

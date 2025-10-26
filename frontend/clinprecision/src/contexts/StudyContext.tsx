@@ -1,10 +1,13 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { Study } from '../types';
 
+// Allow selected study to be represented as a Study object or simple identifier
+export type StudySelection = Study | string | number | null;
+
 // Define the shape of the context value
 interface StudyContextValue {
-    selectedStudy: Study | null;
-    setSelectedStudy: (study: Study | null) => void;
+    selectedStudy: StudySelection;
+    setSelectedStudy: (selection: StudySelection) => void;
     clearSelectedStudy: () => void;
 }
 
@@ -17,34 +20,39 @@ interface StudyProviderProps {
 }
 
 export const StudyProvider: React.FC<StudyProviderProps> = ({ children }) => {
-    const [selectedStudy, setSelectedStudy] = useState<Study | null>(() => {
+    const [selectedStudy, setSelectedStudyState] = useState<StudySelection>(() => {
         // Initialize from localStorage if available
         const stored = localStorage.getItem('selectedStudy');
+        if (!stored) {
+            return null;
+        }
+
         try {
-            return stored ? JSON.parse(stored) : null;
+            return JSON.parse(stored) as StudySelection;
         } catch (error) {
-            console.error('Failed to parse stored study:', error);
+            console.error('Failed to parse stored study selection:', error);
             return null;
         }
     });
 
     useEffect(() => {
         // Persist to localStorage whenever selectedStudy changes
-        if (selectedStudy) {
-            try {
-                localStorage.setItem('selectedStudy', JSON.stringify(selectedStudy));
-            } catch (error) {
-                console.error('Failed to store study:', error);
-            }
-        } else {
+        if (selectedStudy === null) {
             localStorage.removeItem('selectedStudy');
+            return;
+        }
+
+        try {
+            localStorage.setItem('selectedStudy', JSON.stringify(selectedStudy));
+        } catch (error) {
+            console.error('Failed to store study selection:', error);
         }
     }, [selectedStudy]);
 
     const value: StudyContextValue = {
         selectedStudy,
-        setSelectedStudy,
-        clearSelectedStudy: () => setSelectedStudy(null),
+        setSelectedStudy: (selection: StudySelection) => setSelectedStudyState(selection),
+        clearSelectedStudy: () => setSelectedStudyState(null),
     };
 
     return (
