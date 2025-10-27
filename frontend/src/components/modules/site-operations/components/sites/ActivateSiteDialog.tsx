@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Play, AlertCircle, CheckCircle, Building } from 'lucide-react';
-import SiteService from '../services/administration/SiteService';
+import SiteService from './services/administration/SiteService';
 
 interface ActivateSiteDialogProps {
   open: boolean;
