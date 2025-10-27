@@ -1,11 +1,38 @@
-// src/components/admin/SiteManagement/CreateSiteDialog.js
 import React, { useState, useEffect } from 'react';
 import { X, Building, MapPin, Phone, Mail, AlertCircle, CheckCircle } from 'lucide-react';
-import { SiteService } from 'services/SiteService';
+import SiteService from 'services/administration/SiteService';
 
-const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], site = null }) => {
+interface Organization {
+  id: number;
+  name: string;
+}
+
+interface Site {
+  id: number;
+  name: string;
+  siteNumber: string;
+  organizationId: number;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+  principalInvestigator?: string;
+}
+
+interface CreateSiteDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSiteCreated: () => void;
+  organizations?: Organization[];
+  site?: Site | null;
+}
+
+const CreateSiteDialog: React.FC<CreateSiteDialogProps> = ({ open, onClose, onSiteCreated, organizations = [], site = null }) => {
   const isEditMode = !!site;
-  
   const [formData, setFormData] = useState({
     name: '',
     siteNumber: '',
@@ -21,20 +48,17 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
     principalInvestigator: '',
     reason: ''
   });
-
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+  const [notification, setNotification] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
-  // Reset or populate form when dialog opens/closes
   useEffect(() => {
     if (open) {
       if (site) {
-        // Edit mode - populate with site data
         setFormData({
           name: site.name || '',
           siteNumber: site.siteNumber || '',
-          organizationId: site.organizationId || '',
+          organizationId: site.organizationId?.toString() || '',
           addressLine1: site.addressLine1 || '',
           addressLine2: site.addressLine2 || '',
           city: site.city || '',
@@ -47,7 +71,6 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
           reason: ''
         });
       } else {
-        // Create mode - reset form
         setFormData({
           name: '',
           siteNumber: '',
@@ -70,124 +93,58 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
   }, [open, site]);
 
   const validateForm = () => {
-    const newErrors = {};
-
-    // Required fields
-    if (!formData.name?.trim()) {
-      newErrors.name = 'Site name is required';
-    }
-
-    if (!formData.siteNumber?.trim()) {
-      newErrors.siteNumber = 'Site number is required';
-    }
-
-    if (!formData.organizationId) {
-      newErrors.organizationId = 'Organization is required';
-    }
-
-    if (!formData.reason?.trim()) {
-      newErrors.reason = 'Reason for creation is required for audit trail';
-    }
-
-    // Email validation
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Site number validation (basic alphanumeric)
-    if (formData.siteNumber && !/^[A-Za-z0-9\-_]+$/.test(formData.siteNumber)) {
-      newErrors.siteNumber = 'Site number can only contain letters, numbers, hyphens, and underscores';
-    }
-
-    // Length validations
-    if (formData.name && formData.name.length > 100) {
-      newErrors.name = 'Site name must be less than 100 characters';
-    }
-
-    if (formData.siteNumber && formData.siteNumber.length > 20) {
-      newErrors.siteNumber = 'Site number must be less than 20 characters';
-    }
-
-    if (formData.reason && formData.reason.length > 500) {
-      newErrors.reason = 'Reason must be less than 500 characters';
-    }
-
+    const newErrors: { [key: string]: string } = {};
+    if (!formData.name?.trim()) newErrors.name = 'Site name is required';
+    if (!formData.siteNumber?.trim()) newErrors.siteNumber = 'Site number is required';
+    if (!formData.organizationId) newErrors.organizationId = 'Organization is required';
+    if (!formData.reason?.trim()) newErrors.reason = 'Reason for creation is required for audit trail';
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Please enter a valid email address';
+    if (formData.siteNumber && !/^[A-Za-z0-9\-_]+$/.test(formData.siteNumber)) newErrors.siteNumber = 'Site number can only contain letters, numbers, hyphens, and underscores';
+    if (formData.name && formData.name.length > 100) newErrors.name = 'Site name must be less than 100 characters';
+    if (formData.siteNumber && formData.siteNumber.length > 20) newErrors.siteNumber = 'Site number must be less than 20 characters';
+    if (formData.reason && formData.reason.length > 500) newErrors.reason = 'Reason must be less than 500 characters';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) {
-      setNotification({
-        show: true,
-        message: 'Please fix the errors below',
-        type: 'error'
-      });
+      setNotification({ show: true, message: 'Please fix the errors below', type: 'error' });
       return;
     }
-
     try {
       setLoading(true);
-      
-      const siteData = {
-        ...formData,
-        organizationId: parseInt(formData.organizationId)
-      };
-
-      if (isEditMode) {
-        // Update existing site
+      const siteData = { ...formData, organizationId: parseInt(formData.organizationId) };
+      if (isEditMode && site) {
         await SiteService.updateSite(site.id, siteData);
-        setNotification({
-          show: true,
-          message: 'Site updated successfully!',
-          type: 'success'
-        });
+        setNotification({ show: true, message: 'Site updated successfully!', type: 'success' });
       } else {
-        // Create new site
-        siteData.status = 'pending'; // New sites start as pending
+        siteData.status = 'pending';
         await SiteService.createSite(siteData);
-        setNotification({
-          show: true,
-          message: 'Site created successfully!',
-          type: 'success'
-        });
+        setNotification({ show: true, message: 'Site created successfully!', type: 'success' });
       }
-
       setTimeout(() => {
         onSiteCreated();
         onClose();
       }, 1000);
-
-    } catch (error) {
-      console.error(`Error ${isEditMode ? 'updating' : 'creating'} site:`, error);
-      setNotification({
-        show: true,
-        message: error.message || `Failed to ${isEditMode ? 'update' : 'create'} site. Please try again.`,
-        type: 'error'
-      });
+    } catch (error: any) {
+      setNotification({ show: true, message: error.message || `Failed to ${isEditMode ? 'update' : 'create'} site. Please try again.`, type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
   const handleClose = () => {
-    if (!loading) {
-      onClose();
-    }
+    if (!loading) onClose();
   };
 
-  const getOrganizationName = (orgId) => {
+  const getOrganizationName = (orgId: string) => {
     const org = organizations.find(o => o.id === parseInt(orgId));
     return org ? org.name : '';
   };
@@ -216,21 +173,16 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
-
         {/* Notification */}
         {notification.show && (
           <div className={`mx-6 mt-4 p-4 rounded-md flex items-center gap-3 ${
             notification.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
             'bg-red-50 text-red-800 border border-red-200'
           }`}>
-            {notification.type === 'success' ? 
-              <CheckCircle className="w-5 h-5" /> : 
-              <AlertCircle className="w-5 h-5" />
-            }
+            {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
             <span className="text-sm">{notification.message}</span>
           </div>
         )}
-
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Basic Information */}
@@ -238,77 +190,55 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
             <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Site Name *
-                </label>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Site Name *</label>
                 <input
                   type="text"
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.name ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.name ? 'border-red-300' : 'border-gray-300'}`}
                   placeholder="e.g., Memorial Healthcare Center"
                   disabled={loading}
                 />
                 {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
               </div>
-
               <div>
-                <label htmlFor="siteNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                  Site Number *
-                </label>
+                <label htmlFor="siteNumber" className="block text-sm font-medium text-gray-700 mb-1">Site Number *</label>
                 <input
                   type="text"
                   id="siteNumber"
                   value={formData.siteNumber}
                   onChange={(e) => handleInputChange('siteNumber', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.siteNumber ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.siteNumber ? 'border-red-300' : 'border-gray-300'}`}
                   placeholder="e.g., SITE-001"
                   disabled={loading}
                 />
                 {errors.siteNumber && <p className="mt-1 text-sm text-red-600">{errors.siteNumber}</p>}
               </div>
-
               <div className="md:col-span-2">
-                <label htmlFor="organizationId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Organization *
-                </label>
+                <label htmlFor="organizationId" className="block text-sm font-medium text-gray-700 mb-1">Organization *</label>
                 <select
                   id="organizationId"
                   value={formData.organizationId}
                   onChange={(e) => handleInputChange('organizationId', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.organizationId ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.organizationId ? 'border-red-300' : 'border-gray-300'}`}
                   disabled={loading}
                 >
                   <option value="">Select an organization</option>
                   {organizations.map(org => (
-                    <option key={org.id} value={org.id}>
-                      {org.name}
-                    </option>
+                    <option key={org.id} value={org.id}>{org.name}</option>
                   ))}
                 </select>
                 {errors.organizationId && <p className="mt-1 text-sm text-red-600">{errors.organizationId}</p>}
               </div>
             </div>
           </div>
-
           {/* Address Information */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-gray-600" />
-              Address Information
-            </h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2"><MapPin className="w-5 h-5 text-gray-600" />Address Information</h3>
             <div className="space-y-4">
               <div>
-                <label htmlFor="addressLine1" className="block text-sm font-medium text-gray-700 mb-1">
-                  Address Line 1
-                </label>
+                <label htmlFor="addressLine1" className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
                 <input
                   type="text"
                   id="addressLine1"
@@ -319,11 +249,8 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
                   disabled={loading}
                 />
               </div>
-
               <div>
-                <label htmlFor="addressLine2" className="block text-sm font-medium text-gray-700 mb-1">
-                  Address Line 2
-                </label>
+                <label htmlFor="addressLine2" className="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
                 <input
                   type="text"
                   id="addressLine2"
@@ -334,12 +261,9 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
                   disabled={loading}
                 />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-                    City
-                  </label>
+                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">City</label>
                   <input
                     type="text"
                     id="city"
@@ -350,11 +274,8 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
                     disabled={loading}
                   />
                 </div>
-
                 <div>
-                  <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
-                    State/Province
-                  </label>
+                  <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
                   <input
                     type="text"
                     id="state"
@@ -365,11 +286,8 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
                     disabled={loading}
                   />
                 </div>
-
                 <div>
-                  <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">
-                    ZIP/Postal Code
-                  </label>
+                  <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">ZIP/Postal Code</label>
                   <input
                     type="text"
                     id="zipCode"
@@ -381,11 +299,8 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
                   />
                 </div>
               </div>
-
               <div>
-                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
-                  Country
-                </label>
+                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                 <input
                   type="text"
                   id="country"
@@ -398,18 +313,12 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
               </div>
             </div>
           </div>
-
           {/* Contact Information */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-              <Phone className="w-5 h-5 text-gray-600" />
-              Contact Information
-            </h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2"><Phone className="w-5 h-5 text-gray-600" />Contact Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number
-                </label>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                 <input
                   type="tel"
                   id="phone"
@@ -420,29 +329,21 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
                   disabled={loading}
                 />
               </div>
-
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address
-                </label>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                 <input
                   type="email"
                   id="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.email ? 'border-red-300' : 'border-gray-300'}`}
                   placeholder="e.g., contact@site.com"
                   disabled={loading}
                 />
                 {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
               </div>
-
               <div className="md:col-span-2">
-                <label htmlFor="principalInvestigator" className="block text-sm font-medium text-gray-700 mb-1">
-                  Principal Investigator
-                </label>
+                <label htmlFor="principalInvestigator" className="block text-sm font-medium text-gray-700 mb-1">Principal Investigator</label>
                 <input
                   type="text"
                   id="principalInvestigator"
@@ -455,22 +356,17 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
               </div>
             </div>
           </div>
-
           {/* Audit Information */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">Audit Information</h3>
             <div>
-              <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">
-                Reason for Site Creation *
-              </label>
+              <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">Reason for Site Creation *</label>
               <textarea
                 id="reason"
                 value={formData.reason}
                 onChange={(e) => handleInputChange('reason', e.target.value)}
                 rows={3}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.reason ? 'border-red-300' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.reason ? 'border-red-300' : 'border-gray-300'}`}
                 placeholder="e.g., New site required for Phase II clinical trial expansion to increase patient enrollment in the Northeast region."
                 disabled={loading}
               />
@@ -478,7 +374,6 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
               <p className="mt-1 text-sm text-gray-500">Explain why this site is being created (required for audit trail)</p>
             </div>
           </div>
-
           {/* Summary */}
           {formData.name && formData.organizationId && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
@@ -493,7 +388,6 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
             </div>
           )}
         </form>
-
         {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
           <button
@@ -506,7 +400,6 @@ const CreateSiteDialog = ({ open, onClose, onSiteCreated, organizations = [], si
           </button>
           <button
             type="submit"
-            onClick={handleSubmit}
             disabled={loading}
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >

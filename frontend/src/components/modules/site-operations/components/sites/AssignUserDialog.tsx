@@ -1,24 +1,51 @@
-// src/components/admin/SiteManagement/AssignUserDialog.js
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus, User, Badge, MapPin, AlertCircle, CheckCircle, Search } from 'lucide-react';
-import { SiteService } from 'services/SiteService';
+import { assignUserType } from 'services/administration/UserService';
 
-const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
-  const [formData, setFormData] = useState({
-    userId: '',
-    roleId: '',
-    reason: ''
-  });
-  const [users, setUsers] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
+interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  title: string;
+  department: string;
+  isActive: boolean;
+}
+
+interface Role {
+  id: number;
+  name: string;
+  description: string;
+  permissions: string[];
+}
+
+interface Site {
+  id: string;
+  name: string;
+  siteNumber: string;
+  organizationName?: string;
+  status: string;
+}
+
+interface AssignUserDialogProps {
+  open: boolean;
+  onClose: () => void;
+  site: Site | null;
+  onUserAssigned: () => void;
+}
+
+const AssignUserDialog: React.FC<AssignUserDialogProps> = ({ open, onClose, site, onUserAssigned }) => {
+  const [formData, setFormData] = useState<{ userId: string; roleId: string; reason: string }>({ userId: '', roleId: '', reason: '' });
+  const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [notification, setNotification] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
     if (open) {
@@ -27,7 +54,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
     }
   }, [open]);
 
-  // Filter users based on search term
   useEffect(() => {
     if (userSearchTerm) {
       const filtered = users.filter(user =>
@@ -45,7 +71,7 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
     setLoadingUsers(true);
     try {
       // Mock data - replace with actual UserService call
-      const mockUsers = [
+      const mockUsers: User[] = [
         {
           id: 1,
           firstName: 'Dr. Sarah',
@@ -83,7 +109,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
           isActive: true
         }
       ];
-      
       await new Promise(resolve => setTimeout(resolve, 500));
       setUsers(mockUsers.filter(user => user.isActive));
     } catch (error) {
@@ -97,7 +122,7 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
     setLoadingRoles(true);
     try {
       // Mock data - replace with actual RoleService call
-      const mockRoles = [
+      const mockRoles: Role[] = [
         {
           id: 1,
           name: 'Principal Investigator',
@@ -129,7 +154,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
           permissions: ['user_management', 'site_configuration', 'reporting']
         }
       ];
-      
       await new Promise(resolve => setTimeout(resolve, 300));
       setRoles(mockRoles);
     } catch (error) {
@@ -140,39 +164,32 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
-
+    const newErrors: { [key: string]: string } = {};
     if (!formData.userId) {
       newErrors.userId = 'Please select a user to assign to this site';
     }
-
     if (!formData.roleId) {
       newErrors.roleId = 'Please select a role for the user assignment';
     }
-
     if (!formData.reason?.trim()) {
       newErrors.reason = 'Reason for user assignment is required for audit compliance';
     }
-
     if (formData.reason && formData.reason.length > 500) {
       newErrors.reason = 'Reason must be less than 500 characters';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
-  const handleUserSelect = (user) => {
-    setFormData(prev => ({ ...prev, userId: user.id }));
+  const handleUserSelect = (user: User) => {
+    setFormData(prev => ({ ...prev, userId: user.id.toString() }));
     setUserSearchTerm(`${user.firstName} ${user.lastName}`);
     setShowUserDropdown(false);
     if (errors.userId) {
@@ -182,44 +199,25 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
 
   const handleSubmit = async () => {
     if (!validateForm()) {
-      setNotification({
-        show: true,
-        message: 'Please fix the errors below',
-        type: 'error'
-      });
+      setNotification({ show: true, message: 'Please fix the errors below', type: 'error' });
       return;
     }
-
     try {
       setLoading(true);
-      
       const assignmentData = {
         userId: parseInt(formData.userId),
         roleId: parseInt(formData.roleId),
         reason: formData.reason.trim()
       };
-
-      await SiteService.assignUserToSite(site.id, assignmentData);
-      
-      setNotification({
-        show: true,
-        message: 'User assigned to site successfully!',
-        type: 'success'
-      });
-
+  await assignUserType(formData.userId, formData.roleId);
+      setNotification({ show: true, message: 'User assigned to site successfully!', type: 'success' });
       setTimeout(() => {
         onUserAssigned();
         onClose();
         resetForm();
       }, 1000);
-
-    } catch (error) {
-      console.error('Error assigning user to site:', error);
-      setNotification({
-        show: true,
-        message: error.message || 'Failed to assign user to site. Please try again.',
-        type: 'error'
-      });
+    } catch (error: any) {
+      setNotification({ show: true, message: error.message || 'Failed to assign user to site. Please try again.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -271,7 +269,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
-
         {/* Content */}
         <div className="p-6">
           {/* Site Information */}
@@ -298,7 +295,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
               </div>
             </div>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* User Selection */}
             <div className="relative">
@@ -352,7 +348,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
               {errors.userId && <p className="mt-1 text-sm text-red-600">{errors.userId}</p>}
               {!errors.userId && <p className="mt-1 text-sm text-gray-500">Search and select a user to assign to this site</p>}
             </div>
-
             {/* Role Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -377,7 +372,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
               {!errors.roleId && <p className="mt-1 text-sm text-gray-500">Select the role this user will have at the site</p>}
             </div>
           </div>
-
           {/* Assignment Preview */}
           {formData.userId && formData.roleId && (
             <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
@@ -402,7 +396,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
                   </div>
                 </div>
               </div>
-              
               {getSelectedRole()?.permissions && (
                 <div className="mt-3">
                   <p className="text-sm font-medium mb-2">Permissions:</p>
@@ -420,7 +413,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
               )}
             </div>
           )}
-
           {/* Reason for Assignment */}
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -439,7 +431,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
             {errors.reason && <p className="mt-1 text-sm text-red-600">{errors.reason}</p>}
             {!errors.reason && <p className="mt-1 text-sm text-gray-500">Provide a detailed reason for this user assignment (required for regulatory audit trail)</p>}
           </div>
-
           {/* Notification */}
           {notification.show && (
             <div className={`mt-4 p-4 rounded-md flex items-center gap-3 ${
@@ -453,7 +444,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
               <span className="text-sm">{notification.message}</span>
             </div>
           )}
-
           {/* Regulatory Notice */}
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-700">
@@ -463,7 +453,6 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
             </p>
           </div>
         </div>
-
         {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
           <button

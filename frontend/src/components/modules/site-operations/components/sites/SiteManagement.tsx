@@ -1,4 +1,4 @@
-// src/components/admin/SiteManagement/SiteManagement.js
+// src/components/admin/SiteManagement/SiteManagement.tsx
 import React, { useState, useEffect } from 'react';
 import {
   Plus,
@@ -25,11 +25,52 @@ import CreateSiteDialog from './CreateSiteDialog';
 import SiteDetailsDialog from './SiteDetailsDialog';
 import ActivateSiteDialog from './ActivateSiteDialog';
 
+// Types
+export type Site = {
+  id: number;
+  name: string;
+  siteNumber?: string;
+  organizationId?: number;
+  organizationName?: string;
+  status?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+};
 
+export type Organization = {
+  id: number;
+  name: string;
+};
 
-const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
+export type Statistics = {
+  totalSites: number;
+  activeSites: number;
+  pendingSites: number;
+  inactiveSites: number;
+  suspendedSites: number;
+};
+
+export type Notification = {
+  open: boolean;
+  message: string;
+  severity: 'success' | 'error' | 'info';
+};
+
+interface AssignUserDialogProps {
+  open: boolean;
+  onClose: () => void;
+  site: Site | null;
+  onUserAssigned: () => void;
+}
+
+const AssignUserDialog: React.FC<AssignUserDialogProps> = ({ open, onClose, site, onUserAssigned }) => {
   if (!open) return null;
-  
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
@@ -57,39 +98,37 @@ const AssignUserDialog = ({ open, onClose, site, onUserAssigned }) => {
   );
 };
 
-const SiteManagement = () => {
-  const [sites, setSites] = useState([]);
-  const [filteredSites, setFilteredSites] = useState([]);
-  const [organizations, setOrganizations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterOrganization, setFilterOrganization] = useState('all');
-  const [selectedSite, setSelectedSite] = useState(null);
-  const [statistics, setStatistics] = useState(null);
+const SiteManagement: React.FC = () => {
+  const [sites, setSites] = useState<Site[]>([]);
+  const [filteredSites, setFilteredSites] = useState<Site[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterOrganization, setFilterOrganization] = useState<string>('all');
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [statistics, setStatistics] = useState<Statistics | null>(null);
 
   // Dialog states
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [activateDialogOpen, setActivateDialogOpen] = useState(false);
-  const [assignUserDialogOpen, setAssignUserDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState<boolean>(false);
+  const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState<boolean>(false);
+  const [activateDialogOpen, setActivateDialogOpen] = useState<boolean>(false);
+  const [assignUserDialogOpen, setAssignUserDialogOpen] = useState<boolean>(false);
 
   // Notification state
-  const [notification, setNotification] = useState({
+  const [notification, setNotification] = useState<Notification>({
     open: false,
     message: '',
     severity: 'success'
   });
 
-  // Load data on component mount
   useEffect(() => {
     loadSites();
     loadOrganizations();
     loadStatistics();
   }, []);
 
-  // Apply filters when search term, status, or organization filter changes
   useEffect(() => {
     applyFilters();
   }, [sites, searchTerm, filterStatus, filterOrganization]);
@@ -99,7 +138,7 @@ const SiteManagement = () => {
       setLoading(true);
       const sitesData = await SiteService.getAllSites();
       setSites(sitesData);
-    } catch (error) {
+    } catch (error: any) {
       showNotification('Error loading sites: ' + error.message, 'error');
     } finally {
       setLoading(false);
@@ -126,31 +165,24 @@ const SiteManagement = () => {
 
   const applyFilters = () => {
     let filtered = sites;
-
-    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(site =>
         site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        site.siteNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (site.siteNumber && site.siteNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (site.city && site.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (site.organizationName && site.organizationName.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
-
-    // Status filter
     if (filterStatus !== 'all') {
       filtered = filtered.filter(site => site.status === filterStatus);
     }
-
-    // Organization filter
     if (filterOrganization !== 'all') {
       filtered = filtered.filter(site => site.organizationId === parseInt(filterOrganization));
     }
-
     setFilteredSites(filtered);
   };
 
-  const showNotification = (message, severity = 'success') => {
+  const showNotification = (message: string, severity: 'success' | 'error' | 'info' = 'success') => {
     setNotification({
       open: true,
       message,
@@ -189,18 +221,17 @@ const SiteManagement = () => {
     showNotification('User assigned to site successfully!');
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
+  const getStatusBadge = (status?: string) => {
+    const statusConfig: Record<string, string> = {
       active: 'bg-green-100 text-green-800 border-green-200',
       pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
       inactive: 'bg-gray-100 text-gray-800 border-gray-200',
       suspended: 'bg-red-100 text-red-800 border-red-200',
     };
-    
-    return statusConfig[status?.toLowerCase()] || statusConfig.inactive;
+    return statusConfig[status?.toLowerCase() || 'inactive'] || statusConfig.inactive;
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status?: string) => {
     switch (status?.toLowerCase()) {
       case 'active': return <CheckCircle className="w-4 h-4" />;
       case 'pending': return <Clock className="w-4 h-4" />;
@@ -209,8 +240,8 @@ const SiteManagement = () => {
     }
   };
 
-  const formatAddress = (site) => {
-    const parts = [];
+  const formatAddress = (site: Site) => {
+    const parts: string[] = [];
     if (site.addressLine1) parts.push(site.addressLine1);
     if (site.city) parts.push(site.city);
     if (site.state) parts.push(site.state);
@@ -236,7 +267,6 @@ const SiteManagement = () => {
         <h1 className="text-3xl font-bold text-gray-900">Clinical Site Management</h1>
         <p className="text-gray-600 mt-1">Manage clinical trial sites with full audit trail compliance</p>
       </div>
-
       {/* Statistics Cards */}
       {statistics && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -280,7 +310,6 @@ const SiteManagement = () => {
           </div>
         </div>
       )}
-
       {/* Controls */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -295,7 +324,6 @@ const SiteManagement = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-
           {/* Status Filter */}
           <select
             className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -308,7 +336,6 @@ const SiteManagement = () => {
             <option value="inactive">Inactive</option>
             <option value="suspended">Suspended</option>
           </select>
-
           {/* Organization Filter */}
           <select
             className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -322,7 +349,6 @@ const SiteManagement = () => {
               </option>
             ))}
           </select>
-
           {/* Actions */}
           <div className="flex gap-2">
             <button
@@ -342,7 +368,6 @@ const SiteManagement = () => {
           </div>
         </div>
       </div>
-
       {/* Sites Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredSites.map((site) => (
@@ -356,22 +381,18 @@ const SiteManagement = () => {
                   <span className="ml-1">{site.status}</span>
                 </span>
               </div>
-
               {/* Site Number */}
               <p className="text-sm text-gray-600 mb-3">Site Number: {site.siteNumber}</p>
-
               {/* Organization */}
               <div className="flex items-center mb-2">
                 <Building className="w-4 h-4 text-gray-400 mr-2" />
                 <p className="text-sm text-gray-600">{site.organizationName || 'Unknown Organization'}</p>
               </div>
-
               {/* Address */}
               <div className="flex items-start mb-2">
                 <MapPin className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                 <p className="text-sm text-gray-600 flex-1">{formatAddress(site)}</p>
               </div>
-
               {/* Contact Info */}
               {site.phone && (
                 <div className="flex items-center mb-2">
@@ -379,7 +400,6 @@ const SiteManagement = () => {
                   <p className="text-sm text-gray-600">{site.phone}</p>
                 </div>
               )}
-
               {site.email && (
                 <div className="flex items-center mb-4">
                   <Mail className="w-4 h-4 text-gray-400 mr-2" />
@@ -387,7 +407,6 @@ const SiteManagement = () => {
                 </div>
               )}
             </div>
-
             {/* Actions */}
             <div className="border-t border-gray-200 px-6 py-3 bg-gray-50">
               <div className="flex justify-between items-center">
@@ -442,7 +461,6 @@ const SiteManagement = () => {
           </div>
         ))}
       </div>
-
       {/* No results message */}
       {filteredSites.length === 0 && !loading && (
         <div className="text-center py-12">
@@ -464,7 +482,6 @@ const SiteManagement = () => {
           )}
         </div>
       )}
-
       {/* Dialogs */}
       <CreateSiteDialog
         open={createDialogOpen}
@@ -472,7 +489,6 @@ const SiteManagement = () => {
         onSiteCreated={handleSiteCreated}
         organizations={organizations}
       />
-
       <CreateSiteDialog
         open={editDialogOpen}
         onClose={() => {
@@ -483,27 +499,23 @@ const SiteManagement = () => {
         organizations={organizations}
         site={selectedSite}
       />
-
       <SiteDetailsDialog
         open={detailsDialogOpen}
         onClose={() => setDetailsDialogOpen(false)}
         site={selectedSite}
       />
-
       <ActivateSiteDialog
         open={activateDialogOpen}
         onClose={() => setActivateDialogOpen(false)}
         site={selectedSite}
         onSiteActivated={handleSiteActivated}
       />
-
       <AssignUserDialog
         open={assignUserDialogOpen}
         onClose={() => setAssignUserDialogOpen(false)}
         site={selectedSite}
         onUserAssigned={handleUserAssigned}
       />
-
       {/* Notification */}
       {notification.open && (
         <div className="fixed bottom-4 right-4 z-50">
