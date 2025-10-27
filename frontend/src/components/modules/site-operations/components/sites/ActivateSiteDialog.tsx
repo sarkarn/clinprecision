@@ -1,52 +1,42 @@
-// src/components/admin/SiteManagement/ActivateSiteDialog.js
 import React, { useState } from 'react';
 import { X, Play, AlertCircle, CheckCircle, Building } from 'lucide-react';
-import { SiteService } from 'services/SiteService';
+import SiteService from '../services/administration/SiteService';
 
-const ActivateSiteDialog = ({ open, onClose, site, onSiteActivated }) => {
+interface ActivateSiteDialogProps {
+  open: boolean;
+  onClose: () => void;
+  site: {
+    id: string;
+    name: string;
+    siteNumber: string;
+    organizationName?: string;
+    status: string;
+  } | null;
+  onSiteActivated: () => void;
+}
+
+const ActivateSiteDialog: React.FC<ActivateSiteDialogProps> = ({ open, onClose, site, onSiteActivated }) => {
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
-  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+  const [notification, setNotification] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
   const handleActivation = async () => {
-    console.log('[FRONTEND DEBUG] Button clicked! Function called!');
-    console.log('[FRONTEND DEBUG] Current reason:', reason);
-    console.log('[FRONTEND DEBUG] Reason trimmed:', reason.trim());
-    console.log('[FRONTEND DEBUG] Reason empty check:', !reason.trim());
-    
     if (!reason.trim()) {
-      console.log('[FRONTEND DEBUG] Reason is empty, setting error');
       setError('Activation reason is required for audit compliance');
       return;
     }
-
     try {
-      console.log('[FRONTEND DEBUG] Starting activation process...');
       setLoading(true);
       setError('');
-      
-      console.log('[FRONTEND] About to activate site:', site.id, 'with reason:', reason.trim());
-      
-      // Site activation is now independent of study context
-      await SiteService.activateSite(site.id, { reason: reason.trim() });
-      
-      console.log('[FRONTEND] Site activation completed successfully');
-      
-      setNotification({
-        show: true,
-        message: 'Site activated successfully!',
-        type: 'success'
-      });
-
+      await SiteService.activateSite(site!.id, { reason: reason.trim() });
+      setNotification({ show: true, message: 'Site activated successfully!', type: 'success' });
       setTimeout(() => {
         onSiteActivated();
         onClose();
         resetForm();
       }, 1000);
-
-    } catch (error) {
-      console.error('Error activating site:', error);
+    } catch (error: any) {
       setError(error.message || 'Failed to activate site. Please try again.');
     } finally {
       setLoading(false);
@@ -66,15 +56,9 @@ const ActivateSiteDialog = ({ open, onClose, site, onSiteActivated }) => {
     }
   };
 
-  console.log('[DEBUG] Dialog props - open:', open, 'site:', site);
-  console.log('[DEBUG] Dialog state - reason:', reason, 'loading:', loading, 'error:', error);
-
   if (!open || !site) {
-    console.log('[DEBUG] Dialog not rendering - open:', open, 'site:', site);
     return null;
   }
-
-  console.log('[DEBUG] Dialog should be rendering now');
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
