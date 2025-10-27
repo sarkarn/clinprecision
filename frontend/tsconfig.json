@@ -1,0 +1,79 @@
+{
+    "compilerOptions": {
+        /* Language and Environment */
+        "jsx": "react-jsx",
+        "target": "ES2020",
+        "lib": [
+            "ES2020",
+            "DOM",
+            "DOM.Iterable"
+        ],
+        /* Module Resolution */
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        /* Type Checking - Gradual Migration Strategy */
+        "strict": false, /* Start lenient, tighten gradually */
+        "allowJs": true, /* Allow .js and .jsx files */
+        "checkJs": false, /* Don't type-check JS files initially */
+        "noImplicitAny": false, /* Allow 'any' type during migration */
+        "strictNullChecks": false, /* Enable later */
+        "strictFunctionTypes": false, /* Enable later */
+        "strictBindCallApply": false, /* Enable later */
+        "strictPropertyInitialization": false, /* Enable later */
+        "noImplicitThis": false, /* Enable later */
+        "alwaysStrict": true,
+        /* Emit */
+        "noEmit": true, /* React Scripts handles compilation */
+        "isolatedModules": true,
+        "declaration": false,
+        "sourceMap": true,
+        /* Interop Constraints */
+        "forceConsistentCasingInFileNames": true,
+        /* Skip Type Checking of Libraries */
+        "skipLibCheck": true,
+        "types": [
+            "jest",
+            "node"
+        ],
+        /* Base URL for absolute imports */
+        "baseUrl": "src",
+        "paths": {
+            "@components/*": [
+                "components/*"
+            ],
+            "@services/*": [
+                "services/*"
+            ],
+            "services/*": [
+                "services/*"
+            ],
+            "@hooks/*": [
+                "hooks/*"
+            ],
+            "@types/*": [
+                "types/*"
+            ],
+            "@utils/*": [
+                "utils/*"
+            ],
+            "@contexts/*": [
+                "contexts/*"
+            ],
+            "@constants/*": [
+                "constants/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "build",
+        "dist",
+        "coverage"
+    ]
+}

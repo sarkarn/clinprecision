@@ -1,0 +1,7 @@
+export enum StudyStatus {
+  DRAFT = 'DRAFT',
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  COMPLETED = 'COMPLETED',
+  ARCHIVED = 'ARCHIVED',
+}
