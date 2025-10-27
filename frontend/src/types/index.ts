@@ -9,6 +9,7 @@ export * from './domain/Site.types';
 export * from './domain/Study.types';
 export * from './domain/StudyDocument.types';
 export * from './domain/Subject.types';
+export * from './domain/User.types';
 
 // Domain types
 export type {
@@ -100,61 +101,6 @@ export type {
   ValidationError as QualityValidationError,
   ValidationWarning as QualityValidationWarning
 } from './domain/Quality.types';
-
-export type {
-  LoginCredentials,
-  AuthData,
-  LoginResponse,
-  LogoutResponse,
-  ILoginService,
-  TokenValidationResponse,
-  AuthContextState,
-  ChangePasswordRequest,
-  ResetPasswordRequest,
-  ResetPasswordConfirmRequest,
-  User,
-  UserProfile,
-  UserPreferences,
-  CreateUserRequest,
-  UpdateUserRequest,
-  Role,
-  CreateRoleRequest,
-  UpdateRoleRequest,
-  RolesResponse,
-  UserType,
-  CreateUserTypeRequest,
-  UpdateUserTypeRequest,
-  UserTypesResponse,
-  Permission,
-  PermissionCheckRequest,
-  PermissionCheckResponse,
-  UserSession,
-  ActiveSessionsResponse,
-  UserFilterOptions,
-  UserSortOptions,
-  PaginatedUsersResponse,
-  UserStudyRole,
-  UserStudyRoleWithDetails,
-  StudyTeamMember,
-  CreateUserStudyRoleRequest,
-  UpdateUserStudyRoleRequest,
-  BulkCreateUserStudyRolesRequest,
-  BulkDeactivateUserStudyRolesRequest,
-  UserStudyRoleResponse,
-  UserStudyRolesResponse,
-  UserStudyRolesWithDetailsResponse,
-  StudyTeamMembersResponse,
-  BulkOperationResponse,
-  UserRoleCheckRequest,
-  UserRoleCheckResponse,
-  ActiveRoleCheckResponse
-} from './domain/User.types';
-export {
-  AuthStorageKeys,
-  UserRole,
-  UserStatus,
-  AssignmentStatus
-} from './domain/User.types';
 
 
 

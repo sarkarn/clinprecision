@@ -1,8 +1,5 @@
 // src/components/admin/SiteManagement/SiteManagement.tsx
 import React, { useState, useEffect } from 'react';
-import { SiteService } from 'services/SiteService';
-import { OrganizationService } from 'services/OrganizationService';
-
 import CreateSiteDialog from './CreateSiteDialog';
 import SiteDetailsDialog from './SiteDetailsDialog';
 import ActivateSiteDialog from './ActivateSiteDialog';

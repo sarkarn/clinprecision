@@ -1,6 +1,8 @@
 import type { EntityStatus, StudyPhase, BaseEntity,
      ValidationError, ValidationWarning, ExportFormat } from '../common.types';
 
+import type { Visit } from './Visit.types';
+
 
 
 
