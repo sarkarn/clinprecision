@@ -1,18 +1,54 @@
-// src/components/admin/SiteManagement/StudySiteAssociationsDialog.js
+// src/components/admin/SiteManagement/StudySiteAssociationsDialog.tsx
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Play, Trash2, AlertCircle, CheckCircle, Building, BookOpen } from 'lucide-react';
 import { SiteService } from 'services/SiteService';
 import StudyService from 'services/StudyService';
 
-const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
-  const [loading, setLoading] = useState(false);
-  const [associations, setAssociations] = useState([]);
-  const [studies, setStudies] = useState([]);
-  const [studiesLoading, setStudiesLoading] = useState(false);
-  const [newStudyId, setNewStudyId] = useState('');
-  const [reason, setReason] = useState('');
-  const [error, setError] = useState('');
-  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+// Types
+export type Site = {
+  id: string;
+  name: string;
+  siteNumber?: string;
+  organizationName?: string;
+};
+
+export type Study = {
+  id: string;
+  protocolNumber?: string;
+  name: string;
+};
+
+export type Association = {
+  id: string;
+  studyId: string;
+  siteStudyId?: string;
+  status: string;
+  activationDate?: string;
+  subjectEnrollmentCap?: number;
+  subjectEnrollmentCount?: number;
+};
+
+export type Notification = {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error';
+};
+
+interface StudySiteAssociationsDialogProps {
+  open: boolean;
+  onClose: () => void;
+  site: Site | null;
+}
+
+const StudySiteAssociationsDialog: React.FC<StudySiteAssociationsDialogProps> = ({ open, onClose, site }) => {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [associations, setAssociations] = useState<Association[]>([]);
+  const [studies, setStudies] = useState<Study[]>([]);
+  const [studiesLoading, setStudiesLoading] = useState<boolean>(false);
+  const [newStudyId, setNewStudyId] = useState<string>('');
+  const [reason, setReason] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [notification, setNotification] = useState<Notification>({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
     if (open && site) {
@@ -24,7 +60,7 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
   const fetchAssociations = async () => {
     try {
       setLoading(true);
-      const data = await SiteService.getStudyAssociationsForSite(site.id);
+      const data = await SiteService.getStudyAssociationsForSite(site!.id);
       setAssociations(data);
     } catch (error) {
       console.error('Error fetching associations:', error);
@@ -38,21 +74,19 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
     try {
       setStudiesLoading(true);
       const data = await StudyService.getStudies();
-      setStudies(data); // Set all studies initially, filtering will be done in render
+      setStudies(data);
     } catch (error) {
       console.error('Error fetching studies:', error);
-      // Don't set error state here, just log it - studies dropdown will show loading state
     } finally {
       setStudiesLoading(false);
     }
   };
 
-  // Get available studies (not already associated)
   const getAvailableStudies = () => {
     return studies.filter(study => 
       !associations.some(assoc => 
         assoc.studyId === study.protocolNumber || 
-        assoc.studyId === study.id?.toString() ||
+        assoc.studyId === study.id ||
         assoc.studyId === study.name
       )
     );
@@ -63,32 +97,25 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
       setError('Study selection and reason are required');
       return;
     }
-
     try {
       setLoading(true);
       setError('');
-      
-      await SiteService.associateSiteWithStudy(site.id, {
+      await SiteService.associateSiteWithStudy(site!.id, {
         studyId: newStudyId.trim(),
         reason: reason.trim()
       });
-
       setNotification({
         show: true,
         message: 'Study association created successfully!',
         type: 'success'
       });
-
-      // Refresh associations
       await fetchAssociations();
       setNewStudyId('');
       setReason('');
-
       setTimeout(() => {
         setNotification({ show: false, message: '', type: 'success' });
       }, 3000);
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating association:', error);
       setError(error.message || 'Failed to create study association');
     } finally {
@@ -96,29 +123,23 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
     }
   };
 
-  const handleActivateForStudy = async (studyId, activationReason) => {
+  const handleActivateForStudy = async (studyId: string, activationReason: string) => {
     try {
       setLoading(true);
       setError('');
-      
-      await SiteService.activateSiteForStudy(site.id, studyId, {
+      await SiteService.activateSiteForStudy(site!.id, studyId, {
         reason: activationReason
       });
-
       setNotification({
         show: true,
         message: 'Site activated for study successfully!',
         type: 'success'
       });
-
-      // Refresh associations
       await fetchAssociations();
-
       setTimeout(() => {
         setNotification({ show: false, message: '', type: 'success' });
       }, 3000);
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error activating for study:', error);
       setError(error.message || 'Failed to activate site for study');
     } finally {
@@ -126,27 +147,21 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
     }
   };
 
-  const handleRemoveAssociation = async (studyId, removalReason) => {
+  const handleRemoveAssociation = async (studyId: string, removalReason: string) => {
     try {
       setLoading(true);
       setError('');
-      
-      await SiteService.removeSiteStudyAssociation(site.id, studyId, removalReason);
-
+      await SiteService.removeSiteStudyAssociation(site!.id, studyId, removalReason);
       setNotification({
         show: true,
         message: 'Study association removed successfully!',
         type: 'success'
       });
-
-      // Refresh associations
       await fetchAssociations();
-
       setTimeout(() => {
         setNotification({ show: false, message: '', type: 'success' });
       }, 3000);
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error removing association:', error);
       setError(error.message || 'Failed to remove study association');
     } finally {
@@ -192,7 +207,6 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
-
         {/* Content */}
         <div className="p-6">
           {/* Site Information */}
@@ -205,7 +219,6 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
             <p className="text-sm text-gray-600">Site Number: {site.siteNumber}</p>
             <p className="text-sm text-gray-600">Organization: {site.organizationName || 'Unknown'}</p>
           </div>
-
           {/* Error Display */}
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
@@ -213,7 +226,6 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
               <span className="text-sm text-red-700">{error}</span>
             </div>
           )}
-
           {/* Notification */}
           {notification.show && (
             <div className={`mb-4 p-4 rounded-md flex items-center gap-3 ${
@@ -227,14 +239,12 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
               <span className="text-sm">{notification.message}</span>
             </div>
           )}
-
           {/* Add New Association */}
           <div className="mb-6 p-4 border rounded-lg">
             <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Add Study Association
             </h3>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="studyId" className="block text-sm font-medium text-gray-700 mb-2">
@@ -265,7 +275,6 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
                   </p>
                 )}
               </div>
-              
               <div>
                 <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
                   Reason *
@@ -281,7 +290,6 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
                 />
               </div>
             </div>
-            
             <div className="mt-4">
               <button
                 onClick={handleAddAssociation}
@@ -293,11 +301,9 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
               </button>
             </div>
           </div>
-
           {/* Existing Associations */}
           <div>
             <h3 className="font-medium text-gray-900 mb-4">Current Study Associations</h3>
-            
             {loading && associations.length === 0 ? (
               <div className="text-center py-8">
                 <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
@@ -324,7 +330,6 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
             )}
           </div>
         </div>
-
         {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
           <button
@@ -340,14 +345,20 @@ const StudySiteAssociationsDialog = ({ open, onClose, site }) => {
   );
 };
 
-// Individual study association card component
-const StudyAssociationCard = ({ association, onActivate, onRemove, disabled }) => {
-  const [showActivatePrompt, setShowActivatePrompt] = useState(false);
-  const [showRemovePrompt, setShowRemovePrompt] = useState(false);
-  const [activationReason, setActivationReason] = useState('');
-  const [removalReason, setRemovalReason] = useState('');
+interface StudyAssociationCardProps {
+  association: Association;
+  onActivate: (studyId: string, activationReason: string) => void;
+  onRemove: (studyId: string, removalReason: string) => void;
+  disabled: boolean;
+}
 
-  const getStatusColor = (status) => {
+const StudyAssociationCard: React.FC<StudyAssociationCardProps> = ({ association, onActivate, onRemove, disabled }) => {
+  const [showActivatePrompt, setShowActivatePrompt] = useState<boolean>(false);
+  const [showRemovePrompt, setShowRemovePrompt] = useState<boolean>(false);
+  const [activationReason, setActivationReason] = useState<string>('');
+  const [removalReason, setRemovalReason] = useState<string>('');
+
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'ACTIVE': return 'bg-green-100 text-green-800';
       case 'PENDING': return 'bg-yellow-100 text-yellow-800';
@@ -366,7 +377,6 @@ const StudyAssociationCard = ({ association, onActivate, onRemove, disabled }) =
               {association.status}
             </span>
           </div>
-          
           <div className="mt-2 text-sm text-gray-600 space-y-1">
             <p>Site Study ID: {association.siteStudyId}</p>
             {association.activationDate && (
@@ -377,7 +387,6 @@ const StudyAssociationCard = ({ association, onActivate, onRemove, disabled }) =
             )}
           </div>
         </div>
-        
         <div className="flex items-center gap-2">
           {association.status === 'PENDING' && (
             <button
@@ -389,7 +398,6 @@ const StudyAssociationCard = ({ association, onActivate, onRemove, disabled }) =
               Activate
             </button>
           )}
-          
           <button
             onClick={() => setShowRemovePrompt(true)}
             disabled={disabled}
@@ -400,7 +408,6 @@ const StudyAssociationCard = ({ association, onActivate, onRemove, disabled }) =
           </button>
         </div>
       </div>
-
       {/* Activate Prompt */}
       {showActivatePrompt && (
         <div className="mt-4 p-3 border-t bg-green-50">
@@ -438,7 +445,6 @@ const StudyAssociationCard = ({ association, onActivate, onRemove, disabled }) =
           </div>
         </div>
       )}
-
       {/* Remove Prompt */}
       {showRemovePrompt && (
         <div className="mt-4 p-3 border-t bg-red-50">
