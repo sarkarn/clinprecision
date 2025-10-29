@@ -1,10 +1,3 @@
-/**
- * API Type Definitions
- * Types for API services, HTTP communication, and external integrations
- */
-
-import { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-
 
 /**
  * Option source types

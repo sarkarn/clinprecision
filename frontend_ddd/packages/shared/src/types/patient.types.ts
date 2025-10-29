@@ -4,7 +4,8 @@
  */
 
 import type { BaseEntity} from './common.types ';
-import type { PatientStatus, Gender} from './codeList.types';
+import type { Gender} from './codeList.types';
+import type { PatientStatus} from './status.types';
 
 export interface Patient extends BaseEntity {
   patientId?: string | number;

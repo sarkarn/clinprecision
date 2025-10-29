@@ -4,7 +4,8 @@
  */
 
 import type { BaseEntity, EntityStatus } from './common.types ';
-import type { ProtocolVersionStatus, AmendmentType } from './codeList.types';
+import type { AmendmentType } from './codeList.types';
+import type { ProtocolVersionStatus } from './status.types';
 
 // ============================================================================
 // Protocol Version Enums

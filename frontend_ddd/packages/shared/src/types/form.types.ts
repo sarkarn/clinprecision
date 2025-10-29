@@ -1,4 +1,4 @@
-import type { FormStatus, FormDataStatus} from './codeList.types';
+import type { FormStatus, FormDataStatus} from './status.types';
 import type { EntityStatus} from './common.types ';
 
 
