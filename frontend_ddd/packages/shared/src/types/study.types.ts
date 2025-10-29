@@ -7,6 +7,7 @@
 
 import type { BaseEntity, EntityStatus, ExportFormat, ValidationError, ValidationWarning} from './common.types ';
 
+import type { Visit} from './visit.types';
 
 
 
