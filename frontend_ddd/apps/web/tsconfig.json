@@ -1,0 +1,80 @@
+{
+    "compilerOptions": {
+        /* Language and Environment */
+        "target": "ES2020",
+        "lib": [
+            "ES2020",
+            "DOM",
+            "DOM.Iterable"
+        ],
+        "jsx": "react-jsx",
+        /* Module Resolution */
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        /* Type Checking - Gradual Migration Strategy */
+        "strict": false, /* Start lenient, tighten gradually */
+        "allowJs": true, /* Allow .js and .jsx files */
+        "checkJs": false, /* Don't type-check JS files initially */
+        "noImplicitAny": false, /* Allow 'any' type during migration */
+        "strictNullChecks": false, /* Enable later */
+        "strictFunctionTypes": false, /* Enable later */
+        "strictBindCallApply": false, /* Enable later */
+        "strictPropertyInitialization": false, /* Enable later */
+        "noImplicitThis": false, /* Enable later */
+        "alwaysStrict": true,
+        /* Emit */
+        "noEmit": false, /* Vite handles build, but allow emit for type checking */
+        "isolatedModules": true,
+        "declaration": false,
+        "sourceMap": true,
+        /* Interop Constraints */
+        "forceConsistentCasingInFileNames": true,
+        /* Skip Type Checking of Libraries */
+        "skipLibCheck": true,
+        "types": [
+            "vite/client",
+            "jest"
+        ],
+        /* Base URL for absolute imports */
+        "baseUrl": ".",
+        "paths": {
+            "@components/*": [
+                "src/components/*"
+            ],
+            "@services/*": [
+                "src/services/*"
+            ],
+            "@hooks/*": [
+                "src/hooks/*"
+            ],
+            "@types/*": [
+                "src/types/*"
+            ],
+            "@utils/*": [
+                "src/utils/*"
+            ],
+            "@contexts/*": [
+                "src/contexts/*"
+            ],
+            "@constants/*": [
+                "src/constants/*"
+            ],
+            "@domains/*": [
+                "../../packages/domains/*"
+            ]
+        }
+    },
+    "include": [
+        "src",
+        "../../packages/domains"
+    ],
+    "exclude": [
+        "node_modules",
+        "build",
+        "dist",
+        "coverage"
+    ]
+}
