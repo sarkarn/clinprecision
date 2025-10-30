@@ -1,4 +1,3 @@
-// ...existing code from AuthContext.tsx (legacy location) will be placed here...
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 interface User {

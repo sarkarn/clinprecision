@@ -1,11 +1,12 @@
+import './styles/App.css';
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '../../../packages/domains/authentication/src/ui/login/AuthContext';
-import { StudyProvider } from './contexts/StudyContext';
-import Login from '@domains/authentication/src/ui/login/Login';
-import ProtectedRoute from './components/login/ProtectedRoute';
-import Home from './components/home';
+import { StudyProvider } from '../../../packages/shared/src/context/StudyContext';
+import Login from '../../../packages/domains/authentication/src/ui/login/Login';
+import ProtectedRoute from './routes/ProtectedRoute';
+import Home from './routes/Home';
 
 /**
  * AppContent Component
