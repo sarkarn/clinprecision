@@ -401,10 +401,20 @@ export interface UserStudyRoleWithDetails extends UserStudyRole {
   rolePriority?: number;
 }
 
+
+interface NewMemberForm {
+    userId: string;
+    roleCode: string;
+    startDate: string;
+    endDate: string;
+    active: boolean;
+}
+
 /**
  * Study team member
  */
 export interface StudyTeamMember {
+  id: number | string;
   userId: string;
   userNumericId?: string;
   userEmail: string;
@@ -422,8 +432,11 @@ export interface StudyTeamMember {
   primaryRole?: string;
   permissions?: string[];
   status: AssignmentStatus | string;
+  startDate: string;
+  endDate?: string;
   joinedDate: string;
   lastActiveDate?: string;
+  active: boolean;
 }
 
 // ============================================================================
@@ -790,4 +803,14 @@ export enum AuthStorageKeys {
   USER_ROLE = 'userRole',
   USER_NAME = 'userName',
   TOKEN_EXPIRATION = 'tokenExpiration'
+}
+
+export interface Assignment {
+    userId: number;
+    studyId: number;
+    roleCode: string;
+    startDate: string | null;
+    endDate: string | null;
+    active: boolean;
+    notes: string;
 }

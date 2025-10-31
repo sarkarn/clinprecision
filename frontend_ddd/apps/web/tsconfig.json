@@ -64,7 +64,10 @@
             ],
             "@domains/*": [
                 "../../packages/domains/*"
-            ]
+            ],
+            "@shared/*": [
+                "../../packages/shared/src/*"
+            ],
         }
     },
     "include": [
