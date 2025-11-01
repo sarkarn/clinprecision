@@ -31,7 +31,7 @@ import type {
   VisitWithForms,
   FormWithVisits,
   StudyVisitFormMatrix
-} from '../../types/domain/DataEntry.types';
+} from '../types/domain/DataEntry.types';
 
 // ========== API Base URL Constants ==========
 const VISIT_FORMS_BASE = '/api/visit-forms';

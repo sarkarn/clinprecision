@@ -1,1 +1,3 @@
-// Constants for protocol-deviation sub-domain
+// Export all constants
+// Placeholder for future constant exports
+export {};

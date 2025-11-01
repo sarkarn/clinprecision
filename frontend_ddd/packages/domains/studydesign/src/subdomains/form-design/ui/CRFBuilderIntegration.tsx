@@ -5,7 +5,7 @@ import FormService from 'services/FormService';
 import StudyFormService from 'services/data-capture/StudyFormService';
 import FormVersionService from 'services/data-capture/FormVersionService';
 import ApiService from 'services/ApiService';
-import { Alert } from '../../modules/trialdesign/components/UIComponents';
+import { Alert } from '../modules/trialdesign/components/UIComponents';
 
 type FieldMetadata = Record<string, any>;
 

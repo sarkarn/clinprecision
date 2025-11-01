@@ -3,7 +3,7 @@ import StudyDatabaseBuildCard from './StudyDatabaseBuildCard';
 import StudyDatabaseBuildFilters from './StudyDatabaseBuildFilters';
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
-import type { StudyDatabaseBuild, BuildStatus } from '../../../../../types/study/DatabaseBuild.types';
+import type { StudyDatabaseBuild, BuildStatus } from '../types/study/DatabaseBuild.types';
 
 interface FilterState {
   status: BuildStatus | 'all';

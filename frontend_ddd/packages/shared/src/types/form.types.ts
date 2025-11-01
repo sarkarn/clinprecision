@@ -1,5 +1,5 @@
 import type { FormStatus, FormDataStatus} from './status.types';
-import type { EntityStatus} from './common.types ';
+import type { EntityStatus } from './common.types';
 
 
 

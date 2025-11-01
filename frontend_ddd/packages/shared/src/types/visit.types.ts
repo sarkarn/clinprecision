@@ -3,7 +3,7 @@
  * Complete details of a visit including all associated forms
  */
 
-import type { BaseEntity, EntityStatus} from './common.types ';
+import type { BaseEntity, EntityStatus } from './common.types';
 import type { VisitFormSummary} from './form.types';
 
 export interface CRF {

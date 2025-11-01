@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getStudyById } from 'services/StudyService';
-import { Study } from '../../../types';
+import { getStudyById } from '../services/StudyService';
+import { Study } from '@shared/types';
 
 type TabType = 'details' | 'arms';
 

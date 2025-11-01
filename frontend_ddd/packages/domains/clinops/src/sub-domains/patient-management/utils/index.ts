@@ -1,1 +1,3 @@
-// Utility functions for patient-management sub-domain
+// Export all utilities
+// Placeholder for future utility exports
+export {};

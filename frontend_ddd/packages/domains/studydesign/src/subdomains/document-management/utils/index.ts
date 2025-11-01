@@ -1,1 +1,3 @@
-// Utility functions for form-design sub-domain
+// Utility functions for document-management sub-domain
+// Add exports here when utilities are created
+export {};

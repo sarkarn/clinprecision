@@ -1,8 +1,8 @@
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import StudyService from 'services/StudyService';
-import FormService from 'services/FormService';
-import VisitDefinitionService from 'services/VisitDefinitionService';
+import StudyService from '../services/StudyService';
+import FormService from '../subdomains/form-design/services/FormService';
+import VisitDefinitionService from '../subdomains/study-design-detail/services/VisitDefinitionService';
 
 interface CRF {
     id: number | string;

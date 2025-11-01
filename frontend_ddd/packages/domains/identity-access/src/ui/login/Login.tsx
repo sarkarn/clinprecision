@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
-import LoginService from "../../../";
+import LoginService from "../../services/LoginService";
 import RequestDemoModal from "../common/modals/RequestDemoModal";
 import {
     Shield,

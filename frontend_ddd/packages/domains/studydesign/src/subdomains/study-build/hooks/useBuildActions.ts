@@ -5,7 +5,7 @@ import {
   BuildRequest, 
   ValidationOptions as ServiceValidationOptions,
   CompletionData as ServiceCompletionData 
-} from '../../../../../types/study/DatabaseBuild.types';
+} from '../types/study/DatabaseBuild.types';
 
 /**
  * Action type for callbacks

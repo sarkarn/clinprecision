@@ -3,7 +3,7 @@
  * Types for patient enrollment, demographics, and status management
  */
 
-import type { BaseEntity} from './common.types ';
+import type { BaseEntity } from './common.types';
 import type { Gender} from './codeList.types';
 import type { PatientStatus} from './status.types';
 

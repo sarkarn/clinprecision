@@ -6,8 +6,8 @@ import VisitDefinitionService, { VisitDefinition, VisitFormBinding, VisitFormBin
 import StudyService from 'services/StudyService';
 import StudyFormService from 'services/data-capture/StudyFormService';
 import StudyDesignService from 'services/StudyDesignService';
-import type { Study } from '../../../../types';
-import type { StudyFormDefinition } from '../../../../types/domain/DataEntry.types';
+import type { Study } from '../../../types';
+import type { StudyFormDefinition } from '../../../types/domain/DataEntry.types';
 
 // ============================================================================
 // Type Definitions

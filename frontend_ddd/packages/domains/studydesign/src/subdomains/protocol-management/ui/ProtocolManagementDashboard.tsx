@@ -18,9 +18,9 @@ import {
 } from 'lucide-react';
 import useProtocolVersioning from '../hooks/useProtocolVersioning';
 import StudyService from 'services/StudyService';
-import ProtocolVersionManagementModal from '../study-design/protocol-version/ProtocolVersionManagementModal';
+import ProtocolVersionManagementModal from './ProtocolVersionManagementModal';
 import { ProtocolVersion } from 'services/StudyVersioningService';
-import type { Study } from '../../../../types';
+import type { Study } from '../../../types';
 
 /**
  * Status display configuration interface

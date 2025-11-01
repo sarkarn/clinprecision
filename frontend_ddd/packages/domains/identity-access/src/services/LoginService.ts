@@ -2,14 +2,14 @@
 
 import axios, { AxiosInstance } from 'axios';
 import { useMutation, UseMutationOptions } from '@tanstack/react-query';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL } from '../config';
 import {
   LoginCredentials,
   LoginResponse,
   LogoutResponse,
   AuthData,
   TokenValidationResponse,
-} from '../../types/domain/User.types';
+} from '../types/domain/User.types';
 
 // ============================================================================
 // AXIOS INSTANCE

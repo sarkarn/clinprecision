@@ -1,1 +1,3 @@
-// Utility functions for protocol-version sub-domain
+// Utility functions for protocol-management sub-domain
+// Add exports here when utilities are created
+export {};

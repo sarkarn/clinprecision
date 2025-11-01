@@ -1,1 +1,3 @@
-// Model types for protocol-version sub-domain
+// Model types for protocol-management sub-domain
+// Add exports here when model types are created
+export {};

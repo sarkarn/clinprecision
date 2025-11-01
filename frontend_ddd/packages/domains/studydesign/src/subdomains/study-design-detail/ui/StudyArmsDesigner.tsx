@@ -4,7 +4,7 @@ import { Plus, Trash2, Target, Users, Shuffle, CheckCircle } from 'lucide-react'
 import StudyDesignService, { StudyArm, StudyArmCreateData, StudyArmUpdateData } from 'services/StudyDesignService';
 import StudyService from 'services/StudyService';
 import { Alert, Button } from '../components/UIComponents';
-import { Study } from '../../../../types';
+import { Study } from '../../../types';
 
 interface Intervention {
     id: number;

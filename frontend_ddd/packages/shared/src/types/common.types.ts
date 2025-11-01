@@ -1,13 +1,12 @@
-export type EntityStatus = 
-  | 'DRAFT' 
-  | 'ACTIVE' 
-  | 'INACTIVE' 
-  | 'APPROVED' 
-  | 'PUBLISHED' 
-  | 'ARCHIVED' 
+export type EntityStatus =
+  | 'DRAFT'
+  | 'ACTIVE'
+  | 'INACTIVE'
+  | 'APPROVED'
+  | 'PUBLISHED'
+  | 'ARCHIVED'
   | 'UNDER_REVIEW'
   | 'REJECTED';
-
 
 export interface AuditMetadata {
   createdBy?: number;
@@ -22,10 +21,7 @@ export interface BaseEntity extends AuditMetadata {
   version?: string;
 }
 
-
-/**
- * Validation options
- */
+// Options for validators to toggle consistency checks
 export interface ValidationOptions {
   checkDataIntegrity?: boolean;
   validateSchemaStructure?: boolean;
@@ -33,10 +29,7 @@ export interface ValidationOptions {
   strictMode?: boolean;
 }
 
-
-/**
- * Build validation result
- */
+// Result object returned by builder validation routines
 export interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
@@ -44,11 +37,6 @@ export interface ValidationResult {
   timestamp: string;
 }
 
-
-
-/**
- * Validation error
- */
 export interface ValidationError {
   field: string;
   message: string;
@@ -56,18 +44,12 @@ export interface ValidationError {
   severity: 'ERROR' | 'CRITICAL';
 }
 
-/**
- * Validation warning
- */
 export interface ValidationWarning {
   field: string;
   message: string;
   code?: string;
 }
 
-/**
- * Address information
- */
 export interface Address {
   street?: string;
   city?: string;
@@ -82,13 +64,6 @@ export interface ContactInfo {
   fax?: string;
 }
 
-/**
- * Status badge variant for UI
- */
 export type StatusBadgeVariant = 'success' | 'warning' | 'info' | 'neutral' | 'danger' | 'violet';
 
-
-/**
- * Export formats
- */
 export type ExportFormat = 'pdf' | 'csv' | 'json' | 'xlsx';

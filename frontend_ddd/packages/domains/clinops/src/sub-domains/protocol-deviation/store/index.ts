@@ -1,1 +1,3 @@
-// Store logic for protocol-deviation sub-domain
+// Export all store
+// Placeholder for future store exports
+export {};

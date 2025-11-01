@@ -1,1 +1,2 @@
-// UI components for form-design sub-domain
+// UI components for document-management sub-domain
+export { default as DocumentUploadModal } from './DocumentUploadModal';

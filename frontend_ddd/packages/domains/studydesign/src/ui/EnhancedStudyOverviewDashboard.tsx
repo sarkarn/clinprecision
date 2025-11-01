@@ -1,7 +1,7 @@
 // src/components/modules/trialdesign/study-management/EnhancedStudyOverviewDashboard.tsx
 import React, { useState, useEffect } from 'react';
-import StudyService from 'services/StudyService';
-import StudyDocumentService from 'services/data-capture/StudyDocumentService';
+import StudyService from '../services/StudyService';
+import StudyDocumentService from '../subdomains/document-management/services/StudyDocumentService';
 // Temporary mock for useStatusSynchronization until implementation is complete
 const useStatusSynchronization = (options: any) => ({
     isConnected: false,
@@ -17,8 +17,8 @@ const useStatusSynchronization = (options: any) => ({
 });
 import DocumentUploadModal from './DocumentUploadModal';
 import StudyContextHeader from '../components/StudyContextHeader';
-import StatusIndicator, { CompactStatusIndicator, DetailedStatusCard } from '../../../shared/status/StatusIndicator';
-import RealTimeStatusDashboard from '../../../shared/status/RealTimeStatusDashboard';
+import StatusIndicator, { CompactStatusIndicator, DetailedStatusCard } from '../shared/status/StatusIndicator';
+import RealTimeStatusDashboard from '../shared/status/RealTimeStatusDashboard';
 import {
     ArrowLeft,
     Edit,

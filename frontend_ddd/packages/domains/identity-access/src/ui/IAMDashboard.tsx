@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardBody, Badge } from '../../shared/ui';
+import { Card, CardBody, Badge } from '../shared/ui';
 import { Users, Shield, UserCog, ClipboardList } from 'lucide-react';
 
 interface QuickAction {

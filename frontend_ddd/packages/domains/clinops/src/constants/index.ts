@@ -1,1 +1,3 @@
-// Constants for clinops domain
+// Export all constants
+// Placeholder for future constant exports
+export {};

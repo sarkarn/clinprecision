@@ -4,7 +4,7 @@ import { CheckCircle, AlertCircle, XCircle, Eye, FileText, Users, Calendar, Link
 import { Alert, Button } from '../components/UIComponents';
 import StudyDesignService from 'services/StudyDesignService';
 import useProtocolVersioning from '../hooks/useProtocolVersioning';
-import type { Study } from '../../../../types';
+import type { Study } from '../../../types';
 
 // ============================================================================
 // Type Definitions

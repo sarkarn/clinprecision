@@ -5,7 +5,7 @@ import { Alert, Button } from '../components/UIComponents';
 import VisitDefinitionService, { VisitDefinition, VisitDefinitionCreateData } from 'services/VisitDefinitionService';
 import StudyService from 'services/StudyService';
 import StudyDesignService from 'services/StudyDesignService';
-import type { Study } from '../../../../types';
+import type { Study } from '../../../types';
 
 // ============================================================================
 // Types

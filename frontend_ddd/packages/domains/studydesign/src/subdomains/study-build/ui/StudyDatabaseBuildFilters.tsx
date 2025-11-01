@@ -5,7 +5,7 @@ import {
   XMarkIcon,
   CalendarIcon,
 } from '@heroicons/react/24/outline';
-import { BuildStatus } from '../../../../../types/study/DatabaseBuild.types';
+import { BuildStatus } from '../types/study/DatabaseBuild.types';
 
 interface FilterState {
   status: BuildStatus | 'all';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StudyOrganizationService } from 'services/StudyOrganizationService';
+import { StudyOrganizationService } from '../../../../organization/src/services/StudyOrganizationService';
 import { LoadingOverlay, Alert } from '../../components/UIComponents';
 import { useCodeList } from '../../../../../hooks/useCodeList';
 

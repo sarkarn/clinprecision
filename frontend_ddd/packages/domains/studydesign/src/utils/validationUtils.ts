@@ -6,22 +6,6 @@
 /**
  * Validation pattern type
  */
- 
- export {
-  validationPatterns,
-  clinicalValidationRules,
-  formValidationConfigs,
-  validationHelpers
-} from './validationUtils';
-
-// Re-export types
-export type {
-  ValidationPatterns,
-  ValidationRule,
-  FormValidationConfig,
-  FormReadiness,
-  FormData
-} from './validationUtils';
 
 
 export interface ValidationPatterns {

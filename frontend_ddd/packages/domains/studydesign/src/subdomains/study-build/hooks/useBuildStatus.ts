@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import studyDatabaseBuildService from 'services/StudyDatabaseBuildService';
-import { StudyDatabaseBuild, BuildStatus } from '../../../../../types/study/DatabaseBuild.types';
+import studyDatabaseBuildService from '../services/StudyDatabaseBuildService';
+import { StudyDatabaseBuild, BuildStatus } from '../types/study/DatabaseBuild.types';
 
 /**
  * Hook return type for useBuildStatus

@@ -3,7 +3,7 @@
  * Types for user management, authentication, authorization, and security
  */
 
-import type { BaseEntity, EntityStatus } from './common.types ';
+import type { BaseEntity, EntityStatus } from './common.types';
 
 // ============================================================================
 // User Enums
@@ -402,7 +402,7 @@ export interface UserStudyRoleWithDetails extends UserStudyRole {
 }
 
 
-interface NewMemberForm {
+export interface NewMemberForm {
     userId: string;
     roleCode: string;
     startDate: string;

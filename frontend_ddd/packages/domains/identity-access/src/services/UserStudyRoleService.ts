@@ -14,7 +14,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
-import ApiService from '../ApiService';
+import ApiService from './ApiService';
 import {
   UserStudyRole,
   UserStudyRoleWithDetails,
@@ -32,7 +32,7 @@ import {
   UserRoleCheckResponse,
   HighestPriorityRoleResponse,
   UserRoleHistoryResponse,
-} from '../../types/domain/Security.types';
+} from '../types/domain/Security.types';
 
 // ==================== Query Keys ====================
 

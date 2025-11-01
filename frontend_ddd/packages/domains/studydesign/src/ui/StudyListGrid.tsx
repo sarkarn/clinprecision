@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDataGrid } from '../hooks/useDataGrid';
 import { useStudyVersioning } from '../hooks/useStudyVersioning';
-import StudyService from 'services/StudyService';
+import StudyService from '../services/StudyService';
 import {
     Search,
     Filter,

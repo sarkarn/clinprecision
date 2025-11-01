@@ -1,1 +1,3 @@
-// Custom hooks for forms sub-domain
+// Export all hooks
+// Placeholder for future hook exports
+export {};

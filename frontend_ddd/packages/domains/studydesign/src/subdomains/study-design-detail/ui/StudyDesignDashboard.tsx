@@ -9,7 +9,7 @@ import { getStudyById } from 'services/StudyService';
 import StudyDesignService from 'services/StudyDesignService';
 
 // Types
-import { Study } from '../../../../types';
+import { Study } from '../../../types';
 
 // UI Components
 import { Alert, Button } from '../components/UIComponents';

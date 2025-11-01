@@ -1,13 +1,13 @@
 // src/services/auth/RoleService.ts
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
-import ApiService from '../ApiService';
+import ApiService from './ApiService';
 import {
   Role,
   RolesResponse,
   CreateRoleRequest,
   UpdateRoleRequest,
-} from '../../types/domain/User.types';
+} from '../types/domain/User.types';
 
 // ============================================================================
 // QUERY KEYS

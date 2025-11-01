@@ -3,7 +3,7 @@
  * Types for protocol version management and database build operations
  */
 
-import type { BaseEntity, EntityStatus } from './common.types ';
+import type { BaseEntity, EntityStatus } from './common.types';
 import type { AmendmentType } from './codeList.types';
 import type { ProtocolVersionStatus } from './status.types';
 

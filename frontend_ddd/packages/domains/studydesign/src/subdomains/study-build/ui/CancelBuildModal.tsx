@@ -1,6 +1,6 @@
 import React, { FC, useState, FormEvent, ChangeEvent } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import type { StudyDatabaseBuild } from '../../../../../types/study/DatabaseBuild.types';
+import type { StudyDatabaseBuild } from '../types/study/DatabaseBuild.types';
 
 interface CancelBuildModalProps {
   isOpen: boolean;

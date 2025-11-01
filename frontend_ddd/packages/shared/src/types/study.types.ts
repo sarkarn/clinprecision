@@ -5,9 +5,8 @@
  * Supports CodeList integration and reference data endpoints
  */
 
-import type { BaseEntity, EntityStatus, ExportFormat, ValidationError, ValidationWarning} from './common.types ';
-
-import type { Visit} from './visit.types';
+import type { BaseEntity, EntityStatus, ExportFormat, ValidationError, ValidationWarning } from './common.types';
+import type { Visit } from './visit.types';
 
 
 

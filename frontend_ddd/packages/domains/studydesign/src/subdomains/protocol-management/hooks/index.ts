@@ -1,1 +1,3 @@
-// Custom hooks for protocol-version sub-domain
+// Custom hooks for protocol-management sub-domain
+export { default as useProtocolVersioning } from './useProtocolVersioning';
+export { useStudyVersioning } from './useStudyVersioning';

@@ -1,13 +1,13 @@
 // src/services/auth/UserTypeService.ts
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
-import ApiService from '../ApiService';
+import ApiService from './ApiService';
 import {
   UserType,
   UserTypesResponse,
   CreateUserTypeRequest,
   UpdateUserTypeRequest,
-} from '../../types/domain/User.types';
+} from '../types/domain/User.types';
 
 // ============================================================================
 // QUERY KEYS

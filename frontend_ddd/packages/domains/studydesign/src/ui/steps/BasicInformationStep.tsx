@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FormField from '../../components/FormField';
-import { StudyOrganizationService } from 'services/StudyOrganizationService';
-import { Organization as ImportedOrganization } from '../../../../../types/study/StudyOrganization.types';
+import { StudyOrganizationService } from '../../../../organization/src/services/StudyOrganizationService';
+import { Organization as ImportedOrganization } from '@utils/types/study/StudyOrganization.types';
 import { useCodeList } from '../../../../../hooks/useCodeList';
 
 interface LookupItem {

@@ -1,5 +1,5 @@
 import React, { FC, ReactElement } from 'react';
-import { BuildStatus } from '../../../../../types/study/DatabaseBuild.types';
+import { BuildStatus } from '../types/study/DatabaseBuild.types';
 
 type BadgeSize = 'small' | 'medium' | 'large';
 

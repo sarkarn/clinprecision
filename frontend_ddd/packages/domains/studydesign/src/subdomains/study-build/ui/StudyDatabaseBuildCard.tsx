@@ -13,7 +13,7 @@ import BuildActionsMenu from './BuildActionsMenu';
 import BuildDetailsModal from './BuildDetailsModal';
 import CancelBuildModal from './CancelBuildModal';
 import studyDatabaseBuildService from 'services/StudyDatabaseBuildService';
-import type { StudyDatabaseBuild } from '../../../../../types/study/DatabaseBuild.types';
+import type { StudyDatabaseBuild } from '../types/study/DatabaseBuild.types';
 
 interface StudyDatabaseBuildCardProps {
   build: StudyDatabaseBuild & {

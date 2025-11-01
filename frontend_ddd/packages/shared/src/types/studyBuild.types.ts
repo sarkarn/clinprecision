@@ -3,7 +3,7 @@
  * Types for protocol version management and database build operations
  */
 
-import type { ValidationError, ValidationWarning } from './common.types ';
+import type { ValidationError, ValidationWarning } from './common.types';
 
 
 // ============================================================================

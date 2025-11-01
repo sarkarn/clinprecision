@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import StudyFormService from 'services/data-capture/StudyFormService';
-import StudyService from 'services/StudyService';
+import StudyFormService from '../subdomains/form-design/services/StudyFormService';
+import StudyService from '../services/StudyService';
 import { Alert } from './components/UIComponents';
 
 interface Study {

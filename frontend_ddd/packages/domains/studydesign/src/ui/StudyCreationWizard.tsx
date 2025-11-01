@@ -4,8 +4,8 @@ import { useStudyForm } from '../hooks/useStudyForm';
 import { useWizardNavigation } from '../hooks/useWizardNavigation';
 import ProgressIndicator from '../components/ProgressIndicator';
 import { LoadingOverlay, Alert, Button } from '../components/UIComponents';
-import StudyService, { StudyLookupData as ServiceLookupData } from 'services/StudyService';
-import { StudyOrganizationService } from 'services/StudyOrganizationService';
+import StudyService, { StudyLookupData as ServiceLookupData } from '../services/StudyService';
+import { StudyOrganizationService } from '../../../organization/src/services/StudyOrganizationService';
 
 // Step Components
 import BasicInformationStep from './steps/BasicInformationStep';

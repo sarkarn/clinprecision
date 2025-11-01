@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import FormService from 'services/FormService';
+import FormService from '../subdomains/form-design/services/FormService';
 
 interface Study {
     id: string | number;

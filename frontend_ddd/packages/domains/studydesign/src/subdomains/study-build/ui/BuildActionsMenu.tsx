@@ -7,7 +7,7 @@ import {
   DocumentArrowDownIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline';
-import type { StudyDatabaseBuild, BuildStatus } from '../../../../../types/study/DatabaseBuild.types';
+import type { StudyDatabaseBuild, BuildStatus } from '../types/study/DatabaseBuild.types';
 
 interface ActionConfig {
   label: string;

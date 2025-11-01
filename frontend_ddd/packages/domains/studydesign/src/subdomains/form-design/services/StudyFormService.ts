@@ -26,7 +26,7 @@
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import ApiService from '../ApiService';
-import { FormStatus } from '../../types/domain/DataEntry.types';
+import { FormStatus } from '../types/domain/DataEntry.types';
 import type {
   StudyFormDefinition,
   FormTemplate,
@@ -34,7 +34,7 @@ import type {
   UpdateStudyFormRequest,
   CreateFormFromTemplateRequest,
   FormSearchParams
-} from '../../types/domain/DataEntry.types';
+} from '../types/domain/DataEntry.types';
 
 // ========== API Base URL Constants ==========
 // NEW DDD-aligned URLs (Module 1.3 Phase 2)

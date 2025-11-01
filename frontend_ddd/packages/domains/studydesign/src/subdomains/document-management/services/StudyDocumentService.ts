@@ -17,7 +17,7 @@
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import ApiService from '../ApiService';
-import { DocumentType } from '../../types/domain/StudyDocument.types';
+import { DocumentType } from '../types/domain/StudyDocument.types';
 import type {
   StudyDocument,
   DocumentUploadRequest,
@@ -30,7 +30,7 @@ import type {
   DocumentTypeOption,
   DocumentDownloadOptions,
   DocumentDisplayData
-} from '../../types/domain/StudyDocument.types';
+} from '../types/domain/StudyDocument.types';
 
 // ========== API Base URL Constants ==========
 const STUDIES_BASE = '/api/studies';

@@ -1,1 +1,3 @@
-// Store logic for clinops domain
+// Export all store
+// Placeholder for future store exports
+export {};

@@ -1,1 +1,3 @@
-// Store logic for protocol-version sub-domain
+// Store logic for protocol-management sub-domain
+// Add exports here when store is created
+export {};

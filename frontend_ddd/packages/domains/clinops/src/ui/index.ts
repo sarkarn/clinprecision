@@ -1,1 +1,3 @@
-// UI components for clinops domain
+// Export all UI components
+export { default as DataCaptureDashboard } from './DataCaptureDashboard';
+export { default as DataCaptureModule } from './DataCaptureModule';

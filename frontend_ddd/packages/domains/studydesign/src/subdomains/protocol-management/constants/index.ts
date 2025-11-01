@@ -1,1 +1,3 @@
-// Constants for protocol-version sub-domain
+// Constants for protocol-management sub-domain
+// Add exports here when constants are defined
+export {};
