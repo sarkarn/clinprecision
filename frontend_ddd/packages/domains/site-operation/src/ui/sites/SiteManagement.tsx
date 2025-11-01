@@ -1,2 +1,12 @@
-// ...existing code from previous location...
+import React from 'react';
+
+const SiteManagement: React.FC = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold text-gray-900 mb-4">Site Management</h1>
+      <p className="text-gray-600">Site management UI placeholder</p>
+    </div>
+  );
+};
+
 export default SiteManagement;

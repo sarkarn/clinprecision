@@ -1,7 +1,8 @@
 // src/services/SiteService.ts
 import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
-import ApiService from './ApiService';
-import type { Site, ApiResponse, SiteStudyAssociation } from '../types';
+import ApiService from '@packages/services/ApiService';
+import type { Site, SiteStudyAssociation } from '@packages/utils/types';
+import type { ApiResponse } from '@shared/types/api.types';
 
 // ============================================================================
 // Types
