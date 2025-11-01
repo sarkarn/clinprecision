@@ -14,18 +14,17 @@
  */
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
-import ApiService from '../ApiService';
-import {
+import ApiService from '@packages/api/client/ApiService';
+import type {
   FormDefinition,
   FormDataRecord,
   FormDataSubmission,
   FormDataSubmissionResponse,
   FormCompletionStats,
-  VisitDetails,
-  VisitStatusUpdate,
-  FormDataStatus,
   FormEntryData
-} from '../../types/domain/DataEntry.types';
+} from '@shared/types/form.types';
+import type { VisitDetails, VisitStatusUpdate } from '@shared/types/visit.types';
+import { FormDataStatus } from '@shared/types/status.types';
 
 const FORM_DEFINITION_BASE = '/clinops-ws/api/v1/study-design/form-definitions';
 const FORM_DATA_BASE = '/clinops-ws/api/v1/form-data';

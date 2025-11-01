@@ -1,7 +1,7 @@
 import React from "react";
-import TopNavigationHeader from "../../../../clinprecision/src/components/shared/TopNavigationHeader";
-import { useAuth } from "../../../../clinprecision/src/components/login/AuthContext";
-import { useRoleBasedNavigation } from "../../../../clinprecision/src/hooks/useRoleBasedNavigation";
+import TopNavigationHeader from "@shared/ui/TopNavigationHeader";
+import { useAuth } from "@domains/identity-access/src/ui/login/AuthContext";
+import { useRoleBasedNavigation } from "@packages/hooks/useRoleBasedNavigation";
 
 const HomeLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();

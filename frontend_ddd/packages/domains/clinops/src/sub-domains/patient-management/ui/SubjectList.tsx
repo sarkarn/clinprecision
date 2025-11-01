@@ -14,10 +14,7 @@ import toast from 'react-hot-toast';
 import { getStudies } from 'services/StudyService';
 import { getSubjectsByStudy } from 'services/SubjectService';
 import ApiService from 'services/ApiService';
-// @ts-ignore - Custom hooks to be converted
-import { useStudy } from '../../../hooks/useStudy';
-// @ts-ignore - Custom hooks to be converted
-import { useDebounce } from '../../../hooks/useDebounce';
+import { useStudy, useDebounce } from '@packages/hooks';
 // @ts-ignore - Component to be converted
 import StudySelector from './components/StudySelector';
 // @ts-ignore - Component to be converted

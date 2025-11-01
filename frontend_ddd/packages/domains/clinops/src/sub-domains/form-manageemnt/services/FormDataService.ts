@@ -13,13 +13,9 @@
  */
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
-import ApiService from '../ApiService';
-import {
-  FormDataRecord,
-  FormDataSubmission,
-  FormDataSubmissionResponse,
-  FormDataStatus
-} from '../../types/domain/DataEntry.types';
+import ApiService from '@packages/api/client/ApiService';
+import type { FormDataRecord, FormDataSubmission, FormDataSubmissionResponse } from '@shared/types/form.types';
+import { FormDataStatus } from '@shared/types/status.types';
 
 const API_BASE = '/clinops-ws/api/v1/form-data';
 
@@ -39,7 +35,7 @@ export async function submitFormData(formSubmission: FormDataSubmission): Promis
   const requiredFields: (keyof FormDataSubmission)[] = ['studyId', 'formId', 'formData'];
   for (const field of requiredFields) {
     if (!formSubmission[field]) {
-      throw new Error(`Required field missing: ${field}`);
+      throw new Error(`Required field missing: ${String(field)}`);
     }
   }
 

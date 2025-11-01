@@ -1,8 +1,8 @@
 import React from "react";
 import { Route, Navigate } from "react-router-dom";
-import IdentityAccessModule from "../../../packages/domains/identity-access/src/ui/IdentityAccessModule";
-import OrganizationAdminModule from "../../../../clinprecision/src/components/modules/organization-admin/OrganizationAdminModule";
-import SiteOperationsModule from "../../../../clinprecision/src/components/modules/site-operations/SiteOperationsModule";
+import IdentityAccessModule from "@domains/identity-access/src/ui/IdentityAccessModule";
+import OrganizationAdminModule from "@domains/organization/src/ui/OrganizationAdminModule";
+import SiteOperationsModule from "@domains/site-operation/src/ui/SiteOperationsModule";
 
 const AdminRoutes = () => (
     <>

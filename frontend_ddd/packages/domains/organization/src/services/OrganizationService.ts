@@ -1,7 +1,7 @@
 // OrganizationService.ts
 // Organization and contact management service with React Query hooks
 
-import ApiService from './ApiService';
+import ApiService from '@packages/api/client/ApiService';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // ============================================================================

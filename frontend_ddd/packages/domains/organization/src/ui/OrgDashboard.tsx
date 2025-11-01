@@ -1,23 +1,19 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardBody, Badge } from '../../shared/ui';
+import { Card, CardBody, Badge } from '@shared/ui';
 import { Building2, Network, Settings } from 'lucide-react';
 
 interface QuickAction {
 	title: string;
 	description: string;
-	icon: any;
+	icon: React.ComponentType<{ className?: string }>;
 	path: string;
 	color: string;
 	count: number | null;
 	disabled?: boolean;
 }
 
-/**
- * Organization Administration Dashboard
- * Central hub for managing sponsor organizations and CROs
- */
+// Organization Administration Dashboard
 const OrgDashboard: React.FC = () => {
 	const navigate = useNavigate();
 
@@ -55,8 +51,7 @@ const OrgDashboard: React.FC = () => {
 			{/* Header */}
 			<div className="mb-8">
 				<div className="flex items-center gap-3 mb-2">
-					<div className="w-12 h-12 rounded-lg bg-gradient-to-br from-violet-500 to-violet-600 \
-						flex items-center justify-center text-white">
+					<div className="w-12 h-12 rounded-lg bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center text-white">
 						<Building2 className="h-6 w-6" />
 					</div>
 					<div>

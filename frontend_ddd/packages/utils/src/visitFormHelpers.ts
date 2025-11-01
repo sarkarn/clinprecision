@@ -7,7 +7,7 @@
  * @created October 22, 2025
  */
 
-import ApiService from '../services/ApiService';
+import ApiService from '@packages/api/client/ApiService';
 
 // Type definitions
 interface VisitData {

@@ -69,13 +69,32 @@
             ],
             "services/*": [
                 "../../packages/services/*"
+            ],
+            "@packages/hooks": [
+                "../../packages/hooks/src/index"
+            ],
+            "@packages/hooks/*": [
+                "../../packages/hooks/src/*"
+            ],
+            "@packages/utils/*": [
+                "../../packages/utils/src/*"
+            ],
+            "@packages/api/*": [
+                "../../packages/api/src/*"
+            ],
+            "@packages/services/*": [
+                "../../packages/services/*"
             ]
         }
     },
     "include": [
         "src",
         "../../packages/domains",
-        "../../packages/services"
+        "../../packages/services",
+        "../../packages/shared",
+        "../../packages/hooks",
+        "../../packages/utils",
+        "../../packages/api"
     ],
     "exclude": [
         "node_modules",

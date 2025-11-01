@@ -1,4 +1,22 @@
-// Migrated from legacy location
-// src/components/modules/organization-admin/OrganizationAdminModule.tsx
-// ...existing code from OrganizationAdminModule.tsx...
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import OrgDashboard from './OrgDashboard';
+import OrganizationList from './organizations/OrganizationList';
+import OrganizationForm from './organizations/OrganizationForm';
+import OrganizationDetail from './organizations/OrganizationDetail';
+
+// Organization Administration module router
+const OrganizationAdminModule: React.FC = () => {
+	return (
+		<Routes>
+			<Route path="/" element={<OrgDashboard />} />
+			<Route path="/organizations" element={<OrganizationList />} />
+			<Route path="/organizations/create" element={<OrganizationForm />} />
+			<Route path="/organizations/edit/:id" element={<OrganizationForm />} />
+			<Route path="/organizations/view/:id" element={<OrganizationDetail />} />
+			<Route path="*" element={<Navigate to="/organization-admin" replace />} />
+		</Routes>
+	);
+};
+
 export default OrganizationAdminModule;

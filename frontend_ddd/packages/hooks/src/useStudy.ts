@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useStudy as useStudyContext } from '../contexts/StudyContext';
-import { Study } from '../types';
+import { useStudy as useStudyContext } from '@shared/context/StudyContext';
+import type { Study } from '@shared/types/study.types';
 
 type StudyIdentifier = string | number | null;
 type StudySelectionInput = StudyIdentifier | Study | null;

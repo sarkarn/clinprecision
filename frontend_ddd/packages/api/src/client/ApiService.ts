@@ -1,13 +1,13 @@
 // src/services/ApiService.ts
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from '@shared/config';
 import {
   ApiRequestConfig,
   IApiService,
   AuthHeaders,
   AuthStorageKeys,
   HttpStatus,
-} from '../types/api/ApiService.types';
+} from '@shared/types/api.types';
 
 /**
  * ApiService - Centralized HTTP client with interceptors

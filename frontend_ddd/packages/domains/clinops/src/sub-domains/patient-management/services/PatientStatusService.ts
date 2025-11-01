@@ -11,17 +11,17 @@
  */
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
-import ApiService from '../ApiService';
-import {
-  PatientStatus,
+import ApiService from '@packages/api/client/ApiService';
+import type {
   StatusHistory,
   StatusChangeRequest,
   PatientStatusSummary,
   StatusTransitionSummary,
   StatusLifecycleInfo,
-  StatusValidationResult,
-  StatusBadgeVariant
-} from '../../types/domain/Patient.types';
+  StatusValidationResult
+} from '@shared/types/patient.types';
+import { PatientStatus } from '@shared/types/status.types';
+import type { StatusBadgeVariant } from '@shared/types/common.types';
 
 const API_BASE = '/clinops-ws/api/v1/patients';
 
@@ -388,7 +388,7 @@ export function validateStatusChangeData(statusData: Partial<StatusChangeRequest
 
   // Validate status is one of the valid values
   const validStatuses = Object.values(PatientStatus);
-  if (statusData.newStatus && !validStatuses.includes(statusData.newStatus)) {
+  if (statusData.newStatus && !validStatuses.includes(statusData.newStatus as PatientStatus)) {
     errors.push('Invalid status value');
   }
 

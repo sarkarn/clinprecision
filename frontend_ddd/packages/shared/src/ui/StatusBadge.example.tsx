@@ -15,7 +15,9 @@ import {
   FormStatusBadge,
   VisitTypeBadge,
 } from './StatusBadge';
-import { EntityStatus, PatientStatus, FormStatus, VisitType } from '../../types';
+import type { EntityStatus } from '@shared/types/common.types';
+import { PatientStatus, FormStatus } from '@shared/types/status.types';
+import type { VisitType } from '@shared/types/visit.types';
 
 const StatusBadgeExamples: React.FC = () => {
   return (
@@ -164,9 +166,9 @@ const StatusBadgeExamples: React.FC = () => {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Type-Safe Convenience Component</h3>
             <div className="flex flex-wrap gap-2">
-              <PatientStatusBadge status="SCREENING" showIcon />
-              <PatientStatusBadge status="ENROLLED" showIcon />
-              <PatientStatusBadge status="COMPLETED" showIcon />
+              <PatientStatusBadge status={PatientStatus.SCREENING} showIcon />
+              <PatientStatusBadge status={PatientStatus.ENROLLED} showIcon />
+              <PatientStatusBadge status={PatientStatus.COMPLETED} showIcon />
             </div>
           </div>
         </div>
@@ -210,9 +212,9 @@ const StatusBadgeExamples: React.FC = () => {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Type-Safe Convenience Component</h3>
             <div className="flex flex-wrap gap-2">
-              <FormStatusBadge status="NOT_STARTED" />
-              <FormStatusBadge status="IN_PROGRESS" showIcon />
-              <FormStatusBadge status="VERIFIED" showIcon />
+              <FormStatusBadge status={FormStatus.NOT_STARTED} />
+              <FormStatusBadge status={FormStatus.IN_PROGRESS} showIcon />
+              <FormStatusBadge status={FormStatus.VERIFIED} showIcon />
             </div>
           </div>
         </div>

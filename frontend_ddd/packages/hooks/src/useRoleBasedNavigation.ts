@@ -1,4 +1,4 @@
-import { useAuth } from '../../domains/authentication/src/ui/login/AuthContext';
+import { useAuth } from '@domains/identity-access/src/ui/login/AuthContext';
 
 // ============================================================================
 // Type Definitions

@@ -1,41 +1,91 @@
 import React, { useState, useEffect, useCallback, ChangeEvent, FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../login/AuthContext';
+import UserService, { type User } from '../../services/UserService';
+import RoleService from '../../services/RoleService';
+import UserStudyRoleService from '../../services/UserStudyRoleService';
+import StudyService from 'services/StudyService';
+import type { Study } from '../../types';
+import type { Role } from '../../types/domain/User.types';
+import type {
+    CreateUserStudyRoleRequest,
+    UpdateUserStudyRoleRequest,
+    UserStudyRole,
+} from '../../types/domain/Security.types';
+import { AssignmentStatus } from '../../types/domain/Security.types';
 
+type RoleOption = Role & { code?: string; roleCode?: string };
 
+interface UserStudyRoleFormState {
+    userId: string;
+    studyId: string;
+    roleId: string;
+    startDate: string;
+    endDate: string;
+    isActive: boolean;
+    notes: string;
+}
+
+type ValidationErrors = Partial<Record<'userId' | 'studyId' | 'roleId' | 'startDate' | 'endDate', string>>;
+
+const createDefaultFormState = (): UserStudyRoleFormState => ({
+    userId: '',
+    studyId: '',
+    roleId: '',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
+    isActive: true,
+    notes: '',
+});
+
+const formatDateFromApi = (value?: string | null): string => {
+    if (!value) {
+        return '';
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+    }
+
+    try {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toISOString().split('T')[0];
+        }
+    } catch (err) {
+        console.error('Failed to parse date from API value', value, err);
+    }
+
+    return '';
+};
 
 const UserStudyRoleForm: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const isEditing = !!id;
+    const { user: authUser } = useAuth();
 
-    const [formData, setFormData] = useState<FormData>({
-        userId: '',
-        studyId: '',
-        roleCode: '',
-        startDate: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
-        endDate: '',
-        active: true,
-        notes: ''
-    });
+    const [formData, setFormData] = useState<UserStudyRoleFormState>(createDefaultFormState);
 
     const [users, setUsers] = useState<User[]>([]);
     const [studies, setStudies] = useState<Study[]>([]);
-    const [roles, setRoles] = useState<Role[]>([]);
+    const [roles, setRoles] = useState<RoleOption[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
     const loadReferenceData = useCallback(async () => {
         try {
+            setError(null);
             const [usersData, studiesData, rolesData] = await Promise.all([
                 UserService.getAllUsers(),
                 StudyService.getStudies(),
-                RoleService.getNonSystemRoles()  // Only non-system roles for study assignments
+                RoleService.getNonSystemRoles(), // Only non-system roles for study assignments
             ]);
 
-            setUsers(usersData as any);
-            setStudies(studiesData as any);
-            setRoles(rolesData as any);
+            setUsers(usersData as User[]);
+            setStudies(studiesData as Study[]);
+            setRoles((rolesData as Role[]).map((role) => ({ ...role })));
         } catch (err) {
             setError('Failed to load reference data');
             console.error('Error loading reference data:', err);
@@ -45,43 +95,21 @@ const UserStudyRoleForm: React.FC = () => {
     const loadUserStudyRole = useCallback(async () => {
         try {
             setLoading(true);
-            const data = await UserStudyRoleService.getUserStudyRoleById(id as any) as any;
+            const data = await UserStudyRoleService.getUserStudyRoleById(id) as UserStudyRole;
 
-            // Helper function to safely format date
-            const formatDate = (dateValue: any): string => {
-                if (!dateValue) return '';
-
-                // If it's already a string in YYYY-MM-DD format, return it
-                if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-                    return dateValue;
-                }
-
-                // If it contains time (ISO format), split it
-                if (typeof dateValue === 'string' && dateValue.includes('T')) {
-                    return dateValue.split('T')[0];
-                }
-
-                // If it's a Date object or timestamp, convert it
-                try {
-                    const date = new Date(dateValue);
-                    if (!isNaN(date.getTime())) {
-                        return date.toISOString().split('T')[0];
-                    }
-                } catch (e) {
-                    console.error('Error parsing date:', dateValue, e);
-                }
-
-                return '';
-            };
+            const resolvedRoleId = data.roleId ?? data.roleName ?? '';
+            if (!data.roleId) {
+                console.warn('UserStudyRole assignment missing roleId, falling back to display name', data);
+            }
 
             setFormData({
-                userId: data.userId?.toString() || '',
-                studyId: data.studyId?.toString() || '',
-                roleCode: data.roleCode || '',
-                startDate: formatDate(data.startDate),
-                endDate: formatDate(data.endDate),
-                active: data.active !== undefined ? data.active : true,
-                notes: data.notes || ''
+                userId: data.userId?.toString() ?? '',
+                studyId: data.studyId?.toString() ?? '',
+                roleId: resolvedRoleId.toString(),
+                startDate: formatDateFromApi(data.startDate),
+                endDate: formatDateFromApi(data.endDate ?? undefined),
+                isActive: data.status ? data.status === AssignmentStatus.ACTIVE : true,
+                notes: data.notes ?? '',
             });
         } catch (err) {
             setError('Failed to load user study role assignment');
@@ -95,6 +123,10 @@ const UserStudyRoleForm: React.FC = () => {
         loadReferenceData();
         if (isEditing) {
             loadUserStudyRole();
+        } else {
+            setFormData(createDefaultFormState());
+            setValidationErrors({});
+            setError(null);
         }
     }, [id, isEditing, loadReferenceData, loadUserStudyRole]);
 
@@ -109,8 +141,8 @@ const UserStudyRoleForm: React.FC = () => {
             errors.studyId = 'Study is required';
         }
 
-        if (!formData.roleCode) {
-            errors.roleCode = 'Role is required';
+        if (!formData.roleId) {
+            errors.roleId = 'Role is required';
         }
 
         if (!formData.startDate) {
@@ -125,8 +157,8 @@ const UserStudyRoleForm: React.FC = () => {
         return Object.keys(errors).length === 0;
     };
 
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
 
         if (!validateForm()) {
             return;
@@ -135,74 +167,51 @@ const UserStudyRoleForm: React.FC = () => {
         setLoading(true);
         setError(null);
 
+        const actor = authUser?.userId ?? authUser?.email ?? 'system';
+        const trimmedUserId = formData.userId.trim();
+        const trimmedStudyId = formData.studyId.trim();
+        const trimmedRoleId = formData.roleId.trim();
+
+        if (!trimmedUserId || !trimmedStudyId || !trimmedRoleId) {
+            setError('Please complete all required fields.');
+            setLoading(false);
+            return;
+        }
+
         try {
-            // Debug logging to see what we're working with
-            console.log('Form data before conversion:', formData);
+            if (isEditing && id) {
+                const updatePayload: UpdateUserStudyRoleRequest = {
+                    roleId: trimmedRoleId,
+                    startDate: formData.startDate ? `${formData.startDate}T00:00:00` : undefined,
+                    endDate: formData.endDate ? `${formData.endDate}T23:59:59` : undefined,
+                    notes: formData.notes || undefined,
+                    status: formData.isActive ? AssignmentStatus.ACTIVE : AssignmentStatus.INACTIVE,
+                    updatedBy: actor,
+                };
 
-            // More robust ID parsing
-            const parseUserId = (userIdValue: string): number | null => {
-                if (!userIdValue) return null;
-
-                // If it's already a number, return it
-                if (typeof userIdValue === 'number') return userIdValue;
-
-                // If it's a string that represents a number, parse it
-                if (typeof userIdValue === 'string') {
-                    const parsed = parseInt(userIdValue);
-                    if (!isNaN(parsed)) return parsed;
-                }
-
-                console.warn('Unable to parse userId:', userIdValue);
-                return null;
-            };
-
-            const submitData = {
-                ...formData,
-                userId: parseUserId(formData.userId),
-                studyId: formData.studyId ? parseInt(formData.studyId) : null,
-                // Convert date strings to LocalDateTime format (YYYY-MM-DDTHH:MM:SS)
-                startDate: formData.startDate ? `${formData.startDate}T00:00:00` : null,
-                endDate: formData.endDate ? `${formData.endDate}T23:59:59` : null
-            };
-
-            console.log('Submit data after conversion:', submitData);
-
-            // Additional safety check before sending
-            if (!submitData.userId || isNaN(submitData.userId)) {
-                console.log('userId validation failed:', {
-                    originalUserId: formData.userId,
-                    convertedUserId: submitData.userId,
-                    isNaN: isNaN(submitData.userId)
-                });
-                setError('User selection is required');
-                setLoading(false);
-                return;
-            }
-
-            if (!submitData.studyId || isNaN(submitData.studyId)) {
-                console.log('studyId validation failed:', {
-                    originalStudyId: formData.studyId,
-                    convertedStudyId: submitData.studyId,
-                    isNaN: isNaN(submitData.studyId)
-                });
-                setError('Study selection is required');
-                setLoading(false);
-                return;
-            }
-
-            if (isEditing) {
-                await UserStudyRoleService.updateUserStudyRole(id as any, submitData as any);
+                await UserStudyRoleService.updateUserStudyRole(id, updatePayload);
             } else {
-                await UserStudyRoleService.createUserStudyRole(submitData as any);
+                const createPayload: CreateUserStudyRoleRequest = {
+                    userId: trimmedUserId,
+                    studyId: trimmedStudyId,
+                    roleId: trimmedRoleId,
+                    startDate: formData.startDate ? `${formData.startDate}T00:00:00` : undefined,
+                    endDate: formData.endDate ? `${formData.endDate}T23:59:59` : null,
+                    notes: formData.notes || undefined,
+                    assignedBy: actor,
+                    isPrimaryRole: false,
+                };
+
+                await UserStudyRoleService.createUserStudyRole(createPayload);
             }
 
-            navigate('/user-management/user-study-roles');
-        } catch (err: any) {
+            navigate('/identity-access/study-assignments');
+        } catch (submitError: unknown) {
+            console.error('Error saving user study role:', submitError);
             setError(isEditing ? 'Failed to update assignment' : 'Failed to create assignment');
-            console.error('Error saving user study role:', err);
 
-            // Handle validation errors from backend
-            if (err.response && err.response.status === 400) {
+            const maybeResponse = submitError as { response?: { status?: number } };
+            if (maybeResponse.response?.status === 400) {
                 setError('Invalid data. Please check your inputs and try again.');
             }
         } finally {
@@ -210,19 +219,27 @@ const UserStudyRoleForm: React.FC = () => {
         }
     };
 
-    const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const target = e.target as HTMLInputElement;
-        const { name, value, type, checked } = target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+    const handleInputChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const target = event.target;
+        const { name, value } = target;
+        const field = name as keyof UserStudyRoleFormState;
 
-        // Clear validation error when user starts typing
-        if (validationErrors[name as keyof ValidationErrors]) {
-            setValidationErrors(prev => ({
+        setFormData((prev) => {
+            if (field === 'isActive' && target instanceof HTMLInputElement) {
+                return { ...prev, isActive: target.checked };
+            }
+
+            return {
                 ...prev,
-                [name]: ''
+                [field]: value,
+            };
+        });
+
+        const errorKey = field as keyof ValidationErrors;
+        if (validationErrors[errorKey]) {
+            setValidationErrors((prev) => ({
+                ...prev,
+                [errorKey]: undefined,
             }));
         }
     };
@@ -232,7 +249,9 @@ const UserStudyRoleForm: React.FC = () => {
     };
 
     const getUserDisplayName = (user: User): string => {
-        return `${user.firstName} ${user.lastName} (${user.email})`;
+        const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+        const label = fullName.length > 0 ? fullName : user.username ?? user.email;
+        return `${label} (${user.email})`;
     };
 
     if (loading && isEditing) {
@@ -304,11 +323,15 @@ const UserStudyRoleForm: React.FC = () => {
                                 disabled={loading}
                             >
                                 <option value="">Select a study...</option>
-                                {studies.map(study => (
-                                    <option key={study.id} value={study.id}>
-                                        {study.title}
-                                    </option>
-                                ))}
+                                {studies.map((study) => {
+                                    const identifier = (study.id ?? study.uuid ?? '').toString();
+                                    const displayName = study.title ?? study.name ?? `Study #${study.id ?? identifier}`;
+                                    return (
+                                        <option key={identifier || displayName} value={identifier}>
+                                            {displayName}
+                                        </option>
+                                    );
+                                })}
                             </select>
                             {validationErrors.studyId && (
                                 <p className="mt-1 text-sm text-red-600">{validationErrors.studyId}</p>
@@ -317,27 +340,37 @@ const UserStudyRoleForm: React.FC = () => {
 
                         {/* Role Selection */}
                         <div>
-                            <label htmlFor="roleCode" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="roleId" className="block text-sm font-medium text-gray-700 mb-2">
                                 Role *
                             </label>
                             <select
-                                id="roleCode"
-                                name="roleCode"
-                                value={formData.roleCode}
+                                id="roleId"
+                                name="roleId"
+                                value={formData.roleId}
                                 onChange={handleInputChange}
-                                className={`w-full border rounded-md px-3 py-2 ${validationErrors.roleCode ? 'border-red-300' : 'border-gray-300'
+                                className={`w-full border rounded-md px-3 py-2 ${validationErrors.roleId ? 'border-red-300' : 'border-gray-300'
                                     } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                                 disabled={loading}
                             >
                                 <option value="">Select a role...</option>
-                                {roles.map(role => (
-                                    <option key={role.code} value={role.code}>
-                                        {role.name}
-                                    </option>
-                                ))}
+                                {roles.map((role) => {
+                                    const identifier = role.id ?? role.code ?? role.roleCode;
+                                    if (identifier === undefined || identifier === null) {
+                                        return null;
+                                    }
+
+                                    const displayName = role.name ?? role.code ?? role.roleCode ?? 'Unnamed role';
+                                    const value = identifier.toString();
+
+                                    return (
+                                        <option key={value} value={value}>
+                                            {displayName}
+                                        </option>
+                                    );
+                                })}
                             </select>
-                            {validationErrors.roleCode && (
-                                <p className="mt-1 text-sm text-red-600">{validationErrors.roleCode}</p>
+                            {validationErrors.roleId && (
+                                <p className="mt-1 text-sm text-red-600">{validationErrors.roleId}</p>
                             )}
                         </div>
 
@@ -388,14 +421,14 @@ const UserStudyRoleForm: React.FC = () => {
                         <div className="flex items-center">
                             <input
                                 type="checkbox"
-                                id="active"
-                                name="active"
-                                checked={formData.active}
+                                id="isActive"
+                                name="isActive"
+                                checked={formData.isActive}
                                 onChange={handleInputChange}
                                 className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                 disabled={loading}
                             />
-                            <label htmlFor="active" className="text-sm font-medium text-gray-700">
+                            <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
                                 Active Assignment
                             </label>
                         </div>

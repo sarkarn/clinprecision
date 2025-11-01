@@ -17,8 +17,13 @@
  */
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
-import ApiService from '../ApiService';
+import ApiService from '@packages/api/client/ApiService';
 import {
+  DeviationType,
+  DeviationSeverity,
+  DeviationStatus,
+} from '@shared/types/quality.types';
+import type {
   ProtocolDeviation,
   ProtocolDeviationWithDetails,
   DeviationComment,
@@ -31,13 +36,10 @@ import {
   DeviationCommentResponse,
   DeviationCommentsResponse,
   ProtocolDeviationFilterOptions,
-  DeviationType,
-  DeviationSeverity,
-  DeviationStatus,
   DeviationTypeOption,
   SeverityLevelOption,
   StatusOption,
-} from '../../types/domain/Quality.types';
+} from '@shared/types/quality.types';
 
 // ==================== Query Keys ====================
 

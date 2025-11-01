@@ -16,6 +16,10 @@
  */
 
 import {
+  ValidationSeverity,
+  DataQualityAction,
+} from '@packages/utils/types/domain/Quality.types';
+import type {
   ValidationError,
   ValidationWarning,
   FieldValidationResult,
@@ -28,9 +32,7 @@ import {
   DataQualityMetadata,
   FieldMetadata,
   FormDefinition,
-  ValidationSeverity,
-  DataQualityAction,
-} from '../../types/domain/Quality.types';
+} from '@packages/utils/types/domain/Quality.types';
 
 // ==================== Validation Engine Class ====================
 

@@ -1,6 +1,6 @@
 // StudySelector.tsx - Study Protocol Selection Dropdown
 import React from 'react';
-import { useStudy } from '../../../../hooks/useStudy';
+import { useStudy } from '@packages/hooks';
 
 // Type definitions
 interface Study {

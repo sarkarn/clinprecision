@@ -1,1 +1,3 @@
-// UI components for organization domain
+export { default as OrganizationAdminModule } from './OrganizationAdminModule';
+export { default as OrgDashboard } from './OrgDashboard';
+export * from './organizations';

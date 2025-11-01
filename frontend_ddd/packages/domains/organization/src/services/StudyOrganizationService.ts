@@ -1,6 +1,6 @@
 // src/services/StudyOrganizationService.ts
-import ApiService from './ApiService';
-import type { Organization, IStudyOrganizationService } from '../types/study/StudyOrganization.types';
+import ApiService from '@packages/api/client/ApiService';
+import type { Organization, IStudyOrganizationService } from '@shared/types/organization.type';
 
 /**
  * Study-specific Organization Service

@@ -7,7 +7,7 @@ import {
   EmailSendResponse,
   EmailJSConfigDetails,
   IEmailService,
-} from '../types/api/EmailService.types';
+} from '@shared/types/email.types';
 
 // Declare global process for environment variables
 declare const process: {

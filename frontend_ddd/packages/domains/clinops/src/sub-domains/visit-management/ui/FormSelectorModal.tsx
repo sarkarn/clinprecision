@@ -1,7 +1,7 @@
 // src/components/modules/datacapture/visits/FormSelectorModal.tsx
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, Search, Plus, FileText } from 'lucide-react';
-import { addMultipleFormsToVisit, STANDARD_FORM_SETS } from '../../../../utils/visitFormHelpers';
+import { addMultipleFormsToVisit, STANDARD_FORM_SETS } from '@packages/utils/visitFormHelpers';
 import FormService, { FormTemplate } from 'services/FormService';
 
 // Component props

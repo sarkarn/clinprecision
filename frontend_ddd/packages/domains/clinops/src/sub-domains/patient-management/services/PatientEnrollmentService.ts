@@ -9,17 +9,17 @@
  */
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
-import ApiService from '../ApiService';
-import {
+import ApiService from '@packages/api/client/ApiService';
+import type {
   Patient,
   PatientRegistrationData,
   PatientDisplay,
   PatientStatistics,
   PatientFilters,
-  PatientValidationResult,
-  Gender,
-  PatientStatus
-} from '../../types/domain/Patient.types';
+  PatientValidationResult
+} from '@shared/types/patient.types';
+import { Gender } from '@shared/types/codeList.types';
+import { PatientStatus } from '@shared/types/status.types';
 
 const API_BASE = '/clinops-ws/api/v1/patients';
 
@@ -33,7 +33,8 @@ export async function registerPatient(patientData: PatientRegistrationData): Pro
   const requiredFields: (keyof PatientRegistrationData)[] = ['firstName', 'lastName', 'dateOfBirth', 'gender'];
   for (const field of requiredFields) {
     if (!patientData[field]) {
-      throw new Error(`Required field missing: ${field}`);
+      const missingField = String(field);
+      throw new Error(`Required field missing: ${missingField}`);
     }
   }
 

@@ -1,5 +1,5 @@
 // src/services/WebSocketService.ts
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from '@shared/config';
 import {
   IWebSocketService,
   WebSocketMessage,
@@ -11,7 +11,7 @@ import {
   VersionUpdateData,
   ComputationCompleteData,
   ValidationResultData,
-} from '../types/api/WebSocketService.types';
+} from '@shared/types';
 
 /**
  * WebSocket Service for Real-time Status Updates

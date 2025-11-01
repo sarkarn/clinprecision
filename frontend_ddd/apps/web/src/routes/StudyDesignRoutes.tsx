@@ -1,6 +1,6 @@
 import React from "react";
 import { Route } from "react-router-dom";
-import StudyDesignModule from "../../../../clinprecision/src/components/modules/trialdesign/StudyDesignModule";
+import StudyDesignModule from "@domains/studydesign/src/ui/StudyDesignModule";
 
 const StudyDesignRoutes = () => (
     <>

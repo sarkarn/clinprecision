@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import ApiService from '../services/ApiService';
+import ApiService from 'services/ApiService';
 
 interface CodeListOption {
     id: string;

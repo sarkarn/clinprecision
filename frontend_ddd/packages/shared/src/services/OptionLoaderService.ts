@@ -1,17 +1,17 @@
 // src/services/OptionLoaderService.ts
-import ApiService from './ApiService';
-import {
+import ApiService from '@packages/api/client/ApiService';
+import type {
   IOptionLoaderService,
   FieldDefinition,
   OptionLoadContext,
   SelectOption,
   OptionSource,
-  OptionSourceType,
   CodeListItem,
   CachedOptions,
   CacheStats,
   PlaceholderMapping,
-} from '../types/api/OptionLoaderService.types';
+} from '@packages/utils/types/api/OptionLoaderService.types';
+import { OptionSourceType } from '@packages/utils/types/api/OptionLoaderService.types';
 
 /**
  * OptionLoaderService - Centralized service for loading select field options

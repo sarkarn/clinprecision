@@ -34,12 +34,9 @@
  */
 
 import React from 'react';
-import { 
-  EntityStatus, 
-  PatientStatus, 
-  FormStatus, 
-  VisitType 
-} from '../../types';
+import type { EntityStatus } from '@shared/types/common.types';
+import { PatientStatus, FormStatus } from '@shared/types/status.types';
+import type { VisitType } from '@shared/types/visit.types';
 import {
   CheckCircle,
   Clock,

@@ -1,6 +1,6 @@
 import React from "react";
 import { Route } from "react-router-dom";
-import DataCaptureModule from "../../../../clinprecision/src/components/modules/datacapture/DataCaptureModule";
+import DataCaptureModule from "@domains/clinops/src/ui/DataCaptureModule";
 
 const DataCaptureRoutes = () => (
     <>

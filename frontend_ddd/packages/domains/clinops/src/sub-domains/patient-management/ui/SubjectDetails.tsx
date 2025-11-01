@@ -7,7 +7,7 @@ import {
 import { getPatientVisits } from 'services/VisitService';
 import ProtocolDeviationService from 'services/quality/ProtocolDeviationService';
 import { startVisit } from 'services/data-capture/DataEntryService';
-import { useAuth } from '../../login/AuthContext';
+import { useAuth } from '@domains/identity-access/src/ui/login/AuthContext';
 // @ts-ignore
 import PatientStatusBadge from '../subjectmanagement/components/PatientStatusBadge';
 // @ts-ignore

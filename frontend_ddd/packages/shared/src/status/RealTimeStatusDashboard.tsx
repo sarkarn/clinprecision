@@ -1,6 +1,6 @@
 // src/components/shared/status/RealTimeStatusDashboard.tsx
 import React, { useState, useEffect } from 'react';
-import { useStatusSynchronization } from '../../../hooks/useStatusSynchronization';
+import { useStatusSynchronization } from '@packages/hooks/useStatusSynchronization';
 import StatusIndicator, { DetailedStatusCard } from './StatusIndicator';
 import {
     Activity,

@@ -1,4 +1,4 @@
-import Login from '../../../../packages/domains/identity-access/src/ui/Login';
+import Login from '@domains/identity-access/src/ui/login/Login';
 
 export default function LoginPage() {
   return <Login />;

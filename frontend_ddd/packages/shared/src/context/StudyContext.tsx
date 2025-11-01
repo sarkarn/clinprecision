@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { Study } from '../../types';
+import type { Study } from '../types/study.types';
 
 // Allow selected study to be represented as a Study object or simple identifier
 export type StudySelection = Study | string | number | null;

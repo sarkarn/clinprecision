@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useCodeList } from '../../hooks/useCodeList';
+import { useCodeList } from '@packages/hooks/useCodeList';
 
 type CodeListCategory = 
     | 'REGULATORY_STATUS' 
