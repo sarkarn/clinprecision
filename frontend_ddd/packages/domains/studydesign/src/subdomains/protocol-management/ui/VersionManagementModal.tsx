@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useStudyVersioning, StudyVersion } from '../hooks/useStudyVersioning';
+import { useStudyVersioning } from '../hooks/useStudyVersioning';
+import { ProtocolVersion } from '../ProtocolVersioning.types';
 import {
     X,
     GitBranch,
@@ -41,7 +42,7 @@ interface VersionManagementModalProps {
     isOpen: boolean;
     onClose: () => void;
     study: Study;
-    onVersionCreated?: (version: StudyVersion) => void;
+    onVersionCreated?: (version: ProtocolVersion) => void;
 }
 
 /**
@@ -65,7 +66,7 @@ const VersionManagementModal: React.FC<VersionManagementModalProps> = ({
 
     const [errors, setErrors] = useState<FormErrors>({});
     const [loading, setLoading] = useState<boolean>(false);
-    const [versionHistory, setVersionHistory] = useState<StudyVersion[]>([]);
+    const [versionHistory, setVersionHistory] = useState<ProtocolVersion[]>([]);
 
     const {
         loadStudyVersions,
@@ -85,7 +86,8 @@ const VersionManagementModal: React.FC<VersionManagementModalProps> = ({
     const loadVersionHistory = async (): Promise<void> => {
         try {
             const history = await getVersionHistory(study.id);
-            setVersionHistory(history);
+            // Type assertion needed: StudyVersion[] from hook has optional id, ProtocolVersion requires id
+            setVersionHistory(history as unknown as ProtocolVersion[]);
         } catch (error) {
             console.error('Error loading version history:', error);
         }
@@ -161,7 +163,8 @@ const VersionManagementModal: React.FC<VersionManagementModalProps> = ({
                 notes: formData.notes
             });
 
-            onVersionCreated?.(newVersion);
+            // Type assertion needed: StudyVersion from hook has optional id, ProtocolVersion requires id
+            onVersionCreated?.(newVersion as unknown as ProtocolVersion);
             onClose();
         } catch (error) {
             console.error('Error creating version:', error);
@@ -398,7 +401,7 @@ const VersionManagementModal: React.FC<VersionManagementModalProps> = ({
                                             <span className="ml-1">{AMENDMENT_TYPES[version.amendmentType as keyof typeof AMENDMENT_TYPES]?.label}</span>
                                         </div>
 
-                                        <p className="text-xs text-gray-800">{version.amendmentReason || version.description || 'No description'}</p>
+                                        <p className="text-xs text-gray-800">{version.description || 'No description'}</p>
 
                                         <div className="flex items-center text-xs text-gray-500">
                                             <User className="w-3 h-3 mr-1" />

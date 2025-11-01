@@ -1,10 +1,13 @@
 // Public API exports for studydesign domain
 
-// Export UI components (resolve naming conflict with hooks)
-export * from './ui';
-
-// Export hooks (note: EnhancedDashboardMetrics type from hooks will be available)
+// Export hooks first (includes EnhancedDashboardMetrics type)
 export * from './hooks';
+
+// Export UI components selectively to avoid naming conflicts
+export { default as StudyDesignModule } from './ui/StudyDesignModule';
+export { default as StudyViewPage } from './ui/StudyViewPage';
+// Export component with alias to avoid conflict with type
+export { default as EnhancedDashboardMetricsComponent } from './ui/EnhancedDashboardMetrics';
 
 // Other exports
 export * from './model';
@@ -12,6 +15,3 @@ export * from './services';
 export * from './store';
 export * from './utils';
 export * from './constants';
-
-// Re-export component with explicit name to avoid conflict
-export { default as EnhancedDashboardMetricsComponent } from './ui/EnhancedDashboardMetrics';

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from "react-router-dom";
 import { Bell, ListTodo, Mail } from 'lucide-react';
-import Logout from "../login/Logout";
-import { useAuth } from "../login/AuthContext";
+import Logout from '../../domains/identity-access/src/ui/login/Logout';
+import { useAuth } from '../../domains/identity-access/src/ui/login/AuthContext';
 
 interface AdditionalLink {
     to: string;
