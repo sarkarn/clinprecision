@@ -21,7 +21,11 @@ interface StudyProviderProps {
 
 export const StudyProvider: React.FC<StudyProviderProps> = ({ children }) => {
     const [selectedStudy, setSelectedStudyState] = useState<StudySelection>(() => {
-        // Initialize from localStorage if available
+        // Initialize from localStorage if available (client-side only)
+        if (typeof window === 'undefined') {
+            return null; // SSR: return null
+        }
+        
         const stored = localStorage.getItem('selectedStudy');
         if (!stored) {
             return null;
@@ -36,7 +40,11 @@ export const StudyProvider: React.FC<StudyProviderProps> = ({ children }) => {
     });
 
     useEffect(() => {
-        // Persist to localStorage whenever selectedStudy changes
+        // Persist to localStorage whenever selectedStudy changes (client-side only)
+        if (typeof window === 'undefined') {
+            return; // Skip during SSR
+        }
+        
         if (selectedStudy === null) {
             localStorage.removeItem('selectedStudy');
             return;

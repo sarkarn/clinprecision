@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getFormDefinition, getFormData, saveFormData } from 'services/data-capture/DataEntryService';
-// @ts-ignore
-import ValidationErrors from '../validation/ValidationErrors';
+import ValidationErrors from '../utils/ValidationErrors';
 import ValidationEngine from 'services/quality/ValidationEngine';
 import OptionLoaderService from 'services/OptionLoaderService';
 

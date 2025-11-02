@@ -1,15 +1,35 @@
 import type { AppProps } from 'next/app';
-import '../src/index.css';
-import { AuthProvider } from '../../../packages/domains/authentication/src/ui/login/AuthContext';
+import '../src/styles/index.css';
+import dynamic from 'next/dynamic';
+import React from 'react';
+import { AuthProvider } from '../../../packages/domains/identity-access/src/ui/login/AuthContext';
 import { StudyProvider } from '../../../packages/shared/src/context/StudyContext';
 import { Toaster } from 'react-hot-toast';
 
+// Wrapper component for BrowserRouter
+const RouterWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return <>{children}</>;
+  }
+
+  // Dynamically import BrowserRouter only on client side
+  const { BrowserRouter } = require('react-router-dom');
+  return <BrowserRouter>{children}</BrowserRouter>;
+};
+
 function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <AuthProvider>
-      <StudyProvider>
-        <Component {...pageProps} />
-        <Toaster
+    <RouterWrapper>
+      <AuthProvider>
+        <StudyProvider>
+          <Component {...pageProps} />
+          <Toaster
           position="top-right"
           toastOptions={{
             duration: 4000,
@@ -33,8 +53,9 @@ function MyApp({ Component, pageProps }: AppProps) {
             },
           }}
         />
-      </StudyProvider>
-    </AuthProvider>
+        </StudyProvider>
+      </AuthProvider>
+    </RouterWrapper>
   );
 }
 

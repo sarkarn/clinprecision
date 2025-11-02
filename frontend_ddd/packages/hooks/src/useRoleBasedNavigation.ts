@@ -228,7 +228,11 @@ export const useRoleBasedNavigation = (): RoleBasedNavigationHook => {
   const getUserRole = (): UserRole => {
     // Check multiple sources for user role
     const userObjectRole = user?.role;
-    const localStorageRole = localStorage.getItem('userRole');
+    
+    // Only access localStorage on client-side (SSR safe)
+    const localStorageRole = typeof window !== 'undefined' 
+      ? localStorage.getItem('userRole') 
+      : null;
 
     // Prioritize localStorage role if it exists, then user object, then default
     const rawRole = localStorageRole || userObjectRole || 'USER';

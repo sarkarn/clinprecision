@@ -8,18 +8,12 @@ import { getPatientVisits } from 'services/VisitService';
 import ProtocolDeviationService from 'services/quality/ProtocolDeviationService';
 import { startVisit } from 'services/data-capture/DataEntryService';
 import { useAuth } from '@domains/identity-access/src/ui/login/AuthContext';
-// @ts-ignore
-import PatientStatusBadge from '../subjectmanagement/components/PatientStatusBadge';
-// @ts-ignore
-import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
-// @ts-ignore
-import StatusHistoryTimeline from '../subjectmanagement/components/StatusHistoryTimeline';
-// @ts-ignore
-import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVisitModal';
-// @ts-ignore
-import DeviationModal from './deviations/DeviationModal';
-// @ts-ignore
-import DeviationList from './deviations/DeviationList';
+import PatientStatusBadge from '../../../shared/PatientStatusBadge';
+import StatusChangeModal from '../components/StatusChangeModal';
+import StatusHistoryTimeline from '../components/StatusHistoryTimeline';
+import UnscheduledVisitModal from '../components/UnscheduledVisitModal';
+import DeviationModal from '../../protocol-deviation/ui/DeviationModal';
+import DeviationList from '../../protocol-deviation/ui/DeviationList';
 
 const StatusChangeModalComponent: any = StatusChangeModal;
 const StatusHistoryTimelineComponent: any = StatusHistoryTimeline;

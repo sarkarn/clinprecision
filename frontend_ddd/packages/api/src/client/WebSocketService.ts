@@ -66,8 +66,10 @@ class WebSocketService implements IWebSocketService {
           this.reconnectAttempts = 0;
           this.startHeartbeat();
 
-          // Send authentication if token exists
-          const token = localStorage.getItem('authToken');
+          // Send authentication if token exists (SSR safe)
+          const token = typeof window !== 'undefined' 
+            ? localStorage.getItem('authToken')
+            : null;
           if (token) {
             console.log('*** WebSocketService: Sending authentication');
             this.send('authenticate', { token });

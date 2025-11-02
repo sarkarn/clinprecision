@@ -16,19 +16,16 @@ import { getSubjectsByStudy } from 'services/SubjectService';
 import ApiService from 'services/ApiService';
 import { useStudy, useDebounce } from '@packages/hooks';
 // @ts-ignore - Component to be converted
-import StudySelector from './components/StudySelector';
+import StudySelector from '../components/StudySelector';
 // @ts-ignore - Component to be converted
-import SubjectFilters from './components/SubjectFilters';
+import SubjectFilters from '../components/SubjectFilters';
 // @ts-ignore - Component to be converted
-import SubjectCard from './components/SubjectCard';
+import SubjectCard from '../components/SubjectCard';
 // @ts-ignore - Component to be converted
-import EnrollmentStepper from './components/EnrollmentStepper';
-// @ts-ignore - Component to be converted
-import StatusChangeModal from '../subjectmanagement/components/StatusChangeModal';
-// @ts-ignore - Component to be converted
-import UnscheduledVisitModal from '../subjectmanagement/components/UnscheduledVisitModal';
-// @ts-ignore - Component to be converted
-import WithdrawalModal from '../subjectmanagement/components/WithdrawalModal';
+import EnrollmentStepper from '../components/EnrollmentStepper';
+import StatusChangeModal from '../components/StatusChangeModal';
+import UnscheduledVisitModal from '../components/UnscheduledVisitModal';
+import WithdrawalModal from '../components/WithdrawalModal';
 
 interface Study {
     id: number;

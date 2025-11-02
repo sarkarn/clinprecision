@@ -44,8 +44,10 @@ api.interceptors.request.use(
       return config;
     }
     
-    // Get token from localStorage
-    const token = localStorage.getItem(AuthStorageKeys.AUTH_TOKEN);
+    // Get token from localStorage (SSR safe)
+    const token = typeof window !== 'undefined' 
+      ? localStorage.getItem(AuthStorageKeys.AUTH_TOKEN)
+      : null;
     if (token) {
       console.log('*** ApiService: Auth token found, adding to headers');
       // Ensure headers object exists - use proper axios headers type
@@ -187,7 +189,10 @@ const ApiService: IApiService = {
    * @returns Object with Authorization header if token exists
    */
   getAuthHeaders: (): AuthHeaders => {
-    const token = localStorage.getItem(AuthStorageKeys.AUTH_TOKEN);
+    // SSR safe: only access localStorage on client-side
+    const token = typeof window !== 'undefined' 
+      ? localStorage.getItem(AuthStorageKeys.AUTH_TOKEN)
+      : null;
     if (token) {
       console.log('*** ApiService.getAuthHeaders: Token found');
       return { Authorization: `Bearer ${token}` };

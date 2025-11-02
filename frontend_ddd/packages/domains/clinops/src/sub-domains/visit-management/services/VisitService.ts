@@ -317,8 +317,8 @@ export const fetchVisitById = async (visitId: string): Promise<UnscheduledVisit 
 export const fetchUnscheduledVisitTypes = async (studyId: number): Promise<UnscheduledVisitType[]> => {
   console.log('Fetching unscheduled visit types for study:', studyId);
   
-  // Get auth token from localStorage
-  const token = localStorage.getItem('authToken');
+  // Get auth token from localStorage (SSR safe)
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
   
   const response = await fetch(
     `${API_BASE_URL}/clinops-ws/api/v1/visits/study/${studyId}/unscheduled-types`,

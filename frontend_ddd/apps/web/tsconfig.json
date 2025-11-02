@@ -7,7 +7,7 @@
             "DOM",
             "DOM.Iterable"
         ],
-        "jsx": "react-jsx",
+        "jsx": "preserve",
         /* Module Resolution */
         "module": "ESNext",
         "moduleResolution": "node",
@@ -85,16 +85,22 @@
             "@packages/services/*": [
                 "../../packages/services/*"
             ]
-        }
+        },
+        "incremental": true
     },
     "include": [
+        "next-env.d.ts",
+        "**/*.ts",
+        "**/*.tsx",
         "src",
+        "pages",
         "../../packages/domains",
         "../../packages/services",
         "../../packages/shared",
         "../../packages/hooks",
         "../../packages/utils",
-        "../../packages/api"
+        "../../packages/api",
+        ".next/types/**/*.ts"
     ],
     "exclude": [
         "node_modules",

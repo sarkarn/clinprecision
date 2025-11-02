@@ -186,6 +186,11 @@ export const refreshToken = async (): Promise<void> => {
  * Check if the user is authenticated (token exists and is not expired)
  */
 export const isAuthenticated = (): boolean => {
+  // SSR safe: return false during server-side rendering
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  
   const token = localStorage.getItem('authToken');
   const expiration = localStorage.getItem('tokenExpiration');
 
@@ -201,6 +206,10 @@ export const isAuthenticated = (): boolean => {
  * Get the current authentication token
  */
 export const getAuthToken = (): string | null => {
+  // SSR safe: return null during server-side rendering
+  if (typeof window === 'undefined') {
+    return null;
+  }
   return localStorage.getItem('authToken');
 };
 
@@ -208,6 +217,7 @@ export const getAuthToken = (): string | null => {
  * Get the current user ID (string username)
  */
 export const getUserId = (): string | null => {
+  if (typeof window === 'undefined') return null;
   return localStorage.getItem('userId');
 };
 
@@ -215,6 +225,7 @@ export const getUserId = (): string | null => {
  * Get the current user numeric ID (long ID for API calls)
  */
 export const getUserNumericId = (): string | null => {
+  if (typeof window === 'undefined') return null;
   return localStorage.getItem('userNumericId');
 };
 
@@ -222,6 +233,7 @@ export const getUserNumericId = (): string | null => {
  * Get the current user email
  */
 export const getUserEmail = (): string | null => {
+  if (typeof window === 'undefined') return null;
   return localStorage.getItem('userEmail');
 };
 
@@ -229,6 +241,7 @@ export const getUserEmail = (): string | null => {
  * Get the current user role
  */
 export const getUserRole = (): string | null => {
+  if (typeof window === 'undefined') return null;
   return localStorage.getItem('userRole');
 };
 
@@ -236,6 +249,7 @@ export const getUserRole = (): string | null => {
  * Get the current user display name
  */
 export const getUserName = (): string | null => {
+  if (typeof window === 'undefined') return null;
   return localStorage.getItem('userName');
 };
 
@@ -243,6 +257,7 @@ export const getUserName = (): string | null => {
  * Get the token expiration timestamp
  */
 export const getTokenExpiration = (): string | null => {
+  if (typeof window === 'undefined') return null;
   return localStorage.getItem('tokenExpiration');
 };
 
