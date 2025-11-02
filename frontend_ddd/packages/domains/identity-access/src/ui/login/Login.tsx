@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/router";
 import LoginService from "../../services/LoginService";
 import RequestDemoModal from "../common/modals/RequestDemoModal";
 import {
@@ -45,6 +46,15 @@ const Login: React.FC = () => {
     const [showDemoModal, setShowDemoModal] = useState(false);
     const auth = useAuth();
     const navigate = useNavigate();
+    
+    // Try to get Next.js router, but handle if it's not available
+    let router;
+    try {
+        router = useRouter();
+    } catch (e) {
+        // Router not available (likely SSR or outside Next.js context)
+        router = null;
+    }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -78,8 +88,13 @@ const Login: React.FC = () => {
                 }
             );
 
-            // Navigate to home page after successful login
-            navigate("/");
+            // Navigate to home page after successful login using Next.js router
+            if (router) {
+                router.push("/");
+            } else if (typeof window !== 'undefined') {
+                // Fallback to window.location if router is not available
+                window.location.href = "/";
+            }
         } catch (err: any) {
             if (err.response && err.response.status === 401) {
                 setError("Invalid credentials. Please try again.");

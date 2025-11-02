@@ -4,7 +4,7 @@ import IdentityAccessModule from "@domains/identity-access/src/ui/IdentityAccess
 import OrganizationAdminModule from "@domains/organization/src/ui/OrganizationAdminModule";
 import SiteOperationsModule from "@domains/site-operation/src/ui/SiteOperationsModule";
 
-const AdminRoutes = () => (
+export const AdminRoutes = () => (
     <>
         <Route path="/identity-access/*" element={<IdentityAccessModule />} />
         <Route path="/organization-admin/*" element={<OrganizationAdminModule />} />
@@ -28,5 +28,3 @@ const AdminRoutes = () => (
         <Route path="/user-management" element={<Navigate to="/identity-access" replace />} />
     </>
 );
-
-export default AdminRoutes;

@@ -1,10 +1,10 @@
 import React from "react";
 import HomeLayout from "../layouts/HomeLayout";
 import { Routes, Route, Navigate } from "react-router-dom";
-import StudyDesignRoutes from "./StudyDesignRoutes";
-import DataCaptureRoutes from "./DataCaptureRoutes";
-import SubjectManagementRoutes from "./SubjectManagementRoutes";
-import AdminRoutes from "./AdminRoutes";
+import { studyDesignRoutes } from "./StudyDesignRoutes";
+import { dataCaptureRoutes } from "./DataCaptureRoutes";
+import { subjectManagementRoutes } from "./SubjectManagementRoutes";
+import { adminRoutes } from "./AdminRoutes";
 
 const Home: React.FC = () => (
     <HomeLayout>
@@ -15,10 +15,10 @@ const Home: React.FC = () => (
                     {/* Hero Welcome Section and dashboard content */}
                 </div>
             } />
-            <StudyDesignRoutes />
-            <DataCaptureRoutes />
-            <SubjectManagementRoutes />
-            <AdminRoutes />
+            {studyDesignRoutes}
+            {dataCaptureRoutes}
+            {subjectManagementRoutes}
+            {adminRoutes}
             {/* Add other feature route components here */}
             {/* Placeholder and reporting routes can be modularized similarly */}
         </Routes>
